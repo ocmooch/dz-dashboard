@@ -1,0 +1,65 @@
+/* Design tokens — the single source of theme truth (docs/06_DESIGN_SYSTEM.md).
+   Dark is the default "Danger Zone" instrument-panel theme; a light set can be
+   added behind [data-theme="light"] later without touching components. */
+
+:root,
+:root[data-theme="dark"] {
+  /* Surfaces — instrument panel */
+  --bg: #0b0e13;
+  --surface-1: #12161d;
+  --surface-2: #1a2029;
+  --border: #262d38;
+
+  /* Text */
+  --text: #e7ecf3;
+  --text-muted: #9aa7b8;
+  --text-faint: #5f6b7c;
+
+  /* Accents */
+  --accent: #ff6a1a; /* afterburner orange — emphasis, live, primary CTA */
+  --accent-quiet: #ff6a1a26;
+  --win: #34d39e;
+  --loss: #ef4761;
+  --warn: #f5b73d;
+  --info: #5aa9ff;
+
+  /* Data-viz categorical ramp */
+  --series-1: #ff6a1a;
+  --series-2: #5aa9ff;
+  --series-3: #34d39e;
+  --series-4: #f5b73d;
+  --series-5: #b07cff;
+  --series-6: #ff8fa3;
+
+  /* Type scale */
+  --fs-display: 2.25rem;
+  --fs-h1: 1.75rem;
+  --fs-h2: 1.375rem;
+  --fs-h3: 1.125rem;
+  --fs-body: 0.9375rem;
+  --fs-sm: 0.8125rem;
+  --fs-xs: 0.6875rem;
+
+  /* Faces — chosen during this milestone (NOT Inter) */
+  --font-display: "Chakra Petch", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Spacing (8px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-8: 48px;
+
+  /* Radius / shadow / motion */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-1: 0 1px 2px #0008;
+  --shadow-2: 0 8px 24px #000a;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+}
