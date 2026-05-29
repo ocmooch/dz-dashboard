@@ -1,0 +1,71 @@
+"""Dashboard settings, loaded from environment + ``.env``.
+
+Unlike Phase 1, the dashboard needs no secrets (no cookie, no league id) —
+it only reads the database Phase 1 produced. The one setting that matters is
+``DATABASE_URL``: it must point at the *live* Phase 1 SQLite file so the
+dashboard always reflects the latest pipeline run, read-only.
+
+Paths/URLs are resolved so a relative SQLite path means the same file
+regardless of the working directory the server is launched from. The default
+points at the sibling ``danger-zone`` checkout (``../danger-zone/data/fantasy.db``).
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+from typing import Literal
+
+from pydantic import AliasChoices, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# Default to the sibling Phase 1 checkout's live database.
+_DEFAULT_DB = (PROJECT_ROOT.parent / "danger-zone" / "data" / "fantasy.db").resolve()
+DEFAULT_DATABASE_URL = f"sqlite:///{_DEFAULT_DB}"
+
+
+class Settings(BaseSettings):
+    """All dashboard configuration. One source of truth."""
+
+    model_config = SettingsConfigDict(
+        env_file=PROJECT_ROOT / ".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # --- Database (the only data source; read-only) ---
+    database_url: str = DEFAULT_DATABASE_URL
+
+    # --- API server ---
+    host: str = Field("127.0.0.1", validation_alias=AliasChoices("DASHBOARD_HOST", "HOST"))
+    port: int = Field(8800, validation_alias=AliasChoices("DASHBOARD_PORT", "PORT"))
+
+    # --- CORS (the Vite dev server origin) ---
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
+        validation_alias=AliasChoices("DASHBOARD_CORS_ORIGINS", "CORS_ORIGINS"),
+    )
+
+    # --- Logging ---
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    def resolved_database_url(self) -> str:
+        """Return ``database_url`` with any relative SQLite path made absolute
+        against the project root, so the CWD never changes which file we read."""
+        prefix = "sqlite:///"
+        if not self.database_url.startswith(prefix):
+            return self.database_url
+        raw = self.database_url[len(prefix) :]
+        if not raw or raw == ":memory:" or raw.startswith("/"):
+            return self.database_url
+        absolute = (PROJECT_ROOT / raw).resolve()
+        return f"{prefix}{absolute}"
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Cached settings accessor used by the server and CLI."""
+    return Settings()
