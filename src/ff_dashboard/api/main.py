@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from ff_pipeline.api.errors import install_error_handlers
 
-from ff_dashboard.api.routes import health
+from ff_dashboard.api.routes import health, owners, players, records, seasons
 from ff_dashboard.cache import AnalyticsCache
 from ff_dashboard.engine import create_readonly_engine
 
@@ -56,5 +56,9 @@ def create_app(
         )
 
     app.include_router(health.router)
+    app.include_router(seasons.router)
+    app.include_router(owners.router)
+    app.include_router(records.router)
+    app.include_router(players.router)
 
     return app
