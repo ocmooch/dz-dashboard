@@ -352,3 +352,74 @@ class SeasonTotals(BaseModel):
     season_year: int
     position: str | None = None
     totals: list[SeasonTotal]
+
+
+# ---------------------------------------------------------------------------
+# Matchups & box scores
+# ---------------------------------------------------------------------------
+
+
+class GameTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_name: str | None = None
+    score: float | None = None
+    is_winner: bool = False
+
+
+class GameCard(BaseModel):
+    """One game, folded back from Phase 1's two perspective rows. ``matchup_id``
+    deep-links to the box score."""
+
+    matchup_id: int
+    is_playoff: bool = False
+    team_a: GameTeam | None = None
+    team_b: GameTeam | None = None
+    margin: float | None = None
+    winner_team_id: int | None = None
+
+
+class WeekMatchups(BaseModel):
+    season_id: int
+    season_year: int
+    week: int
+    is_scored: bool
+    games: list[GameCard]
+
+
+class BoxPlayer(BaseModel):
+    roster_slot: str | None = None
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+    league_points: float | None = None  # null (not 0) when unscored — see ``reason``
+    is_starter: bool
+    breakdown: dict[str, Any] = {}
+    projection: float | None = None
+    available: bool = True
+    reason: str | None = None
+
+
+class BoxTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_name: str | None = None
+    total_score: float | None = None  # authoritative team total from Phase 1
+    starter_points: float  # sum of scored starters (drives points-left)
+    bench_points: float
+    optimal_total: float
+    points_left_on_bench: float
+    beat_projection_by: float | None = None
+    lineup: list[BoxPlayer]
+
+
+class BoxScore(BaseModel):
+    matchup_id: int
+    season_year: int | None = None
+    week: int
+    available: bool
+    reason: str | None = None
+    is_playoff: bool = False
+    home: BoxTeam | None = None
+    away: BoxTeam | None = None
+    winner_team_id: int | None = None
