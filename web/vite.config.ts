@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from "node:url";
 
 import react from "@vitejs/plugin-react";
@@ -18,6 +19,16 @@ export default defineConfig({
       "/v1": BFF,
       "/health": BFF,
       "/openapi.json": BFF,
+    },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.ts",
+    css: false,
+    coverage: {
+      provider: "v8",
+      include: ["src/design-system/**", "src/lib/format.ts"],
     },
   },
 });
