@@ -1,14 +1,23 @@
-/* Design tokens — the single source of theme truth (docs/06_DESIGN_SYSTEM.md).
-   Dark is the default "Danger Zone" instrument-panel theme; a light set can be
-   added behind [data-theme="light"] later without touching components. */
+/* Design tokens — the single source of theme truth (docs/06_DESIGN_SYSTEM.md,
+   claude-design-files/.../styles/tokens.css). Dark is the default "Danger Zone"
+   afterburner instrument-panel theme; a light set can be added behind
+   [data-theme="light"] later without touching components.
+
+   Everything visual is driven from here so the theme is swappable without a
+   rewrite. Variable names follow the high-fidelity handoff. */
 
 :root,
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surfaces — instrument panel */
   --bg: #0b0e13;
   --surface-1: #12161d;
   --surface-2: #1a2029;
+  --surface-3: #20283370;
   --border: #262d38;
+  --border-strong: #36404e;
+  --hairline: #1f2630;
 
   /* Text */
   --text: #e7ecf3;
@@ -17,19 +26,32 @@
 
   /* Accents */
   --accent: #ff6a1a; /* afterburner orange — emphasis, live, primary CTA */
-  --accent-quiet: #ff6a1a26;
+  --accent-soft: #ff6a1a1f; /* ~12% tint for fills */
+  --accent-quiet: #ff6a1a26; /* 15% tint (legacy alias of accent-soft) */
+  --accent-line: #ff6a1a;
   --win: #34d39e;
   --loss: #ef4761;
   --warn: #f5b73d;
   --info: #5aa9ff;
 
-  /* Data-viz categorical ramp */
+  /* Data-viz categorical ramp (color-blind-aware, distinct in dark) */
   --series-1: #ff6a1a;
   --series-2: #5aa9ff;
   --series-3: #34d39e;
   --series-4: #f5b73d;
   --series-5: #b07cff;
   --series-6: #ff8fa3;
+  /* aliases used by the design files */
+  --cat-1: #ff6a1a;
+  --cat-2: #5aa9ff;
+  --cat-3: #34d39e;
+  --cat-4: #f5b73d;
+  --cat-5: #b07cff;
+  --cat-6: #ff8fa3;
+  /* Heatmap interpolation endpoints (rivalry matrix) */
+  --heat-loss: 239, 71, 97;
+  --heat-steel: 57, 65, 78;
+  --heat-win: 52, 211, 158;
 
   /* Type scale */
   --fs-display: 2.25rem;
@@ -40,10 +62,11 @@
   --fs-sm: 0.8125rem;
   --fs-xs: 0.6875rem;
 
-  /* Faces — chosen during this milestone (NOT Inter) */
-  --font-display: "Chakra Petch", system-ui, sans-serif;
+  /* Faces — Saira Condensed display (jersey-number energy), per the handoff.
+     NOT Inter. All numeric data renders in mono + tabular-nums. */
+  --font-display: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
 
   /* Spacing (8px base) */
   --sp-1: 4px;
@@ -52,14 +75,43 @@
   --sp-4: 16px;
   --sp-5: 24px;
   --sp-6: 32px;
-  --sp-8: 48px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  /* aliases used by the design files (--s1…--s8) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
 
-  /* Radius / shadow / motion */
+  /* Radius */
   --radius: 10px;
   --radius-sm: 6px;
+  --radius-lg: 14px;
+
+  /* Shadow / glow / panel atmospherics */
   --shadow-1: 0 1px 2px #0008;
   --shadow-2: 0 8px 24px #000a;
+  --panel-grad: linear-gradient(180deg, #141922 0%, #11151c 100%);
+  --panel-shadow: 0 1px 0 #2a323d inset, 0 18px 40px -24px #000000cc;
+  --inset-shadow: inset 0 1px 0 #ffffff08;
+  --grid-line: #ffffff05;
+  --glow-accent: 0 0 0 1px #ff6a1a55, 0 0 22px -6px #ff6a1a66;
+  --chip-bg: #222a35;
+  --chip-text: #c4cedb;
+  --focus-ring: 0 0 0 2px #0b0e13, 0 0 0 4px #5aa9ff;
+  --track: #20283e;
+
+  /* Motion */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --dur-fast: 120ms;
   --dur: 200ms;
+
+  /* Layout */
+  --maxw: 1320px;
+  --nav-w: 232px;
+  --topbar-h: 72px;
 }

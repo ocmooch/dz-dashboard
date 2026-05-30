@@ -12,6 +12,8 @@ export default {
         "surface-1": "var(--surface-1)",
         "surface-2": "var(--surface-2)",
         border: "var(--border)",
+        "border-strong": "var(--border-strong)",
+        hairline: "var(--hairline)",
         text: "var(--text)",
         muted: "var(--text-muted)",
         faint: "var(--text-faint)",
@@ -29,6 +31,10 @@ export default {
       borderRadius: {
         DEFAULT: "var(--radius)",
         sm: "var(--radius-sm)",
+        lg: "var(--radius-lg)",
+      },
+      maxWidth: {
+        content: "var(--maxw)",
       },
     },
   },
