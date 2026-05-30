@@ -1,0 +1,104 @@
+/* ============================================================
+   DANGER ZONE — WIREFRAME MODE
+   Low-fidelity structural layouts for IA / flow exploration.
+   Sketchy, near-monochrome, hand-annotated. Same IA, no chrome.
+   ============================================================ */
+
+.wire {
+  color-scheme: light;
+  --wbg: #f4f1ea;
+  --wink: #2b2b2b;
+  --wline: #b9b3a6;
+  --wfill: #e4e0d6;
+  --wmuted: #8c867a;
+  --waccent: #d4622a;
+  background: var(--wbg);
+  color: var(--wink);
+  min-height: 100vh;
+  font-family: "Caveat", "Comic Sans MS", cursive;
+}
+.wire * { box-sizing: border-box; }
+
+.wire .sheet {
+  max-width: 1180px; margin: 0 auto; padding: 28px 32px 80px;
+}
+
+/* sketch primitives */
+.wire .box {
+  border: 2px solid var(--wink); border-radius: 8px; background: #fff;
+  position: relative;
+  box-shadow: 3px 3px 0 #00000010;
+}
+.wire .box.dashed { border-style: dashed; background: var(--wfill); }
+.wire .label {
+  font-family: "Caveat", cursive; font-size: 20px; font-weight: 700;
+}
+.wire .hand-note {
+  font-family: "Caveat", cursive; font-size: 17px; color: var(--waccent);
+  font-weight: 700;
+}
+.wire .scribble { height: 10px; border-radius: 6px; background: var(--wline); }
+.wire .scribble.w-40 { width: 40%; } .wire .scribble.w-60 { width: 60%; }
+.wire .scribble.w-80 { width: 80%; } .wire .scribble.w-100 { width: 100%; }
+.wire .scribble.dark { background: var(--wmuted); }
+.wire .num-block { font-family: "Caveat", cursive; font-weight: 700; }
+
+/* wire top bar */
+.wire .wtop {
+  display: flex; align-items: center; gap: 18px;
+  border: 2px solid var(--wink); border-radius: 10px; background: #fff;
+  padding: 12px 18px; margin-bottom: 8px; box-shadow: 3px 3px 0 #00000012;
+}
+.wire .wlogo { width: 42px; height: 42px; border: 2px solid var(--wink); border-radius: 8px; display: grid; place-items: center; font-size: 20px; font-weight: 700; }
+.wire .wsearch { flex: 1; max-width: 380px; height: 36px; border: 2px dashed var(--wline); border-radius: 8px; display: flex; align-items: center; padding: 0 12px; color: var(--wmuted); font-size: 18px; }
+.wire .wpill { border: 2px solid var(--wink); border-radius: 8px; padding: 6px 12px; font-size: 17px; font-weight: 700; }
+
+.wire .wbody { display: grid; grid-template-columns: 180px 1fr; gap: 18px; }
+.wire .wnav { border: 2px solid var(--wink); border-radius: 10px; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 6px; height: fit-content; box-shadow: 3px 3px 0 #00000012; }
+.wire .wnav-item { padding: 8px 10px; border-radius: 6px; font-size: 18px; font-weight: 700; }
+.wire .wnav-item.on { background: var(--wink); color: #fff; }
+.wire .wnav-item.soon { color: var(--wmuted); font-size: 16px; }
+
+.wire .wmain { display: flex; flex-direction: column; gap: 18px; }
+.wire .wrow { display: grid; gap: 18px; }
+.wire .wrow.c2 { grid-template-columns: 1.3fr 1fr; }
+.wire .wrow.c3 { grid-template-columns: 1fr 1fr 1fr; }
+.wire .wrow.c4 { grid-template-columns: repeat(4,1fr); }
+
+.wire .wcard { border: 2px solid var(--wink); border-radius: 10px; background: #fff; padding: 16px; box-shadow: 3px 3px 0 #00000012; }
+.wire .wcard-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.wire .wcard-t { font-size: 22px; font-weight: 700; }
+.wire .wstat { border: 2px solid var(--wink); border-radius: 8px; padding: 12px; }
+.wire .wstat .k { font-size: 15px; color: var(--wmuted); }
+.wire .wstat .v { font-size: 30px; font-weight: 700; }
+
+.wire .wtable-row { display: grid; grid-template-columns: 28px 1fr 70px 90px; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1.5px dashed var(--wline); }
+.wire .wcircle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--wink); display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+
+/* annotation callout with arrow */
+.wire .callout { display: inline-flex; align-items: center; gap: 8px; }
+.wire .callout .arrow { font-size: 22px; color: var(--waccent); }
+
+.wire .wgap {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700;
+  color: var(--waccent); border: 2px dashed var(--waccent); border-radius: 6px; padding: 2px 8px;
+  background: #fff;
+}
+
+/* heatmap wireframe grid */
+.wire .wheat { display: grid; gap: 4px; }
+.wire .wheat-cell { aspect-ratio: 1; border: 1.5px solid var(--wline); border-radius: 4px; display: grid; place-items: center; font-size: 13px; color: var(--wmuted); }
+.wire .wheat-cell.self { background: var(--wink); }
+.wire .wheat-cell.f3 { background: #d8d2c4; }
+.wire .wheat-cell.f2 { background: #e6e1d6; }
+
+/* chart placeholder */
+.wire .wchart { height: 170px; border: 2px solid var(--wink); border-radius: 8px; background:
+   repeating-linear-gradient(0deg, transparent, transparent 27px, #00000008 27px, #00000008 28px);
+   position: relative; padding: 12px; }
+.wire .wchart .ln { position: absolute; left: 12px; right: 12px; bottom: 40px; height: 2px; background: var(--wink); }
+
+@media (max-width: 900px) {
+  .wire .wbody { grid-template-columns: 1fr; }
+  .wire .wrow.c2, .wire .wrow.c3, .wire .wrow.c4 { grid-template-columns: 1fr; }
+}
