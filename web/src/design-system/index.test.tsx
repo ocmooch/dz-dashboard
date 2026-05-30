@@ -4,15 +4,21 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   Badge,
+  Button,
   Card,
   CardHeader,
   Chip,
   DataGap,
   EmptyState,
   ErrorState,
+  Pill,
   RecordLine,
   Skeleton,
+  Sparkline,
   Stat,
+  Tabs,
+  Trophy,
+  WeekStepper,
 } from "./index";
 
 describe("Card", () => {
@@ -128,12 +134,16 @@ describe("Chip", () => {
 });
 
 describe("DataGap (the honesty component)", () => {
-  it("exposes a note role and the warning marker", () => {
+  it("exposes a note role with the dashed/hatched affordance class", () => {
     render(<DataGap />);
     const note = screen.getByRole("note");
     expect(note).toBeInTheDocument();
-    expect(note).toHaveClass("dz-badge--gap");
-    expect(note).toHaveTextContent("▲");
+    expect(note).toHaveClass("dz-datagap");
+  });
+
+  it("applies the small-size modifier when requested", () => {
+    render(<DataGap reason="no_meetings" size="sm" />);
+    expect(screen.getByRole("note")).toHaveClass("dz-datagap--sm");
   });
 
   it("maps a known reason code to a human label", () => {
@@ -205,5 +215,105 @@ describe("ErrorState", () => {
     render(<ErrorState message="x" onRetry={onRetry} />);
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Button", () => {
+  it("renders a secondary button by default", () => {
+    render(<Button>Go</Button>);
+    const btn = screen.getByRole("button", { name: "Go" });
+    expect(btn).toHaveClass("dz-btn");
+    expect(btn).not.toHaveClass("dz-btn--primary");
+  });
+
+  it("applies the primary and ghost variant classes", () => {
+    const { rerender } = render(<Button variant="primary">P</Button>);
+    expect(screen.getByRole("button", { name: "P" })).toHaveClass("dz-btn--primary");
+    rerender(<Button variant="ghost">G</Button>);
+    expect(screen.getByRole("button", { name: "G" })).toHaveClass("dz-btn--ghost");
+  });
+
+  it("is disabled and busy while loading, and does not fire onClick", async () => {
+    const onClick = vi.fn();
+    render(
+      <Button loading onClick={onClick}>
+        Save
+      </Button>,
+    );
+    const btn = screen.getByRole("button", { name: "Save" });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("Pill", () => {
+  it("uses the base class by default and applies tones", () => {
+    const { rerender } = render(<Pill>n</Pill>);
+    expect(screen.getByText("n")).toHaveClass("dz-pill");
+    expect(screen.getByText("n")).not.toHaveClass("dz-pill--accent");
+    rerender(<Pill tone="win">w</Pill>);
+    expect(screen.getByText("w")).toHaveClass("dz-pill--win");
+    rerender(<Pill tone="loss">l</Pill>);
+    expect(screen.getByText("l")).toHaveClass("dz-pill--loss");
+  });
+});
+
+describe("Trophy", () => {
+  it("renders the star marker with an optional count and label", () => {
+    render(<Trophy label="titles" count={3} />);
+    expect(screen.getByText("★")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("titles")).toBeInTheDocument();
+  });
+});
+
+describe("WeekStepper", () => {
+  it("disables prev at the floor and next at the ceiling", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<WeekStepper week={1} max={14} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next week" })).toBeEnabled();
+    rerender(<WeekStepper week={14} max={14} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "Next week" })).toBeDisabled();
+  });
+
+  it("steps the week on prev/next", async () => {
+    const onChange = vi.fn();
+    render(<WeekStepper week={5} max={14} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: "Next week" }));
+    expect(onChange).toHaveBeenCalledWith(6);
+    await userEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(onChange).toHaveBeenCalledWith(4);
+  });
+});
+
+describe("Tabs", () => {
+  const tabs = [
+    { id: "a", label: "Career" },
+    { id: "b", label: "Seasons" },
+  ] as const;
+
+  it("marks the active tab selected and switches on click", async () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={[...tabs]} value="a" onChange={onChange} />);
+    expect(screen.getByRole("tab", { name: "Career" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Seasons" })).toHaveAttribute("aria-selected", "false");
+    await userEvent.click(screen.getByRole("tab", { name: "Seasons" }));
+    expect(onChange).toHaveBeenCalledWith("b");
+  });
+});
+
+describe("Sparkline", () => {
+  it("renders an accessible polyline for two or more points", () => {
+    render(<Sparkline values={[1, 3, 2, 5]} />);
+    const svg = screen.getByRole("img", { name: "trend sparkline" });
+    expect(svg.querySelector("polyline")).toBeInTheDocument();
+  });
+
+  it("renders nothing for fewer than two points", () => {
+    const { container } = render(<Sparkline values={[1]} />);
+    expect(container.querySelector("svg")).toBeNull();
   });
 });

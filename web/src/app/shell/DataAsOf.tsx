@@ -17,20 +17,22 @@ export function DataAsOf() {
   const when = finished
     ? finished.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "—";
+  const ok = run?.status === "success";
   return (
-    <div className="flex items-center gap-2 text-right">
-      <span
-        className="h-2 w-2 rounded-full"
-        style={{ background: run?.status === "success" ? "var(--win)" : "var(--warn)" }}
-        aria-hidden
-      />
-      <div className="leading-tight">
-        <div className="dz-eyebrow">data as of</div>
-        <div className="num text-[var(--fs-sm)] text-muted">
+    <button
+      type="button"
+      className="dz-data-status"
+      title="Data coverage — opens in a later milestone"
+      aria-label={`Data as of ${when}${run?.run_id != null ? `, run ${run.run_id}` : ""}`}
+    >
+      <span className={`dz-live-dot ${ok ? "" : "dz-live-dot--warn"}`.trim()} aria-hidden />
+      <span className="text-right leading-tight">
+        <span className="dz-eyebrow block">data as of</span>
+        <span className="num block text-[var(--fs-sm)] text-muted">
           {when}
           {run?.run_id != null && <span className="text-faint"> · run #{run.run_id}</span>}
-        </div>
-      </div>
-    </div>
+        </span>
+      </span>
+    </button>
   );
 }

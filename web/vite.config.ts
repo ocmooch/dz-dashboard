@@ -28,7 +28,7 @@ export default defineConfig({
     css: false,
     coverage: {
       provider: "v8",
-      include: ["src/design-system/**", "src/lib/format.ts"],
+      include: ["src/design-system/**", "src/charts/**", "src/lib/format.ts"],
     },
   },
 });
