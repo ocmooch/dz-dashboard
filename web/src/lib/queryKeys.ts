@@ -8,4 +8,6 @@ export const qk = {
   headToHead: (a: number, b: number) => ["owners", "head-to-head", a, b] as const,
   records: ["records"] as const,
   championships: ["records", "championships"] as const,
+  weekMatchups: (seasonId: number, week: number) => ["matchups", seasonId, week] as const,
+  boxScore: (matchupId: number) => ["box-score", matchupId] as const,
 };

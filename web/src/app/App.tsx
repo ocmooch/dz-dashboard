@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { HomePage } from "@/features/home/HomePage";
+import { BoxScorePage } from "@/features/matchups/BoxScorePage";
+import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
 import { RecordsPage } from "@/features/records/RecordsPage";
 import { PairwisePage } from "@/features/rivalries/PairwisePage";
@@ -21,13 +23,13 @@ export function App() {
             <Route path="records" element={<RecordsPage />} />
             <Route path="rivalries" element={<RivalriesPage />} />
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />
+            <Route path="matchups" element={<MatchupsPage />} />
+            <Route path="matchups/:matchupId" element={<BoxScorePage />} />
             <Route path="managers" element={<PlaceholderPage title="Managers" />} />
-            {/* Deep-link targets for records/rivalries; full pages land in P4/P5/P7. */}
+            {/* Deep-link targets whose full pages land later (P4/P7). */}
             <Route path="managers/:ownerId" element={<PlaceholderPage title="Manager profile" />} />
-            <Route path="matchups/:matchupId" element={<PlaceholderPage title="Box score" />} />
             <Route path="players" element={<PlaceholderPage title="Players" />} />
             <Route path="players/:playerId" element={<PlaceholderPage title="Player" />} />
-            <Route path="matchups" element={<PlaceholderPage title="Matchups" />} />
             <Route path="draft" element={<PlaceholderPage title="Draft" />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>

@@ -167,30 +167,33 @@ def _populate(session: Session) -> None:
         (2017, 2, "ice", 105.0, "mav", 100.0),
         (2017, 2, "goose", 140.0, "viper", 110.0),
     ]
+    # matchup_id of the *perspective* row, keyed (year, week, team_key), so the
+    # box-score tests can address a specific matchup.
+    matchup_row_id: dict[tuple[int, int, str], int] = {}
     for year, week, home, hs, away, as_ in games:
         ht, at = team_id[(year, home)], team_id[(year, away)]
-        session.add(
-            Matchup(
-                season_id=sid[year],
-                week=week,
-                team_id=ht,
-                opponent_team_id=at,
-                team_score=hs,
-                opponent_score=as_,
-                is_win=hs > as_ if hs != as_ else None,
-            )
+        home_row = Matchup(
+            season_id=sid[year],
+            week=week,
+            team_id=ht,
+            opponent_team_id=at,
+            team_score=hs,
+            opponent_score=as_,
+            is_win=hs > as_ if hs != as_ else None,
         )
-        session.add(
-            Matchup(
-                season_id=sid[year],
-                week=week,
-                team_id=at,
-                opponent_team_id=ht,
-                team_score=as_,
-                opponent_score=hs,
-                is_win=as_ > hs if hs != as_ else None,
-            )
+        away_row = Matchup(
+            season_id=sid[year],
+            week=week,
+            team_id=at,
+            opponent_team_id=ht,
+            team_score=as_,
+            opponent_score=hs,
+            is_win=as_ > hs if hs != as_ else None,
         )
+        session.add_all([home_row, away_row])
+        session.flush()
+        matchup_row_id[(year, week, home)] = home_row.matchup_id
+        matchup_row_id[(year, week, away)] = away_row.matchup_id
 
     # --- Champions/final ranks. Maverick wins 2016 AND 2017 (playoffs), Slider 2015.
     #     2017 champion is NOT the #1 seed (Iceman), proving champ != standings leader.
@@ -391,6 +394,75 @@ def _populate(session: Session) -> None:
         )
     )
 
+    # --- A hand-solvable box score: Iceman's 2017 week-1 lineup (the ice vs goose
+    #     game). A full starter set + bench + an IR player + a DST starter with no
+    #     scored points, authored so the optimal-lineup solver has a known answer:
+    #       starter total   = 24+18+9+15+11+8+12+7 (+DST 0)      = 104.0
+    #       bench points     = 26+20+5 (IR's 30 excluded)         = 51.0
+    #       optimal lineup   = swap QB 24->26 and RB 9->20        = 117.0
+    #       points left      = 117.0 - 104.0                       = 13.0
+    #     Every added point stays under the existing record maxima (best week 35.5,
+    #     2017 top scorer 58.0) so no prior KNOWN answer moves.
+    box_players = {
+        "ice_qb1": Player(name_full="Ice QB One", position="QB", nfl_team="BAL"),
+        "ice_qb2": Player(name_full="Ice QB Two", position="QB", nfl_team="CIN"),
+        "ice_rb1": Player(name_full="Ice RB One", position="RB", nfl_team="NYG"),
+        "ice_rb2": Player(name_full="Ice RB Two", position="RB", nfl_team="DAL"),
+        "ice_rb3": Player(name_full="Ice RB Three", position="RB", nfl_team="PHI"),
+        "ice_wr1": Player(name_full="Ice WR One", position="WR", nfl_team="GB"),
+        "ice_wr2": Player(name_full="Ice WR Two", position="WR", nfl_team="DET"),
+        "ice_wr3": Player(name_full="Ice WR Three", position="WR", nfl_team="CHI"),
+        "ice_wr4": Player(name_full="Ice WR Four", position="WR", nfl_team="LA"),
+        "ice_te1": Player(name_full="Ice TE One", position="TE", nfl_team="KC"),
+        "ice_k1": Player(name_full="Ice K One", position="K", nfl_team="BUF"),
+        "ice_dst": Player(name_full="Ice D/ST", position="DEF", nfl_team="PIT"),
+        "ice_ir": Player(name_full="Ice IR Guy", position="RB", nfl_team="MIA"),
+    }
+    session.add_all(box_players.values())
+    session.flush()
+    bpid = {k: p.player_id for k, p in box_players.items()}
+
+    ice_2017 = team_id[(2017, "ice")]
+    # (key, slot, is_starter, points)  — points None => no scored row (the DST gap).
+    box_lineup: list[tuple[str, str, bool, float | None]] = [
+        ("ice_qb1", "QB", True, 24.0),
+        ("ice_rb1", "RB", True, 18.0),
+        ("ice_rb2", "RB", True, 9.0),
+        ("ice_wr1", "WR", True, 15.0),
+        ("ice_wr2", "WR", True, 11.0),
+        ("ice_te1", "TE", True, 8.0),
+        ("ice_wr3", "FLEX", True, 12.0),
+        ("ice_k1", "K", True, 7.0),
+        ("ice_dst", "DEF", True, None),  # DST starter, not scored (known gap)
+        ("ice_qb2", "BN", False, 26.0),
+        ("ice_rb3", "BN", False, 20.0),
+        ("ice_wr4", "BN", False, 5.0),
+        ("ice_ir", "IR", False, 30.0),  # high, but IR — must never enter the optimal
+    ]
+    for key, slot, starter, pts in box_lineup:
+        session.add(
+            TeamRoster(
+                team_id=ice_2017,
+                player_id=bpid[key],
+                season_year=2017,
+                week=1,
+                roster_slot=slot,
+                is_starter=starter,
+                acquisition_type="draft",
+                acquisition_week=1,
+            )
+        )
+        if pts is not None:
+            _add_raw_and_scored(
+                session,
+                player_id=bpid[key],
+                season_id=sid[2017],
+                season_year=2017,
+                week=1,
+                points=pts,
+                breakdown={"rushing": pts},
+            )
+
     # --- A successful pipeline run so /v1/meta + records reflect a real run id.
     run = PipelineRun(status="success", mode="reconstruct", started_at=NOW, finished_at=NOW)
     session.add(run)
@@ -404,6 +476,8 @@ def _populate(session: Session) -> None:
     KNOWN["season_id"] = sid
     KNOWN["team_id"] = team_id
     KNOWN["player_id"] = pid
+    KNOWN["box_player_id"] = bpid
+    KNOWN["matchup_id"] = matchup_row_id
     KNOWN["run_id"] = run.run_id
 
 
@@ -503,4 +577,9 @@ KNOWN: dict[str, Any] = {
     # Stats
     "top_scorer_2016_season_total": 55.0,  # McCaffrey
     "top_scorer_2017_season_total": 58.0,  # Jefferson
+    # Box score — Iceman 2017 wk1 (see the hand-authored lineup in _populate).
+    "box_starter_total": 104.0,
+    "box_bench_points": 51.0,
+    "box_optimal_total": 117.0,
+    "box_points_left": 13.0,
 }
