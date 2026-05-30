@@ -115,6 +115,9 @@ def test_records_endpoint(client: TestClient) -> None:
     data = _envelope(client.get("/v1/records"))
     assert data["highest_team_score"]["value"] == 160.4
     assert data["most_championships"]["owner_name"] == "Maverick"
+    # The records book carries the closest-rivalry stat for its deep-linked card.
+    assert data["closest_rivalry"]["available"] is True
+    assert data["closest_rivalry"]["games_played"] == 3
 
 
 def test_championships_endpoint(client: TestClient) -> None:

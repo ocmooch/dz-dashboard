@@ -136,6 +136,16 @@ def test_records_record_only(session: Session) -> None:
     assert book["longest_loss_streak"]["owner_name"] == "Iceman"
 
 
+def test_records_closest_rivalry(session: Session) -> None:
+    # Maverick vs Iceman is the most-played pair (3 meetings) -> wins the
+    # "more games first, then nearest 0.5" tiebreak, ahead of the 2-game pairs.
+    rivalry = records_book(session)["closest_rivalry"]
+    assert rivalry["available"] is True
+    assert rivalry["games_played"] == KNOWN["h2h_mav_ice"]["games"]  # 3
+    names = {rivalry["owner_a"]["display_name"], rivalry["owner_b"]["display_name"]}
+    assert names == {"Maverick", "Iceman"}
+
+
 def test_records_only_use_scored_era(session: Session) -> None:
     book = records_book(session)
     assert book["scored_era"] == KNOWN["seasons_scored"]  # [2016, 2017]
