@@ -361,6 +361,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/weeks/{week}/matchups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Week Matchups */
+        get: operations["get_week_matchups_v1_seasons__season_id__weeks__week__matchups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/matchups/{matchup_id}/box-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Box Score */
+        get: operations["get_box_score_v1_matchups__matchup_id__box_score_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -375,6 +409,82 @@ export interface components {
             owning_team_id?: number | null;
             /** Is Pre Kickoff Snapshot */
             is_pre_kickoff_snapshot: boolean;
+        };
+        /** BoxPlayer */
+        BoxPlayer: {
+            /** Roster Slot */
+            roster_slot?: string | null;
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name?: string | null;
+            /** Position */
+            position?: string | null;
+            /** League Points */
+            league_points?: number | null;
+            /** Is Starter */
+            is_starter: boolean;
+            /**
+             * Breakdown
+             * @default {}
+             */
+            breakdown: {
+                [key: string]: unknown;
+            };
+            /** Projection */
+            projection?: number | null;
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** BoxScore */
+        BoxScore: {
+            /** Matchup Id */
+            matchup_id: number;
+            /** Season Year */
+            season_year?: number | null;
+            /** Week */
+            week: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+            home?: components["schemas"]["BoxTeam"] | null;
+            away?: components["schemas"]["BoxTeam"] | null;
+            /** Winner Team Id */
+            winner_team_id?: number | null;
+        };
+        /** BoxTeam */
+        BoxTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Total Score */
+            total_score?: number | null;
+            /** Starter Points */
+            starter_points: number;
+            /** Bench Points */
+            bench_points: number;
+            /** Optimal Total */
+            optimal_total: number;
+            /** Points Left On Bench */
+            points_left_on_bench: number;
+            /** Beat Projection By */
+            beat_projection_by?: number | null;
+            /** Lineup */
+            lineup: components["schemas"]["BoxPlayer"][];
         };
         /** ChampionshipEntry */
         ChampionshipEntry: {
@@ -417,6 +527,11 @@ export interface components {
              * @default false
              */
             dst_scoring_complete: boolean;
+        };
+        /** Envelope[BoxScore] */
+        Envelope_BoxScore_: {
+            data: components["schemas"]["BoxScore"];
+            meta: components["schemas"]["Meta"];
         };
         /** Envelope[ChampionshipHistory] */
         Envelope_ChampionshipHistory_: {
@@ -517,6 +632,47 @@ export interface components {
         Envelope_TopScorers_: {
             data: components["schemas"]["TopScorers"];
             meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[WeekMatchups] */
+        Envelope_WeekMatchups_: {
+            data: components["schemas"]["WeekMatchups"];
+            meta: components["schemas"]["Meta"];
+        };
+        /**
+         * GameCard
+         * @description One game, folded back from Phase 1's two perspective rows. ``matchup_id``
+         *     deep-links to the box score.
+         */
+        GameCard: {
+            /** Matchup Id */
+            matchup_id: number;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+            team_a?: components["schemas"]["GameTeam"] | null;
+            team_b?: components["schemas"]["GameTeam"] | null;
+            /** Margin */
+            margin?: number | null;
+            /** Winner Team Id */
+            winner_team_id?: number | null;
+        };
+        /** GameTeam */
+        GameTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Score */
+            score?: number | null;
+            /**
+             * Is Winner
+             * @default false
+             */
+            is_winner: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1030,6 +1186,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeekMatchups */
+        WeekMatchups: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Week */
+            week: number;
+            /** Is Scored */
+            is_scored: boolean;
+            /** Games */
+            games: components["schemas"]["GameCard"][];
         };
     };
     responses: never;
@@ -1617,6 +1786,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SeasonTotals_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_week_matchups_v1_seasons__season_id__weeks__week__matchups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+                week: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_WeekMatchups_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_box_score_v1_matchups__matchup_id__box_score_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchup_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_BoxScore_"];
                 };
             };
             /** @description Validation Error */
