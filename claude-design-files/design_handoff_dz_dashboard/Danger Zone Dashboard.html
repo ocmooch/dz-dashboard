@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<title>Danger Zone — Dashboard Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/app.css" />
+<link rel="stylesheet" href="styles/rivalries.css" />
+<link rel="stylesheet" href="styles/wireframe.css" />
+<style>
+  /* ---- META CHROME: the design-system selector (theme-independent) ---- */
+  body { background: #07090d; }
+  .rail {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 10px 20px;
+    background: #0c0f15;
+    border-bottom: 1px solid #1c232e;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+  .rail-brand { display: flex; align-items: center; gap: 9px; color: #e7ecf3; font-weight: 600; font-size: 13px; letter-spacing: .3px; }
+  .rail-brand .dot { width: 9px; height: 9px; border-radius: 2px; background: #ff6a1a; transform: rotate(45deg); box-shadow: 0 0 10px -1px #ff6a1a; }
+  .rail-brand small { color: #5f6b7c; font-weight: 500; }
+  .seg { display: flex; gap: 2px; padding: 3px; background: #11161e; border: 1px solid #232b37; border-radius: 9px; }
+  .seg-label { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #5f6b7c; margin-right: 2px; align-self: center; }
+  .seg button {
+    font-family: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .2px;
+    color: #9aa7b8; background: transparent; border: 0; cursor: pointer;
+    padding: 7px 13px; border-radius: 7px; transition: background .14s, color .14s;
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  }
+  .seg button:hover { color: #e7ecf3; }
+  .seg button.on { background: #20283a; color: #fff; box-shadow: inset 0 0 0 1px #313c4d; }
+  .seg button.on .swatch { box-shadow: 0 0 0 2px #0c0f15, 0 0 0 3px currentColor; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; }
+  .rail-spacer { flex: 1; }
+  .rail-hint { font-size: 11.5px; color: #5f6b7c; font-family: "IBM Plex Mono", monospace; }
+  .group { display: flex; align-items: center; gap: 9px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ============ DESIGN-SYSTEM SELECTOR (meta chrome) ============ -->
+<div class="rail" role="toolbar" aria-label="Design system selector">
+  <div class="rail-brand"><span class="dot"></span> Danger Zone <small>· dashboard directions</small></div>
+
+  <div class="group">
+    <span class="seg-label">Mode</span>
+    <div class="seg" id="modeSeg">
+      <button data-mode="frontend" class="on">Frontend</button>
+      <button data-mode="wireframe">Wireframe</button>
+    </div>
+  </div>
+
+  <div class="group hidden" id="surfGroup">
+    <span class="seg-label">Surface</span>
+    <div class="seg" id="surfSeg">
+      <button data-surf="home" class="on">Home</button>
+      <button data-surf="standings">Standings</button>
+      <button data-surf="rivalries">Rivalries</button>
+    </div>
+  </div>
+
+  <div class="rail-spacer"></div>
+  <div class="rail-hint" id="railHint">Command Center · faithful HUD</div>
+</div>
+
+<!-- ============ FRONTEND ============ -->
+<div id="frontend" data-direction="afterburner">
+  <div class="app">
+    <!-- top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">DZ</div>
+        <div>
+          <div class="brand-name">Danger Zone</div>
+          <div class="brand-sub">League Analytics</div>
+        </div>
+      </div>
+      <div class="search" tabindex="0" role="search" aria-label="Search owners, teams, players, seasons">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>Search owners, players, seasons…</span>
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-right">
+        <div class="season">
+          <span class="season-label">Season</span>
+          <select class="season-select mono" aria-label="Season switcher">
+            <option>2025 · live</option>
+            <option selected>2019</option>
+            <option>2018</option>
+            <option>2017</option>
+            <option>2016</option>
+            <option>2015 · not scored</option>
+          </select>
+        </div>
+        <div class="data-status" tabindex="0" role="button" aria-label="Data coverage, run 56">
+          <span class="live-dot" aria-hidden="true"></span>
+          <div class="data-meta">
+            <div class="k">Data as of</div>
+            <div class="v">May 28 · <b>run #56</b></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- left nav -->
+      <nav class="nav" aria-label="Primary">
+        <div class="nav-item active" data-nav="home" role="link" tabindex="0"><span class="ic" aria-hidden="true">▦</span><span class="label-text">Home</span></div>
+        <div class="nav-group-label">League</div>
+        <div class="nav-item rise" style="animation-delay:.04s"><span class="ic" aria-hidden="true">▤</span><span class="label-text">Standings</span></div>
+        <div class="nav-item rise" style="animation-delay:.06s"><span class="ic" aria-hidden="true">⚔</span><span class="label-text">Matchups</span></div>
+        <div class="nav-item rise" style="animation-delay:.08s"><span class="ic" aria-hidden="true">◫</span><span class="label-text">Teams</span><span class="soon">soon</span></div>
+        <div class="nav-group-label">People</div>
+        <div class="nav-item rise" style="animation-delay:.10s"><span class="ic" aria-hidden="true">◍</span><span class="label-text">Managers</span></div>
+        <div class="nav-item" data-nav="rivalries" role="link" tabindex="0"><span class="ic" aria-hidden="true">⇄</span><span class="label-text">Rivalries</span></div>
+        <div class="nav-group-label">History</div>
+        <div class="nav-item rise" style="animation-delay:.14s"><span class="ic" aria-hidden="true">★</span><span class="label-text">Records</span></div>
+        <div class="nav-item rise" style="animation-delay:.16s"><span class="ic" aria-hidden="true">◆</span><span class="label-text">Players</span><span class="soon">soon</span></div>
+        <div class="nav-item rise" style="animation-delay:.18s"><span class="ic" aria-hidden="true">▣</span><span class="label-text">Draft</span><span class="soon">soon</span></div>
+      </nav>
+
+      <!-- main -->
+      <main class="main">
+        <section class="surface" data-surface="home">
+        <div>
+          <div class="page-eyebrow">Command Center</div>
+          <h1 class="page-title">The Danger Zone</h1>
+          <p class="page-lede">16 seasons of league history · 10 fully scored. Every number is computed server-side and read-only — gaps are shown honestly, never faked.</p>
+        </div>
+
+        <div class="home-stack">
+
+          <!-- top stat strip -->
+          <div class="statgrid cols-4 rise" style="animation-delay:.08s">
+            <div class="stat">
+              <span class="stat-k">Seasons</span>
+              <span class="stat-v"><span class="stat-num">16</span><span class="stat-sub">10 scored</span></span>
+            </div>
+            <div class="stat">
+              <span class="stat-k">Scored Era</span>
+              <span class="stat-v"><span class="stat-num">10</span><span class="stat-unit">yrs</span></span>
+            </div>
+            <div class="stat">
+              <span class="stat-k">2019 Leader</span>
+              <span class="stat-v"><span class="chip"><span class="avatar">SU</span><span class="chip-name" style="font-family:var(--font-display);font-size:24px;font-weight:700">sully</span></span></span>
+            </div>
+            <div class="stat">
+              <span class="stat-k">2019 Champion</span>
+              <span class="stat-v"><span class="stat-num" style="color:var(--win)">sully</span><span class="stat-sub">4th ring</span></span>
+            </div>
+          </div>
+
+          <!-- SIGNATURE: owner-insight moment -->
+          <section class="insight rise" style="animation-delay:.12s" aria-label="Owner signal">
+            <div class="insight-head">
+              <span class="insight-tag">◍ Owner Signal</span>
+              <span class="pill">Auto-surfaced · wk 14</span>
+            </div>
+            <div class="insight-body">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+                <span class="avatar lg">SU</span>
+                <svg class="spark" viewBox="0 0 132 44" preserveAspectRatio="none" aria-hidden="true" style="width:132px;height:44px">
+                  <polyline points="2,34 14,30 26,32 38,24 50,26 62,20 74,16 86,18 98,10 110,8 122,5 130,4" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+                  <circle cx="130" cy="4" r="3" fill="var(--accent)"/>
+                </svg>
+                <span class="stat-sub">PF trajectory · 2019</span>
+              </div>
+              <div>
+                <h3 class="insight-headline"><span class="hot">sully</span> closes like nobody else in the Zone</h3>
+                <p class="insight-detail">Across 10 scored seasons, sully averages <b style="color:var(--text);font-family:var(--font-mono)">+14.2 PF</b> after week 10 — the league's strongest finisher. Three of four titles were sealed in December, never wire-to-wire.</p>
+                <div class="trait-row">
+                  <span class="trait good">▲ Elite finisher</span>
+                  <span class="trait good">▲ Best-in-league at WR</span>
+                  <span class="trait">RB-early drafter</span>
+                  <span class="trait bad">▼ Slow Septembers</span>
+                  <span class="trait">Trade-aggressive</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- standings + matchups -->
+          <div class="home-cols">
+            <div class="card rise" style="animation-delay:.16s">
+              <div class="card-head">
+                <div>
+                  <div class="card-eyebrow">Season 2019</div>
+                  <div class="card-title">Standings</div>
+                </div>
+                <div class="spacer"></div>
+                <span class="linkbtn">Full table →</span>
+              </div>
+              <div class="card-body flush">
+                <table class="tbl" aria-label="2019 standings, top six">
+                  <thead>
+                    <tr>
+                      <th class="rankcol">#</th>
+                      <th>Manager</th>
+                      <th class="num">Record <span class="sort">▾</span></th>
+                      <th class="num">PF</th>
+                      <th class="num">Streak</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="rank medal">1</td><td><span class="chip"><span class="avatar">SU</span><span class="chip-name">sully</span></span></td><td class="num"><span class="record"><span class="w">10</span><span class="sep">–</span><span class="l">3</span></span></td><td class="num">2,011.4</td><td class="num"><span class="pill win">W4</span></td></tr>
+                    <tr><td class="rank">2</td><td><span class="chip"><span class="avatar">DA</span><span class="chip-name">Dave</span></span></td><td class="num"><span class="record"><span class="w">9</span><span class="sep">–</span><span class="l">4</span></span></td><td class="num">1,884.2</td><td class="num"><span class="pill win">W2</span></td></tr>
+                    <tr><td class="rank">3</td><td><span class="chip"><span class="avatar">HA</span><span class="chip-name">harry</span></span></td><td class="num"><span class="record"><span class="w">8</span><span class="sep">–</span><span class="l">5</span></span></td><td class="num">1,902.7</td><td class="num"><span class="pill loss">L1</span></td></tr>
+                    <tr><td class="rank">4</td><td><span class="chip"><span class="avatar">CH</span><span class="chip-name">Chris</span></span></td><td class="num"><span class="record"><span class="w">8</span><span class="sep">–</span><span class="l">5</span></span></td><td class="num">1,640.5</td><td class="num"><span class="pill win">W1</span></td></tr>
+                    <tr><td class="rank">5</td><td><span class="chip"><span class="avatar">GR</span><span class="chip-name">Gregg</span></span></td><td class="num"><span class="record"><span class="w">7</span><span class="sep">–</span><span class="l">6</span></span></td><td class="num">1,712.3</td><td class="num"><span class="pill loss">L2</span></td></tr>
+                    <tr><td class="rank">6</td><td><span class="chip"><span class="avatar">DN</span><span class="chip-name">Dan</span></span></td><td class="num"><span class="record"><span class="w">7</span><span class="sep">–</span><span class="l">6</span></span></td><td class="num">1,588.9</td><td class="num"><span class="pill win">W1</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card rise" style="animation-delay:.20s">
+              <div class="card-head">
+                <div>
+                  <div class="card-eyebrow">Week 14</div>
+                  <div class="card-title">Matchups</div>
+                </div>
+                <div class="spacer"></div>
+                <span class="linkbtn">All →</span>
+              </div>
+              <div class="card-body flush">
+                <div class="matchup">
+                  <div class="side winner"><span class="avatar">SU</span><span class="chip-name">sully</span><span class="score" style="margin-left:6px">142.6</span></div>
+                  <div class="vs"><span class="pill" style="font-size:10px">FINAL</span></div>
+                  <div class="side right loser"><span class="avatar">TO</span><span class="chip-name">Tom</span><span class="score" style="margin-right:6px">98.4</span></div>
+                </div>
+                <div class="matchup">
+                  <div class="side winner"><span class="avatar">DA</span><span class="chip-name">Dave</span><span class="score" style="margin-left:6px">121.0</span></div>
+                  <div class="vs"><span class="pill accent" style="font-size:10px">● LIVE</span></div>
+                  <div class="side right"><span class="avatar">HA</span><span class="chip-name">harry</span><span class="score" style="margin-right:6px">119.8</span></div>
+                </div>
+                <div class="matchup">
+                  <div class="side winner"><span class="avatar">CH</span><span class="chip-name">Chris</span><span class="score" style="margin-left:6px">130.2</span></div>
+                  <div class="vs"><span class="pill" style="font-size:10px">FINAL</span></div>
+                  <div class="side right loser"><span class="avatar">GR</span><span class="chip-name">Gregg</span><span class="score" style="margin-right:6px">110.5</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- power movers + rivalry tease -->
+          <div class="home-cols">
+            <div class="card rise" style="animation-delay:.22s">
+              <div class="card-head">
+                <div>
+                  <div class="card-eyebrow">Power Index · vs last week</div>
+                  <div class="card-title">Movers</div>
+                </div>
+                <div class="spacer"></div>
+                <span class="linkbtn">Method ⓘ</span>
+              </div>
+              <div class="card-body flush">
+                <div class="mover">
+                  <span class="idx">01</span>
+                  <span class="chip grow"><span class="avatar">BE</span><span class="chip-name">Ben</span></span>
+                  <svg class="spark" viewBox="0 0 90 26" style="width:90px;height:26px" aria-hidden="true"><polyline points="2,20 18,18 34,19 50,12 66,8 88,3" fill="none" stroke="var(--win)" stroke-width="2"/></svg>
+                  <span class="delta up">▲ 3</span>
+                </div>
+                <div class="mover">
+                  <span class="idx">02</span>
+                  <span class="chip grow"><span class="avatar">SU</span><span class="chip-name">sully</span></span>
+                  <svg class="spark" viewBox="0 0 90 26" style="width:90px;height:26px" aria-hidden="true"><polyline points="2,16 18,17 34,12 50,13 66,7 88,5" fill="none" stroke="var(--win)" stroke-width="2"/></svg>
+                  <span class="delta up">▲ 2</span>
+                </div>
+                <div class="mover">
+                  <span class="idx">03</span>
+                  <span class="chip grow"><span class="avatar">HA</span><span class="chip-name">harry</span></span>
+                  <svg class="spark" viewBox="0 0 90 26" style="width:90px;height:26px" aria-hidden="true"><polyline points="2,6 18,8 34,10 50,12 66,16 88,18" fill="none" stroke="var(--loss)" stroke-width="2"/></svg>
+                  <span class="delta down">▼ 2</span>
+                </div>
+                <div class="mover">
+                  <span class="idx">04</span>
+                  <span class="chip grow"><span class="avatar">TO</span><span class="chip-name">Tom</span></span>
+                  <svg class="spark" viewBox="0 0 90 26" style="width:90px;height:26px" aria-hidden="true"><polyline points="2,8 18,9 34,11 50,10 66,14 88,15" fill="none" stroke="var(--loss)" stroke-width="2"/></svg>
+                  <span class="delta down">▼ 1</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card rise" style="animation-delay:.24s">
+              <div class="card-head">
+                <div>
+                  <div class="card-eyebrow">Rivalry of the week</div>
+                  <div class="card-title">sully · harry</div>
+                </div>
+                <div class="spacer"></div>
+                <span class="linkbtn">Open matrix →</span>
+              </div>
+              <div class="card-body">
+                <div class="rivalry-strip" style="padding:0 0 var(--s4)">
+                  <div style="display:flex;align-items:center;gap:10px"><span class="avatar">SU</span><div><div class="chip-name">sully</div><div class="stat-sub">leads series</div></div></div>
+                  <div class="vsbig">VS</div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-direction:row-reverse;text-align:right"><span class="avatar">HA</span><div><div class="chip-name">harry</div><div class="stat-sub">trails</div></div></div>
+                </div>
+                <div class="rivalry-strip" style="padding:var(--s4) 0;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline)">
+                  <div class="rivalry-tally" style="color:var(--win);text-align:left">11</div>
+                  <div class="stat-sub" style="text-align:center">all-time<br/>head to head</div>
+                  <div class="rivalry-tally" style="color:var(--loss);text-align:right">7</div>
+                </div>
+                <p class="insight-detail" style="margin-top:var(--s4)">Tightest in the league by avg margin (<b style="color:var(--text);font-family:var(--font-mono)">8.4 pts</b>). Last met <b style="color:var(--text);font-family:var(--font-mono)">wk 12 · 2019</b> — sully by 6.2.</p>
+                <div class="heat-mini" style="margin-top:var(--s4)" aria-hidden="true">
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--cat-3) 80%,transparent)"></div>
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--cat-3) 40%,transparent)"></div>
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--loss) 55%,transparent)"></div>
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--cat-3) 60%,transparent)"></div>
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--loss) 30%,transparent)"></div>
+                  <div class="heat-cell" style="background:color-mix(in srgb,var(--cat-3) 90%,transparent)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- records strip -->
+          <div class="card rise" style="animation-delay:.26s">
+            <div class="card-head">
+              <div>
+                <div class="card-eyebrow">All-time</div>
+                <div class="card-title">Records Book</div>
+              </div>
+              <div class="spacer"></div>
+              <span class="linkbtn">Records book →</span>
+            </div>
+            <div class="card-body flush">
+              <div class="rec-grid" style="grid-template-columns:repeat(4,1fr)">
+                <div class="rec-cell">
+                  <span class="rec-k">Highest team score</span>
+                  <span class="rec-v">253.56</span>
+                  <span class="rec-sub">sully · 2019</span>
+                </div>
+                <div class="rec-cell">
+                  <span class="rec-k">Best player week</span>
+                  <span class="rec-v">60.90</span>
+                  <span class="rec-sub">Tyreek Hill · 2020</span>
+                </div>
+                <div class="rec-cell">
+                  <span class="rec-k">Most championships</span>
+                  <span class="rec-v">4</span>
+                  <span class="rec-sub">Dan · 2011–2018</span>
+                </div>
+                <div class="rec-cell">
+                  <span class="rec-k">Longest win streak</span>
+                  <span class="datagap" style="align-self:flex-start;margin-top:4px">Not scored · pre-2016</span>
+                  <span class="rec-sub">3 seasons pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="foot-note">
+            <span class="datagap sm">2011–2015 not yet scored</span>
+            <span>Coverage: 10 of 16 seasons fully scored · team-defense unscored · live season 2025 partial.</span>
+          </div>
+
+        </div>
+        </section>
+
+        <!-- ===== RIVALRIES SURFACE ===== -->
+        <section class="surface" data-surface="rivalries" hidden>
+          <div>
+            <div class="page-eyebrow">Head to Head</div>
+            <h1 class="page-title">Rivalries</h1>
+            <p class="page-lede">Every owner pairing across the scored era. Win-pct reads from the <b style="color:var(--text)">row</b> owner's view — click any cell to open the head-to-head. Never-met and pre-2016 pairings are flagged, never zeroed.</p>
+          </div>
+
+          <div class="riv-stack">
+            <!-- insight strip: unique owner-vs-owner takes -->
+            <div class="statgrid cols-4">
+              <div class="stat">
+                <span class="stat-k">Most-played rivalry</span>
+                <span class="stat-v"><span class="stat-num" style="font-size:24px">sully · Dan</span></span>
+                <span class="stat-sub">26 meetings · series 14–12</span>
+              </div>
+              <div class="stat">
+                <span class="stat-k">Closest by margin</span>
+                <span class="stat-v"><span class="stat-num" style="font-size:24px">sully · harry</span></span>
+                <span class="stat-sub">avg margin 8.4 pts</span>
+              </div>
+              <div class="stat">
+                <span class="stat-k">Most lopsided</span>
+                <span class="stat-v"><span class="stat-num" style="font-size:24px">Mike · Tom</span></span>
+                <span class="stat-sub" style="color:var(--loss)">Mike 11–2 · .846</span>
+              </div>
+              <div class="stat">
+                <span class="stat-k">Hottest active streak</span>
+                <span class="stat-v"><span class="stat-num" style="font-size:24px">Dave ▸ Chris</span></span>
+                <span class="stat-sub" style="color:var(--win)">won last 6 meetings</span>
+              </div>
+            </div>
+
+            <div class="riv-layout">
+              <!-- N×N matrix -->
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <div class="card-eyebrow">All-time · scored era</div>
+                    <div class="card-title">Win-Pct Matrix</div>
+                  </div>
+                  <div class="spacer"></div>
+                  <div class="heat-legend" aria-hidden="true">
+                    <span class="stat-sub">dominated</span>
+                    <span class="heat-ramp"></span>
+                    <span class="stat-sub">owned</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="rivMatrix" role="grid" aria-label="Head-to-head win percentage matrix"></div>
+                  <div class="matrix-foot">
+                    <span class="datagap sm">hatched = never met or pre-2016</span>
+                    <span class="stat-sub">Cell = row owner's win-pct vs column owner. Read across a row to see who they beat.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- pairwise H2H panel (rendered by JS, updates on cell click) -->
+              <div class="card" id="h2hPanel"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WIREFRAME ============ -->
+<div id="wireframe" class="wire hidden">
+  <div class="sheet" id="wireSheets"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
