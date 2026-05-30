@@ -12,7 +12,8 @@ const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/managers", label: "Managers" },
   { to: "/rivalries", label: "Rivalries" },
   { to: "/records", label: "Records", ready: true },
-  { to: "/players", label: "Players" },
+  { to: "/players", label: "Players", ready: true },
+  { to: "/stats", label: "Stats", ready: true },
   { to: "/draft", label: "Draft" },
 ];
 

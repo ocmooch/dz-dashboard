@@ -423,3 +423,101 @@ class BoxScore(BaseModel):
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None
+
+
+# ---------------------------------------------------------------------------
+# Team page
+# ---------------------------------------------------------------------------
+
+
+class TeamOverview(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    season_id: int
+    season_year: int
+    owner_id: int
+    owner_name: str | None = None
+    rank: int | None = None
+    rank_basis: str  # "final_rank" | "computed"
+    wins: int
+    losses: int
+    ties: int
+    points_for: float
+    points_against: float
+    final_rank: int | None = None
+    made_playoffs: bool | None = None
+    is_champion: bool
+    is_scored: bool
+
+
+class TeamRosterPlayer(BaseModel):
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+    nfl_team: str | None = None
+    roster_slot: str | None = None
+    is_starter: bool
+    league_points: float | None = None  # null (not 0) for unscored slots/seasons
+    acquisition_type: str | None = None
+    acquisition_week: int | None = None
+
+
+class TeamRosterOut(BaseModel):
+    team_id: int
+    season_year: int
+    week: int
+    weeks_available: list[int]
+    is_scored: bool
+    players: list[TeamRosterPlayer]
+
+
+class ScheduleGame(BaseModel):
+    matchup_id: int
+    week: int
+    is_playoff: bool = False
+    opponent_team_id: int | None = None
+    opponent_team_name: str | None = None
+    opponent_owner_name: str | None = None
+    team_score: float | None = None
+    opponent_score: float | None = None
+    result: str | None = None  # W / L / T
+    margin: float | None = None
+
+
+class TeamSchedule(BaseModel):
+    team_id: int
+    season_year: int
+    games: list[ScheduleGame]
+
+
+class ScoringTrendPoint(BaseModel):
+    week: int
+    team_score: float | None = None
+    league_avg: float | None = None
+    is_playoff: bool = False
+
+
+class TeamScoringTrend(BaseModel):
+    team_id: int
+    season_year: int
+    is_scored: bool
+    points: list[ScoringTrendPoint]
+
+
+class TeamTransaction(BaseModel):
+    transaction_id: int
+    transaction_type: str
+    executed_at: str | None = None
+    effective_week: int | None = None
+    player_id: int | None = None
+    player_name: str | None = None
+    direction: str | None = None
+    counterpart_team_id: int | None = None
+    counterpart_team_name: str | None = None
+    notes: str | None = None
+
+
+class TeamTransactions(BaseModel):
+    team_id: int
+    season_year: int
+    transactions: list[TeamTransaction]

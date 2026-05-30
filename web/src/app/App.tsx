@@ -4,10 +4,14 @@ import { HomePage } from "@/features/home/HomePage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
+import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
+import { PlayersPage } from "@/features/players/PlayersPage";
 import { RecordsPage } from "@/features/records/RecordsPage";
 import { PairwisePage } from "@/features/rivalries/PairwisePage";
 import { RivalriesPage } from "@/features/rivalries/RivalriesPage";
 import { StandingsPage } from "@/features/standings/StandingsPage";
+import { StatsPage } from "@/features/stats/StatsPage";
+import { TeamPage } from "@/features/teams/TeamPage";
 
 import { AppShell } from "./shell/AppShell";
 import { SeasonProvider } from "./shell/SeasonContext";
@@ -26,10 +30,12 @@ export function App() {
             <Route path="matchups" element={<MatchupsPage />} />
             <Route path="matchups/:matchupId" element={<BoxScorePage />} />
             <Route path="managers" element={<PlaceholderPage title="Managers" />} />
-            {/* Deep-link targets whose full pages land later (P4/P7). */}
+            {/* Deep-link target whose full page lands later (P4). */}
             <Route path="managers/:ownerId" element={<PlaceholderPage title="Manager profile" />} />
-            <Route path="players" element={<PlaceholderPage title="Players" />} />
-            <Route path="players/:playerId" element={<PlaceholderPage title="Player" />} />
+            <Route path="players" element={<PlayersPage />} />
+            <Route path="players/:playerId" element={<PlayerDetailPage />} />
+            <Route path="stats" element={<StatsPage />} />
+            <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<PlaceholderPage title="Draft" />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>
