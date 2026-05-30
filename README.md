@@ -14,8 +14,8 @@ Phase 2 is **two pieces plus a contract between them**:
    talks only to the `ff_dashboard` API via a client generated from the API's
    OpenAPI schema, and holds no business logic.
 
-> The full design package lives in the repo root (`01_SPEC.md` … `10_OPEN_QUESTIONS.md`,
-> `PHASE2_KICKOFF.md`). Read `02_ARCHITECTURE.md` and `03_DATA_ACCESS.md` first.
+> The full design package lives in `docs/` (`01_SPEC.md` … `10_OPEN_QUESTIONS.md`); see also
+> `PHASE2_KICKOFF.md` in the repo root. Read `docs/02_ARCHITECTURE.md` and `docs/03_DATA_ACCESS.md` first.
 
 ## Relationship to Phase 1 (ff-pipeline)
 
