@@ -17,6 +17,7 @@ from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.head_to_head import closest_rivalry
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -166,6 +167,13 @@ def records_book(session: Session) -> dict[str, Any]:
         }
 
     book.update(_record_only(session, teams, season_year))
+
+    # The "closest rivalry" — most-played pair nearest a 50/50 split (04 §4). A
+    # records-book stat that deep-links to its pairwise page on the frontend.
+    rivalry = closest_rivalry(session)
+    book["closest_rivalry"] = (
+        {"available": True, **rivalry} if rivalry is not None else _unavailable("no_meetings")
+    )
     return book
 
 
