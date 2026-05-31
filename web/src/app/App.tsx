@@ -5,6 +5,7 @@ import { DraftPage } from "@/features/draft/DraftPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
+import { PowerPage } from "@/features/power/PowerPage";
 import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
 import { PlayersPage } from "@/features/players/PlayersPage";
 import { RecordsPage } from "@/features/records/RecordsPage";
@@ -25,6 +26,7 @@ export function App() {
           <Route element={<AppShell />}>
             <Route index element={<HomePage />} />
             <Route path="standings" element={<StandingsPage />} />
+            <Route path="power" element={<PowerPage />} />
             <Route path="records" element={<RecordsPage />} />
             <Route path="rivalries" element={<RivalriesPage />} />
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />

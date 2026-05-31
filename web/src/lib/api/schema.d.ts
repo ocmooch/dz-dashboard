@@ -446,6 +446,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/power": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Power Ranking */
+        get: operations["get_power_ranking_v1_seasons__season_id__power_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/power/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Power Timeline */
+        get: operations["get_power_timeline_v1_seasons__season_id__power_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/teams/{team_id}": {
         parameters: {
             query?: never;
@@ -836,6 +870,16 @@ export interface components {
             data: components["schemas"]["PlayerScoring"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[PowerRanking] */
+        Envelope_PowerRanking_: {
+            data: components["schemas"]["PowerRanking"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[PowerTimeline] */
+        Envelope_PowerTimeline_: {
+            data: components["schemas"]["PowerTimeline"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[RecordsBook] */
         Envelope_RecordsBook_: {
             data: components["schemas"]["RecordsBook"];
@@ -1191,6 +1235,97 @@ export interface components {
             reason?: string | null;
             /** Weeks */
             weeks: components["schemas"]["ScoringWeek"][];
+        };
+        /** PowerRanking */
+        PowerRanking: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Through Week */
+            through_week: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** Explainer */
+            explainer: string;
+            /** Rows */
+            rows: components["schemas"]["PowerRow"][];
+        };
+        /** PowerRow */
+        PowerRow: {
+            /** Rank */
+            rank: number;
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Wins */
+            wins: number;
+            /** Losses */
+            losses: number;
+            /** Ties */
+            ties: number;
+            /** Points For */
+            points_for: number;
+            /** Power Score */
+            power_score: number;
+            /** Points For Per Game */
+            points_for_per_game: number;
+            /** Win Pct */
+            win_pct: number;
+            /** Recent Points For Per Game */
+            recent_points_for_per_game: number;
+            /** Z Points For */
+            z_points_for: number;
+            /** Z Win Pct */
+            z_win_pct: number;
+            /** Z Recent */
+            z_recent: number;
+            /** Standings Rank */
+            standings_rank: number;
+            /** Rank Delta */
+            rank_delta: number;
+        };
+        /** PowerTimeline */
+        PowerTimeline: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
+            /** Teams */
+            teams: components["schemas"]["PowerTimelineTeam"][];
+        };
+        /** PowerTimelinePoint */
+        PowerTimelinePoint: {
+            /** Week */
+            week: number;
+            /** Rank */
+            rank: number;
+            /** Power Score */
+            power_score: number;
+        };
+        /** PowerTimelineTeam */
+        PowerTimelineTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Points */
+            points: components["schemas"]["PowerTimelinePoint"][];
         };
         /**
          * RecordsBook
@@ -2364,6 +2499,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_DraftValue_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_power_ranking_v1_seasons__season_id__power_get: {
+        parameters: {
+            query?: {
+                through_week?: number | null;
+            };
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PowerRanking_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_power_timeline_v1_seasons__season_id__power_timeline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PowerTimeline_"];
                 };
             };
             /** @description Validation Error */
