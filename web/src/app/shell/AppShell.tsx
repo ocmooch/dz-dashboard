@@ -13,7 +13,7 @@ const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/rivalries", label: "Rivalries" },
   { to: "/records", label: "Records", ready: true },
   { to: "/players", label: "Players" },
-  { to: "/draft", label: "Draft" },
+  { to: "/draft", label: "Draft", ready: true },
 ];
 
 function SeasonSwitcher() {

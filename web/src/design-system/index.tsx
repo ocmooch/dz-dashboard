@@ -168,6 +168,9 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     no_availability_rows: "No availability snapshots",
     no_meetings: "These managers never met",
     team_defense_not_scored: "Team defense not scored (known gap)",
+    draft_not_captured: "Draft not captured for this season",
+    player_unscored: "Player not scored — value unavailable",
+    insufficient_history: "Not enough draft history to value this slot",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">

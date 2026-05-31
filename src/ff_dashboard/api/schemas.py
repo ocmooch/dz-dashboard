@@ -287,6 +287,63 @@ class ChampionshipHistory(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Draft
+# ---------------------------------------------------------------------------
+
+
+class DraftPick(BaseModel):
+    overall: int
+    round: int
+    pick_in_round: int
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+    season_year: int | None = None
+    season_points: float | None = None  # null (not 0) when the player has no scored rows
+    value: float | None = None  # season_points - expected-at-slot; null when uncomputable
+    available: bool = True
+    reason: str | None = None
+
+
+class DraftRound(BaseModel):
+    round: int
+    picks: list[DraftPick]
+
+
+class DraftBoard(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    num_teams: int | None = None
+    rounds: list[DraftRound]
+
+
+class DraftValue(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    definition: str
+    slot_window: int
+    picks: list[DraftPick]
+    steals: list[DraftPick]
+    busts: list[DraftPick]
+
+
+class DraftRecords(BaseModel):
+    available: bool
+    reason: str | None = None
+    definition: str
+    best_picks: list[DraftPick]
+    worst_picks: list[DraftPick]
+
+
+# ---------------------------------------------------------------------------
 # Players
 # ---------------------------------------------------------------------------
 
