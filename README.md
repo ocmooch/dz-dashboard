@@ -44,6 +44,25 @@ uv run dz-dashboard serve    # serve the analytics API on http://127.0.0.1:8800
   reconstruction is complete) — powers the "data as of" indicator and gap banners.
 - OpenAPI at `/openapi.json`, interactive docs at `/docs`.
 
+## See it in the browser
+
+The web app needs **both** processes running — the BFF (Python/`uv`) and the SPA
+dev server (`web/`/`npm`). Run them in two terminals:
+
+```bash
+# terminal 1 — BFF (from the repo root)
+uv run dz-dashboard serve            # API on http://127.0.0.1:8800
+
+# terminal 2 — SPA (from web/)
+cd web
+npm install                          # first time only
+npm run dev                          # open http://127.0.0.1:5173
+```
+
+Then open **http://127.0.0.1:5173** — the Vite dev server proxies `/v1`,
+`/health`, and `/openapi.json` to the BFF, so the browser only talks to one
+origin. More frontend detail (typed-client regen, checks) lives in `web/README.md`.
+
 ## Development gate
 
 The same green-gate discipline as Phase 1; all must pass before a commit:
