@@ -417,6 +417,38 @@
     cursor: pointer;
   }
 
+  /* form fields (filter bars on the explorer/index pages) */
+  .dz-input,
+  .dz-select {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface-1);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+  }
+  .dz-input::placeholder {
+    color: var(--text-faint);
+  }
+  .dz-input:focus,
+  .dz-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--glow-accent);
+  }
+  .dz-select {
+    appearance: none;
+    padding-right: 30px;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+      linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+
   /* data-as-of status */
   .dz-data-status {
     display: flex;

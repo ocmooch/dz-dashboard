@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton } from "@/design-system";
@@ -81,7 +82,9 @@ export function StandingsPage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                      <Link to={`/teams/${r.team_id}`} className="hover:text-accent">
+                        <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                      </Link>
                     </td>
                     <td className="dz-num">
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
