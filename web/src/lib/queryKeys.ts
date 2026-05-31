@@ -10,6 +10,8 @@ export const qk = {
   championships: ["records", "championships"] as const,
   weekMatchups: (seasonId: number, week: number) => ["matchups", seasonId, week] as const,
   boxScore: (matchupId: number) => ["box-score", matchupId] as const,
+  draftBoard: (seasonId: number) => ["draft", seasonId] as const,
+  draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
   players: (filters: Record<string, unknown>) => ["players", filters] as const,
   player: (playerId: number) => ["player", playerId] as const,
   playerScoring: (playerId: number, season: number) =>

@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ff_pipeline.api.errors import install_error_handlers
 
 from ff_dashboard.api.routes import (
+    draft,
     health,
     matchups,
     owners,
@@ -69,6 +70,7 @@ def create_app(
     app.include_router(records.router)
     app.include_router(players.router)
     app.include_router(matchups.router)
+    app.include_router(draft.router)
     app.include_router(teams.router)
 
     return app

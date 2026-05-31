@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { HomePage } from "@/features/home/HomePage";
+import { DraftPage } from "@/features/draft/DraftPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
@@ -36,7 +37,7 @@ export function App() {
             <Route path="players/:playerId" element={<PlayerDetailPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
-            <Route path="draft" element={<PlaceholderPage title="Draft" />} />
+            <Route path="draft" element={<DraftPage />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>
         </Routes>

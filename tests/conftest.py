@@ -14,7 +14,7 @@ is exercised by every integration test.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -33,6 +33,7 @@ from ff_pipeline.repository.models import (
     SourceHealth,
     Team,
     TeamRoster,
+    Transaction,
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -394,6 +395,35 @@ def _populate(session: Session) -> None:
         )
     )
 
+    # --- 2016 draft (the one captured draft; 2015 & 2017 have none → the gap case).
+    #     Order is by executed_at, so the n-th row is overall pick n. Authored so
+    #     the value metric (season_points - avg of picks within ±2 of the slot) has
+    #     a clean, hand-checkable steal and bust:
+    #       overall 1  Iceman  → Kelce  (22.0)  expected (22+48+37)/3 = 35.6667 → -13.67  BUST
+    #       overall 2  Goose   → Lamar  (48.0)  expected (22+48+37+55)/4 = 40.5  →  +7.50
+    #       overall 3  Slider  → Jefferson (37) expected 40.5                    →  -3.50
+    #       overall 4  Maverick→ McCaffrey (55) expected (48+37+55)/3 = 46.6667  →  +8.33  STEAL
+    #     (McCaffrey is also Maverick's 2016 rostered draftee, so board ↔ roster agree.)
+    draft_base = datetime(2016, 9, 1, 18, 0, 0, tzinfo=UTC)
+    draft_2016: list[tuple[str, str]] = [
+        ("ice", "kelce"),
+        ("goose", "lamar"),
+        ("slider", "jjet"),
+        ("mav", "cmc"),
+    ]
+    for i, (team_key, player_key) in enumerate(draft_2016):
+        session.add(
+            Transaction(
+                season_id=sid[2016],
+                transaction_type="draft",
+                executed_at=draft_base + timedelta(minutes=i),
+                effective_week=0,
+                team_id=team_id[(2016, team_key)],
+                player_id=pid[player_key],
+                direction="add",
+            )
+        )
+
     # --- A hand-solvable box score: Iceman's 2017 week-1 lineup (the ice vs goose
     #     game). A full starter set + bench + an IR player + a DST starter with no
     #     scored points, authored so the optimal-lineup solver has a known answer:
@@ -582,4 +612,8 @@ KNOWN: dict[str, Any] = {
     "box_bench_points": 51.0,
     "box_optimal_total": 117.0,
     "box_points_left": 13.0,
+    # Draft (2016 is the only captured draft; see the block in _populate).
+    "draft_2016_overalls": ["kelce", "lamar", "jjet", "cmc"],  # overall pick order
+    "draft_top_steal": {"player": "Christian McCaffrey", "overall": 4, "value": 8.33},
+    "draft_top_bust": {"player": "Travis Kelce", "overall": 1, "value": -13.67},
 }

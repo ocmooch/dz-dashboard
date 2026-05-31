@@ -14,7 +14,7 @@ const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/records", label: "Records", ready: true },
   { to: "/players", label: "Players", ready: true },
   { to: "/stats", label: "Stats", ready: true },
-  { to: "/draft", label: "Draft" },
+  { to: "/draft", label: "Draft", ready: true },
 ];
 
 function SeasonSwitcher() {
