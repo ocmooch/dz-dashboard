@@ -17,11 +17,12 @@ regular-season scored total:
   (negative). The metric definition travels in the payload so the UI can show it.
 * :func:`best_worst_picks` — the best/worst picks ever, for the records book.
 
-Honest about gaps: the live reconstruction captured **no** drafts, so in
-production every season returns ``available: false`` rather than an invented
-board. A season whose picks reference unscored players (the pre-2016 gap, a DST)
-keeps the pick on the board but leaves its value ``available: false`` — never a
-fake zero.
+Honest about gaps: a season with **no** captured draft transactions returns
+``available: false`` rather than an invented board (the case for any league the
+reconstruction never captured). When picks exist but a pick references an
+unscored player (the pre-2016 scoring gap, a DST) — or its overall slot has no
+historical neighbours to anchor an expectation — the pick stays on the board but
+its value is ``available: false`` rather than a fake zero.
 """
 
 from __future__ import annotations
