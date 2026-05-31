@@ -8,6 +8,7 @@ import { useSeasons } from "./SeasonContext";
 const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/", label: "Home", ready: true },
   { to: "/standings", label: "Standings", ready: true },
+  { to: "/power", label: "Power", ready: true },
   { to: "/matchups", label: "Matchups", ready: true },
   { to: "/managers", label: "Managers" },
   { to: "/rivalries", label: "Rivalries" },

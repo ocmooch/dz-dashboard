@@ -231,6 +231,63 @@ class OwnerTrajectory(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Power ranking
+# ---------------------------------------------------------------------------
+
+
+class PowerRow(BaseModel):
+    rank: int
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    wins: int
+    losses: int
+    ties: int
+    points_for: float
+    power_score: float
+    points_for_per_game: float
+    win_pct: float
+    recent_points_for_per_game: float
+    z_points_for: float
+    z_win_pct: float
+    z_recent: float
+    standings_rank: int
+    rank_delta: int  # standings_rank - power_rank; >0 = model rates above record
+
+
+class PowerRanking(BaseModel):
+    season_id: int
+    season_year: int
+    through_week: int
+    regular_season_weeks: int
+    weights: dict[str, float]
+    explainer: str
+    rows: list[PowerRow]
+
+
+class PowerTimelinePoint(BaseModel):
+    week: int
+    rank: int
+    power_score: float
+
+
+class PowerTimelineTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    points: list[PowerTimelinePoint]
+
+
+class PowerTimeline(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    teams: list[PowerTimelineTeam]
+
+
+# ---------------------------------------------------------------------------
 # Head-to-head & rivalries
 # ---------------------------------------------------------------------------
 

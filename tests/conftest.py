@@ -616,4 +616,14 @@ KNOWN: dict[str, Any] = {
     "draft_2016_overalls": ["kelce", "lamar", "jjet", "cmc"],  # overall pick order
     "draft_top_steal": {"player": "Christian McCaffrey", "overall": 4, "value": 8.33},
     "draft_top_bust": {"player": "Travis Kelce", "overall": 1, "value": -13.67},
+    # Power ranking 2016 (full season; only 2 weeks, so recent==season PF/game).
+    # power = 0.5*z(PF/g) + 0.3*z(win%) + 0.2*z(recent PF/g), population z across
+    # the four teams. Order matches standings here (no luck/scoring divergence in
+    # so small a fixture), so every rank_delta is 0.
+    "power_2016": {
+        "mav": {"power_score": 1.54, "rank": 1, "pf_per_game": 135.0, "z_win": 1.4142},
+        "goose": {"power_score": -0.0142, "rank": 2, "pf_per_game": 105.25},
+        "slider": {"power_score": -0.3181, "rank": 3, "pf_per_game": 97.25},
+        "ice": {"power_score": -1.2077, "rank": 4, "pf_per_game": 85.0, "z_win": -1.4142},
+    },
 }

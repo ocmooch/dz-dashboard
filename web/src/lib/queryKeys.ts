@@ -12,4 +12,7 @@ export const qk = {
   boxScore: (matchupId: number) => ["box-score", matchupId] as const,
   draftBoard: (seasonId: number) => ["draft", seasonId] as const,
   draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
+  power: (seasonId: number) => ["power", seasonId] as const,
+  powerTimeline: (seasonId: number) => ["power", seasonId, "timeline"] as const,
+  standingsTimeline: (seasonId: number) => ["standings", seasonId, "timeline"] as const,
 };
