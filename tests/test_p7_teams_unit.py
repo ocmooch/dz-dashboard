@@ -1,0 +1,133 @@
+"""P7 — team-page analytics unit tests against the fixture's known answers.
+
+The 2017 season is the workhorse here: Iceman goes 2-0 (top seed) while Maverick
+goes 1-1 but is the champion — so these tests prove the team header reads the
+standings correctly *and* that champion != standings leader.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from ff_dashboard.analytics.teams import (
+    team_overview,
+    team_roster,
+    team_schedule,
+    team_scoring_trend,
+    team_transactions,
+)
+from tests.conftest import KNOWN
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
+
+# --- Overview --------------------------------------------------------------
+
+
+def test_overview_reads_standings_for_top_seed(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_overview(session, ice_2017)
+    assert data is not None
+    assert data["season_year"] == 2017
+    assert data["owner_name"] == "Iceman"
+    assert (data["wins"], data["losses"], data["ties"]) == (2, 0, 0)
+    assert data["points_for"] == 235.0
+    assert data["points_against"] == 225.0
+    assert data["rank"] == 1
+    assert data["rank_basis"] == "computed"  # 2017 teams carry no final_rank
+    assert data["is_champion"] is False
+    assert data["is_scored"] is True
+
+
+def test_overview_champion_is_not_the_standings_leader(session: Session) -> None:
+    mav_2017 = KNOWN["team_id"][(2017, "mav")]
+    data = team_overview(session, mav_2017)
+    assert data is not None
+    assert data["is_champion"] is True
+    assert (data["wins"], data["losses"]) == (1, 1)
+    assert data["rank"] != 1  # champion was not the regular-season #1 seed
+
+
+def test_overview_unknown_team_is_none(session: Session) -> None:
+    assert team_overview(session, 999999) is None
+
+
+# --- Roster ----------------------------------------------------------------
+
+
+def test_roster_latest_week_with_scored_points(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_roster(session, ice_2017, week=1)
+    assert data is not None
+    assert data["week"] == 1
+    assert data["is_scored"] is True
+    assert len(data["players"]) == 13  # the hand-authored box lineup
+    qb1 = next(p for p in data["players"] if p["player_name"] == "Ice QB One")
+    assert qb1["league_points"] == 24.0
+    assert qb1["is_starter"] is True
+
+
+def test_roster_dst_points_are_null_not_zero(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_roster(session, ice_2017, week=1)
+    assert data is not None
+    dst = next(p for p in data["players"] if p["position"] == "DEF")
+    assert dst["league_points"] is None  # never a fake 0
+
+
+def test_roster_unknown_team_is_none(session: Session) -> None:
+    assert team_roster(session, 999999, week=1) is None
+
+
+# --- Schedule --------------------------------------------------------------
+
+
+def test_schedule_results_and_deep_links(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_schedule(session, ice_2017)
+    assert data is not None
+    assert len(data["games"]) == 2
+    wk1 = next(g for g in data["games"] if g["week"] == 1)
+    assert wk1["result"] == "W"
+    assert wk1["team_score"] == 130.0
+    assert wk1["opponent_score"] == 125.0
+    assert wk1["margin"] == 5.0
+    assert wk1["opponent_owner_name"] == "Goose"
+    assert wk1["matchup_id"] == KNOWN["matchup_id"][(2017, 1, "ice")]
+
+
+# --- Scoring trend ---------------------------------------------------------
+
+
+def test_scoring_trend_vs_league_average(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_scoring_trend(session, ice_2017)
+    assert data is not None
+    pts = {p["week"]: p for p in data["points"]}
+    # wk1 league avg = (160.4 + 120 + 130 + 125) / 4 = 133.85
+    assert pts[1]["team_score"] == 130.0
+    assert pts[1]["league_avg"] == 133.85
+    # wk2 league avg = (105 + 100 + 140 + 110) / 4 = 113.75
+    assert pts[2]["team_score"] == 105.0
+    assert pts[2]["league_avg"] == 113.75
+
+
+def test_scoring_trend_works_for_unscored_season(session: Session) -> None:
+    # 2015 has no player-level scoring, but team scores exist — the trend must
+    # still plot (the gap is about player stats, not team totals).
+    mav_2015 = KNOWN["team_id"][(2015, "mav")]
+    data = team_scoring_trend(session, mav_2015)
+    assert data is not None
+    assert data["is_scored"] is False
+    assert all(p["team_score"] is not None for p in data["points"])
+
+
+# --- Transactions ----------------------------------------------------------
+
+
+def test_transactions_empty_when_none_recorded(session: Session) -> None:
+    ice_2017 = KNOWN["team_id"][(2017, "ice")]
+    data = team_transactions(session, ice_2017)
+    assert data is not None
+    assert data["transactions"] == []

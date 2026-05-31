@@ -24,6 +24,7 @@ from ff_dashboard.api.routes import (
     power,
     records,
     seasons,
+    teams,
 )
 from ff_dashboard.cache import AnalyticsCache
 from ff_dashboard.engine import create_readonly_engine
@@ -72,5 +73,6 @@ def create_app(
     app.include_router(matchups.router)
     app.include_router(draft.router)
     app.include_router(power.router)
+    app.include_router(teams.router)
 
     return app
