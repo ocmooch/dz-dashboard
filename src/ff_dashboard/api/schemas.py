@@ -635,3 +635,21 @@ class TeamTransactions(BaseModel):
     team_id: int
     season_year: int
     transactions: list[TeamTransaction]
+
+
+# ---------------------------------------------------------------------------
+# Global search (typeahead across owners, seasons, and players)
+# ---------------------------------------------------------------------------
+
+
+class SearchHit(BaseModel):
+    type: str  # "owner" | "season" | "player"
+    id: int
+    label: str
+    sublabel: str | None = None
+    href: str
+
+
+class SearchResults(BaseModel):
+    query: str
+    hits: list[SearchHit]
