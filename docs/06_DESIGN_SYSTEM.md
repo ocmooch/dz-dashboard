@@ -57,7 +57,7 @@ light theme is a second token set behind a `[data-theme]` attribute (dark is def
   --fs-h3: 1.125rem; --fs-body: 0.9375rem; --fs-sm: 0.8125rem; --fs-xs: 0.6875rem;
 
   /* Numbers want tabular alignment */
-  --font-display: "Space Grotesk Alt", "Archivo Expanded", system-ui; /* pick a CHARACTERFUL display face, not Inter */
+  --font-display: "Saira Condensed", "Arial Narrow", system-ui; /* as built — engineered display face, not Inter */
   --font-body:    "IBM Plex Sans", system-ui;
   --font-mono:    "IBM Plex Mono", ui-monospace;   /* all stats/scores use mono, tabular-nums */
 
@@ -71,10 +71,12 @@ light theme is a second token set behind a `[data-theme]` attribute (dark is def
 }
 ```
 
-> Font note: the variables above name placeholders. During M1 pick **one** distinctive
-> display face (something with engineered/technical character suits the HUD theme) and a
-> highly legible body face; do **not** default to Inter. All numeric data renders in a
-> monospaced face with `font-variant-numeric: tabular-nums` so columns of scores align.
+> Font note (as built): the display face is **Saira Condensed** (engineered/technical character
+> for the HUD theme), the body face is **IBM Plex Sans**, and all numeric data renders in **IBM
+> Plex Mono** with `font-variant-numeric: tabular-nums` so columns of scores align — never Inter.
+> The token block above is illustrative; the **source of truth is `web/src/styles/tokens.css`**
+> (which also adds `--accent-soft`/`--accent-line` helpers), so treat exact values there as
+> canonical if they diverge from this snapshot.
 
 ## Typography rules
 

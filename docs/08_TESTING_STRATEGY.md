@@ -41,7 +41,11 @@ Generate it programmatically in `conftest.py` (insert rows via the reused
 
 ### Unit tests — one per analytics metric
 
-`tests/dashboard/unit/test_<module>.py`, one file per `analytics/` module:
+Tests live **flat in `tests/`**, grouped by roadmap milestone rather than a nested
+`unit/`-`integration/` tree — `tests/test_p<N>_<area>_unit.py` for analytics and
+`tests/test_p<N>_endpoints.py` for the API (e.g. `test_p2_analytics_unit.py`,
+`test_p5_matchups_unit.py`, `test_p2_endpoints.py`). The fixture DB is built once in
+`tests/conftest.py`. Each analytics module is covered by a unit file:
 
 - **Standings:** record, PF/PA, rank tiebreak, through-week, streaks.
 - **Power ranking:** z-score math on a tiny known set; weight application; timeline.
@@ -60,8 +64,8 @@ this is where correctness lives).
 
 ### Contract / integration tests — one per endpoint
 
-`tests/dashboard/integration/test_api_<group>.py`, using `create_app(engine=fixture_engine)`
-(same pattern Phase 1 uses to bind a temp engine):
+`tests/test_p<N>_endpoints.py`, using `create_app(engine=fixture_engine)` (same pattern Phase 1
+uses to bind a temp engine):
 
 - Every endpoint in `05_API_CONTRACT.md`: 200 happy-path with the documented envelope shape;
   `400`/`404` where applicable; `503` when pointed at an empty database.
@@ -78,9 +82,10 @@ this is where correctness lives).
 ## Contract seam — generated client
 
 - The frontend's API types are generated from the BFF `/openapi.json` via
-  `openapi-typescript` as a build step (`npm run gen:api`).
-- CI regenerates and runs `tsc`; if the committed client is stale vs the live schema, the
-  build fails. This makes contract drift impossible to merge.
+  `openapi-typescript` (`npm run gen:api` → `web/src/lib/api/schema.d.ts`).
+- CI boots the real BFF and runs `npm run gen:api:check`, which diffs the live schema against
+  the committed client; any drift fails the build. This makes contract drift impossible to
+  merge.
 
 ## Frontend (`web/`) tests
 
@@ -126,12 +131,21 @@ Run against a real BFF bound to the fixture database:
 
 ## Continuous integration
 
-A single workflow runs both domains; PRs to `dev` cannot merge unless all are green:
+A single workflow (`.github/workflows/ci.yml`) runs **three jobs** on every push/PR to
+`dev`/`main`; all must be green to merge:
 
 ```
-backend:  uv sync → uv run pytest tests/dashboard → ruff check → mypy src/ff_dashboard
-contract: npm run gen:api → git diff --exit-code web/src/lib/api  (no drift)
-frontend: npm ci → npm run lint → npm run typecheck → npm run test → npm run test:e2e
+backend:  uv sync --extra dev → ruff check → mypy src/ → uv run pytest
+frontend: npm ci → npm run typecheck → npm run test → npm run build
+e2e:      uv sync + npm ci → boot BFF → npm run gen:api:check  (contract drift)
+                           → playwright install chromium → playwright test journeys
 ```
 
-(Reuse Phase 1's CI scaffolding; add the frontend job alongside the existing Python job.)
+Notes on the as-built workflow:
+- The backend + e2e jobs check out the sibling `ff-pipeline` (Phase 1) as `../danger-zone` via
+  a deploy key, because `[tool.uv.sources]` points at the editable path (swap to the pinned git
+  tag to drop that step — see `PHASE2_RUNBOOK.md`).
+- There is **no `npm run lint`** target; linting on the frontend is `tsc` (typecheck). Ruff is
+  the backend linter.
+- **Visual-regression** (`e2e/visual.spec.ts`) is intentionally **not** in the gate until
+  per-platform baselines are committed; only `playwright test journeys` runs in CI.

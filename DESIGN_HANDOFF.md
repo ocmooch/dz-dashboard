@@ -16,9 +16,10 @@ seasons of league history plus the live current season. Treat dz-dashboard as
 - **Repos:**
   - Dashboard: `github.com/ocmooch/dz-dashboard` (React + TS SPA in `web/`; read-only FastAPI BFF)
   - Data pipeline: `github.com/ocmooch/danger-zone` (`v1.0.0`)
-- **Starting point:** the dashboard *as currently built* is a first-look scaffold
-  (App shell + Home / Standings / Records wired). It is a point to iterate on,
-  **not a constraint to preserve**.
+- **Starting point:** the dashboard is built end-to-end (Home, Standings, Power,
+  Matchups + Box score, Rivalries, Records, Players + detail, Stats, Draft,
+  Coverage/About; manager pages are still placeholder stubs). It is a point to
+  iterate on, **not a constraint to preserve**.
 
 ## What's wanted
 
