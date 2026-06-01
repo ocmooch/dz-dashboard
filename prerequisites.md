@@ -16,7 +16,7 @@ Phase 2 builds views directly on Phase 1's tables. Two things must be true:
 1. **Historical reconstruction has run.** At handoff, Phase 1's reconstruction code was
    complete and tested but the full run was pending (item C5). Run it if not done:
    ```bash
-   cd ~/code/fantasy-football        # the Phase 1 repo
+   cd ~/danger-zone                  # the Phase 1 repo
    uv run ff-pipeline reconstruct --start 2010 --end 2025   # ~2 hrs; resumable
    uv run ff-pipeline rescore --season 2016                 # repeat 2016..2025 if needed
    uv run ff-pipeline verify --sweep --season 2024          # spot-check the bar
@@ -38,7 +38,7 @@ Phase 2 builds views directly on Phase 1's tables. Two things must be true:
 
 Phase 2's BFF reads the same SQLite file. Confirm the path (from Phase 1's `.env`):
 ```bash
-grep DATABASE_URL ~/code/fantasy-football/.env   # e.g. sqlite:///./data/fantasy.db
+grep DATABASE_URL ~/danger-zone/.env   # e.g. sqlite:///./data/fantasy.db
 ```
 Write it down — the BFF settings will point at it (read-only).
 
@@ -46,7 +46,7 @@ Write it down — the BFF settings will point at it (read-only).
 
 Phase 2's backend lives in the same repo and reuses Phase 1's Python tooling:
 ```bash
-cd ~/code/fantasy-football
+cd ~/danger-zone
 python3 --version    # 3.11+
 uv --version
 uv sync              # deps current
@@ -78,7 +78,7 @@ These shape the first milestones; having them decided avoids rework.
 
 Same git model as Phase 1. Cut a feature branch from `dev`:
 ```bash
-cd ~/code/fantasy-football
+cd ~/dz-dashboard
 git checkout dev && git pull
 git checkout -b feature/phase-2-dashboard
 ```
