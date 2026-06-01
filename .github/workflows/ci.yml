@@ -97,7 +97,9 @@ jobs:
       - name: API client in sync with the live BFF schema
         run: |
           uv run dz-dashboard serve &
-          npx --yes wait-on http://127.0.0.1:8800/health
+          # http-get:// forces a GET probe; /health is GET-only and 405s on
+          # wait-on's default HEAD, which would never report ready.
+          npx --yes wait-on http-get://127.0.0.1:8800/health
           cd web && npm run gen:api:check
 
       # End-to-end journeys against the fixture DB (Playwright's webServer builds

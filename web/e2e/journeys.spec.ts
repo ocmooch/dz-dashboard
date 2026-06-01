@@ -17,7 +17,8 @@ test("nav → standings renders a populated table", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Standings" }).click();
   await expect(page).toHaveURL(/\/standings$/);
-  await expect(page.getByRole("heading", { name: "Standings" })).toBeVisible();
+  // exact: the page also has a "Standings over time" chart heading.
+  await expect(page.getByRole("heading", { name: "Standings", exact: true })).toBeVisible();
   // A real, scored standings table — at least the four fixture managers.
   const rows = page.locator("table.dz-table tbody tr");
   await expect(rows.first()).toBeVisible();
