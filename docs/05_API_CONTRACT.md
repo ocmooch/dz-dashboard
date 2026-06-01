@@ -35,9 +35,10 @@ document, so the contract is enforced at build time.
 
 ### Home / command center
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /v1/home` | Single composite for the landing view: current season standings snippet, this week's matchups, power-ranking top movers, recent activity feed |
+> **No `/v1/home` composite endpoint.** The landing view is composed **client-side** from the
+> standings, records, and power endpoints below (the SPA does orchestration, not math). This
+> replaced the originally-planned single composite; see `04_ANALYTICS_MODEL.md` §"League
+> command center" and `07_PAGES_AND_VIEWS.md`.
 
 ### Seasons & standings
 
@@ -45,11 +46,15 @@ document, so the contract is enforced at build time.
 |----------|-------------|
 | `GET /v1/seasons` | All seasons with status, champion, scored/availability coverage flags |
 | `GET /v1/seasons/{season_id}` | Season summary: champion, runner-up, last place, week counts |
-| `GET /v1/seasons/{season_id}/standings?through_week={n}` | Standings (current or as-of week n), with streaks |
+| `GET /v1/seasons/{season_id}/standings?through_week={n}` | Standings (current or as-of week n), with streaks; carries `rank_basis` + `tiebreak_caveat` |
 | `GET /v1/seasons/{season_id}/standings/timeline` | Rank (and points-for) per team per week — for the standings-over-time chart |
-| `GET /v1/seasons/{season_id}/power-ranking?through_week={n}` | Power ranking + components per team |
-| `GET /v1/seasons/{season_id}/power-ranking/timeline` | Power score per team per week |
-| `GET /v1/seasons/{season_id}/bracket` | Playoff/post-season results (with the "post-regular-season, bracket-not-proven" caveat flag) |
+| `GET /v1/seasons/{season_id}/power?through_week={n}` | Power ranking + components + weights per team |
+| `GET /v1/seasons/{season_id}/power/timeline` | Power score per team per week |
+
+> **Not yet implemented:** `GET /v1/seasons/{season_id}/bracket` (playoff/post-season results).
+> The route and a Playoffs/Bracket page were specified (F2.3) but not built; the
+> "post-regular-season, bracket-not-proven" caveat still applies if/when added. Tracked in
+> `10_OPEN_QUESTIONS.md`.
 
 ### Matchups & box scores
 

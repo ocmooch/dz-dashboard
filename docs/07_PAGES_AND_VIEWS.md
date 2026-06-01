@@ -5,8 +5,12 @@ endpoints feed it, which charts/components it uses, and the data-gap behavior. R
 deep-linkable (N3 / F10.2). This is the map a builder follows to compose pages from the
 design-system primitives.
 
-Route prefix conventions: season-scoped views read the global season switcher but also accept
-an explicit `season_id` in the URL so links are stable.
+**Route convention (as built).** Season-scoped views are driven by the **global season
+switcher**, so their routes are flat (`/standings`, `/power`, `/matchups`, `/draft`) rather
+than carrying a `/seasons/{season_id}/...` prefix — the selected season lives in app state, not
+the path. Entity routes that *are* path-scoped (`/matchups/{matchup_id}`, `/teams/{team_id}`,
+`/players/{player_id}`, `/rivalries/{a}/vs/{b}`) stay deep-linkable. (This is a deliberate
+departure from the originally-sketched season-in-URL scheme.)
 
 ---
 
@@ -14,15 +18,16 @@ an explicit `season_id` in the URL so links are stable.
 
 The landing view; a glanceable cockpit for the current season.
 
-- **Shows:** standings snippet (top 4 / bottom 4), this week's matchups with scores, power
-  ranking top movers, recent-activity feed (latest transactions + notable performances).
-- **Endpoint:** `GET /v1/home` (single composite call).
-- **Components/charts:** `StatGrid`, `Card`, `Table` (mini standings), matchup cards,
-  `RankFlow` thumbnail, activity list with `OwnerChip`/`PlayerChip`.
+- **Shows:** standings snippet (top 4 / bottom 4), the power ranking, and the records book —
+  arranged as a cockpit.
+- **Endpoints:** composed **client-side** from `GET /v1/seasons/{id}/standings`,
+  `GET /v1/records`, and `GET /v1/seasons/{id}/power` (there is no `/v1/home` composite; the
+  page orchestrates, it does no math).
+- **Components/charts:** `StatGrid`, `Card`, `Table` (mini standings), `RankFlow` thumbnail.
 - **Gaps:** pre-week-1 → `EmptyState` ("season hasn't started"); current season not yet
   scored → power ranking shows `DataGap`.
 
-## Standings  `/seasons/{season_id}/standings`
+## Standings  `/standings`
 
 - **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, streak); a
   standings-over-time chart; a "through week" stepper for time-travel.
@@ -32,17 +37,26 @@ The landing view; a glanceable cockpit for the current season.
 - **Gaps:** 2010–2015 standings exist (record-only) → render normally; if season metadata is
   pending, `DataGap`.
 
-## Playoffs / Bracket  `/seasons/{season_id}/bracket`
+## Power ranking  `/power`
 
-- **Shows:** post-season results; champion/runner-up/last-place.
-- **Endpoint:** `/v1/seasons/{id}/bracket`.
-- **Caveat (must display):** historical brackets are "post-regular-season weeks," not a
-  proven championship-vs-consolation bracket — show the caveat badge.
+- **Shows:** the current power ranking (with each team's components and the model weights), an
+  "how this is computed" explainer, and a power-score-over-time chart.
+- **Endpoints:** `/v1/seasons/{id}/power?through_week=`, `/v1/seasons/{id}/power/timeline`.
+- **Components/charts:** `Table`, `RankFlow`/`LineTrend`, `Tabs`.
+- **Gaps:** current season not yet scored → `DataGap`.
 
-## Matchups (week view)  `/seasons/{season_id}/weeks/{week}`
+## Playoffs / Bracket  *(not built)*
 
-- **Shows:** all matchups for the week as cards (both teams, scores, win/loss, margin); a
-  `WeekStepper`.
+- **Planned route:** `/bracket` · **planned endpoint:** `/v1/seasons/{id}/bracket`.
+- **Status:** specified (F2.3) but **not implemented** — neither the route nor the endpoint
+  exists yet. Champion/runner-up/last-place are surfaced today via the season summary and the
+  records book. If built, it must show the "post-regular-season weeks, not a proven
+  championship-vs-consolation bracket" caveat badge. Tracked in `10_OPEN_QUESTIONS.md`.
+
+## Matchups (week view)  `/matchups`
+
+- **Shows:** all matchups for the (switcher-selected season, week) as cards (both teams,
+  scores, win/loss, margin); a `WeekStepper`.
 - **Endpoint:** `/v1/seasons/{id}/weeks/{week}/matchups`.
 - **Components:** matchup cards, `BarCompare` (optional per-card mini bar), `Badge`.
 
@@ -64,21 +78,24 @@ The landing view; a glanceable cockpit for the current season.
   `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`.
 - **Components/charts:** `StatGrid`, roster `Table`, schedule list, `LineTrend`.
 
-## Managers (index)  `/managers`
+## Managers (index)  `/managers`  *(placeholder — not built)*
 
-- **Shows:** every manager with a career line (record, championships, best finish).
-- **Endpoint:** `/v1/owners`.
-- **Components:** `Table` + `OwnerChip` + `Trophy` markers.
+- **Shows (planned):** every manager with a career line (record, championships, best finish).
+- **Endpoint:** `/v1/owners` (built + tested).
+- **Status:** the route renders a `PlaceholderPage`; the SPA view hasn't been composed yet
+  even though the backend is ready. Tracked in `10_OPEN_QUESTIONS.md`.
 
-## Manager profile  `/managers/{owner_id}`
+## Manager profile  `/managers/{owner_id}`  *(placeholder — not built)*
 
-- **Shows:** career aggregate header (seasons, W-L-T, PF, titles, avg finish); trophy case;
-  season-by-season record table; career trajectory chart; consistency percentile.
-- **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`.
-- **Components/charts:** `StatGrid`, `Trophy`, `Table`, `LineTrend` (trajectory).
-- **Deep links into:** rivalry view, individual seasons/teams.
+- **Shows (planned):** career aggregate header (seasons, W-L-T, PF, titles, avg finish);
+  trophy case; season-by-season record table; career trajectory chart; consistency percentile.
+- **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`
+  (all built + tested).
+- **Status:** the route renders a `PlaceholderPage` — the highest-value unbuilt view. The
+  pairwise rivalry page (below) currently carries the owner-vs-owner story. Tracked in
+  `10_OPEN_QUESTIONS.md`.
 
-## Rivalries  `/managers/rivalries`  and  `/managers/{a}/vs/{b}`
+## Rivalries  `/rivalries`  and  `/rivalries/{a}/vs/{b}`
 
 - **Matrix view:** the full N×N win-pct heatmap; click a cell → the pairwise page.
   - **Endpoint:** `/v1/owners/rivalry-matrix`; **chart:** `Heatmap`.
@@ -122,7 +139,7 @@ The landing view; a glanceable cockpit for the current season.
 - **Endpoints:** `/v1/stats/top-scorers?...`, `/v1/stats/season-totals?...`.
 - **Components:** filter bar, `Table`.
 
-## Draft  `/seasons/{season_id}/draft`
+## Draft  `/draft`
 
 - **Shows:** draft board (round × team grid); pick-value analysis (steals/busts) with a
   by-round chart.
@@ -147,7 +164,9 @@ Anticipating the most-used and highest-value views, and respecting data readines
 2. **Rivalries + Records book** — the emotional core of a long-running league; high reuse of
    primitives.
 3. **Players + Stats explorer + Team page** — exploration depth.
-4. **Draft + Coverage/About + polish passes.**
+4. **Draft + Power + Coverage/About + global search + polish passes.**
 
-Everything after #1 is additive composition of the same primitives + one endpoint each — by
-design, so the views you discover you want later are cheap to add.
+> **As-built note:** all of the above ship **except the Manager index/profile pages** (#1),
+> which remain `PlaceholderPage` stubs despite their ready backend — the one outstanding gap
+> against this plan. The Playoffs/Bracket view (above) was also never built. Everything else is
+> additive composition of the same primitives + one endpoint each, as designed.

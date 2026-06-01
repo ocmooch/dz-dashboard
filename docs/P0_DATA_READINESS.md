@@ -14,7 +14,7 @@ Probed directly against the live database:
 | Scored seasons (`player_stats_scored`) | **2016–2025** (182,037 rows) | ✅ 2010–2015 unscored, as documented |
 | Champions set | every completed season has `champion_team_id` | ✅ |
 | Matchups span all weeks | 16–17 weeks per season (not just week 1) | ✅ |
-| All 18 tables present | leagues … source_health | ✅ |
+| All 17 tables present | leagues … source_health | ✅ (matches `03_DATA_ACCESS.md`) |
 
 ## Known gaps (surfaced honestly, never faked — see `03_DATA_ACCESS.md`)
 

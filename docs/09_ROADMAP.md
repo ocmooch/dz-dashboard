@@ -53,7 +53,9 @@ data: players, stats, owner records) can still proceed; P5 waits.
   (new optional deps minimal — FastAPI/uvicorn already present from Phase 1).
 - `settings.py` (DB path, host/port, cache TTL); `api/main.py` app factory; `deps.py`
   reusing `ff_pipeline.repository` sessions in **read-only / WAL** mode.
-- `api/_meta.py`, `api/errors.py` — copy Phase 1's envelope + error handlers.
+- Reuse Phase 1's envelope + error handlers by importing them (`build_meta` from
+  `ff_pipeline.api._meta`, `install_error_handlers` from `ff_pipeline.api.errors`) — no local
+  copies, so the shapes stay identical to Phase 1.
 - Implement `GET /health` and `GET /v1/meta` (coverage from `pipeline_runs` + table probes).
 - `cache.py` keyed on latest `pipeline_run_id`.
 - CLI/entrypoint: `dz-dashboard serve` (or a `[project.scripts]` entry).
@@ -100,12 +102,18 @@ tested; the generated client typechecks against the live BFF schema.
 **Goal:** prove the whole pipe end-to-end on three real pages.
 
 **Tasks:**
-- Home (`/v1/home`), Standings (+timeline chart + week-stepper), Manager profile
+- Home (composed client-side from standings/records/power — no `/v1/home` endpoint),
+  Standings (+timeline chart + week-stepper), Manager profile
   (career header, trophy case, season table, trajectory chart).
 - Feature tests with MSW; one e2e (land → standings).
 
 **Done when:** the three pages render real data from the BFF; deep links work; loading/empty/
 error states present; e2e green.
+
+> **Build outcome:** Home + Standings shipped; the **Manager profile** (and Managers index)
+> shipped only as `PlaceholderPage` stubs — the owner endpoints exist and are tested, but the
+> views weren't composed. This is the one P4 item still outstanding (see `10_OPEN_QUESTIONS.md`
+> N1).
 
 ## P5 — Matchups + Box score
 

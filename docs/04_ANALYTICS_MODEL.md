@@ -22,8 +22,12 @@ Conventions used below:
 - **Record (W-L-T)** — count of `matchups.is_win` true/false/null grouped by team, regular
   season only.
 - **Points For / Against** — sum of `team_score` / `opponent_score` over regular season.
-- **Standings rank** — sort by wins desc, then points-for desc (league's documented
-  tiebreaker; confirm vs NFL.com — see Q in `10_OPEN_QUESTIONS.md`).
+- **Standings rank** — prefer Phase 1's reconstructed `teams.final_rank` (the NFL.com truth,
+  which already bakes in any historical tiebreak we deliberately do not re-derive). Where
+  `final_rank` is absent (e.g. an in-progress season), compute wins-desc → points-for-desc.
+  The payload exposes `rank_basis` (`final_rank` vs `computed`) and a `tiebreak_caveat` flag
+  (true when computed *and* season < 2019). Do **not** re-implement the league's old best-of-3
+  tiebreak. (Resolved — see `10_OPEN_QUESTIONS.md` Q5.)
 - **Standings through week N** — same, restricted to weeks ≤ N. Used for time-travel and the
   standings-over-time chart (one rank line per team across weeks).
 - **Streak** — current/longest W or L run within a season, computed from the week-ordered
@@ -134,13 +138,37 @@ Mostly passthrough of Phase 1 facts, lightly aggregated for charts.
 - **Availability (current season only)** — owned/FA/waivers per week from
   `player_availability`; historical seasons render the documented gap.
 
-## 9. League command center (`analytics/league.py`)
+## 9. Teams (`analytics/teams.py`)
 
-Composition of the above for the home view, kept to a single endpoint to minimize round-trips.
+Per-(season, team) rollups feeding the team page.
 
-- Current standings (top 4 / bottom 4), current power ranking top movers, this week's
-  matchups with scores, and a recent-activity feed (latest N transactions + notable
-  performances of the most recent completed week).
+- **Team overview** — final record/rank, owner, championship/podium flags for that season.
+- **Schedule** — week-by-week opponent + result + margin for the team's season.
+- **Scoring trend** — the team's points-per-week against the league average that week (the
+  line chart).
+- **Transactions** — the season's transactions involving the team (passthrough of Phase 1's
+  `transactions`, scoped to the team).
+
+## 10. Global search (`analytics/search.py`)
+
+- **Typeahead** — a single ranked result list across owners, teams, players, and seasons for
+  a query string, each hit carrying a typed deep-link target. Read-only over the indexed
+  Phase 1 tables; no scoring math.
+
+## 11. Coverage (`analytics/coverage.py`)
+
+- **Coverage flags** for `/v1/meta` — `seasons_present`, `seasons_scored`,
+  `reconstruction_complete`, `availability_current_season_only`, `dst_scoring_complete` —
+  derived from table probes + the latest `pipeline_runs` row. This is what drives every
+  `DataGap` affordance in the UI.
+
+## League command center (home view — no dedicated module)
+
+The home/command-center view is **composed client-side** from existing endpoints rather than a
+single `/v1/home` composite (there is no `analytics/league.py`). The SPA fetches current
+standings (`/v1/seasons/{id}/standings`), the records book (`/v1/records`), and the power
+ranking (`/v1/seasons/{id}/power`) and arranges them — doing no math, only layout. See
+`05_API_CONTRACT.md` and `07_PAGES_AND_VIEWS.md`.
 
 ---
 

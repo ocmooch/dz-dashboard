@@ -1,5 +1,11 @@
 # Phase 2 — Claude Code Kickoff
 
+> **⚠️ Archived (historical).** This is the pre-build kickoff brief used to start Phase 2.
+> Phase 2 is now built end-to-end (P0–P11); see the root `README.md` and `docs/PHASE2_RUNBOOK.md`
+> for the current system. Kept for provenance — the session prompts and decision overrides below
+> describe how the build was *bootstrapped*, not how it stands today. Some references (file layout,
+> the `/v1/home` endpoint, manager pages) have since drifted from the as-built code.
+
 Copy/paste the prompt below into a fresh Claude Code session in the Phase 1 repo to start
 Phase 2. As in Phase 1, run one long session per milestone (the milestones in
 `docs/09_ROADMAP.md` are sized to fit).

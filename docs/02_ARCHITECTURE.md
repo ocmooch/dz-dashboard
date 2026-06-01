@@ -79,36 +79,53 @@ src/
     ├── server.py              # uvicorn entrypoint / app factory wiring
     ├── cache.py               # in-process memoization keyed by latest pipeline_run_id
     │
+    ├── engine.py             # create_readonly_engine: WAL + PRAGMA query_only read-only SQLite
+    │
     ├── analytics/             # PURE functions: rows -> metrics. No FastAPI here.
     │   ├── __init__.py
+    │   ├── common.py          # shared helpers (regular_season_weeks, season/week lookups)
     │   ├── standings.py       # standings, standings-through-week, streaks
-    │   ├── power.py           # power ranking model(s)
+    │   ├── power.py           # power ranking model + timeline
     │   ├── matchups.py        # box-score enrichment, optimal lineup, bench points
     │   ├── head_to_head.py    # all-time owner-vs-owner records, rivalry matrix
     │   ├── records.py         # records book / hall of fame rollups
     │   ├── owners.py          # career aggregates, trophy case, trajectories
     │   ├── draft.py           # draft board + pick-value analysis
     │   ├── players.py         # scoring history, ownership, top scorers, positional
-    │   └── league.py          # command-center summary, activity feed
+    │   ├── teams.py           # team overview, schedule, scoring-trend, transactions
+    │   ├── search.py          # global typeahead across owners/teams/players/seasons
+    │   └── coverage.py        # /v1/meta coverage flags (seasons scored, gaps)
     │
     ├── api/
     │   ├── __init__.py
     │   ├── main.py            # FastAPI app factory (mirrors ff_pipeline.api.main)
-    │   ├── deps.py            # SessionDep (reuses ff_pipeline repository sessions)
-    │   ├── errors.py          # same error envelope as Phase 1
-    │   ├── schemas.py         # pydantic response models for analytics shapes
-    │   ├── _meta.py           # provenance envelope (reuses latest_pipeline_run)
+    │   ├── deps.py            # SessionDep / CacheDep (reuse ff_pipeline repository sessions)
+    │   ├── schemas.py         # pydantic response models for analytics shapes (additive)
+    │   ├── static.py          # optional single-origin SPA mount (serves web/dist)
     │   └── routes/
-    │       ├── home.py        # /v1/home
-    │       ├── standings.py   # /v1/seasons/{id}/standings...
-    │       ├── matchups.py    # /v1/matchups...
+    │       ├── health.py      # /health + /v1/meta
+    │       ├── seasons.py     # /v1/seasons..., /v1/seasons/{id}/standings(+/timeline)
+    │       ├── power.py       # /v1/seasons/{id}/power(+/timeline)
+    │       ├── matchups.py    # /v1/seasons/{id}/weeks/{w}/matchups, /v1/matchups/{id}/box-score
     │       ├── owners.py      # /v1/owners...  (career, h2h, rivalry-matrix)
     │       ├── records.py     # /v1/records...
     │       ├── draft.py       # /v1/seasons/{id}/draft...
-    │       └── players.py     # /v1/players...
+    │       ├── teams.py       # /v1/teams/{id}...
+    │       ├── players.py     # /v1/players..., /v1/stats/...
+    │       └── search.py      # /v1/search
     │
     └── py.typed
 ```
+
+> **Error + provenance envelopes are reused from Phase 1, not re-implemented.** `main.py`
+> imports `install_error_handlers` from `ff_pipeline.api.errors`, and the routes import
+> `build_meta` from `ff_pipeline.api._meta` — so the dashboard has no local `errors.py` /
+> `_meta.py`; the envelope and error shapes match Phase 1 verbatim (see `00_SEAM.md`).
+
+> **No `/v1/home` composite.** The home/command-center view is composed **client-side** from
+> existing endpoints (`/v1/seasons/{id}/standings`, `/v1/records`, `/v1/seasons/{id}/power`)
+> rather than a dedicated server endpoint + `analytics/league.py`. This keeps the BFF surface
+> orthogonal (one concern per endpoint) while the SPA still does no math — only orchestration.
 
 The Phase 1 read API (`ff_pipeline.api`) stays exactly as-is. Phase 2 does **not** route
 through it; it reuses the repository directly for speed. (Optionally, the BFF can proxy a
@@ -124,35 +141,44 @@ web/
 ├── tsconfig.json
 ├── package.json
 ├── tailwind.config.ts
+├── postcss.config.js
+├── playwright.config.ts
+├── e2e/                         # Playwright: journeys.spec.ts + visual.spec.ts
 ├── src/
+│   ├── main.tsx                 # mount + providers (QueryClient, Router)
 │   ├── app/
-│   │   ├── main.tsx              # mount, providers (QueryClient, Router, Theme)
-│   │   ├── router.tsx           # route table; lazy-loaded feature pages
-│   │   └── shell/               # AppShell: top bar, season switcher, nav, search
+│   │   ├── App.tsx              # route table (React Router); flat switcher-driven routes
+│   │   └── shell/              # AppShell, SeasonContext (global switcher), DataAsOf
 │   │
-│   ├── design-system/           # the durable primitives (see 06_DESIGN_SYSTEM.md)
-│   │   ├── tokens.css           # CSS variables: color, space, type, radius, shadow
-│   │   ├── Button.tsx  Card.tsx  Stat.tsx  Badge.tsx  Table.tsx  Tabs.tsx
-│   │   ├── EmptyState.tsx  ErrorState.tsx  Skeleton.tsx  DataGap.tsx
-│   │   └── index.ts
+│   ├── design-system/           # the durable primitives — one module (see 06_DESIGN_SYSTEM.md)
+│   │   ├── index.tsx           # Button, Card, Stat, StatGrid, Badge, Table, Tabs,
+│   │   │                        # RecordLine, chips, Skeleton, EmptyState, ErrorState, DataGap…
+│   │   └── index.test.tsx
 │   │
 │   ├── charts/                  # Recharts wrappers w/ shared theme + a11y
-│   │   ├── LineTrend.tsx  BarCompare.tsx  Heatmap.tsx  StackedBreakdown.tsx
-│   │   └── chartTheme.ts
+│   │   ├── index.tsx           # LineTrend, BarCompare, StackedBreakdown, Heatmap, RankFlow
+│   │   └── chartTheme.ts        # reads the CSS tokens
 │   │
 │   ├── features/                # pages = composition only, no math
-│   │   ├── home/  standings/  matchups/  team/  owner/  rivalry/
-│   │   ├── records/  players/  draft/
+│   │   ├── home/  standings/  power/  matchups/  rivalries/
+│   │   ├── records/  players/  stats/  teams/  draft/  search/
+│   │   ├── about/              # coverage / attribution
+│   │   └── placeholder/        # stub for not-yet-built views (managers index + profile)
 │   │
 │   ├── lib/
-│   │   ├── api/                 # GENERATED client from OpenAPI + thin query hooks
+│   │   ├── api/                 # client.ts (openapi-fetch) + GENERATED schema.d.ts
 │   │   ├── queryKeys.ts         # TanStack Query key factory
 │   │   ├── format.ts            # numbers, records (W-L-T), dates — display only
-│   │   └── routes.ts            # typed route builders (deep links)
+│   │   └── rankflow.ts          # rank/bump-chart data shaping (display only)
 │   │
-│   └── styles/                  # global.css imports tokens
-└── tests/                       # vitest + React Testing Library; Playwright e2e
+│   ├── styles/                  # global.css imports tokens.css (the theme source of truth)
+│   └── test/                    # render.tsx + setup.ts; component/feature tests are colocated
+└──                              #   as *.test.tsx beside the code they cover (not a tests/ dir)
 ```
+
+> **Manager pages are not built yet.** `features/placeholder/` backs the `managers` and
+> `managers/:ownerId` routes as stubs; the owner analytics + `/v1/owners/*` endpoints exist
+> and are tested, but the SPA views haven't been composed. Tracked in `10_OPEN_QUESTIONS.md`.
 
 ## Stack decisions (and why)
 
