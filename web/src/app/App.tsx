@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { AboutPage } from "@/features/about/AboutPage";
 import { HomePage } from "@/features/home/HomePage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
@@ -40,6 +41,7 @@ export function App() {
             <Route path="stats" element={<StatsPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<DraftPage />} />
+            <Route path="about" element={<AboutPage />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>
         </Routes>
