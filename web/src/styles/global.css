@@ -345,11 +345,14 @@
     margin-top: 3px;
   }
 
-  /* global-search placeholder (wired in P10) */
-  .dz-search {
+  /* global-search typeahead (wired in P10) */
+  .dz-search-wrap {
+    position: relative;
     flex: 1;
     max-width: 420px;
     min-width: 0;
+  }
+  .dz-search {
     display: flex;
     align-items: center;
     gap: var(--s3);
@@ -369,6 +372,22 @@
   .dz-search:hover {
     border-color: var(--border-strong);
   }
+  .dz-search:focus-within {
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(120, 120, 255, 0.18));
+  }
+  .dz-search-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--text);
+    font: inherit;
+  }
+  .dz-search-input::placeholder {
+    color: var(--text-faint);
+  }
   .dz-search kbd {
     margin-left: auto;
     font-family: var(--font-mono);
@@ -378,6 +397,51 @@
     background: var(--chip-bg);
     color: var(--text-faint);
     border: 1px solid var(--border);
+  }
+  .dz-search-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 60;
+    margin: 0;
+    padding: var(--s2);
+    list-style: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .dz-search-empty {
+    padding: var(--s3) var(--s4);
+    color: var(--text-faint);
+    font-size: var(--fs-sm);
+  }
+  .dz-search-hit {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s3);
+    padding: var(--s3) var(--s4);
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+  }
+  .dz-search-hit.is-active {
+    background: var(--chip-bg);
+  }
+  .dz-search-glyph {
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+  .dz-search-hit-label {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .dz-search-hit-sub {
+    margin-left: auto;
+    color: var(--text-faint);
+    font-size: var(--fs-sm);
   }
   .dz-topbar-right {
     margin-left: auto;
@@ -600,7 +664,7 @@
 
 /* ===================== RESPONSIVE: nav -> bottom tab bar ===================== */
 @media (max-width: 860px) {
-  .dz-search {
+  .dz-search-wrap {
     display: none;
   }
   .dz-nav {
