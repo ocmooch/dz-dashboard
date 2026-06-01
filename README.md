@@ -44,35 +44,53 @@ uv run dz-dashboard serve    # serve the analytics API on http://127.0.0.1:8800
   reconstruction is complete) — powers the "data as of" indicator and gap banners.
 - OpenAPI at `/openapi.json`, interactive docs at `/docs`.
 
-## See it in the browser
+## Run it (one command)
 
-The web app needs **both** processes running — the BFF (Python/`uv`) and the SPA
-dev server (`web/`/`npm`). Run them in two terminals:
+From a fresh checkout, `make install` once, then:
 
 ```bash
-# terminal 1 — BFF (from the repo root)
-uv run dz-dashboard serve            # API on http://127.0.0.1:8800
-
-# terminal 2 — SPA (from web/)
-cd web
-npm install                          # first time only
-npm run dev                          # open http://127.0.0.1:5173
+make dev      # development: BFF (:8800, reload) + Vite dev server (:5173); Ctrl-C stops both
+make serve    # daily use: builds the SPA and runs ONE uvicorn serving API + SPA on :8800
 ```
 
-Then open **http://127.0.0.1:5173** — the Vite dev server proxies `/v1`,
-`/health`, and `/openapi.json` to the BFF, so the browser only talks to one
-origin. More frontend detail (typed-client regen, checks) lives in `web/README.md`.
+- `make dev` → open **http://127.0.0.1:5173** (Vite proxies `/v1`, `/health`,
+  `/openapi.json` to the BFF, so the browser talks to one origin).
+- `make serve` → open **http://127.0.0.1:8800** (the BFF serves the built SPA
+  single-origin — no second server, no CORS).
+- `make help` lists every target. For always-on (logout/reboot) use the systemd
+  user service in `scripts/dz-dashboard.service` (cron `@reboot` alternative in
+  `scripts/cron.example`).
+
+The full operational playbook — start/stop, regenerating the typed client, and
+common breakages — is in **[`docs/PHASE2_RUNBOOK.md`](docs/PHASE2_RUNBOOK.md)**.
+Frontend detail lives in [`web/README.md`](web/README.md).
+
+### Running by hand (no make)
+
+```bash
+uv run dz-dashboard serve --reload   # terminal 1: API on :8800
+cd web && npm install && npm run dev  # terminal 2: SPA on :5173
+```
 
 ## Development gate
 
 The same green-gate discipline as Phase 1; all must pass before a commit:
 
 ```bash
-uv run pytest          # unit + contract tests
-uv run ruff check      # lint
-uv run ruff format     # format
-uv run mypy src/       # strict type check
+make check             # runs the whole gate, both domains:
+                       #   backend : pytest · ruff check · mypy src/
+                       #   frontend: typecheck · vitest
 ```
+
+End-to-end + visual-regression run separately (they boot a real BFF on the
+fixture DB and a headless browser):
+
+```bash
+make test-e2e          # Playwright journeys + visual regression
+make e2e-update        # refresh visual-regression baselines after an intended UI change
+```
+
+> First-time e2e needs the browser: `cd web && npx playwright install --with-deps chromium`.
 
 ## Boundaries (non-negotiable)
 
@@ -83,4 +101,8 @@ uv run mypy src/       # strict type check
 
 ## Status
 
-Phase 2 is built milestone-by-milestone per `09_ROADMAP.md`. See the git log.
+Phase 2 is built end-to-end per `09_ROADMAP.md` (P0–P11): the analytics BFF, the
+full SPA (home, standings, power, matchups/box-score, rivalries, records,
+players, stats, draft, coverage, global search), one-command operations, and a
+both-domain test gate (analytics unit + contract, component/feature, and
+Playwright e2e/visual-regression). See the git log for the per-milestone history.

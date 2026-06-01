@@ -1,0 +1,116 @@
+name: CI
+
+# Both domains must be green before a PR to dev/main can merge (docs/08 §CI).
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Backend (ff_dashboard): the Python analytics BFF.
+  #
+  # ff_dashboard imports ff_pipeline (Phase 1) via the editable path source in
+  # pyproject.toml ([tool.uv.sources] -> ../danger-zone). CI checks that sibling
+  # out beside this repo so the source resolves. If you'd rather not grant access
+  # to the sibling, swap [tool.uv.sources] to the pinned git tag (see
+  # docs/PHASE2_RUNBOOK.md) and drop the "Check out ff-pipeline" step.
+  # ----------------------------------------------------------------------------
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out ff-pipeline (sibling, for the editable path source)
+        uses: actions/checkout@v4
+        with:
+          repository: ocmooch/danger-zone
+          path: danger-zone
+          ssh-key: ${{ secrets.FF_PIPELINE_DEPLOY_KEY }}
+      - name: Position ff-pipeline as ../danger-zone
+        run: mv danger-zone ../danger-zone
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - run: uv run ruff check
+      - run: uv run mypy src/
+      - run: uv run pytest
+
+  # ----------------------------------------------------------------------------
+  # Frontend (web/): component + feature tests, build, and contract-drift check.
+  # ----------------------------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Contract seam + e2e: both toolchains. Boots the real BFF on the fixture DB
+  # (serving the built SPA single-origin) and runs the deterministic journeys.
+  # Visual-regression (e2e/visual.spec.ts) is intentionally NOT in the CI gate
+  # until per-platform baselines are committed (generate them with
+  # `make e2e-update` on a browser-capable host — see docs/PHASE2_RUNBOOK.md);
+  # add `npx playwright test visual` here once they exist.
+  # ----------------------------------------------------------------------------
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out ff-pipeline (sibling)
+        uses: actions/checkout@v4
+        with:
+          repository: ocmooch/danger-zone
+          path: danger-zone
+          ssh-key: ${{ secrets.FF_PIPELINE_DEPLOY_KEY }}
+      - run: mv danger-zone ../danger-zone
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      # Contract drift: the committed typed client must match the live schema.
+      - name: API client in sync with the live BFF schema
+        run: |
+          uv run dz-dashboard serve &
+          npx --yes wait-on http://127.0.0.1:8800/health
+          cd web && npm run gen:api:check
+
+      # End-to-end journeys against the fixture DB (Playwright's webServer builds
+      # the SPA and boots scripts/serve_e2e.py on :8810).
+      - name: Install Playwright browser + system deps
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e journeys
+        working-directory: web
+        run: npx playwright test journeys
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
