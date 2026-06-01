@@ -78,22 +78,26 @@ The landing view; a glanceable cockpit for the current season.
   `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`.
 - **Components/charts:** `StatGrid`, roster `Table`, schedule list, `LineTrend`.
 
-## Managers (index)  `/managers`  *(placeholder — not built)*
+## Managers (index)  `/managers`
 
-- **Shows (planned):** every manager with a career line (record, championships, best finish).
+- **Shows:** league-wide career leaderboard — a "league legends" strip (most titles, best
+  win %, most points, most seasons) over a sortable career table (manager, seasons, win %,
+  record, points for, titles, best/avg finish). Each row deep-links to the manager profile.
 - **Endpoint:** `/v1/owners` (built + tested).
-- **Status:** the route renders a `PlaceholderPage`; the SPA view hasn't been composed yet
-  even though the backend is ready. Tracked in `10_OPEN_QUESTIONS.md`.
+- **Sort/derive:** default order is the BFF's (titles → wins → PF); columns re-sort
+  client-side. Win % is derived in-component over decided games — managers with no games on
+  record show `—`, never a fake 0 %.
 
-## Manager profile  `/managers/{owner_id}`  *(placeholder — not built)*
+## Manager profile  `/managers/{owner_id}`
 
-- **Shows (planned):** career aggregate header (seasons, W-L-T, PF, titles, avg finish);
-  trophy case; season-by-season record table; career trajectory chart; consistency percentile.
-- **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`
-  (all built + tested).
-- **Status:** the route renders a `PlaceholderPage` — the highest-value unbuilt view. The
-  pairwise rivalry page (below) currently carries the owner-vs-owner story. Tracked in
-  `10_OPEN_QUESTIONS.md`.
+- **Shows:** career aggregate header (seasons, W-L-T, win %, PF, best finish, titles);
+  trophy case (championships + podium finishes); career trajectory chart (final finish by
+  season, `RankFlow`); season-by-season record table; rivalry snapshot ("owns" / "owned by"
+  splits deep-linking to the pairwise pages).
+- **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`,
+  `/v1/owners/rivalry-matrix` (all built + tested).
+- **Gaps:** record-only (pre-coverage) seasons return 0 PF and render a `DataGap` in the
+  points-for column rather than a `0`. A missing owner id renders a not-found state.
 
 ## Rivalries  `/rivalries`  and  `/rivalries/{a}/vs/{b}`
 
@@ -166,7 +170,7 @@ Anticipating the most-used and highest-value views, and respecting data readines
 3. **Players + Stats explorer + Team page** — exploration depth.
 4. **Draft + Power + Coverage/About + global search + polish passes.**
 
-> **As-built note:** all of the above ship **except the Manager index/profile pages** (#1),
-> which remain `PlaceholderPage` stubs despite their ready backend — the one outstanding gap
-> against this plan. The Playoffs/Bracket view (above) was also never built. Everything else is
-> additive composition of the same primitives + one endpoint each, as designed.
+> **As-built note:** all of the above ship, including the Manager index/profile pages (#1),
+> which are now composed against their ready backend (`feature/managers-page`). The
+> Playoffs/Bracket view (above) was never built. Everything else is additive composition of the
+> same primitives + one endpoint each, as designed.
