@@ -26,6 +26,9 @@ export default defineConfig({
     globals: true,
     setupFiles: "./src/test/setup.ts",
     css: false,
+    // Playwright owns e2e/ (*.spec.ts run against a real browser); keep Vitest
+    // to the component/feature *.test.* files so the two runners don't collide.
+    exclude: ["node_modules", "dist", "e2e/**"],
     coverage: {
       provider: "v8",
       include: ["src/design-system/**", "src/charts/**", "src/lib/format.ts"],

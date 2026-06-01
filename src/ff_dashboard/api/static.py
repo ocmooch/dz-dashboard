@@ -50,10 +50,6 @@ def mount_spa(app: FastAPI, static_dir: Path) -> None:
         # A real top-level file (favicon.ico, robots.txt, …) is served directly;
         # everything else falls back to the SPA shell for client-side routing.
         candidate = (static_dir / full_path).resolve()
-        if (
-            full_path
-            and candidate.is_file()
-            and candidate.is_relative_to(static_dir.resolve())
-        ):
+        if full_path and candidate.is_file() and candidate.is_relative_to(static_dir.resolve()):
             return FileResponse(candidate)
         return FileResponse(index)

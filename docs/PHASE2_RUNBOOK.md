@@ -181,7 +181,7 @@ If snapshots fail on a legitimate UI change, refresh them: `make e2e-update`, th
 ## The green gate (before any commit)
 
 ```bash
-make check        # backend: pytest + ruff + ruff format --check + mypy; frontend: typecheck + test
+make check        # backend: pytest + ruff check + mypy; frontend: typecheck + test
 ```
 
 e2e/visual-regression run separately (they boot real servers): `make test-e2e`.

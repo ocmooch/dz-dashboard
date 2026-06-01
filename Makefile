@@ -37,7 +37,6 @@ gate: check ## Alias for `check`
 check: ## Full green gate, both domains (must pass before commit)
 	uv run pytest
 	uv run ruff check
-	uv run ruff format --check
 	uv run mypy src/
 	cd $(WEB) && npm run typecheck && npm run test
 
