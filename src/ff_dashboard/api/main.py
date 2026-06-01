@@ -23,6 +23,7 @@ from ff_dashboard.api.routes import (
     players,
     power,
     records,
+    search,
     seasons,
     teams,
 )
@@ -74,5 +75,6 @@ def create_app(
     app.include_router(draft.router)
     app.include_router(power.router)
     app.include_router(teams.router)
+    app.include_router(search.router)
 
     return app
