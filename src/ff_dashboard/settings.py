@@ -52,6 +52,25 @@ class Settings(BaseSettings):
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
+    # --- Static SPA (production-ish single-origin local run) ---
+    # When set to a built ``web/dist`` directory, the BFF also serves the SPA so
+    # one uvicorn process is the whole dashboard (no separate Vite/static server,
+    # no CORS). Unset in dev, where Vite serves the SPA and proxies the API.
+    static_dir: Path | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DASHBOARD_STATIC_DIR", "STATIC_DIR"),
+    )
+
+    def resolved_static_dir(self) -> Path | None:
+        """Return ``static_dir`` as an absolute path (relative paths resolve
+        against the project root), or ``None`` if unset."""
+        if self.static_dir is None:
+            return None
+        path = self.static_dir
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        return path.resolve()
+
     def resolved_database_url(self) -> str:
         """Return ``database_url`` with any relative SQLite path made absolute
         against the project root, so the CWD never changes which file we read."""
