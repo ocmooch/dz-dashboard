@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 import { api } from "@/lib/api/client";
 import { qk } from "@/lib/queryKeys";
@@ -19,11 +20,11 @@ export function DataAsOf() {
     : "—";
   const ok = run?.status === "success";
   return (
-    <button
-      type="button"
+    <Link
+      to="/about"
       className="dz-data-status"
-      title="Data coverage — opens in a later milestone"
-      aria-label={`Data as of ${when}${run?.run_id != null ? `, run ${run.run_id}` : ""}`}
+      title="Data coverage & sources"
+      aria-label={`Data as of ${when}${run?.run_id != null ? `, run ${run.run_id}` : ""} — open coverage`}
     >
       <span className={`dz-live-dot ${ok ? "" : "dz-live-dot--warn"}`.trim()} aria-hidden />
       <span className="text-right leading-tight">
@@ -33,6 +34,6 @@ export function DataAsOf() {
           {run?.run_id != null && <span className="text-faint"> · run #{run.run_id}</span>}
         </span>
       </span>
-    </button>
+    </Link>
   );
 }

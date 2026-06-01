@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import { GlobalSearch } from "@/features/search/GlobalSearch";
+
 import { DataAsOf } from "./DataAsOf";
 import { useSeasons } from "./SeasonContext";
 
@@ -16,6 +18,7 @@ const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/players", label: "Players", ready: true },
   { to: "/stats", label: "Stats", ready: true },
   { to: "/draft", label: "Draft", ready: true },
+  { to: "/about", label: "Coverage", ready: true },
 ];
 
 function SeasonSwitcher() {
@@ -40,24 +43,6 @@ function SeasonSwitcher() {
   );
 }
 
-/** Global-search placeholder. The typeahead is wired in P10; until then this is a
- *  visible, honestly-disabled affordance so the IA reads correctly. */
-function SearchPlaceholder() {
-  return (
-    <button
-      type="button"
-      className="dz-search"
-      disabled
-      title="Global search — lands in a later milestone"
-      aria-label="Global search (coming soon)"
-    >
-      <span aria-hidden>⌕</span>
-      <span>Search managers, players, seasons…</span>
-      <kbd>/</kbd>
-    </button>
-  );
-}
-
 export function AppShell() {
   return (
     <div className="flex min-h-full flex-col">
@@ -70,7 +55,7 @@ export function AppShell() {
           </div>
         </div>
 
-        <SearchPlaceholder />
+        <GlobalSearch />
 
         <div className="dz-topbar-right">
           <SeasonSwitcher />
