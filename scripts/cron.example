@@ -1,0 +1,31 @@
+# dz-dashboard — example crontab (Phase 2)
+# -----------------------------------------------------------------
+# The dashboard is read-only: it has no pipeline to schedule (that's Phase 1's
+# cron). The only operational need is keep-alive — start it on reboot. This is
+# the simpler ALTERNATIVE to the systemd user service in
+# scripts/dz-dashboard.service; use one or the other, not both.
+#
+# Prefer the systemd unit if available — it restarts on crash, not just on
+# reboot, and gives you `journalctl` logs. Use this cron entry on boxes without
+# a usable user systemd.
+#
+# Install:
+#   crontab -l | cat - scripts/cron.example | crontab -   # append to current crontab
+#
+# Before installing, replace the placeholders:
+#   <PROJECT_ROOT>  absolute path to this checkout       (e.g. /home/you/dz-dashboard)
+#   <DZ_DASHBOARD>  absolute path to the dz-dashboard entrypoint
+#                   (`command -v dz-dashboard`, or
+#                    <PROJECT_ROOT>/.venv/bin/dz-dashboard for a uv-managed venv).
+#
+# Build the SPA once before relying on this (the entry serves web/dist):
+#   make build-web
+# -----------------------------------------------------------------
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+PYTHONUNBUFFERED=1
+
+# On reboot — start the dashboard (BFF + built SPA, single-origin on :8800).
+# `setsid` detaches it from cron so it keeps running; logs go to data/logs.
+@reboot  cd <PROJECT_ROOT> && mkdir -p data/logs && DASHBOARD_STATIC_DIR=<PROJECT_ROOT>/web/dist setsid <DZ_DASHBOARD> serve >> data/logs/dashboard.log 2>&1
