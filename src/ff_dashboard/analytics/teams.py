@@ -34,6 +34,7 @@ from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.matchups import roster_sort_key
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -107,6 +108,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     )
 
     pairs = roster_for_team_week(session, team_id, week)
+    # Lay the roster out top-to-bottom the way the box score does: starters
+    # (QB, RB, RB, WR, WR, TE, FLEX, K, DST), then bench, then IR.
+    pairs = sorted(pairs, key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position))
     effective_week = week
     if effective_week is None:
         effective_week = pairs[0][0].week if pairs else (weeks_available[-1] if weeks_available else 0)
