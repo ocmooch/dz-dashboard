@@ -1,0 +1,266 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { BoxScorePage } from "./BoxScorePage";
+import { MatchupsPage } from "./MatchupsPage";
+
+// The SPA reaches data only through the generated client; mocking it keeps these
+// as pure presentation tests — no network, no business logic under test.
+const get = vi.fn();
+vi.mock("@/lib/api/client", () => ({ api: { GET: (...args: unknown[]) => get(...args) } }));
+
+// Pin the active season so we don't depend on SeasonProvider's load timing.
+vi.mock("@/app/shell/SeasonContext", () => ({
+  useSeasons: () => ({
+    current: { season_id: 1, season_year: 2017, is_scored: true },
+    seasons: [{ season_id: 1, season_year: 2017, is_scored: true }],
+    setSeasonId: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
+const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefined });
+
+const SEASON_SUMMARY = { season_id: 1, season_year: 2017, regular_season_weeks: 14, playoff_weeks: 3 };
+
+const WEEK_GAMES = {
+  season_id: 1,
+  season_year: 2017,
+  week: 1,
+  is_scored: true,
+  games: [
+    {
+      matchup_id: 712,
+      is_playoff: false,
+      team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
+      team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
+      margin: 5,
+      winner_team_id: 10,
+    },
+    {
+      matchup_id: 713,
+      is_playoff: false,
+      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
+      team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
+      margin: 40.4,
+      winner_team_id: 12,
+    },
+  ],
+};
+
+const BOX = {
+  matchup_id: 712,
+  season_year: 2017,
+  week: 1,
+  available: true,
+  is_playoff: false,
+  winner_team_id: 10,
+  home: {
+    team_id: 10,
+    team_name: "Iceman 2017",
+    owner_name: "Iceman",
+    total_score: 130,
+    starter_points: 104,
+    bench_points: 51,
+    optimal_total: 117,
+    points_left_on_bench: 13,
+    beat_projection_by: null,
+    lineup: [
+      {
+        roster_slot: "QB",
+        player_id: 1,
+        player_name: "Ice QB One",
+        position: "QB",
+        league_points: 24,
+        is_starter: true,
+        breakdown: { passing: 24 },
+        projection: null,
+        available: true,
+        reason: null,
+      },
+      {
+        roster_slot: "DEF",
+        player_id: 2,
+        player_name: "Ice D/ST",
+        position: "DEF",
+        league_points: null,
+        is_starter: true,
+        breakdown: {},
+        projection: null,
+        available: false,
+        reason: "team_defense_not_scored",
+      },
+      {
+        roster_slot: "BN",
+        player_id: 3,
+        player_name: "Ice QB Two",
+        position: "QB",
+        league_points: 26,
+        is_starter: false,
+        breakdown: { passing: 26 },
+        projection: null,
+        available: true,
+        reason: null,
+      },
+    ],
+  },
+  away: {
+    team_id: 11,
+    team_name: "Goose 2017",
+    owner_name: "Goose",
+    total_score: 125,
+    starter_points: 125,
+    bench_points: 10,
+    optimal_total: 125,
+    points_left_on_bench: 0,
+    beat_projection_by: null,
+    lineup: [
+      {
+        roster_slot: "QB",
+        player_id: 4,
+        player_name: "Goose QB",
+        position: "QB",
+        league_points: 30,
+        is_starter: true,
+        breakdown: { passing: 30 },
+        projection: null,
+        available: true,
+        reason: null,
+      },
+    ],
+  },
+};
+
+function renderWithProviders(ui: React.ReactNode, initialPath = "/matchups") {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/matchups" element={ui} />
+          <Route path="/matchups/:matchupId" element={ui} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+function routeByPath(path: string) {
+  if (path === "/v1/seasons/{season_id}") return envelope(SEASON_SUMMARY);
+  if (path === "/v1/seasons/{season_id}/weeks/{week}/matchups") return envelope(WEEK_GAMES);
+  if (path === "/v1/matchups/{matchup_id}/box-score") return envelope(BOX);
+  throw new Error(`unexpected path ${path}`);
+}
+
+beforeEach(() => {
+  get.mockReset();
+  get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
+});
+
+afterEach(() => vi.clearAllMocks());
+
+describe("MatchupsPage", () => {
+  it("renders one card per deduped game with the winner's score emphasized", async () => {
+    renderWithProviders(<MatchupsPage />);
+    const ice = await screen.findByText("Iceman 2017");
+    expect(ice).toBeInTheDocument();
+    expect(screen.getByText("Goose 2017")).toBeInTheDocument();
+    // Two games -> two box-score deep links.
+    const links = screen.getAllByRole("link");
+    expect(links.filter((a) => a.getAttribute("href")?.startsWith("/matchups/"))).toHaveLength(2);
+    expect(screen.getByText("130.00")).toBeInTheDocument();
+  });
+
+  it("shows the blowout margin badge on a lopsided game", async () => {
+    renderWithProviders(<MatchupsPage />);
+    await screen.findByText("Mav 2017");
+    expect(screen.getByText(/blowout/i)).toBeInTheDocument();
+  });
+
+  it("deep-links each card to its box score", async () => {
+    renderWithProviders(<MatchupsPage />);
+    await screen.findByText("Iceman 2017");
+    const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/matchups/712");
+    expect(link).toBeDefined();
+  });
+
+  it("steps the week and refetches for the new week", async () => {
+    renderWithProviders(<MatchupsPage />);
+    await screen.findByText("Iceman 2017");
+    await userEvent.click(screen.getByRole("button", { name: "Next week" }));
+    await waitFor(() => {
+      const matchupCalls = get.mock.calls.filter(
+        (c) => c[0] === "/v1/seasons/{season_id}/weeks/{week}/matchups",
+      );
+      expect(matchupCalls.some((c) => (c[1] as any).params.path.week === 2)).toBe(true);
+    });
+  });
+
+  it("surfaces an unscored-season gap badge instead of faking scores", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/weeks/{week}/matchups")
+        return Promise.resolve(envelope({ ...WEEK_GAMES, is_scored: false }));
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<MatchupsPage />);
+    expect(await screen.findByText(/player-level scoring not available/i)).toBeInTheDocument();
+  });
+});
+
+describe("BoxScorePage", () => {
+  it("renders both teams with starter/optimal/bench/left-on-bench stats", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Iceman 2017");
+    expect(screen.getByText("Goose 2017")).toBeInTheDocument();
+    expect(screen.getAllByText("Starters").length).toBeGreaterThan(0);
+    expect(screen.getByText("104.00")).toBeInTheDocument(); // home starters
+    expect(screen.getByText("117.00")).toBeInTheDocument(); // home optimal
+    expect(screen.getByText("13.00")).toBeInTheDocument(); // points left on bench
+  });
+
+  it("renders a DST starter as a DataGap, never a zero", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Ice D/ST");
+    const gap = screen.getByText(/team defense not scored/i);
+    expect(gap).toBeInTheDocument();
+    expect(gap.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("separates bench players from starters", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Ice QB Two");
+    expect(screen.getByText("bench")).toBeInTheDocument();
+  });
+
+  it("shows an unscored-season box score as a gap, not zeros", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 99,
+          season_year: 2015,
+          week: 1,
+          available: false,
+          reason: "season_unscored",
+          is_playoff: false,
+          home: null,
+          away: null,
+          winner_team_id: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/99");
+    expect(await screen.findByText(/Not scored — pre-2016 season/i)).toBeInTheDocument();
+  });
+
+  it("emphasizes the winning team's total score", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Iceman 2017");
+    const winnerScore = screen.getByText("130.00");
+    expect(winnerScore).toHaveClass("text-win");
+    // The loser's total appears muted (other 125.00s are stat values, not the header).
+    expect(screen.getAllByText("125.00").some((el) => el.classList.contains("text-muted"))).toBe(true);
+  });
+});

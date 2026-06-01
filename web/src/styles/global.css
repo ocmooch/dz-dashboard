@@ -1,0 +1,673 @@
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  /* All scores/records/stats are mono + tabular so columns align. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+  ::selection {
+    background: var(--accent);
+    color: #0b0e13;
+  }
+  /* Always-visible focus rings (never outline:none without a replacement). */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+  /* Atmospheric instrument-panel grid texture on the app background. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: center top;
+  }
+}
+
+@layer components {
+  /* ===================== CARD ===================== */
+  .dz-card {
+    background: var(--panel-grad);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--panel-shadow);
+    transition:
+      background var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  .dz-card--hover:hover {
+    background: var(--surface-2);
+    box-shadow: var(--shadow-2);
+    border-color: var(--border-strong);
+  }
+
+  .dz-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* ===================== BADGE / PILL ===================== */
+  .dz-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+    border: 1px solid var(--border);
+    background: var(--chip-bg);
+    color: var(--chip-text);
+  }
+  .dz-badge--accent {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    background: var(--accent-soft);
+  }
+  .dz-badge--win {
+    color: var(--win);
+    border-color: color-mix(in srgb, var(--win) 35%, transparent);
+    background: color-mix(in srgb, var(--win) 12%, transparent);
+  }
+  .dz-badge--loss {
+    color: var(--loss);
+    border-color: color-mix(in srgb, var(--loss) 35%, transparent);
+    background: color-mix(in srgb, var(--loss) 12%, transparent);
+  }
+  /* soft warning pill (e.g. tiebreak caveat) — distinct from the DataGap affordance */
+  .dz-badge--gap {
+    color: var(--warn);
+    border-color: color-mix(in oklab, var(--warn) 50%, transparent);
+    background: color-mix(in oklab, var(--warn) 12%, transparent);
+  }
+
+  /* ===================== DATA GAP (honest, quiet-but-unmistakable) =====================
+     The single most important behavioral affordance: never a fake 0.
+     Dashed border + 135deg hatch + amber rotated-square diamond. */
+  .dz-datagap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3px;
+    color: var(--text-faint);
+    padding: 3px 9px 3px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-strong);
+    background: repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 5px,
+      var(--hairline) 5px,
+      var(--hairline) 6px
+    );
+  }
+  .dz-datagap::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: none;
+    background: var(--warn);
+    border-radius: 1px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 20%, transparent);
+  }
+  .dz-datagap--sm {
+    font-size: var(--fs-xs);
+    padding: 2px 7px;
+  }
+
+  /* ===================== BUTTON ===================== */
+  .dz-btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: var(--fs-sm);
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition:
+      background var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease),
+      filter var(--dur-fast) var(--ease);
+  }
+  .dz-btn:hover {
+    border-color: var(--accent);
+  }
+  .dz-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .dz-btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #140a04;
+  }
+  .dz-btn--primary:hover {
+    border-color: var(--accent);
+    filter: brightness(1.06);
+  }
+  .dz-btn--ghost {
+    background: transparent;
+    border-color: transparent;
+  }
+  .dz-btn--ghost:hover {
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+
+  /* ===================== PILL ===================== */
+  .dz-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    border: 1px solid var(--border);
+  }
+  .dz-pill--accent {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    background: var(--accent-soft);
+  }
+  .dz-pill--win {
+    color: var(--win);
+    border-color: color-mix(in srgb, var(--win) 35%, transparent);
+    background: color-mix(in srgb, var(--win) 12%, transparent);
+  }
+  .dz-pill--loss {
+    color: var(--loss);
+    border-color: color-mix(in srgb, var(--loss) 35%, transparent);
+    background: color-mix(in srgb, var(--loss) 12%, transparent);
+  }
+
+  /* ===================== AVATAR ===================== */
+  .dz-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .dz-avatar--lg {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
+  }
+
+  /* ===================== TABLE ===================== */
+  .dz-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .dz-table th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface-1);
+    white-space: nowrap;
+  }
+  .dz-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .dz-table tbody tr {
+    transition: background var(--dur-fast) var(--ease);
+  }
+  .dz-table tbody tr:hover {
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  }
+  .dz-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .dz-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* ===================== APP SHELL: TOP BAR ===================== */
+  .dz-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--topbar-h);
+    display: flex;
+    align-items: center;
+    gap: var(--s5);
+    padding: 0 var(--s6);
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .dz-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    flex: none;
+  }
+  .dz-brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow: var(--glow-accent);
+  }
+  .dz-brand-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: 1.5px;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .dz-brand-sub {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 3px;
+  }
+
+  /* global-search placeholder (wired in P10) */
+  .dz-search {
+    flex: 1;
+    max-width: 420px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    height: 38px;
+    padding: 0 var(--s4);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-faint);
+    cursor: text;
+    font: inherit;
+    text-align: left;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+  .dz-search:hover {
+    border-color: var(--border-strong);
+  }
+  .dz-search kbd {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--chip-bg);
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+  }
+  .dz-topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--s5);
+  }
+
+  /* season switcher (HUD select) */
+  .dz-season {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+  .dz-season-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .dz-season-select {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--surface-1);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 30px 8px 14px;
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+      linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+
+  /* form fields (filter bars on the explorer/index pages) */
+  .dz-input,
+  .dz-select {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface-1);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+  }
+  .dz-input::placeholder {
+    color: var(--text-faint);
+  }
+  .dz-input:focus,
+  .dz-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--glow-accent);
+  }
+  .dz-select {
+    appearance: none;
+    padding-right: 30px;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+      linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+
+  /* data-as-of status */
+  .dz-data-status {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+  }
+  .dz-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--win);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--win) 22%, transparent);
+    animation: dz-pulse 2.4s ease-in-out infinite;
+  }
+  .dz-live-dot--warn {
+    background: var(--warn);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent);
+  }
+  @keyframes dz-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  /* ===================== APP SHELL: LEFT NAV ===================== */
+  .dz-layout {
+    display: flex;
+    align-items: flex-start;
+  }
+  .dz-nav {
+    position: sticky;
+    top: var(--topbar-h);
+    width: var(--nav-w);
+    flex: none;
+    height: calc(100vh - var(--topbar-h));
+    padding: var(--s5) var(--s4);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dz-nav-group-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: var(--s3) var(--s3) var(--s2);
+  }
+  .dz-nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: 10px var(--s3);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    position: relative;
+    transition:
+      background var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+  .dz-nav-item:hover {
+    background: var(--surface-1);
+    color: var(--text);
+  }
+  .dz-nav-item.active {
+    color: var(--text);
+    background: linear-gradient(90deg, var(--accent-soft), transparent 80%);
+  }
+  .dz-nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 12px -1px var(--accent);
+  }
+  .dz-nav-item .dz-soon {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .dz-nav-item[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .dz-main {
+    flex: 1;
+    min-width: 0;
+    padding: var(--s6) var(--s7);
+    max-width: var(--maxw);
+  }
+
+  /* ===================== PAGE HEADER ===================== */
+  .dz-page-eyebrow {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .dz-page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 40px;
+    letter-spacing: 0.5px;
+    line-height: 1.02;
+    margin: 6px 0 0;
+    text-transform: uppercase;
+  }
+  .dz-page-lede {
+    color: var(--text-muted);
+    max-width: 64ch;
+    margin: var(--s3) 0 0;
+    text-wrap: pretty;
+  }
+
+  /* ===================== RECORD LINE ===================== */
+  .dz-record {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+}
+
+/* ===================== RESPONSIVE: nav -> bottom tab bar ===================== */
+@media (max-width: 860px) {
+  .dz-search {
+    display: none;
+  }
+  .dz-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    z-index: 50;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    padding: var(--s2);
+  }
+  .dz-nav-group-label {
+    display: none;
+  }
+  .dz-nav-item .dz-soon {
+    display: none;
+  }
+  .dz-nav-item {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    padding: 8px;
+  }
+  .dz-nav-item.active::before {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: -4px;
+    width: auto;
+    height: 3px;
+  }
+  .dz-main {
+    padding: var(--s5) var(--s5);
+    padding-bottom: 80px;
+  }
+}
+
+/* One orchestrated entrance per page; respect reduced motion. */
+@keyframes dz-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dz-rise {
+  animation: dz-rise var(--dur) var(--ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .dz-rise {
+    animation: none;
+  }
+  .dz-live-dot {
+    animation: none;
+  }
+}
