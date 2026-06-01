@@ -5,6 +5,8 @@ import { HomePage } from "@/features/home/HomePage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
+import { ManagersPage } from "@/features/managers/ManagersPage";
+import { ManagerProfilePage } from "@/features/managers/ManagerProfilePage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
 import { PowerPage } from "@/features/power/PowerPage";
 import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
@@ -33,9 +35,8 @@ export function App() {
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />
             <Route path="matchups" element={<MatchupsPage />} />
             <Route path="matchups/:matchupId" element={<BoxScorePage />} />
-            <Route path="managers" element={<PlaceholderPage title="Managers" />} />
-            {/* Deep-link target whose full page lands later (P4). */}
-            <Route path="managers/:ownerId" element={<PlaceholderPage title="Manager profile" />} />
+            <Route path="managers" element={<ManagersPage />} />
+            <Route path="managers/:ownerId" element={<ManagerProfilePage />} />
             <Route path="players" element={<PlayersPage />} />
             <Route path="players/:playerId" element={<PlayerDetailPage />} />
             <Route path="stats" element={<StatsPage />} />

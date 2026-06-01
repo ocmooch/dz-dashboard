@@ -110,10 +110,10 @@ tested; the generated client typechecks against the live BFF schema.
 **Done when:** the three pages render real data from the BFF; deep links work; loading/empty/
 error states present; e2e green.
 
-> **Build outcome:** Home + Standings shipped; the **Manager profile** (and Managers index)
-> shipped only as `PlaceholderPage` stubs — the owner endpoints exist and are tested, but the
-> views weren't composed. This is the one P4 item still outstanding (see `10_OPEN_QUESTIONS.md`
-> N1).
+> **Build outcome:** Home + Standings shipped first; the **Managers index** and **Manager
+> profile** were composed later on `feature/managers-page` (career leaderboard + per-owner
+> dossier: header, trophy case, trajectory chart, season table, rivalry snapshot), closing the
+> last outstanding P4 view. The owner endpoints were already built and tested.
 
 ## P5 — Matchups + Box score
 

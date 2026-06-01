@@ -17,7 +17,7 @@ rationale isn't lost; none needs further action unless you want to revisit.
 | Q1 | Data-access architecture | **BFF** reusing `ff_pipeline.repository`, read-only/WAL; all analytics server-side; SPA is pure presentation. (docs 02/03/05) |
 | Q2 | Frontend stack | React 18 + TypeScript + Vite + Tailwind + TanStack Query + React Router + Recharts + `openapi-typescript`/`openapi-fetch`. Primitives hand-built (no shadcn). |
 | Q3 | Visual direction | **"Danger Zone" HUD** — dark instrument-panel, afterburner-orange accent (`#ff6a1a`), mono/tabular numerics. Fonts: **Saira Condensed** (display), **IBM Plex Sans** (body), **IBM Plex Mono** (numbers) — not Inter. A light token set exists but is not exposed as a toggle (see Q10). |
-| Q4 | View priority | Built per default order **except** the Manager index/profile pages (placeholder stubs) and the Playoffs/Bracket view (not built) — see "New issues" below. |
+| Q4 | View priority | Built per default order; the Manager index/profile pages are now built (`feature/managers-page`). Only the Playoffs/Bracket view remains unbuilt — see "New issues" below. |
 | Q5 | Standings tiebreaker | Prefer reconstructed `teams.final_rank`; else compute wins→points-for, exposing `rank_basis` + `tiebreak_caveat` (computed & pre-2019). Old best-of-3 not re-derived. (`04_ANALYTICS_MODEL.md` §1) |
 | Q6 | Power-ranking model | Z-score blend **0.5·PPG + 0.3·win% + 0.2·last-3-PPG**; weights in one constant and shipped in the payload's `weights`. (`analytics/power.py`) |
 | Q7 | Optimal-lineup definition | Implemented in `analytics/matchups.py` (optimal-lineup / points-left-on-bench) reading the roster slot configuration; covered by a hand-solved unit test. |
@@ -84,14 +84,13 @@ table as CSV" affordance is a cheap later add if you want to share records in th
 These are gaps between the design package and the as-built system, found in the documentation
 drift pass. Each is a real "still needs address," not a question of taste.
 
-### N1. Manager index + Manager profile pages are placeholder stubs
+### N1. Manager index + Manager profile pages — RESOLVED
 
-The `/managers` and `/managers/{owner_id}` routes render `PlaceholderPage`. The owner
-analytics and `/v1/owners/*` endpoints (career, seasons, trajectory, h2h, rivalry-matrix) are
-**built and tested** — only the SPA views are missing. This is the highest-value unbuilt
-surface (it was in the P4 "first vertical slice" and is core surface #3 in `DESIGN_HANDOFF.md`).
-The pairwise rivalry page currently carries the owner-vs-owner story. **Decision needed:** build
-the manager pages (recommended) or formally drop them.
+Both `/managers` (career leaderboard: league-legends strip + sortable career table) and
+`/managers/{owner_id}` (dossier: career header, trophy case, `RankFlow` trajectory, season
+table, rivalry snapshot) were composed on `feature/managers-page` against the already-built,
+tested `/v1/owners/*` endpoints. Win % is derived client-side; record-only seasons render a
+`DataGap` for points-for rather than a fake 0. Nav item marked ready; feature tests added.
 
 ### N2. Playoffs / Bracket view never built
 
