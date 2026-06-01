@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.matchups import (
     box_score,
+    roster_sort_key,
     slot_accepts,
     solve_optimal,
     week_matchups,
@@ -117,6 +118,39 @@ def test_box_dst_starter_is_a_gap_not_a_zero(session: Session) -> None:
     assert dst["league_points"] is None  # never 0
     assert dst["available"] is False
     assert dst["reason"] == "team_defense_not_scored"
+
+
+def test_box_lineup_is_in_canonical_display_order(session: Session) -> None:
+    # Starters read QB, RB, RB, WR, WR, TE, FLEX, K, DST; then bench (by
+    # position); then IR last — regardless of the order rows came out of the DB.
+    home = _ice_box(session)
+    order = [(p["roster_slot"], p["position"]) for p in home["lineup"]]
+    assert order == [
+        ("QB", "QB"),
+        ("RB", "RB"),
+        ("RB", "RB"),
+        ("WR", "WR"),
+        ("WR", "WR"),
+        ("TE", "TE"),
+        ("FLEX", "WR"),
+        ("K", "K"),
+        ("DEF", "DEF"),
+        ("BN", "QB"),  # bench, ordered by position
+        ("BN", "RB"),
+        ("BN", "WR"),
+        ("IR", "RB"),  # IR always last
+    ]
+
+
+def test_roster_sort_key_groups_and_orders() -> None:
+    # The FLEX sorts just after TE no matter who fills it.
+    assert roster_sort_key("R/W/T", "WR") == (0, 4)
+    assert roster_sort_key("TE", "TE") < roster_sort_key("R/W/T", "RB")
+    # Bench after every starter; IR after every bench player.
+    assert roster_sort_key("QB", "QB") < roster_sort_key("BN", "QB")
+    assert roster_sort_key("BN", "WR") < roster_sort_key("IR", "RB")
+    # Within the bench, position drives the order.
+    assert roster_sort_key("BN", "QB") < roster_sort_key("BN", "DEF")
 
 
 def test_box_authoritative_total_and_winner(session: Session) -> None:

@@ -75,6 +75,51 @@ DEF_SLOTS = {"DEF", "DST", "D/ST"}
 BENCH_SLOTS = {"BN", "BE", "BENCH"}
 IR_SLOTS = {"IR", "IR2", "TAXI", "NA", "RES"}
 
+# Canonical top-to-bottom display order for any roster: starters in lineup order
+# (QB, RB, RB, WR, WR, TE, FLEX, K, DST), then the bench, then IR. Within the
+# bench and IR groups players read in the same positional order. One helper so
+# the team page and the box score never disagree on how a roster is laid out.
+#
+# A *position* maps to its family rank; a starting *slot* is ranked the same way,
+# with any multi-position (flex) slot slotting in just after TE. Unknowns sort
+# last within their group rather than jumping to the top.
+_POSITION_RANK: dict[str, int] = {
+    "QB": 0,
+    "RB": 1,
+    "WR": 2,
+    "TE": 3,
+    "FLEX": 4,
+    "K": 5,
+    "PK": 5,
+    "DEF": 6,
+    "DST": 6,
+    "D/ST": 6,
+}
+_UNKNOWN_RANK = 99
+
+
+def _starter_slot_rank(slot: str | None) -> int:
+    """Lineup position of a *starting* slot (QB→RB→WR→TE→FLEX→K→DST)."""
+    rank = _POSITION_RANK.get((slot or "").upper())
+    if rank is not None:
+        return rank
+    # Any other recognised starting slot is a flex (R/W/T, W/R, OP, SUPER_FLEX…);
+    # a slot we don't recognise at all sorts last among the starters.
+    return 4 if slot in SLOT_ELIGIBILITY else _UNKNOWN_RANK
+
+
+def roster_sort_key(slot: str | None, position: str | None) -> tuple[int, int]:
+    """Sort key laying a roster out as starters → bench → IR, each by position.
+
+    Starters are ordered by their *slot* (so the FLEX lands after TE regardless of
+    who fills it); bench and IR players are ordered by their *position*.
+    """
+    if slot in IR_SLOTS:
+        return (2, _POSITION_RANK.get((position or "").upper(), _UNKNOWN_RANK))
+    if slot in BENCH_SLOTS:
+        return (1, _POSITION_RANK.get((position or "").upper(), _UNKNOWN_RANK))
+    return (0, _starter_slot_rank(slot))
+
 
 def slot_accepts(slot: str | None, position: str | None) -> bool:
     """Whether a player at ``position`` may legally start in ``slot``.
@@ -156,15 +201,10 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
     optimal_candidates: list[dict[str, Any]] = []
     starting_slots: list[str] = []
 
-    # Starters first, then bench, then IR — a readable, stable lineup order.
-    def _rank(slot: str | None) -> int:
-        if slot in IR_SLOTS:
-            return 2
-        if slot in BENCH_SLOTS:
-            return 1
-        return 0
-
-    for roster_row, player in sorted(roster, key=lambda rp: _rank(rp[0].roster_slot)):
+    # Starters (QB, RB, RB, WR, WR, TE, FLEX, K, DST) first, then bench, then IR.
+    for roster_row, player in sorted(
+        roster, key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position)
+    ):
         slot = roster_row.roster_slot
         is_starter = (
             bool(roster_row.is_starter) and slot not in BENCH_SLOTS and slot not in IR_SLOTS
