@@ -319,6 +319,106 @@ describe("BoxScorePage", () => {
     expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
   });
 
+  it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 88,
+          season_year: 2022,
+          week: 14,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 40,
+          home: {
+            team_id: 40,
+            team_name: "Zeroes 2022",
+            owner_name: "Zed",
+            total_score: 0,
+            starter_points: 0,
+            bench_points: 0,
+            optimal_total: 0,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "WR",
+                player_id: 50,
+                player_name: "Bye Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "bye",
+                zero_detail: null,
+              },
+              {
+                roster_slot: "WR",
+                player_id: 51,
+                player_name: "Scratch Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "did_not_play",
+                zero_detail: null,
+              },
+              {
+                roster_slot: "WR",
+                player_id: 52,
+                player_name: "Mismatch Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "unexpected",
+                zero_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
+              },
+              {
+                roster_slot: "WR",
+                player_id: 53,
+                player_name: "Goose Egg",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/88");
+
+    const ptsCell = async (name: string) => {
+      const row = (await screen.findByText(name)).closest("tr")!;
+      const cells = within(row).getAllByRole("cell");
+      return cells[cells.length - 1];
+    };
+
+    expect(await ptsCell("Bye Guy")).toHaveTextContent("BYE");
+    expect(await ptsCell("Scratch Guy")).toHaveTextContent("DNP");
+    expect(await ptsCell("Mismatch Guy")).toHaveTextContent("⚠");
+    // The clean played-0 shows a bare number with no status tag or warning.
+    const clean = await ptsCell("Goose Egg");
+    expect(clean).toHaveTextContent("0");
+    expect(clean).not.toHaveTextContent(/BYE|DNP|⚠/);
+  });
+
   it("emphasizes the winning team's total score", async () => {
     renderWithProviders(<BoxScorePage />, "/matchups/712");
     await screen.findByText("Iceman 2017");

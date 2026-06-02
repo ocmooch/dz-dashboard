@@ -512,6 +512,12 @@ class BoxPlayer(BaseModel):
     projection: float | None = None
     available: bool = True
     reason: str | None = None
+    # Context for a *0.0* league result (null otherwise). "bye" / "did_not_play"
+    # are status reasons (the player did not play); a plain played-and-scored-0
+    # carries no reason; "unexpected" flags a 0 that does not cleanly fit, with an
+    # attempted explanation in ``zero_detail``.
+    zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
+    zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
 
 
 class BoxTeam(BaseModel):

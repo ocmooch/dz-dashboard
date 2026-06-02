@@ -75,6 +75,62 @@ SLOT_ELIGIBILITY: dict[str, set[str]] = {
 # position, because team-defense rows often carry no position.
 DEF_SLOTS = {"DEF", "DST", "D/ST"}
 
+
+def _authoritative_points(roster_row: Any) -> float | None:
+    """The league-awarded points for a roster row, from NFL.com history.
+
+    Phase 1 stores each weekly roster row's authoritative NFL.com fantasy points
+    in ``extra_data.nfl_com_points``. This is the real league result: it exists
+    even for players nflverse never logged a stat line for (inactive / DNP / bye,
+    who legitimately scored 0.0), and the starters' values sum to the matchup's
+    ``team_score``. Returns ``None`` only when the field is absent (then the
+    caller falls back to the nflverse reconstruction).
+    """
+    extra = roster_row.extra_data or {}
+    value = extra.get("nfl_com_points")
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+# How much nflverse-credited production, while the league scored 0, counts as a
+# genuine discrepancy worth flagging — above the rounding / DST / minor scoring
+# differences that routinely separate nflverse from NFL.com (a couple of points).
+_UNEXPECTED_ZERO_THRESHOLD = 1.0
+
+
+def classify_zero(
+    points: float | None, opponent: str | None, nflverse_points: float | None
+) -> tuple[str | None, str | None]:
+    """Explain a 0.0 league result; ``(None, None)`` when no note is warranted.
+
+    Only fires for an authoritative 0.0, returning ``(zero_reason, zero_detail)``:
+
+    * ``"bye"`` — the player's NFL team was on bye that week (the per-week
+      ``extra_data.opponent`` is ``"Bye"``). A status reason: they could not play.
+    * ``"did_not_play"`` — the team played but the player has no stat line at all
+      (no nflverse row): inactive / injury / scratch. Also a status reason.
+    * ``"unexpected"`` — the league scored 0 yet nflverse credits material points,
+      so the player clearly produced. We surface the discrepancy and a best-guess
+      explanation in ``zero_detail`` rather than silently showing a bare 0.
+    * ``(None, None)`` — the player played and simply accrued ~0 points; the UI
+      should show a plain ``0`` with no explanation.
+    """
+    if points is None or points != 0.0:
+        return None, None
+    if (opponent or "").strip().lower() == "bye":
+        return "bye", None
+    if nflverse_points is None:
+        # No stat line and the team played → the player did not suit up.
+        return "did_not_play", None
+    if abs(nflverse_points) >= _UNEXPECTED_ZERO_THRESHOLD:
+        return (
+            "unexpected",
+            f"nflverse credits {nflverse_points:g} pts but the league scored 0 — "
+            "likely a late inactive/scratch or a scoring difference.",
+        )
+    # A real stat line that nets ~0: they played and scored nothing.
+    return None, None
+
+
 # Roster slots that are not part of the starting lineup. Bench points count; IR /
 # reserve / taxi players never enter the optimal lineup and never count as bench
 # points (they were not startable that week). "RES" is NFL.com's reserve/IR slot.
@@ -224,20 +280,35 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
 
     # Starters (QB, RB, RB, WR, WR, TE, FLEX, K, DST) first, then bench, then IR.
     for roster_row, player in sorted(
-        roster, key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position)
+        roster,
+        key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position),
     ):
         slot = roster_row.roster_slot
         is_starter = (
             bool(roster_row.is_starter) and slot not in BENCH_SLOTS and slot not in IR_SLOTS
         )
         scored_row = scored.get(player.player_id)
-        points = scored_row[0] if scored_row is not None else None
         breakdown = scored_row[1] if scored_row is not None else {}
+
+        # Prefer NFL.com's authoritative per-player points (they sum to the team
+        # score and cover players nflverse never scored — a real 0.0, not a gap);
+        # fall back to the nflverse reconstruction only when the field is absent.
+        nflverse_points = scored_row[0] if scored_row is not None else None
+        points = _authoritative_points(roster_row)
+        if points is None:
+            points = nflverse_points
+        league_points = round(points, 2) if points is not None else None
 
         available = points is not None
         reason: str | None = None
         if not available:
             reason = "team_defense_not_scored" if slot in DEF_SLOTS else "no_scored_data"
+
+        # Explain a 0.0 result: a bye / DNP status reason, a plain played-0, or a
+        # flagged "unexpected" 0. Uses the per-week opponent ("Bye") + whether the
+        # player has any nflverse stat line as evidence of having played.
+        opponent = (roster_row.extra_data or {}).get("opponent")
+        zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
 
         # Projection vs actual (per starter where a projection exists).
         projection: float | None = None
@@ -250,12 +321,14 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
             "player_id": player.player_id,
             "player_name": player.name_full,
             "position": player.position,
-            "league_points": round(points, 2) if points is not None else None,
+            "league_points": league_points,
             "is_starter": is_starter,
             "breakdown": breakdown,
             "projection": projection,
             "available": available,
             "reason": reason,
+            "zero_reason": zero_reason,
+            "zero_detail": zero_detail,
         }
         lineup.append(entry)
 
@@ -333,9 +406,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         # A player cannot legitimately be on both sides of a game; an overlap means
         # duplicated/contaminated roster data upstream (e.g. a non-idempotent load
         # that left a moved player on both his old and new team). Surface it.
-        shared = {e["player_id"] for e in home["lineup"]} & {
-            e["player_id"] for e in away["lineup"]
-        }
+        shared = {e["player_id"] for e in home["lineup"]} & {e["player_id"] for e in away["lineup"]}
         if shared:
             logger.warning(
                 "matchup %s has %d player(s) rostered on both teams: %s",

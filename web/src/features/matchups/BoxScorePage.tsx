@@ -82,6 +82,39 @@ function LineupTable({ team }: { team: BoxTeam }) {
   );
 }
 
+/** Render a league-points value, explaining a 0 when there's context:
+ *  a bye / did-not-play status reason, a flagged "unexpectedly 0", or — for an
+ *  organic 0 (played, scored nothing) — just the bare number with no fuss. */
+function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
+  const value = num(p.league_points);
+  if (p.zero_reason === "bye" || p.zero_reason === "did_not_play") {
+    const tag = p.zero_reason === "bye" ? "BYE" : "DNP";
+    const title =
+      p.zero_reason === "bye" ? "On bye — did not play" : "Did not play (inactive / injury)";
+    return (
+      <span className="inline-flex items-center justify-end gap-1.5" title={title}>
+        <span className="text-faint">{value}</span>
+        <span className="dz-eyebrow text-faint">{tag}</span>
+      </span>
+    );
+  }
+  if (p.zero_reason === "unexpected") {
+    return (
+      <span
+        className="inline-flex items-center justify-end gap-1 text-loss"
+        title={p.zero_detail ?? "Unexpectedly 0 — reason unclear"}
+      >
+        {value}
+        <span aria-label="unexpectedly zero" className="dz-eyebrow">
+          ⚠
+        </span>
+      </span>
+    );
+  }
+  // Normal points — includes an organic 0.0 (played, scored nothing). Never a fake blank.
+  return <span className={muted ? "text-muted" : "text-text"}>{value}</span>;
+}
+
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   return (
     <tr>
@@ -96,8 +129,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
           // Pipeline explicitly flagged this entry as a gap (e.g. a known scoring hole).
           <DataGap reason={p.reason ?? undefined} size="sm" />
         ) : p.league_points != null ? (
-          // Includes an organic 0.0 — they played and scored nothing. Never a fake blank.
-          <span className={muted ? "text-muted" : "text-text"}>{num(p.league_points)}</span>
+          <ScoreCell p={p} muted={muted} />
         ) : (
           // No stat line: a legitimate absence (IR / BYE / inactive), not a data gap.
           <span className="text-faint">{isIR(p.roster_slot) ? "IR" : "—"}</span>
