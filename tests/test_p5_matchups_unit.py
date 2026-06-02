@@ -6,6 +6,7 @@ solver and end-to-end through the hand-authored Iceman 2017 wk1 box score.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.matchups import (
@@ -18,6 +19,7 @@ from ff_dashboard.analytics.matchups import (
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.orm import Session
 
 
@@ -188,6 +190,17 @@ def test_box_pre_2016_season_is_unscored_gap(session: Session) -> None:
 
 def test_box_unknown_matchup_returns_none(session: Session) -> None:
     assert box_score(session, 999999) is None
+
+
+def test_box_clean_data_emits_no_integrity_warning(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    # The cross-team / cross-season integrity alarms must not false-positive on a
+    # clean matchup: a healthy box score logs nothing at WARNING.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    with caplog.at_level(logging.WARNING, logger="ff_dashboard.analytics.matchups"):
+        box_score(session, mid)
+    assert caplog.records == []
 
 
 # --- Week matchups (deduped cards) -----------------------------------------

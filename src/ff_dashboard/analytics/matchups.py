@@ -19,6 +19,7 @@ the week's roster and the league's slot eligibility, it is the highest-scoring
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, PlayerStatsScored
@@ -37,6 +38,8 @@ from ff_dashboard.analytics.coverage import seasons_scored
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
     from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 # What each *starting* slot is allowed to hold. The slot *counts* are never
 # hardcoded — they are read from the actual starting lineup each week (the
@@ -193,7 +196,22 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
     """One side of a box score: lineup, bench points, optimal + points-left."""
     team = get_team(session, team_id)
     owners = owner_name_map(session)
+    # ``roster_for_team_week`` keys on (team_id, week) only, so guard against a
+    # team_id that recurs across seasons by scoping to this matchup's season.
+    # Today team_ids are season-unique, so this is defence-in-depth; if it ever
+    # drops rows, the upstream roster data is wrong and we want to know.
     roster = roster_for_team_week(session, team_id, week)
+    scoped = [(r, p) for r, p in roster if r.season_year == season.year]
+    if len(scoped) != len(roster):
+        logger.warning(
+            "roster for team %s week %s spans seasons; kept %d of %d rows for %s",
+            team_id,
+            week,
+            len(scoped),
+            len(roster),
+            season.year,
+        )
+    roster = scoped
     player_ids = [r.player_id for r, _ in roster]
     scored = _scored_points(session, season.season_id, week, player_ids)
 
@@ -311,6 +329,20 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
                 winner_team_id = m.team_id
             elif m.opponent_score > m.team_score:
                 winner_team_id = m.opponent_team_id
+
+        # A player cannot legitimately be on both sides of a game; an overlap means
+        # duplicated/contaminated roster data upstream (e.g. a non-idempotent load
+        # that left a moved player on both his old and new team). Surface it.
+        shared = {e["player_id"] for e in home["lineup"]} & {
+            e["player_id"] for e in away["lineup"]
+        }
+        if shared:
+            logger.warning(
+                "matchup %s has %d player(s) rostered on both teams: %s",
+                matchup_id,
+                len(shared),
+                sorted(shared),
+            )
 
     return {
         "matchup_id": matchup_id,
