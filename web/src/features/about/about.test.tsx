@@ -25,7 +25,7 @@ const META = {
     scored_year_max: 2025,
     reconstruction_complete: true,
     availability_current_season_only: true,
-    dst_scoring_complete: false,
+    dst_scoring_complete: true,
   },
 };
 
@@ -61,10 +61,10 @@ describe("AboutPage", () => {
     expect(screen.getByText("success")).toBeInTheDocument();
   });
 
-  it("surfaces the documented gaps honestly (availability + DST)", async () => {
+  it("surfaces the remaining availability gap and the now-scored DST honestly", async () => {
     renderAbout();
     expect(await screen.findByText("current season only")).toBeInTheDocument();
-    expect(screen.getByText("not scored")).toBeInTheDocument();
+    expect(screen.getByText("scored")).toBeInTheDocument(); // DST scored, no longer a gap
   });
 
   it("shows nflverse + Sleeper attribution", async () => {

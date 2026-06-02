@@ -97,8 +97,9 @@ make e2e-update        # refresh visual-regression baselines after an intended U
 
 - **Read-only.** No `INSERT/UPDATE/DELETE`; no imports of Phase 1 write/crawler code.
 - **All derived-metric math lives in `ff_dashboard/analytics/`** — never in the frontend.
-- **Honest about gaps.** Unscored 2010–2015, current-season-only availability, and
-  incomplete DST scoring are surfaced via `available:false`, never faked as zeros.
+- **Honest about gaps.** Unscored 2010–2015, current-season-only availability, and any
+  genuinely-missing scored row (including a DST team/week) are surfaced via
+  `available:false`, never faked as zeros. DST itself is now scored end-to-end.
 
 ## Status
 

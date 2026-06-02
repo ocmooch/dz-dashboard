@@ -56,7 +56,8 @@ both a current-week power ranking and a power-ranking-over-time line per team.
 Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored`).
 
 - **Per-player league points + breakdown** — passed through from Phase 1's scored
-  breakdown JSON (passing/rushing/receiving/bonus/…). DST slots flagged as a known gap.
+  breakdown JSON (passing/rushing/receiving/bonus/… and the defense keys for DST). A DEF
+  starter whose row is genuinely missing is flagged, never zeroed.
 - **Bench points** — sum of scored points for non-starter, non-IR slots.
 - **Optimal lineup & "points left on the bench"** — the highest-scoring legal lineup given
   that week's roster and the league's slot configuration (read slot rules from
@@ -176,5 +177,6 @@ ranking (`/v1/seasons/{id}/power`) and arranges them — doing no math, only lay
 
 Each function above gets unit tests against a **small fixture database** with hand-computed
 expected answers (see `08_TESTING_STRATEGY.md`). The fixture encodes a few seasons, a known
-champion, a known blowout, a known steal-draft-pick, and at least one data-gap case (an
-unscored 2015 season, a DST slot) so the "honest about gaps" behavior is tested, not assumed.
+champion, a known blowout, a known steal-draft-pick, scored DST starters, and at least one
+data-gap case (an unscored 2015 season, a genuinely-missing DEF row) so the "honest about gaps"
+behavior is tested, not assumed.

@@ -68,9 +68,20 @@ def test_roster_latest_week_with_scored_points(session: Session) -> None:
     assert qb1["is_starter"] is True
 
 
-def test_roster_dst_points_are_null_not_zero(session: Session) -> None:
+def test_roster_scored_dst_carries_points(session: Session) -> None:
+    # DST is scored end-to-end, so Iceman's DEF starter shows real league points.
     ice_2017 = KNOWN["team_id"][(2017, "ice")]
     data = team_roster(session, ice_2017, week=1)
+    assert data is not None
+    dst = next(p for p in data["players"] if p["position"] == "DEF")
+    assert dst["league_points"] == KNOWN["box_dst_points"]  # 9.0
+
+
+def test_roster_missing_dst_points_are_null_not_zero(session: Session) -> None:
+    # A DEF row that is genuinely absent stays null, never a fake 0. Goose's
+    # 2017 wk1 DST has no scored row (the per-row gap that survives DST scoring).
+    goose_2017 = KNOWN["team_id"][(2017, "goose")]
+    data = team_roster(session, goose_2017, week=1)
     assert data is not None
     dst = next(p for p in data["players"] if p["position"] == "DEF")
     assert dst["league_points"] is None  # never a fake 0

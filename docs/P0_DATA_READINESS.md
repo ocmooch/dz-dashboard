@@ -23,8 +23,8 @@ Probed directly against the live database:
   `DataGap`, not zeros.
 - **Availability is current-season-only:** historical free-agent/waiver
   availability is not reconstructable.
-- **DST/team-defense scoring incomplete:** DST starter slots are flagged
-  "not scored (known gap)".
+- **DST/team-defense now scored (2016–2025):** DST starters carry real league
+  points; only a genuinely-missing team/week row is flagged "not scored".
 
 These are reported by `GET /v1/meta` (`coverage.seasons_scored`,
 `availability_current_season_only`, `dst_scoring_complete`) so the frontend can

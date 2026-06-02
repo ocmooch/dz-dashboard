@@ -67,8 +67,9 @@ The landing view; a glanceable cockpit for the current season.
 - **Endpoint:** `/v1/matchups/{matchup_id}/box-score`.
 - **Components/charts:** two-column lineup tables, `StackedBreakdown` per expandable player
   row, `Stat` for totals/bench/left-on-bench.
-- **Gaps:** DST slots → `DataGap` "team defense not scored"; pre-2016 → breakdowns absent,
-  show captured points only with a note.
+- **Gaps:** a DST slot whose row is genuinely missing → `DataGap` "team defense not scored"
+  (DST is otherwise scored end-to-end); pre-2016 → breakdowns absent, show captured points only
+  with a note.
 
 ## Team  `/teams/{team_id}`
 

@@ -48,7 +48,7 @@ def test_team_roster_endpoint(client: TestClient) -> None:
     assert len(data["players"]) == 13
     assert 1 in data["weeks_available"]
     dst = next(p for p in data["players"] if p["position"] == "DEF")
-    assert dst["league_points"] is None
+    assert dst["league_points"] == 9.0  # DST scored end-to-end
 
 
 def test_team_roster_not_found(client: TestClient) -> None:

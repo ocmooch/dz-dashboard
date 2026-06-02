@@ -163,7 +163,11 @@ export function AboutPage() {
                     domain="Team-defense / DST scoring"
                     status={data.coverage.dst_scoring_complete ? "scored" : "not scored"}
                     tone={data.coverage.dst_scoring_complete ? "win" : "gap"}
-                    note="No nflverse team-defense rollups; DST slots are marked as a known gap."
+                    note={
+                      data.coverage.dst_scoring_complete
+                        ? "Team defense is scored from nflverse rollups; a missing team/week row still shows as a gap, never a 0."
+                        : "Team-defense rollups still backfilling; affected DST slots are marked as a known gap."
+                    }
                   />
                 </tbody>
               </table>

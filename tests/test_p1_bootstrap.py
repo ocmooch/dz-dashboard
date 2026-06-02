@@ -37,9 +37,10 @@ def test_meta_reports_real_coverage(client: TestClient) -> None:
     assert cov["scored_year_min"] == 2016
     assert cov["scored_year_max"] == 2017
     assert cov["reconstruction_complete"] is True
-    # Documented, non-negotiable gaps from docs/03_DATA_ACCESS.md.
+    # Availability is still a documented gap (docs/03_DATA_ACCESS.md). DST is now
+    # scored: every scored season has scored DEF rows, so it reports complete.
     assert cov["availability_current_season_only"] is True
-    assert cov["dst_scoring_complete"] is False
+    assert cov["dst_scoring_complete"] is True
 
     assert body["data"]["latest_run"]["status"] == "success"
 

@@ -60,7 +60,7 @@ do.
 | Per-week lineups (`team_rosters`: starters, points, locked) | reconstructed from gamecenter, 2010–2025 | **Solid after reconstruction**; pre-2016 lineups exist but carry no scored points | Pre-2016 box scores show lineup + NFL.com points if captured, but no league-scored breakdown |
 | Full-season matchups (`matchups`) | all weeks, reconstructed | **Solid after reconstruction** | Use freely; playoff vs consolation bracket is **not** distinguished (see below) |
 | Player availability (`player_availability`: FA / owned / waivers) | **current season only** | **Absent for history** | Availability views are current-season-only; historical availability renders "not reconstructable" |
-| Team-defense / DST scoring | incomplete (no nflverse team-defense rollups) | **Partial** | DST lineup slots marked "not scored (known gap)"; team totals annotate it |
+| Team-defense / DST scoring | **2016–2025**, scored from nflverse team-defense rollups | **Solid 2016+** | DST starters carry real league points; a genuinely-missing team/week row still shows "not scored", never 0 |
 | Projections (`projections`, Sleeper) | current season forward | **Partial/seasonal** | Projection-vs-actual only where projections exist |
 | Trending players (`trending_players`, Sleeper) | current, rolling | **Partial** | Optional "buzz" widget, current season only |
 
