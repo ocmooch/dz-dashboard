@@ -32,9 +32,9 @@ the analytics equivalent of Phase 1's scoring fixtures. It must encode **known a
 - A hand-computed **blowout**, a hand-computed **narrow win**, and a known **highest team
   score** (tests the records book to the decimal).
 - A known **steal** and **bust** draft pick (tests draft value).
-- At least one **data-gap case**: an unscored 2015 season, a DST starter slot with no scored
-  points, and a non-current season for availability — so "honest about gaps" is *tested*,
-  not assumed.
+- Scored **DST starters** (DST is scored end-to-end) plus at least one **data-gap case**: an
+  unscored 2015 season, a DEF starter slot whose row is genuinely missing, and a non-current
+  season for availability — so "honest about gaps" is *tested*, not assumed.
 
 Generate it programmatically in `conftest.py` (insert rows via the reused
 `ff_pipeline.repository` models) so it stays in sync with the schema.

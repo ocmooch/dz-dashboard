@@ -61,7 +61,7 @@ document, so the contract is enforced at build time.
 | Endpoint | Description |
 |----------|-------------|
 | `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss |
-| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown, bench points, optimal-lineup + points-left-on-bench, projection-vs-actual; DST slots flagged |
+| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual; a genuinely-missing DEF row flagged |
 
 ### Teams
 
@@ -147,6 +147,11 @@ document, so the contract is enforced at build time.
 
 ### `GET /v1/matchups/{matchup_id}/box-score` (gap-aware excerpt)
 
+DST is scored end-to-end, so a DEF starter returns real `league_points` and a
+defense `breakdown` like any other slot. A DEF starter whose scored row is
+genuinely missing for that team/week still returns `"league_points": null,
+"available": false, "reason": "team_defense_not_scored"` — never a fake 0.
+
 ```json
 {
   "data": {
@@ -166,8 +171,9 @@ document, so the contract is enforced at build time.
         },
         {
           "roster_slot": "DEF", "player_id": 9001, "player_name": "Ravens D/ST",
-          "league_points": null, "is_starter": true,
-          "available": false, "reason": "team_defense_not_scored"
+          "league_points": 9.0, "is_starter": true,
+          "breakdown": { "sacks": 3.0, "interceptions": 2.0, "points_allowed": 4.0 },
+          "projection": null, "available": true
         }
       ]
     },
@@ -189,7 +195,7 @@ document, so the contract is enforced at build time.
       "seasons_scored": [2016, "...", 2025],
       "reconstruction_complete": true,
       "availability_current_season_only": true,
-      "dst_scoring_complete": false
+      "dst_scoring_complete": true
     }
   },
   "meta": { "...": "..." }

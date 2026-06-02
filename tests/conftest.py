@@ -2,8 +2,10 @@
 
 The fixture league ("Danger Zone Test League") encodes *known answers* so the
 analytics layer can be checked to the decimal, and it deliberately includes the
-data-gap cases Phase 2 must surface honestly (an unscored 2015 season, a DST
-starter with no scored points, availability only for the latest season). See
+data-gap cases Phase 2 must surface honestly (an unscored 2015 season, a DEF
+starter whose team/week row is genuinely missing, availability only for the
+latest season). DST itself is now scored end-to-end, so scored DEF rows exist for
+every scored season and ``dst_scoring_complete`` reads true for the fixture. See
 ``KNOWN`` at the bottom of this module for the hand-computed expectations the
 tests assert against, and ``docs/08_TESTING_STRATEGY.md`` for the rationale.
 
@@ -202,7 +204,7 @@ def _populate(session: Session) -> None:
     seasons[2016].champion_team_id = team_id[(2016, "mav")]
     seasons[2017].champion_team_id = team_id[(2017, "mav")]
 
-    # --- Players. P5 is a DST with no scored rows (known gap).
+    # --- Players. The Ravens D/ST is a scored team defense (DST is now scored).
     players = {
         "lamar": Player(name_full="Lamar Jackson", position="QB", nfl_team="BAL", gsis_id="G1"),
         "cmc": Player(name_full="Christian McCaffrey", position="RB", nfl_team="SF", gsis_id="G2"),
@@ -288,6 +290,18 @@ def _populate(session: Session) -> None:
         points=12.0,
         breakdown={"receiving": 12.0},
     )
+    # The Ravens D/ST is scored in 2016 (well under McCaffrey's 55.0 season total
+    # and the 35.5 best-week record, so no record moves). This gives 2016 its
+    # team-defense coverage, which dst_scoring_complete checks at season grain.
+    _add_raw_and_scored(
+        session,
+        player_id=pid["dst"],
+        season_id=sid[2016],
+        season_year=2016,
+        week=1,
+        points=7.0,
+        breakdown={"sacks": 3.0, "interceptions": 2.0, "points_allowed": 2.0},
+    )
 
     # 2017: Jefferson is the season top scorer (58.0); Lamar's wk1 35.5 is the all-time best week.
     _add_raw_and_scored(
@@ -345,8 +359,8 @@ def _populate(session: Session) -> None:
         breakdown={"receiving": 30.0},
     )
 
-    # --- Rosters (minimal): McCaffrey owned by Maverick across 2016-17; the DST is a
-    #     starter on Maverick's 2016 team with no scored points (the DST gap case).
+    # --- Rosters (minimal): McCaffrey owned by Maverick across 2016-17; the Ravens
+    #     D/ST is a scored DEF starter on Maverick's 2016 team (DST scored end-to-end).
     session.add_all(
         [
             TeamRoster(
@@ -425,14 +439,16 @@ def _populate(session: Session) -> None:
         )
 
     # --- A hand-solvable box score: Iceman's 2017 week-1 lineup (the ice vs goose
-    #     game). A full starter set + bench + an IR player + a DST starter with no
-    #     scored points, authored so the optimal-lineup solver has a known answer:
-    #       starter total   = 24+18+9+15+11+8+12+7 (+DST 0)      = 104.0
-    #       bench points     = 26+20+5 (IR's 30 excluded)         = 51.0
-    #       optimal lineup   = swap QB 24->26 and RB 9->20        = 117.0
-    #       points left      = 117.0 - 104.0                       = 13.0
-    #     Every added point stays under the existing record maxima (best week 35.5,
-    #     2017 top scorer 58.0) so no prior KNOWN answer moves.
+    #     game). A full starter set + bench + an IR player + a *scored* DST starter
+    #     (9.0), authored so the optimal-lineup solver has a known answer:
+    #       starter total   = 24+18+9+15+11+8+12+7 + DST 9         = 113.0
+    #       bench points     = 26+20+5 (IR's 30 excluded)          = 51.0
+    #       optimal lineup   = swap QB 24->26 and RB 9->20, + DST 9 = 126.0
+    #       points left      = 126.0 - 113.0                        = 13.0
+    #     The DST only seats in the DEF slot (sole DEF), so it adds 9 to both the
+    #     actual and optimal totals and points-left is unchanged. Every added point
+    #     stays under the existing record maxima (best week 35.5, 2017 top scorer
+    #     58.0) so no prior KNOWN answer moves.
     box_players = {
         "ice_qb1": Player(name_full="Ice QB One", position="QB", nfl_team="BAL"),
         "ice_qb2": Player(name_full="Ice QB Two", position="QB", nfl_team="CIN"),
@@ -463,7 +479,7 @@ def _populate(session: Session) -> None:
         ("ice_te1", "TE", True, 8.0),
         ("ice_wr3", "FLEX", True, 12.0),
         ("ice_k1", "K", True, 7.0),
-        ("ice_dst", "DEF", True, None),  # DST starter, not scored (known gap)
+        ("ice_dst", "DEF", True, 9.0),  # DST starter, now scored end-to-end
         ("ice_qb2", "BN", False, 26.0),
         ("ice_rb3", "BN", False, 20.0),
         ("ice_wr4", "BN", False, 5.0),
@@ -492,6 +508,27 @@ def _populate(session: Session) -> None:
                 points=pts,
                 breakdown={"rushing": pts},
             )
+
+    # --- A genuinely-missing DEF row: Goose's 2017 wk1 DST is a starter with no
+    #     scored row, so the box score still flags it (reason "team_defense_not_scored")
+    #     even though DST is scored at the season level. Goose is the *away* side of
+    #     the rendered Iceman matchup, and no KNOWN total asserts that side, so this
+    #     exercises the per-row gap path without moving any hand-computed answer.
+    goose_dst = Player(name_full="Goose D/ST", position="DEF", nfl_team="DEN")
+    session.add(goose_dst)
+    session.flush()
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=goose_dst.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="DEF",
+            is_starter=True,
+            acquisition_type="draft",
+            acquisition_week=1,
+        )
+    )
 
     # --- A successful pipeline run so /v1/meta + records reflect a real run id.
     run = PipelineRun(status="success", mode="reconstruct", started_at=NOW, finished_at=NOW)
@@ -608,10 +645,12 @@ KNOWN: dict[str, Any] = {
     "top_scorer_2016_season_total": 55.0,  # McCaffrey
     "top_scorer_2017_season_total": 58.0,  # Jefferson
     # Box score — Iceman 2017 wk1 (see the hand-authored lineup in _populate).
-    "box_starter_total": 104.0,
+    # DST is scored (9.0) and counts toward both the starter and optimal totals.
+    "box_starter_total": 113.0,
     "box_bench_points": 51.0,
-    "box_optimal_total": 117.0,
+    "box_optimal_total": 126.0,
     "box_points_left": 13.0,
+    "box_dst_points": 9.0,
     # Draft (2016 is the only captured draft; see the block in _populate).
     "draft_2016_overalls": ["kelce", "lamar", "jjet", "cmc"],  # overall pick order
     "draft_top_steal": {"player": "Christian McCaffrey", "overall": 4, "value": 8.33},

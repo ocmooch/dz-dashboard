@@ -220,7 +220,7 @@ All of these are open to revision — they're collected in `10_OPEN_QUESTIONS.md
 |--------|-----------|----------|
 | Database missing / Phase 1 never ran | repository session error / empty `pipeline_runs` | BFF returns `503 service_unavailable`; frontend shows a "run Phase 1 first" screen |
 | Metric needs data Phase 1 lacks (e.g. 2010–2015 scoring) | analytics function detects no scored rows | Endpoint returns an explicit `available: false` marker, not zeros; UI renders a `DataGap` affordance |
-| DST/team-defense points absent | scored breakdown missing for DEF slot | Box score marks those slots "not scored (known gap)"; team totals annotate the caveat |
+| DST/team-defense row genuinely missing | scored row absent for a DEF slot | Box score marks that slot "not scored", never 0; DST is otherwise scored end-to-end |
 | Stale frontend types after a schema change | `openapi-typescript` regen + `tsc` | Build fails until call sites are fixed — drift cannot ship |
 | Slow first rollup | cache miss | First call computes & caches; subsequent calls are warm; loading skeletons cover the gap |
 | BFF down | fetch error in client | TanStack Query error boundary → `ErrorState` with retry |

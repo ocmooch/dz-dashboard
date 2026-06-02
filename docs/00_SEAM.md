@@ -78,7 +78,7 @@ changes and the whole cache is bypassed — invalidation is free and correct.
 - **Scored era is 2016–2025.** 2010–2015 are record-only (`teams.final_rank` exists, no scored
   points). Coverage flags ride on `/v1/meta`: `seasons_present`, `seasons_scored`,
   `reconstruction_complete`, `availability_current_season_only` (true),
-  `dst_scoring_complete` (false).
+  `dst_scoring_complete` (now data-derived — true once every scored season has scored DEF rows).
 - **Standings rank.** Prefer Phase 1's reconstructed `final_rank` (the NFL.com truth) for full
   seasons; otherwise compute wins-desc → points-for-desc, exposing `rank_basis` and a
   `tiebreak_caveat` flag (true when computed *and* season < 2019). Do not re-implement the

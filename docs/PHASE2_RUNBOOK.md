@@ -138,9 +138,11 @@ success row.
 
 ### A view shows a gap banner / "not scored" instead of numbers
 
-Also expected. Documented gaps (unscored 2010–2015, current-season-only availability, incomplete
-DST scoring) surface as `available:false` and render a `DataGap`, never a fake `0`. Verify against
-`/v1/meta` coverage. Only worry if a season `/v1/meta` reports as *scored* shows a gap.
+Also expected. Documented gaps (unscored 2010–2015, current-season-only availability, a
+genuinely-missing DST team/week row) surface as `available:false` and render a `DataGap`, never a
+fake `0`. DST is otherwise scored end-to-end. Verify against `/v1/meta` coverage. Only worry if a
+season `/v1/meta` reports as *scored* (and `dst_scoring_complete:true`) shows a gap where data
+should exist.
 
 ### Numbers look wrong
 

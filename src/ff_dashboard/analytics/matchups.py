@@ -8,8 +8,9 @@ Two views, both built on Phase 1 facts (``matchups`` for the game result,
   the margin, and the winner, deep-linkable to the box score).
 * :func:`box_score` — both lineups with per-player league points + breakdown,
   bench points, the **optimal lineup** and "points left on the bench", and
-  projection-vs-actual. Honest about gaps: a DST starter with no scored row and
-  an unscored (pre-2016) season are surfaced, never rendered as zero.
+  projection-vs-actual. Honest about gaps: a starter with no scored row (a DEF
+  whose team/week was never scored, or any unscored player) and an unscored
+  (pre-2016) season are surfaced, never rendered as zero.
 
 The optimal lineup is a real constrained max-assignment, not a heuristic: given
 the week's roster and the league's slot eligibility, it is the highest-scoring
@@ -64,9 +65,11 @@ SLOT_ELIGIBILITY: dict[str, set[str]] = {
     "SUPER_FLEX": {"QB", "RB", "WR", "TE"},
 }
 
-# Slots that hold a team defense — the box score flags these as a known gap when
-# unscored (Phase 1's DST scoring is incomplete). Keyed on the *slot*, not the
-# player's position, because team-defense rows often carry no position.
+# Slots that hold a team defense. DST is now scored by the pipeline, so a DEF
+# starter renders real points like any other slot; the box score only flags a
+# DEF slot as a gap (reason ``team_defense_not_scored``) when its scored row is
+# genuinely absent for that team/week. Keyed on the *slot*, not the player's
+# position, because team-defense rows often carry no position.
 DEF_SLOTS = {"DEF", "DST", "D/ST"}
 
 # Roster slots that are not part of the starting lineup. Bench points count; IR /

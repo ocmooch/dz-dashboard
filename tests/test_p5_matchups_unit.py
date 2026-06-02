@@ -107,14 +107,30 @@ def test_box_bench_points_excludes_ir(session: Session) -> None:
 
 def test_box_ir_never_enters_optimal(session: Session) -> None:
     # The IR player scores 30 (more than any bench RB) but is ineligible; if it
-    # leaked into the optimal, the total would exceed 117.
-    assert _ice_box(session)["optimal_total"] == 117.0
+    # leaked into the optimal, the total would exceed 126.
+    assert _ice_box(session)["optimal_total"] == 126.0
 
 
-def test_box_dst_starter_is_a_gap_not_a_zero(session: Session) -> None:
+def test_box_dst_starter_is_scored(session: Session) -> None:
+    # DST is scored end-to-end: the DEF starter carries real points, is available,
+    # and is counted in the starter total (113.0 includes the 9.0 DST).
     home = _ice_box(session)
     dst = next(p for p in home["lineup"] if p["position"] == "DEF")
     assert dst["is_starter"] is True
+    assert dst["league_points"] == KNOWN["box_dst_points"]  # 9.0, never a None gap
+    assert dst["available"] is True
+    assert dst["reason"] is None
+    assert home["starter_points"] == KNOWN["box_starter_total"]  # 113.0, DST included
+
+
+def test_box_def_starter_with_missing_row_is_flagged(session: Session) -> None:
+    # A DEF starter whose scored row is genuinely absent still surfaces as a gap,
+    # never a fake 0 — the per-row honesty survives DST being scored at large.
+    # Goose is the away side of the Iceman 2017 wk1 matchup; its lone DST is unscored.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    dst = next(p for p in data["away"]["lineup"] if p["position"] == "DEF")
     assert dst["league_points"] is None  # never 0
     assert dst["available"] is False
     assert dst["reason"] == "team_defense_not_scored"

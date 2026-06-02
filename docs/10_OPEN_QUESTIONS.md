@@ -124,7 +124,8 @@ commit them, and add `playwright test visual` to the `e2e` job to close the gate
   (`AI-Model` / `Prompted-By` / `Reviewed-By`; never `Co-Authored-By: Claude`).
 - **No writes, no predictions, no pipeline control from the UI, localhost-only.**
 - **Honesty about data gaps is non-negotiable** — unscored 2010–2015, current-season-only
-  availability, and incomplete DST scoring are surfaced, never faked.
+  availability, and any genuinely-missing scored row (including a DST team/week) are surfaced,
+  never faked. DST is now scored end-to-end.
 
 ---
 
