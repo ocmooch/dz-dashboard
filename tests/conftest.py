@@ -530,6 +530,81 @@ def _populate(session: Session) -> None:
         )
     )
 
+    # --- Two read-time data-quality fixes the box score must apply, exercised on
+    #     Goose's (away) bench where no KNOWN total is asserted:
+    #       * a player nflverse never scored (no scored row) but carrying an
+    #         authoritative ``nfl_com_points`` must show that value, available —
+    #         not a "no scored data" gap (the inactive / DNP / bye case); and
+    #       * a team defense whose ``position`` carries Phase 1's corrupt NFL.com
+    #         "Season is Over / Add to Watch List" banner artifact must render as
+    #         "DEF" (and stay DEF-eligible for the optimal solver).
+    viper_def = Player(
+        name_full="Viper D/ST",
+        position="Season is Over Add to Watch List",
+        nfl_team="MIA",
+    )
+    session.add(viper_def)
+    session.flush()
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=viper_def.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="BN",
+            is_starter=False,
+            acquisition_type="draft",
+            acquisition_week=1,
+            extra_data={"snapshot_kind": "history", "nfl_com_points": 7.0},
+        )
+    )
+
+    # --- Zero-point context the box score must explain, again on Goose's bench:
+    #       * a player whose NFL team was on bye (extra_data.opponent == "Bye")
+    #         scored 0 — labelled "bye", not a fake gap; and
+    #       * a 0 that does not cleanly fit (the league scored 0 yet nflverse
+    #         credits real production) is flagged "unexpected" with a reason.
+    bye_guy = Player(name_full="Bye Week Guy", position="WR", nfl_team="DET")
+    mismatch_guy = Player(name_full="Mismatch Guy", position="WR", nfl_team="KC")
+    session.add_all([bye_guy, mismatch_guy])
+    session.flush()
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=bye_guy.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="BN",
+            is_starter=False,
+            acquisition_type="draft",
+            acquisition_week=1,
+            extra_data={"snapshot_kind": "history", "nfl_com_points": 0.0, "opponent": "Bye"},
+        )
+    )
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=mismatch_guy.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="BN",
+            is_starter=False,
+            acquisition_type="draft",
+            acquisition_week=1,
+            extra_data={"snapshot_kind": "history", "nfl_com_points": 0.0, "opponent": "@LA"},
+        )
+    )
+    # nflverse credits the mismatch player 8.0 even though the league scored 0.
+    _add_raw_and_scored(
+        session,
+        player_id=mismatch_guy.player_id,
+        season_id=sid[2017],
+        season_year=2017,
+        week=1,
+        points=8.0,
+        breakdown={"receiving": 8.0},
+    )
+
     # --- A successful pipeline run so /v1/meta + records reflect a real run id.
     run = PipelineRun(status="success", mode="reconstruct", started_at=NOW, finished_at=NOW)
     session.add(run)

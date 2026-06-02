@@ -55,9 +55,28 @@ both a current-week power ranking and a power-ranking-over-time line per team.
 
 Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored`).
 
-- **Per-player league points + breakdown** — passed through from Phase 1's scored
-  breakdown JSON (passing/rushing/receiving/bonus/… and the defense keys for DST). A DEF
-  starter whose row is genuinely missing is flagged, never zeroed.
+- **Per-player league points** — the **authoritative** NFL.com value from each weekly
+  roster row's `team_rosters.extra_data.nfl_com_points`. This is what the league actually
+  awarded: it exists for every roster row (including players nflverse never logged a stat
+  line for — inactive / DNP / bye, who scored a legitimate 0.0), and the starters' values
+  sum to `matchups.team_score`. The nflverse `player_stats_scored` reconstruction is only a
+  fallback when `nfl_com_points` is absent; a row with neither source is flagged
+  (`team_defense_not_scored` / `no_scored_data`), never zeroed.
+- **Breakdown** — the per-category stacked chart (passing/rushing/receiving/bonus/… and the
+  defense keys for DST) is still passed through from Phase 1's nflverse scored breakdown JSON;
+  it is supplementary and may be empty for a player who has an authoritative total but no
+  nflverse stat line.
+- **Corrupt-position normalization** — ~15 team defenses carry the NFL.com
+  "Season is Over / Add to Watch List" banner in `players.position` (a Phase 1 scrape
+  artifact; the real position is `DEF`). `normalize_position` restores `DEF` on read so the
+  position renders correctly **and** the defense stays DEF-eligible in the optimal solver.
+  This should also be fixed at the Phase 1 source.
+- **Zero-point context** (`classify_zero` → `zero_reason` / `zero_detail`) — a `0.0` is
+  explained, not left ambiguous: `"bye"` when the per-week `extra_data.opponent` is `"Bye"`;
+  `"did_not_play"` when the team played but the player has no nflverse stat line
+  (inactive / injury / scratch); no annotation when a real stat line simply nets ~0 (a clean
+  played-0 renders a bare `0`); and `"unexpected"` (with a `zero_detail` note) when the league
+  scored 0 yet nflverse credits material points — surfaced rather than shown as a silent 0.
 - **Bench points** — sum of scored points for non-starter, non-IR slots.
 - **Optimal lineup & "points left on the bench"** — the highest-scoring legal lineup given
   that week's roster and the league's slot configuration (read slot rules from
