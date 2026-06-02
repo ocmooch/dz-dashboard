@@ -66,11 +66,6 @@ Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored
   defense keys for DST) is still passed through from Phase 1's nflverse scored breakdown JSON;
   it is supplementary and may be empty for a player who has an authoritative total but no
   nflverse stat line.
-- **Corrupt-position normalization** — ~15 team defenses carry the NFL.com
-  "Season is Over / Add to Watch List" banner in `players.position` (a Phase 1 scrape
-  artifact; the real position is `DEF`). `normalize_position` restores `DEF` on read so the
-  position renders correctly **and** the defense stays DEF-eligible in the optimal solver.
-  This should also be fixed at the Phase 1 source.
 - **Zero-point context** (`classify_zero` → `zero_reason` / `zero_detail`) — a `0.0` is
   explained, not left ambiguous: `"bye"` when the per-week `extra_data.opponent` is `"Bye"`;
   `"did_not_play"` when the team played but the player has no nflverse stat line

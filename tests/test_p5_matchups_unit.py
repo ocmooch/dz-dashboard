@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from ff_dashboard.analytics.matchups import (
     box_score,
     classify_zero,
-    normalize_position,
     roster_sort_key,
     slot_accepts,
     solve_optimal,
@@ -140,15 +139,6 @@ def test_box_def_starter_with_missing_row_is_flagged(session: Session) -> None:
     assert dst["reason"] == "team_defense_not_scored"
 
 
-def test_normalize_position_maps_corrupt_def_artifact() -> None:
-    # Phase 1's scraper captured the NFL.com "Season is Over / Add to Watch List"
-    # banner into the position column for ~15 team defenses; we restore "DEF".
-    assert normalize_position("Season is Over Add to Watch List") == "DEF"
-    assert normalize_position("season is over add to watch list") == "DEF"  # case/space tolerant
-    assert normalize_position("WR") == "WR"  # everything else is untouched
-    assert normalize_position(None) is None
-
-
 def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
     # A player nflverse never scored (no scored row) but with an authoritative
     # nfl_com_points shows that real value, available — never a "no scored data"
@@ -160,15 +150,6 @@ def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Sess
     assert viper["available"] is True
     assert viper["league_points"] == 7.0  # from extra_data.nfl_com_points, not nflverse
     assert viper["reason"] is None
-
-
-def test_box_normalizes_corrupt_def_position_artifact(session: Session) -> None:
-    # The corrupt NFL.com position artifact renders as "DEF", not garbage.
-    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
-    data = box_score(session, mid)
-    assert data is not None
-    viper = next(p for p in data["away"]["lineup"] if p["player_name"] == "Viper D/ST")
-    assert viper["position"] == "DEF"
 
 
 # --- Zero-point context classification --------------------------------------

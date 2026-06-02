@@ -530,19 +530,11 @@ def _populate(session: Session) -> None:
         )
     )
 
-    # --- Two read-time data-quality fixes the box score must apply, exercised on
-    #     Goose's (away) bench where no KNOWN total is asserted:
-    #       * a player nflverse never scored (no scored row) but carrying an
-    #         authoritative ``nfl_com_points`` must show that value, available —
-    #         not a "no scored data" gap (the inactive / DNP / bye case); and
-    #       * a team defense whose ``position`` carries Phase 1's corrupt NFL.com
-    #         "Season is Over / Add to Watch List" banner artifact must render as
-    #         "DEF" (and stay DEF-eligible for the optimal solver).
-    viper_def = Player(
-        name_full="Viper D/ST",
-        position="Season is Over Add to Watch List",
-        nfl_team="MIA",
-    )
+    # --- A player nflverse never scored (no scored row) but carrying an
+    #     authoritative ``nfl_com_points`` must show that value, available — not a
+    #     "no scored data" gap (the inactive / DNP / bye case). Lives on Goose's
+    #     (away) bench, where no KNOWN total is asserted.
+    viper_def = Player(name_full="Viper D/ST", position="DEF", nfl_team="MIA")
     session.add(viper_def)
     session.flush()
     session.add(

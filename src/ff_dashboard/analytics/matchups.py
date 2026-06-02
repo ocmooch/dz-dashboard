@@ -75,25 +75,6 @@ SLOT_ELIGIBILITY: dict[str, set[str]] = {
 # position, because team-defense rows often carry no position.
 DEF_SLOTS = {"DEF", "DST", "D/ST"}
 
-# Corrupt source data: Phase 1's NFL.com scraper captured the "Season is Over /
-# Add to Watch List" banner from a team-defense player page into the ``position``
-# column for ~15 team defenses (the real position is "DEF"). We cannot write to
-# the Phase 1 DB, so we normalise it on read — otherwise it renders as a garbage
-# position *and* makes those defenses ineligible for the DEF slot in the optimal
-# solver. Every affected row is a team defense, so restoring "DEF" is safe.
-# This should also be fixed at the Phase 1 source; see the data-quality note.
-_DEF_POSITION_ARTIFACT = "season is over add to watch list"
-
-
-def normalize_position(position: str | None) -> str | None:
-    """Map the known corrupt team-defense ``position`` artifact back to ``DEF``.
-
-    All other positions (and ``None``) pass through untouched.
-    """
-    if position is not None and position.strip().lower() == _DEF_POSITION_ARTIFACT:
-        return "DEF"
-    return position
-
 
 def _authoritative_points(roster_row: Any) -> float | None:
     """The league-awarded points for a roster row, from NFL.com history.
@@ -300,10 +281,9 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
     # Starters (QB, RB, RB, WR, WR, TE, FLEX, K, DST) first, then bench, then IR.
     for roster_row, player in sorted(
         roster,
-        key=lambda rp: roster_sort_key(rp[0].roster_slot, normalize_position(rp[1].position)),
+        key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position),
     ):
         slot = roster_row.roster_slot
-        position = normalize_position(player.position)
         is_starter = (
             bool(roster_row.is_starter) and slot not in BENCH_SLOTS and slot not in IR_SLOTS
         )
@@ -340,7 +320,7 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
             "roster_slot": slot,
             "player_id": player.player_id,
             "player_name": player.name_full,
-            "position": position,
+            "position": player.position,
             "league_points": league_points,
             "is_starter": is_starter,
             "breakdown": breakdown,
@@ -363,7 +343,7 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
 
         # The optimal lineup may draw from any non-IR player (starter or bench).
         if slot not in IR_SLOTS:
-            optimal_candidates.append({"position": position, "points": effective})
+            optimal_candidates.append({"position": player.position, "points": effective})
 
     optimal_total = solve_optimal(optimal_candidates, starting_slots)
     starter_points = round(starter_points, 2)
