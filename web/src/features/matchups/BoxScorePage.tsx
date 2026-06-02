@@ -19,6 +19,12 @@ async function fetchBoxScore(matchupId: number) {
   return data.data;
 }
 
+/** Injured-reserve slots carry an explicit "IR" label; everything else with no
+ *  stat line (BYE / inactive / scratch) is shown as a neutral em dash. */
+function isIR(slot: string | null | undefined): boolean {
+  return !!slot && slot.toUpperCase().startsWith("IR");
+}
+
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);
@@ -86,10 +92,15 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
       <td className="dz-num">
-        {p.available && p.league_points != null ? (
+        {!p.available ? (
+          // Pipeline explicitly flagged this entry as a gap (e.g. a known scoring hole).
+          <DataGap reason={p.reason ?? undefined} size="sm" />
+        ) : p.league_points != null ? (
+          // Includes an organic 0.0 — they played and scored nothing. Never a fake blank.
           <span className={muted ? "text-muted" : "text-text"}>{num(p.league_points)}</span>
         ) : (
-          <DataGap reason={p.reason ?? undefined} size="sm" />
+          // No stat line: a legitimate absence (IR / BYE / inactive), not a data gap.
+          <span className="text-faint">{isIR(p.roster_slot) ? "IR" : "—"}</span>
         )}
       </td>
     </tr>

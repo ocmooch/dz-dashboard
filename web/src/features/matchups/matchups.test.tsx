@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -253,6 +253,70 @@ describe("BoxScorePage", () => {
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
     expect(await screen.findByText(/Not scored — pre-2016 season/i)).toBeInTheDocument();
+  });
+
+  it("labels a no-stat IR player 'IR' and other absences '—', not a data gap", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 77,
+          season_year: 2017,
+          week: 5,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 20,
+          home: {
+            team_id: 20,
+            team_name: "Maverick 2017",
+            owner_name: "Maverick",
+            total_score: 100,
+            starter_points: 100,
+            bench_points: 0,
+            optimal_total: 100,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "IR",
+                player_id: 30,
+                player_name: "Hurt Hero",
+                position: "WR",
+                league_points: null,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+              },
+              {
+                roster_slot: "BN",
+                player_id: 31,
+                player_name: "Bye Week Body",
+                position: "RB",
+                league_points: null,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/77");
+    // The points cell (last column) carries the label; scope to each row so the
+    // slot column ("IR") and empty projections ("—") don't create false matches.
+    const irRow = (await screen.findByText("Hurt Hero")).closest("tr")!;
+    const irCells = within(irRow).getAllByRole("cell");
+    expect(irCells[irCells.length - 1]).toHaveTextContent("IR");
+    const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
+    const byeCells = within(byeRow).getAllByRole("cell");
+    expect(byeCells[byeCells.length - 1]).toHaveTextContent("—");
+    // Neither is the amber honesty/data-gap affordance.
+    expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
   });
 
   it("emphasizes the winning team's total score", async () => {
