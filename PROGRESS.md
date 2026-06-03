@@ -13,13 +13,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- Branch: `feature/player-last-year-played` (cut from `dev`; Phase A merged via PR #24)
-- Last work: **Players-view audit — Phase B (B1 + B2)**. The pinned ff-pipeline regen
-  landed three new `PlayerOut` fields (`last_season` = D1, `first/last_rostered_season`
-  = D4 option b), so B1/B2 are unblocked. Frontend-only change.
-- Gate status: frontend green (typecheck, contract drift clean vs live BFF, 128 vitest).
-  Backend untouched. Verified against the real DB: 38/40 sampled league players have
-  `last_season` populated; NULLs render the gap affordance.
+- Branch: `dev` (all P0–P11 + the players audit merged). Latest merge: PR #26.
+- **Phase 2 is functionally complete.** Every roadmap milestone has shipped artifacts on
+  disk (all 11 analytics modules + routes, all web features, P11 ops: `Makefile`, `README.md`,
+  `web/README.md`, `docs/PHASE2_RUNBOOK.md`, e2e `journeys`/`visual` specs). The milestone
+  tracker below is updated to reflect this.
+- Last substantive work: the **players-view data-honesty audit** (Phase A + B, off-roadmap),
+  merged via PRs #24–26. See the Phase A/B sections below.
+- Gate status: backend **156 passed**, mypy clean, write-safety clean (the lone `git grep`
+  hit is a docstring in `engine.py` describing read-only enforcement, not real write code);
+  frontend typecheck clean, **128 vitest**. Contract-drift check requires a running BFF.
+- **Next high-value step: manual in-browser click-through** against the real DB to surface
+  data/UX gaps, then triage each as backend-data vs. frontend-presentation (the split that
+  worked for the players audit).
 
 ## What Phase A shipped
 
@@ -89,18 +95,18 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 | # | Milestone | Status | Plan | Notes |
 |---|-----------|--------|------|-------|
-| P0 | Prereqs & data-readiness gate | ☐ | — | data coverage note |
-| P1 | BFF bootstrap (`/health`, `/v1/meta`, cache) | ☐ | — | |
-| P2 | Analytics core + endpoints (standings, owners, h2h, records, players) | ☐ | — | fixture DB + known answers |
-| P3 | Frontend bootstrap + design system | ☐ | — | tokens, primitives, gen:api drift check |
-| P4 | Home + Standings + Manager profile | ☐ | — | first end-to-end slice |
-| P5 | Matchups + Box score (optimal lineup) | ☐ | — | needs P0 reconstruction |
-| P6 | Rivalries + Records book | ☐ | — | deep-links to source matchup |
-| P7 | Players + Stats explorer + Team page | ☐ | — | |
-| P8 | Draft views | ☐ | — | gap-label seasons w/o drafts |
-| P9 | Power ranking + timelines | ☐ | — | shared chart wrappers |
-| P10 | Global search + coverage/about + gap polish | ☐ | — | no fake zeros anywhere |
-| P11 | Operations + docs + e2e/visual-regression | ☐ | — | one-command run, RUNBOOK |
+| P0 | Prereqs & data-readiness gate | ☑ | — | data coverage note |
+| P1 | BFF bootstrap (`/health`, `/v1/meta`, cache) | ☑ | — | `test_p1_bootstrap.py` |
+| P2 | Analytics core + endpoints (standings, owners, h2h, records, players) | ☑ | — | fixture DB + known answers |
+| P3 | Frontend bootstrap + design system | ☑ | — | tokens, primitives, gen:api drift check |
+| P4 | Home + Standings + Manager profile | ☑ | — | + managers index/profile |
+| P5 | Matchups + Box score (optimal lineup) | ☑ | — | authoritative NFL.com points |
+| P6 | Rivalries + Records book | ☑ | — | deep-links to source matchup |
+| P7 | Players + Stats explorer + Team page | ☑ | — | + players data-honesty audit |
+| P8 | Draft views | ☑ | — | gap-label seasons w/o drafts |
+| P9 | Power ranking + timelines | ☑ | — | shared chart wrappers |
+| P10 | Global search + coverage/about + gap polish | ☑ | — | no fake zeros anywhere |
+| P11 | Operations + docs + e2e/visual-regression | ☑ | — | Makefile, RUNBOOK, e2e specs |
 
 Status key: ☐ todo · ◐ in progress · ☑ done. Put the plan path in **Plan** once a PLAN
 session writes `docs/plans/P{N}-{name}.md`.
