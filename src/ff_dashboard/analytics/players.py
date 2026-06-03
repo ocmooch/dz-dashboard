@@ -7,14 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Player, PlayerStatsScored, Season, TeamRoster
+from ff_pipeline.repository.models import Player, PlayerStatsScored, Season
 from ff_pipeline.repository.queries import (
     availability_timeline,
     get_player,
     player_availability_for_season,
     player_ownership,
 )
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -35,19 +35,20 @@ def list_player_index(
 ) -> list[dict[str, Any]]:
     """Paginated player index, scoped to league relevance by default.
 
-    A player is *league-relevant* when they have at least one ``team_rosters``
-    row — i.e. someone in the league owned them at some point. The Phase 1 DB
-    also carries the broader nflverse universe (players the pipeline scored but
-    nobody ever rostered, plus stub/metadata rows); those are noise for a
-    league players view, so ``scope="league"`` (the default) excludes them.
-    ``scope="all"`` opts back into the full universe.
+    A player is *league-relevant* when ``last_rostered_season`` is non-null —
+    i.e. someone in the league owned them at some point. That column is the
+    pipeline's materialized rostered-span (derived from ``team_rosters``); we
+    read it directly rather than re-deriving the span with a GROUP BY join. The
+    Phase 1 DB also carries the broader nflverse universe (players the pipeline
+    scored but nobody ever rostered, plus stub/metadata rows); those are noise
+    for a league players view, so ``scope="league"`` (the default) excludes
+    them. ``scope="all"`` opts back into the full universe.
 
-    Each row is enriched with the player's rostered-season span and whether the
-    player has any scored week, so the caller can render relevance at a glance
-    without the SPA doing any joins. Relevance is filtered *before* paging, so
-    page sizes stay correct.
+    Each row carries the player's rostered-season span (straight from the
+    columns) and whether the player has any scored week, so the caller can
+    render relevance at a glance without the SPA doing any joins. Relevance is
+    filtered *before* paging, so page sizes stay correct.
     """
-    rostered = select(TeamRoster.player_id).where(TeamRoster.player_id == Player.player_id).exists()
     stmt = select(Player)
     if name is not None:
         stmt = stmt.where(Player.name_full.ilike(f"%{name}%"))
@@ -56,24 +57,13 @@ def list_player_index(
     if nfl_team is not None:
         stmt = stmt.where(Player.nfl_team == nfl_team)
     if scope != "all":
-        stmt = stmt.where(rostered)
+        stmt = stmt.where(Player.last_rostered_season.isnot(None))
     stmt = stmt.order_by(Player.name_full).offset(offset).limit(limit)
     players = list(session.execute(stmt).scalars().all())
 
     ids = [p.player_id for p in players]
-    span: dict[int, tuple[int, int]] = {}
     scored: set[int] = set()
     if ids:
-        for pid, lo, hi in session.execute(
-            select(
-                TeamRoster.player_id,
-                func.min(TeamRoster.season_year),
-                func.max(TeamRoster.season_year),
-            )
-            .where(TeamRoster.player_id.in_(ids))
-            .group_by(TeamRoster.player_id)
-        ).all():
-            span[int(pid)] = (int(lo), int(hi))
         scored = {
             int(pid)
             for (pid,) in session.execute(
@@ -83,21 +73,18 @@ def list_player_index(
             ).all()
         }
 
-    rows: list[dict[str, Any]] = []
-    for p in players:
-        lo_hi = span.get(p.player_id)
-        rows.append(
-            {
-                "player_id": p.player_id,
-                "name_full": p.name_full,
-                "position": p.position,
-                "nfl_team": p.nfl_team,
-                "first_rostered_season": lo_hi[0] if lo_hi else None,
-                "last_rostered_season": lo_hi[1] if lo_hi else None,
-                "has_scored": p.player_id in scored,
-            }
-        )
-    return rows
+    return [
+        {
+            "player_id": p.player_id,
+            "name_full": p.name_full,
+            "position": p.position,
+            "nfl_team": p.nfl_team,
+            "first_rostered_season": p.first_rostered_season,
+            "last_rostered_season": p.last_rostered_season,
+            "has_scored": p.player_id in scored,
+        }
+        for p in players
+    ]
 
 
 def player_scoring(session: Session, player_id: int, season_year: int) -> dict[str, Any] | None:

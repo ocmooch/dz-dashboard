@@ -55,6 +55,8 @@ const PLAYER_OUT = {
   is_active: true,
   rookie_year: 2018,
   last_season: 2023,
+  first_rostered_season: 2017,
+  last_rostered_season: 2017,
   gsis_id: "G1",
 };
 

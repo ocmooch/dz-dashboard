@@ -46,15 +46,20 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   header's primary status. Dropped the last assertion off the unreliable flag: removed the
   muted "NFL status (nflverse): active/retired" line entirely. `is_active` is no longer
   surfaced in the UI.
+- **B3 — fold rostered span onto the DB columns (D4 option b landed)**: the pipeline now
+  materializes `Player.first_rostered_season`/`last_rostered_season` (verified equal to the
+  `team_rosters` MIN/MAX for all 1244 ever-rostered players, 0 mismatches). `list_player_index`
+  now scopes on `last_rostered_season IS NOT NULL` and reads the span straight off the
+  columns — dropping the EXISTS subquery and the GROUP BY join. The detail header reads the
+  span from `PlayerOut` directly, removing the extra ownership round-trip. The fixture DB now
+  backfills these columns from `team_rosters` so it honors the same invariant. Output shape
+  unchanged (contract drift clean).
 
 ## Next
 
 - **This session's mode:** VERIFY (done) → ready to PR `feature/player-last-year-played` → `dev`.
-- **Phase B remaining (still gated):** B3 fold league-relevance onto a DB helper (D4 — the
-  `first/last_rostered_season` columns now exist on `PlayerOut`, so the A1 id-set bridge and
-  the ownership-query span on the detail header can be retired in favor of reading the DB
-  columns directly); B4 confirm the contamination guard no longer fires (D5). See Phase B in
-  `docs/plans/players-audit-dashboard.md`.
+- **Phase B remaining (still gated):** B4 confirm the contamination guard no longer fires
+  (D5). B1–B3 are done. See Phase B in `docs/plans/players-audit-dashboard.md`.
 
 ## Files that matter now
 
@@ -68,9 +73,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - League relevance = **ever-rostered only** (not "ever scored"): the pipeline scores the
   whole NFL, so "scored" is not a league-relevance signal. Documented in the plan/handoff.
-- Phase A keeps all the new index reads dashboard-side (direct `select()` in analytics, the
-  established pattern) rather than adding a `queries.py` helper, to avoid churn in
-  danger-zone while its Phase 1 fix is in flight. Phase B (B3) can fold onto a DB helper.
+- ~~Phase A keeps index reads dashboard-side rather than a `queries.py` helper.~~ **B3 done:**
+  D4 option (b) landed `Player.first/last_rostered_season` columns; `list_player_index` and the
+  detail header now read those columns directly instead of joining `team_rosters`.
 
 ---
 

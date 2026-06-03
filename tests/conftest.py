@@ -37,7 +37,7 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from ff_dashboard.api.main import create_app
@@ -602,6 +602,22 @@ def _populate(session: Session) -> None:
     session.add(run)
     session.flush()
     session.add(SourceHealth(run_id=run.run_id, source="nflverse", status="ok", rows_added=42))
+
+    # Materialize each player's rostered-season span from team_rosters, mirroring
+    # the Phase 1 pipeline's derived first/last_rostered_season columns. The
+    # dashboard reads these directly (list_player_index scopes on
+    # last_rostered_season), so the fixture must honor the same invariant.
+    for rostered_pid, lo, hi in session.execute(
+        select(
+            TeamRoster.player_id,
+            func.min(TeamRoster.season_year),
+            func.max(TeamRoster.season_year),
+        ).group_by(TeamRoster.player_id)
+    ).all():
+        rostered_player = session.get(Player, rostered_pid)
+        if rostered_player is not None:
+            rostered_player.first_rostered_season = int(lo)
+            rostered_player.last_rostered_season = int(hi)
 
     session.commit()
 
