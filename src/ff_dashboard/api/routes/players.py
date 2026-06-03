@@ -7,13 +7,13 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import (
     get_player,
-    search_players,
     season_totals,
     top_scorers,
 )
 
 from ff_dashboard.analytics.players import (
     availability,
+    list_player_index,
     ownership_timeline,
     player_scoring,
 )
@@ -22,7 +22,7 @@ from ff_dashboard.api.schemas import (
     Envelope,
     PlayerAvailability,
     PlayerIndex,
-    PlayerLite,
+    PlayerIndexRow,
     PlayerOut,
     PlayerOwnership,
     PlayerScoring,
@@ -41,22 +41,26 @@ def list_players(
     name: str | None = None,
     position: str | None = None,
     nfl_team: str | None = None,
-    active: bool | None = None,
+    scope: str = Query("league", pattern="^(league|all)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> Envelope[PlayerIndex]:
-    rows = search_players(
+    rows = list_player_index(
         session,
         name=name,
         position=position,
         nfl_team=nfl_team,
-        active=active,
+        scope=scope,
         limit=limit,
         offset=offset,
     )
-    players = [PlayerLite.model_validate(p) for p in rows]
     return Envelope(
-        data=PlayerIndex(players=players, limit=limit, offset=offset),
+        data=PlayerIndex(
+            players=[PlayerIndexRow(**r) for r in rows],
+            limit=limit,
+            offset=offset,
+            scope=scope,
+        ),
         meta=build_meta(session),
     )
 

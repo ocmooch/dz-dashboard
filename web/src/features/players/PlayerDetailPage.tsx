@@ -49,6 +49,17 @@ async function fetchAvailability(id: number, season: number) {
   return data.data;
 }
 
+/** "wk 3–17" for a multi-week tenure, "wk 5" for a single week. */
+function weekRange(start: number, end: number): string {
+  return start === end ? `wk ${start}` : `wk ${start}–${end}`;
+}
+
+/** "2016–2018", "2017", or null when the player was never on a league roster. */
+function rosteredSpan(first?: number | null, last?: number | null): string | null {
+  if (first == null || last == null) return null;
+  return first === last ? String(first) : `${first}–${last}`;
+}
+
 const ID_LABELS: { key: string; label: string }[] = [
   { key: "nfl_com_player_id", label: "NFL.com" },
   { key: "gsis_id", label: "GSIS" },
@@ -111,8 +122,7 @@ function OwnershipTimeline({ playerId }: { playerId: number }) {
               {e.team_name ?? `Team ${e.team_id}`}
             </Link>
             <div className="text-[var(--fs-xs)] text-faint">
-              {e.season_year} · wk {e.week}
-              {e.roster_slot ? ` · ${e.roster_slot}` : ""}
+              {e.season_year} · {weekRange(e.week_start, e.week_end)}
             </div>
           </div>
           {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
@@ -162,6 +172,18 @@ export function PlayerDetailPage() {
     enabled: Number.isFinite(playerId),
   });
 
+  // Shares the OwnershipTimeline query key, so this is deduped — used here only
+  // for the header status line (rostered span), the honest replacement for the
+  // unreliable nflverse active/retired flag.
+  const { data: ownership } = useQuery({
+    queryKey: qk.playerOwnership(playerId),
+    queryFn: () => fetchOwnership(playerId),
+    enabled: Number.isFinite(playerId),
+  });
+  const span = ownership
+    ? rosteredSpan(ownership.first_rostered_season, ownership.last_rostered_season)
+    : null;
+
   return (
     <div className="dz-rise space-y-4">
       <div>
@@ -174,11 +196,12 @@ export function PlayerDetailPage() {
           </h1>
           {data?.position && <Badge variant="accent">{data.position}</Badge>}
           {data?.nfl_team && <Badge>{data.nfl_team}</Badge>}
-          {data && (
-            <Badge variant={data.is_active ? "win" : "default"}>
-              {data.is_active ? "active" : "retired"}
-            </Badge>
-          )}
+          {ownership &&
+            (span ? (
+              <Badge variant="win">rostered {span}</Badge>
+            ) : (
+              <Badge variant="default">never rostered</Badge>
+            ))}
         </div>
       </div>
 
@@ -193,14 +216,26 @@ export function PlayerDetailPage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <div className="dz-eyebrow mb-1">Rookie year</div>
-                <div className="num text-text">{data.rookie_year ?? "—"}</div>
+                {data.rookie_year != null ? (
+                  <div className="num text-text">{data.rookie_year}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
               </div>
               <div>
                 <div className="dz-eyebrow mb-1">Born</div>
-                <div className="num text-text">{data.birth_date ?? "—"}</div>
+                {data.birth_date != null ? (
+                  <div className="num text-text">{data.birth_date}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--hairline)] pt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--hairline)] pt-4">
+              <span className="font-mono text-[var(--fs-xs)] text-faint">
+                <span className="text-muted">NFL status (nflverse):</span>{" "}
+                {data.is_active ? "active" : "retired"}
+              </span>
               {ID_LABELS.map(({ key, label }) => {
                 const v = (data as Record<string, unknown>)[key];
                 if (!v) return null;

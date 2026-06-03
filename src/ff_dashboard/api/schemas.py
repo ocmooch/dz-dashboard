@@ -405,10 +405,25 @@ class DraftRecords(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class PlayerIndexRow(BaseModel):
+    """One row of the player index, enriched so relevance is legible without the
+    SPA doing any joins. ``first/last_rostered_season`` is null when the player
+    was never on a league roster (only reachable via ``scope=all``)."""
+
+    player_id: int
+    name_full: str
+    position: str | None = None
+    nfl_team: str | None = None
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+    has_scored: bool = False
+
+
 class PlayerIndex(BaseModel):
-    players: list[PlayerLite]
+    players: list[PlayerIndexRow]
     limit: int
     offset: int
+    scope: str = "league"  # "league" (rostered only) | "all" (full nflverse universe)
 
 
 class ScoringWeek(BaseModel):
@@ -426,18 +441,24 @@ class PlayerScoring(BaseModel):
     weeks: list[ScoringWeek]
 
 
-class OwnershipEvent(BaseModel):
+class OwnershipSpan(BaseModel):
+    """A contiguous tenure on one team within a season — consecutive weekly
+    roster rows collapsed so a season-long hold reads as one span, not ~17."""
+
     team_id: int
     team_name: str | None = None
     season_year: int
-    week: int
-    roster_slot: str | None = None
+    week_start: int
+    week_end: int
+    weeks: int
     acquisition_type: str | None = None
 
 
 class PlayerOwnership(BaseModel):
     player_id: int
-    events: list[OwnershipEvent]
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+    events: list[OwnershipSpan]
 
 
 class AvailabilityWeek(BaseModel):

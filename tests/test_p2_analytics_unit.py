@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
-from ff_dashboard.analytics.players import availability, player_scoring
+from ff_dashboard.analytics.players import (
+    availability,
+    list_player_index,
+    ownership_timeline,
+    player_scoring,
+)
 from ff_dashboard.analytics.records import records_book
 from ff_dashboard.analytics.standings import compute_standings
 from tests.conftest import KNOWN
@@ -184,3 +189,31 @@ def test_availability_current_season_present(session: Session) -> None:
     assert data is not None
     assert data["available"] is True
     assert data["weeks"][0]["status"] == "owned"
+
+
+def test_player_index_scopes_to_league_relevance(session: Session) -> None:
+    # cmc is rostered → in the league index; jjet is scored-but-never-rostered →
+    # excluded by default, present only under scope=all.
+    league = {r["player_id"] for r in list_player_index(session, scope="league")}
+    assert KNOWN["player_id"]["cmc"] in league
+    assert KNOWN["player_id"]["jjet"] not in league
+    everyone = {r["player_id"] for r in list_player_index(session, scope="all")}
+    assert KNOWN["player_id"]["jjet"] in everyone
+
+
+def test_player_index_row_enrichment(session: Session) -> None:
+    (row,) = list_player_index(session, name="McCaffrey")
+    assert (row["first_rostered_season"], row["last_rostered_season"]) == (2016, 2017)
+    assert row["has_scored"] is True
+
+
+def test_ownership_timeline_collapses_into_spans(session: Session) -> None:
+    # cmc is rostered one week each in 2016 and 2017 → two single-week spans, one
+    # per season, never one row per week.
+    data = ownership_timeline(session, KNOWN["player_id"]["cmc"])
+    assert data is not None
+    assert (data["first_rostered_season"], data["last_rostered_season"]) == (2016, 2017)
+    assert [(s["season_year"], s["week_start"], s["week_end"]) for s in data["events"]] == [
+        (2016, 1, 1),
+        (2017, 1, 1),
+    ]

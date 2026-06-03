@@ -130,11 +130,31 @@ def test_championships_endpoint(client: TestClient) -> None:
 
 
 def test_player_index_and_detail(client: TestClient) -> None:
-    idx = _envelope(client.get("/v1/players?name=Jefferson"))
-    assert idx["players"][0]["name_full"] == "Justin Jefferson"
-    pid = idx["players"][0]["player_id"]
-    detail = _envelope(client.get(f"/v1/players/{pid}"))
-    assert detail["position"] == "WR"
+    # McCaffrey is rostered (Maverick, 2016-17), so he shows in the default
+    # league-scoped index, enriched with his rostered span + scored marker.
+    idx = _envelope(client.get("/v1/players?name=McCaffrey"))
+    assert idx["scope"] == "league"
+    row = idx["players"][0]
+    assert row["name_full"] == "Christian McCaffrey"
+    assert row["first_rostered_season"] == 2016
+    assert row["last_rostered_season"] == 2017
+    assert row["has_scored"] is True
+    detail = _envelope(client.get(f"/v1/players/{row['player_id']}"))
+    assert detail["position"] == "RB"
+
+
+def test_player_index_excludes_never_rostered_unless_scope_all(client: TestClient) -> None:
+    # Jefferson is scored but never rostered in the fixture (the "nflverse
+    # universe but not on a league roster" case): hidden by default, reachable
+    # only via scope=all.
+    league = _envelope(client.get("/v1/players?name=Jefferson"))
+    assert league["players"] == []
+    everyone = _envelope(client.get("/v1/players?name=Jefferson&scope=all"))
+    assert everyone["scope"] == "all"
+    row = everyone["players"][0]
+    assert row["name_full"] == "Justin Jefferson"
+    assert row["first_rostered_season"] is None
+    assert row["has_scored"] is True
 
 
 def test_player_scoring_gap_endpoint(client: TestClient) -> None:
