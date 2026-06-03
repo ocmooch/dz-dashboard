@@ -13,12 +13,13 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- Branch: `feature/players-audit` (cut from `dev`)
-- Last work: **Players-view audit — Phase A** (dashboard-only fixes from
-  `docs/plans/players-audit-dashboard.md`). DB-side fixes handed off in
-  `docs/handoffs/players-audit-danger-zone.md` (Phase 1 work underway).
-- Gate status: backend green (156 pytest, ruff, mypy, write-safety); frontend green
-  (typecheck, 127 vitest, contract regenerated). Click-through done on the real DB.
+- Branch: `feature/player-last-year-played` (cut from `dev`; Phase A merged via PR #24)
+- Last work: **Players-view audit — Phase B (B1 + B2)**. The pinned ff-pipeline regen
+  landed three new `PlayerOut` fields (`last_season` = D1, `first/last_rostered_season`
+  = D4 option b), so B1/B2 are unblocked. Frontend-only change.
+- Gate status: frontend green (typecheck, contract drift clean vs live BFF, 128 vitest).
+  Backend untouched. Verified against the real DB: 38/40 sampled league players have
+  `last_season` populated; NULLs render the gap affordance.
 
 ## What Phase A shipped
 
@@ -35,13 +36,25 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 - **Bio gap affordance**: missing rookie year / birth date render `DataGap`
   (`player_bio_unavailable`), never a bare dash/0.
 
+## What Phase B shipped (this session)
+
+- **B1 — "Last year played"**: detail bio card now renders `PlayerOut.last_season` next to
+  "Rookie year" (the nflverse NFL-career bookends); NULL → `player_bio_unavailable` gap, never 0.
+- **B2 — active/retired signal**: D3 (is_active semantics) did **not** land in the regen, so
+  restoring an `is_active` badge would reintroduce the audited bug. Per the handoff's own
+  resolution (D4 option b), the trustworthy signal is the rostered span — already the
+  header's primary status. Dropped the last assertion off the unreliable flag: removed the
+  muted "NFL status (nflverse): active/retired" line entirely. `is_active` is no longer
+  surfaced in the UI.
+
 ## Next
 
-- **This session's mode:** VERIFY (done) → ready to PR `feature/players-audit` → `dev`.
-- **Phase B (gated on the danger-zone handoff):** surface "Last year played"
-  (`last_season` + `PlayerOut.last_season`), restore a trustworthy active/retired signal
-  once `is_active` semantics are fixed, fold relevance onto a DB helper, drop the
-  contamination-guard noise. See Phase B in `docs/plans/players-audit-dashboard.md`.
+- **This session's mode:** VERIFY (done) → ready to PR `feature/player-last-year-played` → `dev`.
+- **Phase B remaining (still gated):** B3 fold league-relevance onto a DB helper (D4 — the
+  `first/last_rostered_season` columns now exist on `PlayerOut`, so the A1 id-set bridge and
+  the ownership-query span on the detail header can be retired in favor of reading the DB
+  columns directly); B4 confirm the contamination guard no longer fires (D5). See Phase B in
+  `docs/plans/players-audit-dashboard.md`.
 
 ## Files that matter now
 

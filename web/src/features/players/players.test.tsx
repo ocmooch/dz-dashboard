@@ -54,6 +54,7 @@ const PLAYER_OUT = {
   nfl_team: "BAL",
   is_active: true,
   rookie_year: 2018,
+  last_season: 2023,
   gsis_id: "G1",
 };
 
@@ -175,10 +176,31 @@ describe("PlayerDetailPage", () => {
     await screen.findByRole("heading", { name: "Lamar Jackson" });
     // Header leads with the honest rostered span, not the unreliable nflverse flag.
     expect(await screen.findByText("rostered 2017")).toBeInTheDocument();
-    expect(screen.getByText(/NFL status \(nflverse\)/)).toBeInTheDocument();
+    // The unreliable nflverse active/retired flag is no longer asserted anywhere.
+    expect(screen.queryByText(/NFL status \(nflverse\)/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/retired/)).not.toBeInTheDocument();
+    // Career bookends come from nflverse rookie_year + last_season (honest facts).
+    expect(screen.getByText("Last year played")).toBeInTheDocument();
+    expect(screen.getByText("2023")).toBeInTheDocument();
     expect(screen.getByText(/GSIS:/)).toBeInTheDocument();
     // The chart's accessible title proves the scoring series rendered.
     expect(await screen.findByLabelText(/Weekly league points — 2017/i)).toBeInTheDocument();
+  });
+
+  it("renders a gap for a missing last_season, never a fabricated 0", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/players/{player_id}")
+        return Promise.resolve(
+          envelope({ ...PLAYER_OUT, last_season: null, birth_date: "1997-01-07" }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<PlayerDetailPage />, "/players/1");
+    await screen.findByRole("heading", { name: "Lamar Jackson" });
+    expect(screen.getByText("Last year played")).toBeInTheDocument();
+    // Honest gap affordance for the NULL source value — not a 0, not a bare dash.
+    expect(screen.getByText(/Biographical data unavailable/i)).toBeInTheDocument();
+    expect(screen.queryByText("2023")).not.toBeInTheDocument();
   });
 
   it("renders availability as a DataGap for a non-reconstructable season", async () => {

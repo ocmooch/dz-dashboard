@@ -223,6 +223,14 @@ export function PlayerDetailPage() {
                 )}
               </div>
               <div>
+                <div className="dz-eyebrow mb-1">Last year played</div>
+                {data.last_season != null ? (
+                  <div className="num text-text">{data.last_season}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
+              </div>
+              <div>
                 <div className="dz-eyebrow mb-1">Born</div>
                 {data.birth_date != null ? (
                   <div className="num text-text">{data.birth_date}</div>
@@ -232,10 +240,6 @@ export function PlayerDetailPage() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--hairline)] pt-4">
-              <span className="font-mono text-[var(--fs-xs)] text-faint">
-                <span className="text-muted">NFL status (nflverse):</span>{" "}
-                {data.is_active ? "active" : "retired"}
-              </span>
               {ID_LABELS.map(({ key, label }) => {
                 const v = (data as Record<string, unknown>)[key];
                 if (!v) return null;
