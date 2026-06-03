@@ -1,18 +1,29 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, Card, CardHeader, Chip, EmptyState, ErrorState, Skeleton } from "@/design-system";
+import {
+  Button,
+  Card,
+  CardHeader,
+  Chip,
+  EmptyState,
+  ErrorState,
+  Pill,
+  Skeleton,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import { qk } from "@/lib/queryKeys";
 
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
 const PAGE_SIZE = 50;
 
+type Scope = "league" | "all";
+
 type Filters = {
   name: string;
   position: string;
   nfl_team: string;
-  active: string; // "", "true", "false"
+  scope: Scope;
   offset: number;
 };
 
@@ -23,7 +34,7 @@ async function fetchPlayers(f: Filters) {
         name: f.name || undefined,
         position: f.position || undefined,
         nfl_team: f.nfl_team || undefined,
-        active: f.active === "" ? undefined : f.active === "true",
+        scope: f.scope,
         limit: PAGE_SIZE,
         offset: f.offset,
       },
@@ -33,13 +44,19 @@ async function fetchPlayers(f: Filters) {
   return data.data;
 }
 
+/** "2016–2018", "2017", or "—" when the player was never on a league roster. */
+function rosteredSpan(first?: number | null, last?: number | null): string {
+  if (first == null || last == null) return "—";
+  return first === last ? String(first) : `${first}–${last}`;
+}
+
 export function PlayersPage() {
   const [params, setParams] = useSearchParams();
   const filters: Filters = {
     name: params.get("name") ?? "",
     position: params.get("position") ?? "",
     nfl_team: params.get("nfl_team") ?? "",
-    active: params.get("active") ?? "",
+    scope: params.get("scope") === "all" ? "all" : "league",
     offset: Math.max(0, Number(params.get("offset") ?? "0") || 0),
   };
 
@@ -104,13 +121,12 @@ export function PlayersPage() {
           />
           <select
             className="dz-select"
-            aria-label="Filter by active status"
-            value={filters.active}
-            onChange={(e) => set({ active: e.target.value })}
+            aria-label="Player scope"
+            value={filters.scope}
+            onChange={(e) => set({ scope: e.target.value === "all" ? "all" : "league" })}
           >
-            <option value="">Active &amp; retired</option>
-            <option value="true">Active only</option>
-            <option value="false">Retired only</option>
+            <option value="league">League players</option>
+            <option value="all">All NFL players</option>
           </select>
         </div>
       </Card>
@@ -161,6 +177,8 @@ export function PlayersPage() {
                   <th>Player</th>
                   <th>Pos</th>
                   <th>NFL</th>
+                  <th>Rostered</th>
+                  <th>Scored</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,6 +191,16 @@ export function PlayersPage() {
                     </td>
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="text-muted">{p.nfl_team ?? "—"}</td>
+                    <td className="num text-muted">
+                      {rosteredSpan(p.first_rostered_season, p.last_rostered_season)}
+                    </td>
+                    <td>
+                      {p.has_scored ? (
+                        <Pill tone="win">scored</Pill>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

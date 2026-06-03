@@ -7,20 +7,97 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import PlayerStatsScored, Season
+from ff_pipeline.repository.models import Player, PlayerStatsScored, Season, TeamRoster
 from ff_pipeline.repository.queries import (
     availability_timeline,
     get_player,
     player_availability_for_season,
     player_ownership,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+
+
+def list_player_index(
+    session: Session,
+    *,
+    name: str | None = None,
+    position: str | None = None,
+    nfl_team: str | None = None,
+    scope: str = "league",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    """Paginated player index, scoped to league relevance by default.
+
+    A player is *league-relevant* when they have at least one ``team_rosters``
+    row — i.e. someone in the league owned them at some point. The Phase 1 DB
+    also carries the broader nflverse universe (players the pipeline scored but
+    nobody ever rostered, plus stub/metadata rows); those are noise for a
+    league players view, so ``scope="league"`` (the default) excludes them.
+    ``scope="all"`` opts back into the full universe.
+
+    Each row is enriched with the player's rostered-season span and whether the
+    player has any scored week, so the caller can render relevance at a glance
+    without the SPA doing any joins. Relevance is filtered *before* paging, so
+    page sizes stay correct.
+    """
+    rostered = select(TeamRoster.player_id).where(TeamRoster.player_id == Player.player_id).exists()
+    stmt = select(Player)
+    if name is not None:
+        stmt = stmt.where(Player.name_full.ilike(f"%{name}%"))
+    if position is not None:
+        stmt = stmt.where(Player.position == position)
+    if nfl_team is not None:
+        stmt = stmt.where(Player.nfl_team == nfl_team)
+    if scope != "all":
+        stmt = stmt.where(rostered)
+    stmt = stmt.order_by(Player.name_full).offset(offset).limit(limit)
+    players = list(session.execute(stmt).scalars().all())
+
+    ids = [p.player_id for p in players]
+    span: dict[int, tuple[int, int]] = {}
+    scored: set[int] = set()
+    if ids:
+        for pid, lo, hi in session.execute(
+            select(
+                TeamRoster.player_id,
+                func.min(TeamRoster.season_year),
+                func.max(TeamRoster.season_year),
+            )
+            .where(TeamRoster.player_id.in_(ids))
+            .group_by(TeamRoster.player_id)
+        ).all():
+            span[int(pid)] = (int(lo), int(hi))
+        scored = {
+            int(pid)
+            for (pid,) in session.execute(
+                select(PlayerStatsScored.player_id)
+                .where(PlayerStatsScored.player_id.in_(ids))
+                .distinct()
+            ).all()
+        }
+
+    rows: list[dict[str, Any]] = []
+    for p in players:
+        lo_hi = span.get(p.player_id)
+        rows.append(
+            {
+                "player_id": p.player_id,
+                "name_full": p.name_full,
+                "position": p.position,
+                "nfl_team": p.nfl_team,
+                "first_rostered_season": lo_hi[0] if lo_hi else None,
+                "last_rostered_season": lo_hi[1] if lo_hi else None,
+                "has_scored": p.player_id in scored,
+            }
+        )
+    return rows
 
 
 def player_scoring(session: Session, player_id: int, season_year: int) -> dict[str, Any] | None:
@@ -70,23 +147,43 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
 
 
 def ownership_timeline(session: Session, player_id: int) -> dict[str, Any] | None:
-    """Which league teams owned the player and when (None if no such player)."""
+    """Which league teams owned the player and when (None if no such player).
+
+    Phase 1 stores one roster row per (season, week), so a season-long hold is
+    ~17 near-identical rows — rendered raw, that *looks* like the player bounced
+    between owners. Collapse consecutive weeks on the same team within a season
+    into a single tenure span (``week_start``..``week_end``); a mid-season trade
+    or a new season starts a fresh span, so a genuine owner change stays legible
+    instead of buried. Rows arrive ordered by (season_year, week).
+    """
     if get_player(session, player_id) is None:
         return None
-    events = player_ownership(session, player_id)
+    spans: list[dict[str, Any]] = []
+    for roster, team in player_ownership(session, player_id):
+        last = spans[-1] if spans else None
+        if last is not None and (
+            last["team_id"] == roster.team_id and last["season_year"] == roster.season_year
+        ):
+            last["week_end"] = roster.week
+            last["weeks"] += 1
+        else:
+            spans.append(
+                {
+                    "team_id": roster.team_id,
+                    "team_name": team.team_name,
+                    "season_year": roster.season_year,
+                    "week_start": roster.week,
+                    "week_end": roster.week,
+                    "weeks": 1,
+                    "acquisition_type": roster.acquisition_type,
+                }
+            )
+    seasons = [s["season_year"] for s in spans]
     return {
         "player_id": player_id,
-        "events": [
-            {
-                "team_id": roster.team_id,
-                "team_name": team.team_name,
-                "season_year": roster.season_year,
-                "week": roster.week,
-                "roster_slot": roster.roster_slot,
-                "acquisition_type": roster.acquisition_type,
-            }
-            for roster, team in events
-        ],
+        "first_rostered_season": min(seasons) if seasons else None,
+        "last_rostered_season": max(seasons) if seasons else None,
+        "events": spans,
     }
 
 

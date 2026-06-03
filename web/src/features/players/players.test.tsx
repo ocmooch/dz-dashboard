@@ -24,9 +24,26 @@ const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefine
 const PLAYER_INDEX = {
   limit: 50,
   offset: 0,
+  scope: "league",
   players: [
-    { player_id: 1, name_full: "Lamar Jackson", position: "QB", nfl_team: "BAL" },
-    { player_id: 2, name_full: "Christian McCaffrey", position: "RB", nfl_team: "SF" },
+    {
+      player_id: 1,
+      name_full: "Lamar Jackson",
+      position: "QB",
+      nfl_team: "BAL",
+      first_rostered_season: 2018,
+      last_rostered_season: 2023,
+      has_scored: true,
+    },
+    {
+      player_id: 2,
+      name_full: "Christian McCaffrey",
+      position: "RB",
+      nfl_team: "SF",
+      first_rostered_season: 2017,
+      last_rostered_season: 2017,
+      has_scored: false,
+    },
   ],
 };
 
@@ -53,8 +70,18 @@ const SCORING = {
 
 const OWNERSHIP = {
   player_id: 1,
+  first_rostered_season: 2017,
+  last_rostered_season: 2017,
   events: [
-    { team_id: 10, team_name: "Iceman 2017", season_year: 2017, week: 1, roster_slot: "QB", acquisition_type: "draft" },
+    {
+      team_id: 10,
+      team_name: "Iceman 2017",
+      season_year: 2017,
+      week_start: 1,
+      week_end: 14,
+      weeks: 14,
+      acquisition_type: "draft",
+    },
   ],
 };
 
@@ -115,6 +142,23 @@ describe("PlayersPage", () => {
     });
   });
 
+  it("renders the rostered span and a scored marker per row", async () => {
+    renderWithProviders(<PlayersPage />);
+    await screen.findByText("Lamar Jackson");
+    expect(screen.getByText("2018–2023")).toBeInTheDocument(); // Lamar's rostered span
+    expect(screen.getByText("scored")).toBeInTheDocument(); // Lamar has_scored
+  });
+
+  it("passes the scope=all param when switching to all NFL players", async () => {
+    renderWithProviders(<PlayersPage />);
+    await screen.findByText("Lamar Jackson");
+    await userEvent.selectOptions(screen.getByLabelText("Player scope"), "All NFL players");
+    await waitFor(() => {
+      const calls = get.mock.calls.filter((c) => c[0] === "/v1/players");
+      expect(calls.some((c) => (c[1] as any).params.query.scope === "all")).toBe(true);
+    });
+  });
+
   it("shows an empty state when no players match", async () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/players") return Promise.resolve(envelope({ ...PLAYER_INDEX, players: [] }));
@@ -129,7 +173,9 @@ describe("PlayerDetailPage", () => {
   it("renders metadata, IDs, and the weekly scoring chart", async () => {
     renderWithProviders(<PlayerDetailPage />, "/players/1");
     await screen.findByRole("heading", { name: "Lamar Jackson" });
-    expect(screen.getByText("active")).toBeInTheDocument();
+    // Header leads with the honest rostered span, not the unreliable nflverse flag.
+    expect(await screen.findByText("rostered 2017")).toBeInTheDocument();
+    expect(screen.getByText(/NFL status \(nflverse\)/)).toBeInTheDocument();
     expect(screen.getByText(/GSIS:/)).toBeInTheDocument();
     // The chart's accessible title proves the scoring series rendered.
     expect(await screen.findByLabelText(/Weekly league points — 2017/i)).toBeInTheDocument();

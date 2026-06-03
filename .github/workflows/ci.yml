@@ -17,9 +17,12 @@ jobs:
   #
   # ff_dashboard imports ff_pipeline (Phase 1) via the editable path source in
   # pyproject.toml ([tool.uv.sources] -> ../danger-zone). CI checks that sibling
-  # out beside this repo so the source resolves. If you'd rather not grant access
-  # to the sibling, swap [tool.uv.sources] to the pinned git tag (see
-  # docs/PHASE2_RUNBOOK.md) and drop the "Check out ff-pipeline" step.
+  # out beside this repo so the source resolves. We pin its `dev` branch so the
+  # dashboard integrates against ff-pipeline's integration branch (matching this
+  # repo's own dev-targeted flow); bump to `main` when ff-pipeline promotes a
+  # release. If you'd rather not grant access to the sibling, swap
+  # [tool.uv.sources] to the pinned git tag (see docs/PHASE2_RUNBOOK.md) and drop
+  # the "Check out ff-pipeline" step.
   # ----------------------------------------------------------------------------
   backend:
     runs-on: ubuntu-latest
@@ -29,6 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ocmooch/danger-zone
+          ref: dev
           path: danger-zone
           ssh-key: ${{ secrets.FF_PIPELINE_DEPLOY_KEY }}
       - name: Position ff-pipeline as ../danger-zone
@@ -77,6 +81,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ocmooch/danger-zone
+          ref: dev
           path: danger-zone
           ssh-key: ${{ secrets.FF_PIPELINE_DEPLOY_KEY }}
       - run: mv danger-zone ../danger-zone

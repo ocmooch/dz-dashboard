@@ -1161,18 +1161,24 @@ export interface components {
             /** Owners */
             owners: components["schemas"]["OwnerCareer"][];
         };
-        /** OwnershipEvent */
-        OwnershipEvent: {
+        /**
+         * OwnershipSpan
+         * @description A contiguous tenure on one team within a season — consecutive weekly
+         *     roster rows collapsed so a season-long hold reads as one span, not ~17.
+         */
+        OwnershipSpan: {
             /** Team Id */
             team_id: number;
             /** Team Name */
             team_name?: string | null;
             /** Season Year */
             season_year: number;
-            /** Week */
-            week: number;
-            /** Roster Slot */
-            roster_slot?: string | null;
+            /** Week Start */
+            week_start: number;
+            /** Week End */
+            week_end: number;
+            /** Weeks */
+            weeks: number;
             /** Acquisition Type */
             acquisition_type?: string | null;
         };
@@ -1192,14 +1198,24 @@ export interface components {
         /** PlayerIndex */
         PlayerIndex: {
             /** Players */
-            players: components["schemas"]["PlayerLite"][];
+            players: components["schemas"]["PlayerIndexRow"][];
             /** Limit */
             limit: number;
             /** Offset */
             offset: number;
+            /**
+             * Scope
+             * @default league
+             */
+            scope: string;
         };
-        /** PlayerLite */
-        PlayerLite: {
+        /**
+         * PlayerIndexRow
+         * @description One row of the player index, enriched so relevance is legible without the
+         *     SPA doing any joins. ``first/last_rostered_season`` is null when the player
+         *     was never on a league roster (only reachable via ``scope=all``).
+         */
+        PlayerIndexRow: {
             /** Player Id */
             player_id: number;
             /** Name Full */
@@ -1208,6 +1224,15 @@ export interface components {
             position?: string | null;
             /** Nfl Team */
             nfl_team?: string | null;
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
+            /**
+             * Has Scored
+             * @default false
+             */
+            has_scored: boolean;
         };
         /** PlayerOut */
         PlayerOut: {
@@ -1227,8 +1252,14 @@ export interface components {
             birth_date?: string | null;
             /** Rookie Year */
             rookie_year?: number | null;
+            /** Last Season */
+            last_season?: number | null;
             /** Is Active */
             is_active: boolean;
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
             /** Nfl Com Player Id */
             nfl_com_player_id?: string | null;
             /** Gsis Id */
@@ -1244,8 +1275,12 @@ export interface components {
         PlayerOwnership: {
             /** Player Id */
             player_id: number;
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
             /** Events */
-            events: components["schemas"]["OwnershipEvent"][];
+            events: components["schemas"]["OwnershipSpan"][];
         };
         /** PlayerScoring */
         PlayerScoring: {
@@ -2209,7 +2244,7 @@ export interface operations {
                 name?: string | null;
                 position?: string | null;
                 nfl_team?: string | null;
-                active?: boolean | null;
+                scope?: string;
                 limit?: number;
                 offset?: number;
             };
