@@ -172,17 +172,10 @@ export function PlayerDetailPage() {
     enabled: Number.isFinite(playerId),
   });
 
-  // Shares the OwnershipTimeline query key, so this is deduped — used here only
-  // for the header status line (rostered span), the honest replacement for the
-  // unreliable nflverse active/retired flag.
-  const { data: ownership } = useQuery({
-    queryKey: qk.playerOwnership(playerId),
-    queryFn: () => fetchOwnership(playerId),
-    enabled: Number.isFinite(playerId),
-  });
-  const span = ownership
-    ? rosteredSpan(ownership.first_rostered_season, ownership.last_rostered_season)
-    : null;
+  // Rostered span — the honest replacement for the unreliable nflverse
+  // active/retired flag — reads straight off the player's materialized
+  // first/last_rostered_season columns, so no extra ownership round-trip.
+  const span = data ? rosteredSpan(data.first_rostered_season, data.last_rostered_season) : null;
 
   return (
     <div className="dz-rise space-y-4">
@@ -196,7 +189,7 @@ export function PlayerDetailPage() {
           </h1>
           {data?.position && <Badge variant="accent">{data.position}</Badge>}
           {data?.nfl_team && <Badge>{data.nfl_team}</Badge>}
-          {ownership &&
+          {data &&
             (span ? (
               <Badge variant="win">rostered {span}</Badge>
             ) : (
@@ -223,6 +216,14 @@ export function PlayerDetailPage() {
                 )}
               </div>
               <div>
+                <div className="dz-eyebrow mb-1">Last year played</div>
+                {data.last_season != null ? (
+                  <div className="num text-text">{data.last_season}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
+              </div>
+              <div>
                 <div className="dz-eyebrow mb-1">Born</div>
                 {data.birth_date != null ? (
                   <div className="num text-text">{data.birth_date}</div>
@@ -232,10 +233,6 @@ export function PlayerDetailPage() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--hairline)] pt-4">
-              <span className="font-mono text-[var(--fs-xs)] text-faint">
-                <span className="text-muted">NFL status (nflverse):</span>{" "}
-                {data.is_active ? "active" : "retired"}
-              </span>
               {ID_LABELS.map(({ key, label }) => {
                 const v = (data as Record<string, unknown>)[key];
                 if (!v) return null;
