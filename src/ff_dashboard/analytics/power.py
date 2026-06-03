@@ -166,9 +166,7 @@ def power_ranking(
         )
 
     # Standings rank (wins -> points-for) for the model-vs-record comparison.
-    for rank, r in enumerate(
-        sorted(rows, key=lambda x: (-x["wins"], -x["points_for"])), start=1
-    ):
+    for rank, r in enumerate(sorted(rows, key=lambda x: (-x["wins"], -x["points_for"])), start=1):
         r["standings_rank"] = rank
 
     rows.sort(key=lambda x: -x["power_score"])
