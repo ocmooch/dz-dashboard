@@ -57,9 +57,15 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- **This session's mode:** VERIFY (done) → ready to PR `feature/player-last-year-played` → `dev`.
-- **Phase B remaining (still gated):** B4 confirm the contamination guard no longer fires
-  (D5). B1–B3 are done. See Phase B in `docs/plans/players-audit-dashboard.md`.
+- **Phase B complete.** B1–B3 shipped via PR #25 (merged to `dev`). B4 confirmed this
+  session — see below. No Phase B work remaining.
+
+- **B4 — contamination guard confirmed (D5 landed):** verified against the real DB
+  (`../danger-zone/data/fantasy.db`, read-only). The handoff's D5 audit query returns 0
+  duplicate cross-team roster groups (now enforced by `uq_team_rosters_season_week_player`).
+  Replicating `matchups.py:409`'s home∩away intersection across all 3002 two-sided matchups
+  found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
+  `docs/plans/players-audit-dashboard.md`.
 
 ## Files that matter now
 
