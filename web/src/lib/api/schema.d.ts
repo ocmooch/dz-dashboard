@@ -1252,8 +1252,14 @@ export interface components {
             birth_date?: string | null;
             /** Rookie Year */
             rookie_year?: number | null;
+            /** Last Season */
+            last_season?: number | null;
             /** Is Active */
             is_active: boolean;
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
             /** Nfl Com Player Id */
             nfl_com_player_id?: string | null;
             /** Gsis Id */
