@@ -206,7 +206,11 @@ describe("MatchupsPage", () => {
       return Promise.resolve(routeByPath(path));
     });
     renderWithProviders(<MatchupsPage />);
-    expect(await screen.findByText(/player-level scoring not available/i)).toBeInTheDocument();
+    // The affordance must scope the gap to per-player scoring and affirm the
+    // team-level grid is complete (F-16) — never label the grid incomplete.
+    const banner = await screen.findByText(/per-player fantasy points were never reconstructed/i);
+    expect(banner).toBeInTheDocument();
+    expect(banner.textContent).toMatch(/team results.*are complete/i);
   });
 });
 
@@ -252,7 +256,9 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
-    expect(await screen.findByText(/Not scored — pre-2016 season/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Per-player scoring not reconstructed \(pre-2016\)/i),
+    ).toBeInTheDocument();
   });
 
   it("labels a no-stat IR player 'IR' and other absences '—', not a data gap", async () => {

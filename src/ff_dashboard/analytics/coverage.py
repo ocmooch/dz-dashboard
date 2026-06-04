@@ -69,6 +69,16 @@ def dst_scoring_complete(session: Session) -> bool:
     A single team/week DEF row that is genuinely missing is a per-row gap the box
     score surfaces on its own (``team_defense_not_scored``); it does not flip this
     season-level capability flag.
+
+    Scope of the flag (F-48 reconcile): it asserts the *presence* of scored team
+    defense — "DST is scored end-to-end" — and is authoritative for that. It does
+    **not** certify per-stat *value accuracy*. A separate, known upstream gap
+    exists: nflverse team-defense yards/sacks read low, so some DST point values
+    are understated even though the rows are present and scored. That is a
+    data-quality concern tracked upstream (see ``docs/03_DATA_ACCESS.md`` and the
+    danger-zone players audit), not a presence gap, so it must not flip this flag
+    to False. Keep this a dev-facing fact; don't surface it to end-users as a
+    coverage hole.
     """
     scored = set(seasons_scored(session))
     if not scored:

@@ -96,6 +96,8 @@ describe("StatsPage", () => {
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
-    expect(await screen.findByText(/pre-2016 gap/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/per-player fantasy points were never reconstructed/i),
+    ).toBeInTheDocument();
   });
 });

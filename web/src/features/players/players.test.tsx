@@ -211,6 +211,30 @@ describe("PlayerDetailPage", () => {
     expect(await screen.findByText(/Availability — current season only/i)).toBeInTheDocument();
   });
 
+  it("presents an unscored-era-only rostered player honestly, not as empty (F-26)", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/players/{player_id}")
+        return Promise.resolve(
+          envelope({
+            ...PLAYER_OUT,
+            name_full: "Aaron Hernandez",
+            first_rostered_season: 2010,
+            last_rostered_season: 2012,
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<PlayerDetailPage />, "/players/1");
+    await screen.findByRole("heading", { name: "Aaron Hernandez" });
+    // A real league player whose tenure is entirely pre-2016 gets an explanatory
+    // affordance, not a blank/error scoring chart.
+    expect(
+      await screen.findByText(/Rostered in the unscored era \(2010–2015\)/i),
+    ).toBeInTheDocument();
+    // The current (scored) season's chart must not render for this player.
+    expect(screen.queryByLabelText(/Weekly league points/i)).not.toBeInTheDocument();
+  });
+
   it("links ownership events to the owning team's page", async () => {
     renderWithProviders(<PlayerDetailPage />, "/players/1");
     await screen.findByText("Iceman 2017");

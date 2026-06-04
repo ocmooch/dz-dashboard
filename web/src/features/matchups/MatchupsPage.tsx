@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, Skeleton, WeekStepper } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, PRE2016_GAP_NOTE, Skeleton, WeekStepper } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -106,7 +106,7 @@ export function MatchupsPage() {
       </div>
 
       {data && !data.is_scored && (
-        <Badge variant="gap">player-level scoring not available for this season — box scores show the gap</Badge>
+        <Badge variant="gap">{PRE2016_GAP_NOTE} Team scores &amp; margins below are complete; box scores show the per-player gap.</Badge>
       )}
 
       <Card>
