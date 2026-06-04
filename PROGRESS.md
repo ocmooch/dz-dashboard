@@ -14,7 +14,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 ## Current state
 
 - **Active: fix-pass P1 (review-fixes program) — VERIFY complete on branch
-  `feature/fix-P1-analytics`; PR to `dev` open.** Backend-only analytics correctness/scoping/enrichment for
+  `feature/fix-P1-analytics`; **PR #30** open → `dev`.** Backend-only analytics correctness/scoping/enrichment for
   findings F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13. Plan: `docs/plans/fix-P1-analytics.md`;
   tracker: `docs/plans/REVIEW_FIXES_ROADMAP.md`. What shipped this build:
   - **F-32** new `analytics/season_schedule.py` (config-driven `SeasonSchedule` + `phase_of_week`

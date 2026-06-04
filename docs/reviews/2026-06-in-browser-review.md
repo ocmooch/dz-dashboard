@@ -811,7 +811,7 @@ first (data/analytics foundations → analytics → views).
 
 | Pass | Findings |
 |------|----------|
-| **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 |
+| **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
 | **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 |
 | **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
