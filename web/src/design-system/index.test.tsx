@@ -148,7 +148,7 @@ describe("DataGap (the honesty component)", () => {
 
   it("maps a known reason code to a human label", () => {
     render(<DataGap reason="season_unscored" />);
-    expect(screen.getByRole("note")).toHaveTextContent("Not scored — pre-2016 season");
+    expect(screen.getByRole("note")).toHaveTextContent("Per-player scoring not reconstructed (pre-2016)");
   });
 
   it("passes an unknown reason through verbatim", () => {

@@ -20,6 +20,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ff_pipeline.repository.models import Matchup, Season
+from sqlalchemy import func, select
+
 from ff_dashboard.analytics.coverage import (
     compute_coverage,
     dst_scoring_complete,
@@ -33,8 +36,6 @@ from ff_dashboard.analytics.records import (
     scored_window,
     team_record_window,
 )
-from ff_pipeline.repository.models import Matchup, Season
-from sqlalchemy import func, select
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
