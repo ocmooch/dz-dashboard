@@ -13,7 +13,28 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- Branch: `dev` (all P0–P11 + the players audit merged). Latest merge: PR #26.
+- **Active: fix-pass P1 (review-fixes program) — BUILD complete on branch
+  `feature/fix-P1-analytics`.** Backend-only analytics correctness/scoping/enrichment for
+  findings F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13. Plan: `docs/plans/fix-P1-analytics.md`;
+  tracker: `docs/plans/REVIEW_FIXES_ROADMAP.md`. What shipped this build:
+  - **F-32** new `analytics/season_schedule.py` (config-driven `SeasonSchedule` + `phase_of_week`
+    / `fantasy_week_range`); `_CONFIRMED` empty pending the 1-13→1-14 switch year (roadmap input #1)
+    so behaviour is unchanged today.
+  - **F-22** records era split in `records.py`: team/score/margin records over `team_record_window`
+    (all team-totals seasons, 2010–2025), player records over `scored_window` (2016–2025); payload
+    adds `team_record_era`.
+  - **F-31** new `analytics/stats.py:season_totals` week-capped to `championship_week`; route
+    `players.py` imports it instead of the Phase-1 query (shape unchanged → no drift).
+  - **F-10** `owners.py:owner_seasons` adds derived `result` + data-derived `made_playoffs`
+    (consolation games excluded via `Matchup.is_consolation`).
+  - **F-12/F-23** `head_to_head.py:pairwise_record` adds `cumulative_margin_for_a` + `closest_meeting`.
+  - **F-13/F-17** `matchups.py:week_matchups` adds `is_close`/`is_blowout` (backend constants) +
+    per-side `entering_record`.
+  - Schemas updated + `npm run gen:api` regenerated (drift captured in `web/src/lib/api/schema.d.ts`).
+  - Gate so far: backend **181 passed** (156 + 25 new fix-P1 tests), ruff clean, mypy clean,
+    web typecheck clean. **Pending (VERIFY/this-thread tail): full frontend gate not yet run; PR
+    to `dev` not yet opened.**
+- Branch baseline: `dev` (all P0–P11 + the players audit merged). Latest merge: PR #29 (review docs).
 - **Phase 2 is functionally complete.** Every roadmap milestone has shipped artifacts on
   disk (all 11 analytics modules + routes, all web features, P11 ops: `Makefile`, `README.md`,
   `web/README.md`, `docs/PHASE2_RUNBOOK.md`, e2e `journeys`/`visual` specs). The milestone

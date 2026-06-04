@@ -811,6 +811,27 @@ export interface components {
             /** Busts */
             busts: components["schemas"]["DraftPick"][];
         };
+        /**
+         * EnteringRecord
+         * @description A team's regular-season W-L-T entering a given week of the season.
+         */
+        EnteringRecord: {
+            /**
+             * Wins
+             * @default 0
+             */
+            wins: number;
+            /**
+             * Losses
+             * @default 0
+             */
+            losses: number;
+            /**
+             * Ties
+             * @default 0
+             */
+            ties: number;
+        };
         /** Envelope[BoxScore] */
         Envelope_BoxScore_: {
             data: components["schemas"]["BoxScore"];
@@ -979,7 +1000,9 @@ export interface components {
         /**
          * GameCard
          * @description One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-         *     deep-links to the box score.
+         *     deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
+         *     margin flags (thresholds in ``analytics/matchups.py``); both False when the
+         *     game has no scores yet.
          */
         GameCard: {
             /** Matchup Id */
@@ -993,6 +1016,16 @@ export interface components {
             team_b?: components["schemas"]["GameTeam"] | null;
             /** Margin */
             margin?: number | null;
+            /**
+             * Is Close
+             * @default false
+             */
+            is_close: boolean;
+            /**
+             * Is Blowout
+             * @default false
+             */
+            is_blowout: boolean;
             /** Winner Team Id */
             winner_team_id?: number | null;
         };
@@ -1011,6 +1044,21 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            entering_record?: components["schemas"]["EnteringRecord"] | null;
+        };
+        /**
+         * H2HMeeting
+         * @description A single oriented meeting reference (deep-linkable via ``matchup_id``).
+         */
+        H2HMeeting: {
+            /** Season Year */
+            season_year?: number | null;
+            /** Week */
+            week?: number | null;
+            /** Matchup Id */
+            matchup_id?: number | null;
+            /** Margin For A */
+            margin_for_a?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1027,6 +1075,9 @@ export interface components {
             games_played: number;
             /** Reason */
             reason?: string | null;
+            /** Cumulative Margin For A */
+            cumulative_margin_for_a?: number | null;
+            closest_meeting?: components["schemas"]["H2HMeeting"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -1135,6 +1186,8 @@ export interface components {
             final_rank?: number | null;
             /** Made Playoffs */
             made_playoffs?: boolean | null;
+            /** Result */
+            result?: string | null;
             /** Is Champion */
             is_champion: boolean;
         };

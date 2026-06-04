@@ -34,6 +34,12 @@ from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.season_schedule import season_schedule
+
+# Margin thresholds for the week-matchup flags. Kept here (backend) rather than
+# in the SPA so "no metric math in web" holds; the frontend reads the booleans.
+CLOSE_MARGIN = 5.0  # a decided/tied game within 5 points
+BLOWOUT_MARGIN = 40.0  # a margin of 40+ points
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -427,6 +433,41 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     }
 
 
+def _entering_records(session: Session, season: Season, week: int) -> dict[int, dict[str, int]]:
+    """Each team's regular-season W-L-T from *before* ``week``, that season.
+
+    One query for the season's prior regular-season games, folded per team — no
+    N+1. Playoff/championship weeks are excluded via the schedule model's
+    ``regular_weeks``; byes and unplayed weeks don't count.
+    """
+    reg_weeks = season_schedule(session, season).regular_weeks
+    records: dict[int, dict[str, int]] = {}
+    rows = session.execute(
+        select(
+            Matchup.team_id,
+            Matchup.is_win,
+            Matchup.team_score,
+            Matchup.opponent_score,
+            Matchup.opponent_team_id,
+        ).where(
+            Matchup.season_id == season.season_id,
+            Matchup.week < week,
+            Matchup.week <= reg_weeks,
+        )
+    ).all()
+    for team_id, is_win, team_score, opp_score, opp_team_id in rows:
+        if opp_team_id is None:
+            continue  # bye, not a game
+        rec = records.setdefault(int(team_id), {"wins": 0, "losses": 0, "ties": 0})
+        if is_win is True:
+            rec["wins"] += 1
+        elif is_win is False:
+            rec["losses"] += 1
+        elif team_score is not None and opp_score is not None and team_score == opp_score:
+            rec["ties"] += 1
+    return records
+
+
 def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any] | None:
     """The week's games as deduped cards, or ``None`` if no such season (404).
 
@@ -450,6 +491,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
     )
     owners = owner_name_map(session)
     teams: dict[int, Any] = {}
+    entering = _entering_records(session, season, week)
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -466,6 +508,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
             "owner_name": owners.get(team.owner_id) if team is not None else None,
             "score": round(score, 2) if score is not None else None,
             "is_winner": is_winner,
+            "entering_record": entering.get(team_id, {"wins": 0, "losses": 0, "ties": 0}),
         }
 
     seen: set[frozenset[int]] = set()
@@ -502,6 +545,8 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
                     m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
                 ),
                 "margin": margin,
+                "is_close": margin is not None and margin <= CLOSE_MARGIN,
+                "is_blowout": margin is not None and margin >= BLOWOUT_MARGIN,
                 "winner_team_id": winner_team_id,
             }
         )

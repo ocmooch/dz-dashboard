@@ -117,8 +117,10 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
 
     highest = max(agg["meetings"], key=lambda mt: mt["low_score"] + mt["high_score"])
     lopsided = max(agg["meetings"], key=lambda mt: abs(mt["low_margin"]))
+    closest = min(agg["meetings"], key=lambda mt: abs(mt["low_margin"]))
     h_a, h_b = meeting_scores(highest)
     l_margin = lopsided["low_margin"] if a_is_low else -lopsided["low_margin"]
+    c_margin = closest["low_margin"] if a_is_low else -closest["low_margin"]
 
     return {
         **base,
@@ -129,6 +131,9 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
         "ties": agg["ties"],
         "a_win_pct": round((a_wins + 0.5 * agg["ties"]) / games, 4),
         "avg_margin_for_a": round(a_margin_total / games, 2),
+        # Signed running total across every meeting (distinct from the per-game
+        # average); positive means A is up on aggregate points.
+        "cumulative_margin_for_a": round(a_margin_total, 2),
         "playoff_meetings": agg["playoff_meetings"],
         "highest_scoring_meeting": {
             "season_year": highest["season_year"],
@@ -142,6 +147,12 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
             "week": lopsided["week"],
             "matchup_id": lopsided["matchup_id"],
             "margin_for_a": round(l_margin, 2),
+        },
+        "closest_meeting": {
+            "season_year": closest["season_year"],
+            "week": closest["week"],
+            "matchup_id": closest["matchup_id"],
+            "margin_for_a": round(c_margin, 2),
         },
     }
 

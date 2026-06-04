@@ -10,7 +10,7 @@ from __future__ import annotations
 from statistics import mean
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Owner, Season, Team
+from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import select
 
@@ -18,6 +18,47 @@ from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+
+
+def _season_result(final_rank: int | None, is_champion: bool) -> str | None:
+    """A human label for a completed season's finish, or None when no rank yet.
+
+    Returned for every completed season (incl. 2010–2015): champion / runner-up /
+    3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent — an
+    in-progress or rank-less season.
+    """
+    if is_champion:
+        return "Champion"
+    if final_rank is None:
+        return None
+    if final_rank == 1:
+        return "1st place"
+    if final_rank == 2:
+        return "Runner-up"
+    if final_rank == 3:
+        return "3rd place"
+    return f"{final_rank}th"
+
+
+def _playoff_participation(session: Session) -> tuple[set[int], set[int]]:
+    """``(team_ids_that_made_playoffs, season_ids_with_any_playoff_game)``.
+
+    A team "made the playoffs" iff it has ≥1 ``is_playoff`` matchup that is **not**
+    a consolation/toilet-bowl game. The season set lets callers tell *False* (the
+    season had a bracket and this team missed it) apart from *None* (no playoff
+    games recorded at all → unknown, never fabricate False).
+    """
+    made: set[int] = set()
+    seasons_with_playoffs: set[int] = set()
+    for team_id, season_id, is_playoff, is_consolation in session.execute(
+        select(Matchup.team_id, Matchup.season_id, Matchup.is_playoff, Matchup.is_consolation)
+    ).all():
+        if not is_playoff:
+            continue
+        seasons_with_playoffs.add(int(season_id))
+        if not is_consolation:
+            made.add(int(team_id))
+    return made, seasons_with_playoffs
 
 
 def _standings_index(session: Session) -> dict[int, dict[str, Any]]:
@@ -44,10 +85,18 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
+    made_playoffs_teams, playoff_seasons = _playoff_participation(session)
 
     rows: list[dict[str, Any]] = []
     for team in teams:
         srow = index.get(team.team_id, {})
+        is_champion = team.team_id in champions
+        # Derive made_playoffs from the schedule (the Team column is unpopulated):
+        # True/False only when the season recorded a bracket, else None (a gap).
+        if team.season_id in playoff_seasons:
+            made_playoffs: bool | None = team.team_id in made_playoffs_teams
+        else:
+            made_playoffs = None
         rows.append(
             {
                 "season_id": team.season_id,
@@ -59,8 +108,9 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
                 "ties": srow.get("ties", 0),
                 "points_for": srow.get("points_for", 0.0),
                 "final_rank": team.final_rank,
-                "made_playoffs": team.made_playoffs,
-                "is_champion": team.team_id in champions,
+                "made_playoffs": made_playoffs,
+                "result": _season_result(team.final_rank, is_champion),
+                "is_champion": is_champion,
             }
         )
     rows.sort(key=lambda r: r["season_year"] or 0)
