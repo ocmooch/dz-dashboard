@@ -41,7 +41,7 @@ Key: ☐ todo · ◐ in progress · ☑ merged · ⊘ blocked (needs an input ab
 
 | Pass | Title | Primary layer | Depends on | Findings | Status | Plan doc |
 |------|-------|---------------|------------|----------|--------|----------|
-| **P1** | Analytics correctness, scoping & enrichment (incl. season-structure model) | analytics + api | — (season model config-driven) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 | ☐ | `docs/plans/fix-P1-analytics.md` |
+| **P1** | Analytics correctness, scoping & enrichment (incl. season-structure model) | analytics + api | — (season model config-driven) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 | ◐ (PLAN done) | `docs/plans/fix-P1-analytics.md` |
 | **P2** | Data honesty & affordance precision (+ gap-validation harness) | gap-affordance + tests | soft: P1 (week semantics) | F-16, F-35, F-26, F-33, F-48, F-43 | ☐ | `docs/plans/fix-P2-honesty.md` |
 | **P3** | Search: scope, teams, hardening | data/analytics + api + tests | — | F-44, F-45, F-47 | ☐ | `docs/plans/fix-P3-search.md` |
 | **P4** | Transactions (dashboard roster-diff tier) | analytics + api + frontend | — | F-37 (tier 1) | ☐ | `docs/plans/fix-P4-transactions.md` |
@@ -92,7 +92,10 @@ Each pass appends here anything it discovered that changes scope, crosses into a
 needs a decision — so passes inform each other and nothing is silently absorbed. Format:
 `- [P{N}, YYYY-MM-DD] <observation> → <impact / which finding or pass it touches>`.
 
-_(empty — first BUILD/VERIFY session starts filling this)_
+- [P1, 2026-06-04] F-31 season-totals aggregation lives in the **Phase-1** `ff_pipeline...queries.season_totals` (sibling repo) and sums all weeks with no cap → P1 owns a week-capped aggregation dashboard-side in new `analytics/stats.py` instead of touching Phase-1 (read-only boundary). → no contract change, but the route stops importing the Phase-1 query.
+- [P1, 2026-06-04] Frontend hardcodes the blowout threshold (`margin >= 40`, `MatchupsPage.tsx:58`) — metric math in `web/`. P1 moves close/blowout thresholds to backend flags (`is_close`/`is_blowout`); the frontend swap to consume them is **P5** (F-13/F-14). → cross-pass: P5 must drop the hardcoded `>=40`.
+- [P1, 2026-06-04] `made_playoffs` derivation (F-10) risks over-counting if consolation/toilet-bowl games are flagged `is_playoff=True`. BUILD resolves against the fixture; fallback gates on a `playoff_teams` count in the schedule model. → may add a field to the season-schedule model.
+- [P1, 2026-06-04] Git base: the roadmap + 48-findings doc + fix-pass skill are in **open PR #29** (→ dev), not yet on `dev`. The fix-P1 PLAN doc is committed onto `feature/in-browser-review-findings` (rides into dev via #29). **#29 must merge before `/fix-pass P1 build`** so the BUILD branch cuts cleanly from an up-to-date `dev`. → sequencing dependency for every fix-pass.
 
 ## Done when (the whole program)
 
