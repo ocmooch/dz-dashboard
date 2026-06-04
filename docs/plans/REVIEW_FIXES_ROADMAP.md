@@ -13,8 +13,10 @@ It does **not** restate findings — it points at them. Read this + the cited fi
 The heavy thinking is already done — in the review doc and here. Per pass, the loop is:
 
 1. Pick the **next unblocked pass** from the status table (top-down; respect `Depends on`).
-2. Paste the handoff template (`docs/handoffs/review-fix-pass.template.md`) with `PASS_ID` and
-   `STAGE` filled in. Run **PLAN → BUILD → VERIFY** (small passes may combine — see the template).
+2. Run the **`/fix-pass` skill**: `/fix-pass <PASS> [STAGE]` — e.g. `/fix-pass P1 plan`, then
+   `/fix-pass P1 build`, then `/fix-pass P1 verify` (one thread each, token-budget discipline).
+   Omit the stage (`/fix-pass P1`) to auto-infer it; use `/fix-pass P1 all` for a small pass. The
+   skill encodes the same workflow as the handoff template — that template is the manual fallback.
 3. Review the PR it opens to `dev`, merge, done. The agent handles branch, tests, docs, trailers,
    status ticks, and surfaces any new considerations back into this file.
 

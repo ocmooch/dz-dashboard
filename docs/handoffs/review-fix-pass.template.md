@@ -1,5 +1,10 @@
 # Handoff prompt template — review fix-pass session
 
+> **Prefer the skill.** The everyday way to run a pass is the `/fix-pass` skill:
+> `/fix-pass <PASS> [STAGE]` (e.g. `/fix-pass P1 plan`). It encodes everything below. This template
+> is the **manual fallback / reference** — use it if you want to paste the full instructions
+> explicitly, or to read exactly what the skill does.
+
 Reusable, near-turnkey prompt for executing one fix-pass from
 `docs/plans/REVIEW_FIXES_ROADMAP.md` (findings in `docs/reviews/2026-06-in-browser-review.md`).
 
@@ -91,6 +96,6 @@ files; over-read source — grep for the symbol, open the matching span only.
 - **UP items aren't dashboard PRs** — they're Phase-1 programs in `ff-pipeline`; use the
   `players-audit-danger-zone.md` handoff as the model and run them with the same template idea
   pointed at that repo.
-- Want it even more automated? This template can be wrapped as a `fix-pass-session` skill (sibling
-  to `milestone-session`/`green-gate`) so `STAGE`/`PASS_ID` become skill args — ask and it's a small
-  add.
+- This is now wrapped as the **`/fix-pass` skill** (`.claude/skills/fix-pass/`, sibling to
+  `milestone-session`/`green-gate`) — `PASS`/`STAGE` are the command args. Use the skill day-to-day;
+  this doc stays as the readable spec.
