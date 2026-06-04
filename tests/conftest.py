@@ -209,7 +209,7 @@ def _populate(session: Session) -> None:
     #     fix-P1 derivations: owner-season `result` from final_rank, `made_playoffs`
     #     derived from real (non-consolation) playoff games, and the records era
     #     split — Iceman's 50.0 consolation score is the all-time lowest team score
-    #     and lands in a pre-2016 season, proving team records span 2010–2015.
+    #     and lands in a pre-2016 season, proving team records span 2010-2015.
     final_rank_2015 = {"slider": 1, "mav": 2, "goose": 3, "ice": 4}
     for key, rank in final_rank_2015.items():
         team = session.get(Team, team_id[(2015, key)])

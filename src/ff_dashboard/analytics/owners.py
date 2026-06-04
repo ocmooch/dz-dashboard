@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def _season_result(final_rank: int | None, is_champion: bool) -> str | None:
     """A human label for a completed season's finish, or None when no rank yet.
 
-    Returned for every completed season (incl. 2010–2015): champion / runner-up /
+    Returned for every completed season (incl. 2010-2015): champion / runner-up /
     3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent — an
     in-progress or rank-less season.
     """
@@ -40,25 +40,38 @@ def _season_result(final_rank: int | None, is_champion: bool) -> str | None:
     return f"{final_rank}th"
 
 
-def _playoff_participation(session: Session) -> tuple[set[int], set[int]]:
-    """``(team_ids_that_made_playoffs, season_ids_with_any_playoff_game)``.
+def _playoff_participation(session: Session) -> tuple[dict[int, set[int]], set[int]]:
+    """``(made_by_season, derivable_season_ids)``.
 
-    A team "made the playoffs" iff it has ≥1 ``is_playoff`` matchup that is **not**
-    a consolation/toilet-bowl game. The season set lets callers tell *False* (the
-    season had a bracket and this team missed it) apart from *None* (no playoff
-    games recorded at all → unknown, never fabricate False).
+    ``made_by_season[season_id]`` is the set of teams with ≥1 ``is_playoff``
+    matchup that is **not** a consolation/toilet-bowl game.
+
+    ``derivable_season_ids`` are the seasons where ``made_playoffs`` can be stated
+    honestly — i.e. the playoff flag selects a **proper subset** of the league
+    (``0 < made < teams_that_season``). When *no* team or *every* team carries a
+    non-consolation playoff game the bracket isn't distinguishable in the data
+    (notably: Phase-1 leaves ``is_consolation`` unpopulated and flags every
+    post-season game ``is_playoff``, so all teams look like they advanced) →
+    ``made_playoffs`` is **unknown** (``None``), never a fabricated True/False.
     """
-    made: set[int] = set()
-    seasons_with_playoffs: set[int] = set()
+    made_by_season: dict[int, set[int]] = {}
     for team_id, season_id, is_playoff, is_consolation in session.execute(
         select(Matchup.team_id, Matchup.season_id, Matchup.is_playoff, Matchup.is_consolation)
     ).all():
-        if not is_playoff:
-            continue
-        seasons_with_playoffs.add(int(season_id))
-        if not is_consolation:
-            made.add(int(team_id))
-    return made, seasons_with_playoffs
+        if is_playoff and not is_consolation:
+            made_by_season.setdefault(int(season_id), set()).add(int(team_id))
+    teams_per_season = {
+        int(sid): int(n)
+        for sid, n in session.execute(
+            select(Team.season_id, func.count()).group_by(Team.season_id)
+        ).all()
+    }
+    derivable = {
+        sid
+        for sid, made in made_by_season.items()
+        if 0 < len(made) < teams_per_season.get(sid, 0)
+    }
+    return made_by_season, derivable
 
 
 def _standings_index(session: Session) -> dict[int, dict[str, Any]]:
@@ -85,16 +98,17 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
-    made_playoffs_teams, playoff_seasons = _playoff_participation(session)
+    made_by_season, derivable_seasons = _playoff_participation(session)
 
     rows: list[dict[str, Any]] = []
     for team in teams:
         srow = index.get(team.team_id, {})
         is_champion = team.team_id in champions
         # Derive made_playoffs from the schedule (the Team column is unpopulated):
-        # True/False only when the season recorded a bracket, else None (a gap).
-        if team.season_id in playoff_seasons:
-            made_playoffs: bool | None = team.team_id in made_playoffs_teams
+        # True/False only when the season's bracket is distinguishable, else None
+        # (a gap — never fabricate; see _playoff_participation).
+        if team.season_id in derivable_seasons:
+            made_playoffs: bool | None = team.team_id in made_by_season[team.season_id]
         else:
             made_playoffs = None
         rows.append(

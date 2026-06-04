@@ -151,8 +151,15 @@ record. `team_record_window()` / `scored_window()` are the two helpers in `recor
   `"3rd place"` / `"Nth"`, and `null` (a gap, never 0) when the season has no `final_rank` yet.
   `made_playoffs` is **derived from the schedule** (the `teams.made_playoffs` column is
   unpopulated): True iff the team has ≥1 `is_playoff` matchup that is **not** a consolation
-  game; `False` when the season recorded a bracket and the team missed it; `None` when no
-  playoff games are recorded for that season at all (unknown — never fabricated as False).
+  game, `False` when it missed the bracket — but **only for seasons whose bracket is
+  distinguishable**: the non-consolation playoff flag must select a *proper subset* of the
+  league (`0 < playoff_teams < league_size`). When *no* team or *every* team carries a
+  non-consolation playoff game the bracket can't be told apart in the data — notably Phase-1
+  currently leaves `is_consolation` unpopulated and flags **every** post-season game
+  `is_playoff`, so whole seasons read as "all teams advanced" — and `made_playoffs` is `None`
+  (unknown), never a fabricated True/False. (Upstream gap **F-49** → UP: populate
+  `is_consolation` so more seasons become derivable. The `result` label is unaffected — it
+  comes from `final_rank`.)
 - **Trajectory chart** — final rank (inverted axis) or points-for per season across the
   owner's tenure.
 - **Trophy case** — championship and podium finishes with year + team name.

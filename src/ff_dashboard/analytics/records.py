@@ -74,8 +74,8 @@ def records_book(session: Session) -> dict[str, Any]:
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
-    # Team/score/margin records span every season with team totals (2010–2025);
-    # only player-level records stay scoped to the scored era (2016–2025).
+    # Team/score/margin records span every season with team totals (2010-2025);
+    # only player-level records stay scoped to the scored era (2016-2025).
     team_season_ids = team_record_window(session)
     teams = _team_context(session)
 

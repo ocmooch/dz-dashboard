@@ -1,4 +1,4 @@
-"""fix-P1 / F-22 — records era split (team totals 2010–2025 vs scored 2016–2025)."""
+"""fix-P1 / F-22 — records era split (team totals 2010-2025 vs scored 2016-2025)."""
 
 from __future__ import annotations
 
