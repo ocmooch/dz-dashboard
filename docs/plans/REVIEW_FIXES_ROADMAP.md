@@ -42,7 +42,7 @@ Key: ☐ todo · ◐ in progress · ☑ merged · ⊘ blocked (needs an input ab
 | Pass | Title | Primary layer | Depends on | Findings | Status | Plan doc |
 |------|-------|---------------|------------|----------|--------|----------|
 | **P1** | Analytics correctness, scoping & enrichment (incl. season-structure model) | analytics + api | — (season model config-driven) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 | ◐ (VERIFY done; **PR #30** open → dev) | `docs/plans/fix-P1-analytics.md` |
-| **P2** | Data honesty & affordance precision (+ gap-validation harness) | gap-affordance + tests | soft: P1 (week semantics) | F-16, F-35, F-26, F-33, F-48, F-43 | ◐ (PLAN done) | `docs/plans/fix-P2-honesty.md` |
+| **P2** | Data honesty & affordance precision (+ gap-validation harness) | gap-affordance + tests | soft: P1 (week semantics) | F-16, F-35, F-26, F-33, F-48, F-43 | ◐ (VERIFY done; **PR #31** open → dev) | `docs/plans/fix-P2-honesty.md` |
 | **P3** | Search: scope, teams, hardening | data/analytics + api + tests | — | F-44, F-45, F-47 | ☐ | `docs/plans/fix-P3-search.md` |
 | **P4** | Transactions (dashboard roster-diff tier) | analytics + api + frontend | — | F-37 (tier 1) | ☐ | `docs/plans/fix-P4-transactions.md` |
 | **P5** | Frontend: navigation & presentation fixes | frontend | P1 (data it renders) + F-24 contract | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 | ☐ | `docs/plans/fix-P5-frontend-fixes.md` |

@@ -13,10 +13,14 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Active: fix-pass P2 (review-fixes program) — BUILD complete on branch
-  `feature/fix-P2-honesty` (cut from `dev` after PR #30 merged); VERIFY next.** Data honesty &
+- **Active: fix-pass P2 (review-fixes program) — VERIFY complete on branch
+  `feature/fix-P2-honesty`; **PR #31** open → `dev`.** Data honesty &
   affordance precision for findings F-16, F-35, F-26, F-33, F-48, F-43. Plan:
-  `docs/plans/fix-P2-honesty.md`. What shipped this build:
+  `docs/plans/fix-P2-honesty.md`. **Full gate green:** backend **188 pytest** (+6 harness), ruff
+  check + format clean, mypy clean, write-safety clean; frontend **gen:api no drift**, typecheck
+  clean, **129 vitest**. Real-DB premise check (read-only): 2010–2015 `is_scored:false` / 2016+
+  `true`; Aaron Hernandez rostered 2010–2012 `has_scored:false` (F-26 affordance fires);
+  `dst_scoring_complete:true`. What shipped this build:
   - **F-43** new `tests/test_coverage_integrity.py` — the gap-validation harness (6 tests,
     green): per-player scoring absent pre-2016, team totals present in the unscored era, index
     has no never-rostered players, records windows match coverage, DST flag ⇔ scored DEF rows,
