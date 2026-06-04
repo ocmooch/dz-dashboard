@@ -7,16 +7,18 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import (
     get_player,
-    season_totals,
+    get_season_by_year,
     top_scorers,
 )
 
+from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.players import (
     availability,
     list_player_index,
     ownership_timeline,
     player_scoring,
 )
+from ff_dashboard.analytics.stats import season_totals
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
@@ -127,9 +129,9 @@ def get_season_totals(
     season: int = Query(..., ge=1999),
     position: str | None = None,
 ) -> Envelope[SeasonTotals]:
-    rows = season_totals(session, season)
-    if position is not None:
-        rows = [r for r in rows if r["position"] == position]
+    league = require_league(session)
+    season_obj = get_season_by_year(session, league.league_id, season)
+    rows = season_totals(session, season_obj, position=position) if season_obj is not None else []
     return Envelope(
         data=SeasonTotals(
             season_year=season,

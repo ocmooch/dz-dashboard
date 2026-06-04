@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, Season, Team
-from sqlalchemy import select
+from sqlalchemy import distinct, select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -25,6 +25,29 @@ if TYPE_CHECKING:
 
 def _unavailable(reason: str) -> dict[str, Any]:
     return {"available": False, "reason": reason}
+
+
+def scored_window(session: Session) -> set[int]:
+    """Season ids in the player-scored era (``player_stats_scored`` present)."""
+    scored_years = set(seasons_scored(session))
+    return {
+        int(sid)
+        for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
+        if int(yr) in scored_years
+    }
+
+
+def team_record_window(session: Session) -> set[int]:
+    """Season ids that have team totals — any matchup with a non-null team score.
+
+    Wider than :func:`scored_window`: team scores were reconstructed back to
+    2010, so team/score/margin records span the full team-totals history, while
+    player-level records stay scoped to the scored era.
+    """
+    rows = session.execute(
+        select(distinct(Matchup.season_id)).where(Matchup.team_score.is_not(None))
+    ).scalars()
+    return {int(sid) for sid in rows}
 
 
 def _team_context(session: Session) -> dict[int, dict[str, Any]]:
@@ -51,7 +74,9 @@ def records_book(session: Session) -> dict[str, Any]:
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
-    scored_season_ids = {sid for sid, yr in season_year.items() if yr in scored}
+    # Team/score/margin records span every season with team totals (2010-2025);
+    # only player-level records stay scoped to the scored era (2016-2025).
+    team_season_ids = team_record_window(session)
     teams = _team_context(session)
 
     def ctx(team_id: int, week: int) -> dict[str, Any]:
@@ -62,18 +87,19 @@ def records_book(session: Session) -> dict[str, Any]:
         return c
 
     matchups = list(
-        session.execute(select(Matchup).where(Matchup.season_id.in_(scored_season_ids)))
+        session.execute(select(Matchup).where(Matchup.season_id.in_(team_season_ids)))
         .scalars()
         .all()
     )
 
     book: dict[str, Any] = {
         "scored_era": sorted(scored),
-        "highest_team_score": _unavailable("no_scored_data"),
-        "lowest_team_score": _unavailable("no_scored_data"),
-        "biggest_blowout": _unavailable("no_scored_data"),
-        "narrowest_win": _unavailable("no_scored_data"),
-        "highest_scoring_matchup": _unavailable("no_scored_data"),
+        "team_record_era": sorted({season_year[sid] for sid in team_season_ids}),
+        "highest_team_score": _unavailable("no_team_data"),
+        "lowest_team_score": _unavailable("no_team_data"),
+        "biggest_blowout": _unavailable("no_team_data"),
+        "narrowest_win": _unavailable("no_team_data"),
+        "highest_scoring_matchup": _unavailable("no_team_data"),
         "best_player_week": _unavailable("no_scored_data"),
     }
 

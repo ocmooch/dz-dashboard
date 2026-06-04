@@ -204,6 +204,52 @@ def _populate(session: Session) -> None:
     seasons[2016].champion_team_id = team_id[(2016, "mav")]
     seasons[2017].champion_team_id = team_id[(2017, "mav")]
 
+    # --- 2015 final ranks + a playoff bracket (week 3, beyond the 2-week regular
+    #     season so standings/streaks/season-PF are untouched). This exercises the
+    #     fix-P1 derivations: owner-season `result` from final_rank, `made_playoffs`
+    #     derived from real (non-consolation) playoff games, and the records era
+    #     split — Iceman's 50.0 consolation score is the all-time lowest team score
+    #     and lands in a pre-2016 season, proving team records span 2010-2015.
+    final_rank_2015 = {"slider": 1, "mav": 2, "goose": 3, "ice": 4}
+    for key, rank in final_rank_2015.items():
+        team = session.get(Team, team_id[(2015, key)])
+        if team is not None:
+            team.final_rank = rank
+
+    # (home_key, home_score, away_key, away_score, is_consolation)
+    playoff_2015: list[tuple[str, float, str, float, bool]] = [
+        ("slider", 120.0, "mav", 110.0, False),  # championship: Slider over Maverick
+        ("goose", 90.0, "ice", 50.0, True),  # consolation (toilet bowl): not "made playoffs"
+    ]
+    for home, hs, away, as_, consolation in playoff_2015:
+        ht, at = team_id[(2015, home)], team_id[(2015, away)]
+        session.add_all(
+            [
+                Matchup(
+                    season_id=sid[2015],
+                    week=3,
+                    team_id=ht,
+                    opponent_team_id=at,
+                    team_score=hs,
+                    opponent_score=as_,
+                    is_win=hs > as_ if hs != as_ else None,
+                    is_playoff=True,
+                    is_consolation=consolation,
+                ),
+                Matchup(
+                    season_id=sid[2015],
+                    week=3,
+                    team_id=at,
+                    opponent_team_id=ht,
+                    team_score=as_,
+                    opponent_score=hs,
+                    is_win=as_ > hs if hs != as_ else None,
+                    is_playoff=True,
+                    is_consolation=consolation,
+                ),
+            ]
+        )
+
     # --- Players. The Ravens D/ST is a scored team defense (DST is now scored).
     players = {
         "lamar": Player(name_full="Lamar Jackson", position="QB", nfl_team="BAL", gsis_id="G1"),
@@ -339,6 +385,19 @@ def _populate(session: Session) -> None:
         week=2,
         points=20.0,
         breakdown={"rushing": 12.0, "receiving": 8.0},
+    )
+    # A beyond-championship week (2017's fantasy championship is week 3; this
+    # week-4 row is an NFL post-season week). The week-capped season_totals must
+    # exclude it (McCaffrey's 2017 fantasy total stays 42.0, not 72.0); kept under
+    # the 35.5 best-week record so no records answer moves.
+    _add_raw_and_scored(
+        session,
+        player_id=pid["cmc"],
+        season_id=sid[2017],
+        season_year=2017,
+        week=4,
+        points=30.0,
+        breakdown={"rushing": 18.0, "receiving": 12.0},
     )
     _add_raw_and_scored(
         session,

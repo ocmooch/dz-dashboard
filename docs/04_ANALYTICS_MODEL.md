@@ -17,6 +17,20 @@ Conventions used below:
 
 ---
 
+## 0. Season-schedule model (`analytics/season_schedule.py`)
+
+The single place that answers "how is *this* season's calendar shaped?" so no consumer
+hardcodes 14/17. `season_schedule(session, season)` → a frozen `SeasonSchedule(season_year,
+regular_weeks, playoff_weeks, championship_week, is_estimated)`; helpers `fantasy_week_range`
+(weeks `1..championship_week`) and `phase_of_week` (`regular`/`playoff`/`championship`/
+`out_of_season`). It is **config-driven**: confirmed historical shapes live in `_CONFIRMED`
+(returned `is_estimated=False`); everything else derives from the season's own
+`regular_season_weeks` / `playoff_weeks` columns (with the modern 3-week bracket as the
+playoff-length default) and is flagged `is_estimated=True`. `_CONFIRMED` is **empty** until the
+league's 1-13 → 1-14 season-length switch year is supplied (roadmap input #1), so today every
+season resolves to its current DB-derived shape — purely additive, no output change. Consumers:
+the records era split, week-capped season totals, and matchup entering-records all read it.
+
 ## 1. Standings & records (`analytics/standings.py`)
 
 - **Record (W-L-T)** — count of `matchups.is_win` true/false/null grouped by team, regular
@@ -78,6 +92,14 @@ Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored
   `scoring_rules`/roster config). `points_left = optimal_total - actual_starter_total`.
   This is a constrained max-assignment over slots; implement it explicitly and test it.
 - **Margin** — `team_score - opponent_score`.
+- **Close / blowout flags** (`week_matchups`) — per game card, `is_close` (`margin <=
+  CLOSE_MARGIN`, 5.0) and `is_blowout` (`margin >= BLOWOUT_MARGIN`, 40.0). Thresholds are
+  documented module constants in `analytics/matchups.py` — the frontend reads the booleans and
+  does **no** margin math (the hardcoded `>= 40` is removed in fix-pass P5). Both False when a
+  game has no scores yet.
+- **Entering record** (`week_matchups`) — per side, the team's regular-season W-L-T from weeks
+  *before* this week, that season (regular weeks per the season-schedule model; byes excluded).
+  Computed in one query per request, folded per team — no N+1.
 - **Projection vs actual** — per starter where a `projections` row exists; aggregate "beat
   projection by" per team. Current/recent seasons only.
 
@@ -87,7 +109,9 @@ Keyed on **owners**, not teams, so it spans renames and seasons.
 
 - **Pairwise all-time record** — for owners A and B, over every regular-season + playoff
   game they played each other: A's wins, B's wins, ties; total games; average margin (signed
-  for A); highest-scoring meeting; most lopsided meeting; count of playoff meetings.
+  for A); **cumulative margin for A** (signed running total across all meetings, distinct from
+  the per-game average); highest-scoring meeting; most lopsided meeting; **closest meeting**
+  (smallest |margin|, oriented to A, deep-linkable via `matchup_id`); count of playoff meetings.
 - **Rivalry matrix** — the full N×N table of pairwise win pct (A's wins / games), rendered as
   a heatmap. Diagonal is blank. Symmetric pair (A vs B and B vs A) are complementary.
 - **"Closest rivalry"** — the pair with the most games and a win pct nearest 0.5 (a
@@ -107,8 +131,14 @@ player) context so the UI can deep-link to the source matchup/player.
 - Best season **points-for** total; worst.
 - **Draft superlatives** — see §7.
 
-All records computed over 2016–2025 (scored era); record-only superlatives (championships,
-finishes) may extend to 2010–2015 where standings exist.
+**Era split (fix-pass P1 / F-22).** Team/score/margin records — highest/lowest **team score**,
+biggest **blowout**, narrowest **win**, highest-scoring **matchup** — are computed over the
+**team-record window**: every season that has team totals (any matchup with a non-null
+`team_score`, i.e. 2010–2025, reconstructed back to 2010). Only **player**-level records
+(best player week) stay scoped to the **scored window** (`player_stats_scored` present,
+2016–2025). The payload carries both `scored_era` and `team_record_era` so the UI can be
+honest about each record's window. A pre-2016 game can therefore legitimately hold a team
+record. `team_record_window()` / `scored_window()` are the two helpers in `records.py`.
 
 ## 6. Owners / managers (`analytics/owners.py`)
 
@@ -116,7 +146,20 @@ finishes) may extend to 2010–2015 where standings exist.
   runner-ups, last-places, best finish, average finish. (Phase 1 already has
   `owner_career_aggregates`; extend with finishes/championships from `seasons`.)
 - **Season-by-season table** — one row per season: team name that year, record, PF, final
-  rank, made-playoffs.
+  rank, **made-playoffs** (derived, see below), and a **result** label. `result` is computed
+  from the finish for every completed season incl. 2010–2015: `"Champion"` / `"Runner-up"` /
+  `"3rd place"` / `"Nth"`, and `null` (a gap, never 0) when the season has no `final_rank` yet.
+  `made_playoffs` is **derived from the schedule** (the `teams.made_playoffs` column is
+  unpopulated): True iff the team has ≥1 `is_playoff` matchup that is **not** a consolation
+  game, `False` when it missed the bracket — but **only for seasons whose bracket is
+  distinguishable**: the non-consolation playoff flag must select a *proper subset* of the
+  league (`0 < playoff_teams < league_size`). When *no* team or *every* team carries a
+  non-consolation playoff game the bracket can't be told apart in the data — notably Phase-1
+  currently leaves `is_consolation` unpopulated and flags **every** post-season game
+  `is_playoff`, so whole seasons read as "all teams advanced" — and `made_playoffs` is `None`
+  (unknown), never a fabricated True/False. (Upstream gap **F-49** → UP: populate
+  `is_consolation` so more seasons become derivable. The `result` label is unaffected — it
+  comes from `final_rank`.)
 - **Trajectory chart** — final rank (inverted axis) or points-for per season across the
   owner's tenure.
 - **Trophy case** — championship and podium finishes with year + team name.
@@ -149,7 +192,12 @@ Mostly passthrough of Phase 1 facts, lightly aggregated for charts.
 - **Ownership history** — which league teams owned the player and when (from `team_rosters` /
   `transactions`); a timeline.
 - **Top scorers** — Phase 1's `top_scorers` (by season/week/position). Surface directly.
-- **Season totals by position** — Phase 1's `season_totals`; group/sort by position.
+- **Season totals by position** — dashboard-owned in `analytics/stats.py:season_totals`
+  (fix-pass P1 / F-31). Sums `total_points` only over **fantasy weeks** (`week <=
+  championship_week` from the season-schedule model), so NFL post-season weeks don't inflate a
+  player's season line. Same output shape as the old Phase-1 query (no contract change); an
+  unscored (pre-2016) season returns `[]`, never zero-filled rows. The Phase-1
+  `queries.season_totals` is left untouched (read-only cross-repo boundary).
 - **Availability (current season only)** — owned/FA/waivers per week from
   `player_availability`; historical seasons render the documented gap.
 

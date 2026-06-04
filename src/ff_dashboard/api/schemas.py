@@ -209,6 +209,9 @@ class OwnerSeasonRow(BaseModel):
     points_for: float
     final_rank: int | None = None
     made_playoffs: bool | None = None
+    # Derived finish label: "Champion" / "Runner-up" / "3rd place" / "Nth".
+    # null (a gap, never 0) for an in-progress or rank-less season.
+    result: str | None = None
     is_champion: bool
 
 
@@ -292,6 +295,15 @@ class PowerTimeline(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class H2HMeeting(BaseModel):
+    """A single oriented meeting reference (deep-linkable via ``matchup_id``)."""
+
+    season_year: int | None = None
+    week: int | None = None
+    matchup_id: int | None = None
+    margin_for_a: float | None = None
+
+
 class HeadToHead(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -300,6 +312,11 @@ class HeadToHead(BaseModel):
     available: bool
     games_played: int
     reason: str | None = None
+    # Signed aggregate margin across all meetings (null on the no-meetings gap).
+    cumulative_margin_for_a: float | None = None
+    # The nearest meeting (smallest |margin|), oriented to A. The lopsided and
+    # highest-scoring meetings remain extra fields on the payload.
+    closest_meeting: H2HMeeting | None = None
 
 
 class RivalryCell(BaseModel):
@@ -494,23 +511,36 @@ class SeasonTotals(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class EnteringRecord(BaseModel):
+    """A team's regular-season W-L-T entering a given week of the season."""
+
+    wins: int = 0
+    losses: int = 0
+    ties: int = 0
+
+
 class GameTeam(BaseModel):
     team_id: int
     team_name: str | None = None
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    entering_record: EnteringRecord | None = None
 
 
 class GameCard(BaseModel):
     """One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-    deep-links to the box score."""
+    deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
+    margin flags (thresholds in ``analytics/matchups.py``); both False when the
+    game has no scores yet."""
 
     matchup_id: int
     is_playoff: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
+    is_close: bool = False
+    is_blowout: bool = False
     winner_team_id: int | None = None
 
 

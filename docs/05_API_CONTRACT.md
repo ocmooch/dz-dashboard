@@ -60,7 +60,7 @@ document, so the contract is enforced at build time.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss |
+| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `is_close` / `is_blowout` (backend margin flags) and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
 | `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual; a genuinely-missing DEF row flagged |
 
 ### Teams
@@ -79,7 +79,7 @@ document, so the contract is enforced at build time.
 |----------|-------------|
 | `GET /v1/owners` | All managers with quick career line (record, championships) |
 | `GET /v1/owners/{owner_id}` | Career aggregate + trophy case |
-| `GET /v1/owners/{owner_id}/seasons` | Season-by-season record table |
+| `GET /v1/owners/{owner_id}/seasons` | Season-by-season record table. Each row carries a derived `result` (`"Champion"`/`"Runner-up"`/`"3rd place"`/`"Nth"`, `null` when rank-less) and a data-derived `made_playoffs` (`true`/`false`/`null`) |
 | `GET /v1/owners/{owner_id}/trajectory` | Finish/points per season — for the chart |
 | `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}` | All-time pairwise record + superlatives |
 | `GET /v1/owners/rivalry-matrix` | Full N×N win-pct matrix — for the heatmap |
@@ -130,6 +130,7 @@ document, so the contract is enforced at build time.
     "a_wins": 12, "b_wins": 9, "ties": 1,
     "a_win_pct": 0.545,
     "avg_margin_for_a": 4.8,
+    "cumulative_margin_for_a": 105.6,
     "highest_scoring_meeting": {
       "season_year": 2021, "week": 9, "matchup_id": 612,
       "a_score": 141.2, "b_score": 138.7
@@ -137,6 +138,10 @@ document, so the contract is enforced at build time.
     "most_lopsided_meeting": {
       "season_year": 2019, "week": 3, "matchup_id": 408,
       "margin_for_a": 64.1
+    },
+    "closest_meeting": {
+      "season_year": 2022, "week": 11, "matchup_id": 701,
+      "margin_for_a": 0.4
     },
     "playoff_meetings": 3,
     "available": true
