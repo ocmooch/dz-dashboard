@@ -67,9 +67,7 @@ def _playoff_participation(session: Session) -> tuple[dict[int, set[int]], set[i
         ).all()
     }
     derivable = {
-        sid
-        for sid, made in made_by_season.items()
-        if 0 < len(made) < teams_per_season.get(sid, 0)
+        sid for sid, made in made_by_season.items() if 0 < len(made) < teams_per_season.get(sid, 0)
     }
     return made_by_season, derivable
 

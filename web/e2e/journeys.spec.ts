@@ -58,7 +58,7 @@ test("gap honesty: a pre-2016 box score is shown as not-scored, never faked", as
   // 2015 is present but unscored at the player level; its box score must render
   // a DataGap (role="note"), never invented zeros.
   await page.goto("/standings");
-  await selectSeason(page, "2015 · not scored");
+  await selectSeason(page, "2015 · no player scoring");
   await settle(page);
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Matchups" }).click();
   await page.locator('a[href^="/matchups/"]').first().click();

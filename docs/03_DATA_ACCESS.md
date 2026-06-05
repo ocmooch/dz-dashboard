@@ -91,6 +91,28 @@ reconstruction is still finishing.
   head-to-head game is two rows; dedupe by pairing `team_id`/`opponent_team_id` when counting
   games so you don't double-count.
 
+### `is_scored` means *per-player fantasy scoring*, not "season complete" (F-16/F-35)
+
+The season-level `is_scored` flag (true ⇔ the season has `player_stats_scored` rows, i.e. 2016+)
+gates exactly **one** layer: per-player fantasy points. For 2010–2015 it is `false`, but the
+**team-level** data for those seasons is *complete and accurate* — team scores, margins,
+standings, final ranks, rosters (who started), and drafts all exist from the nfl.com
+reconstruction. Affordances must therefore scope the pre-2016 gap to "per-player fantasy
+scoring not reconstructed" and must **not** imply the grid/standings/roster is incomplete. The
+gap-validation harness (`tests/test_coverage_integrity.py`, F-43) asserts this split
+mechanically: present-but-unscored seasons still carry non-null team scores.
+
+### DST: presence vs. value accuracy — a dev-facing fact (F-48)
+
+`/v1/meta`'s `dst_scoring_complete` asserts **presence**: every scored season carries at least
+one scored team-defense (DEF) row, so "DST is scored end-to-end" — and it is authoritative for
+that. It does **not** certify per-stat *value accuracy*. A known upstream gap exists: nflverse
+team-defense **yards/sacks read low**, so some DST point values are understated even though the
+rows are present and scored (rooted in nflverse team-defense rollups, tracked in the
+danger-zone players audit). This is a data-quality concern, **not** a presence hole, so it does
+not flip `dst_scoring_complete` to `false`. Keep it a dev-facing note; do not surface it to
+end-users as a coverage gap.
+
 ## Provenance
 
 Every BFF response carries the Phase 1 `meta` envelope (`last_updated`, `source`,

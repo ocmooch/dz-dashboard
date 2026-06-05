@@ -13,8 +13,36 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Active: fix-pass P1 (review-fixes program) — VERIFY complete on branch
-  `feature/fix-P1-analytics`; **PR #30** open → `dev`.** Backend-only analytics correctness/scoping/enrichment for
+- **Active: fix-pass P2 (review-fixes program) — VERIFY complete on branch
+  `feature/fix-P2-honesty`; **PR #31** open → `dev`.** Data honesty &
+  affordance precision for findings F-16, F-35, F-26, F-33, F-48, F-43. Plan:
+  `docs/plans/fix-P2-honesty.md`. **Full gate green:** backend **188 pytest** (+6 harness), ruff
+  check + format clean, mypy clean, write-safety clean; frontend **gen:api no drift**, typecheck
+  clean, **129 vitest**. Real-DB premise check (read-only): 2010–2015 `is_scored:false` / 2016+
+  `true`; Aaron Hernandez rostered 2010–2012 `has_scored:false` (F-26 affordance fires);
+  `dst_scoring_complete:true`. What shipped this build:
+  - **F-43** new `tests/test_coverage_integrity.py` — the gap-validation harness (6 tests,
+    green): per-player scoring absent pre-2016, team totals present in the unscored era, index
+    has no never-rostered players, records windows match coverage, DST flag ⇔ scored DEF rows,
+    coverage payload shape. Asserts invariants (holds on the real DB), would have caught
+    F-16/F-22/F-25/F-31/F-35.
+  - **F-16/F-35/F-33** one shared `PRE2016_GAP_NOTE` (`web/src/design-system/index.tsx`) drives
+    the matchups grid banner, team summary banner, and stats banner — affirms team
+    results/standings/rosters are complete and scopes the gap to per-player scoring. Reworded the
+    `season_unscored` DataGap label; season-selector label → "· no player scoring".
+  - **F-26** new `pre2016_unscored_rostered` DataGap reason; `PlayerDetailPage` shows it (instead
+    of an empty scoring chart) when a player's whole rostered tenure predates the scored era
+    (`last_rostered_season < min scored year`, derived from `is_scored`, no hardcode).
+  - **F-48** `coverage.py` docstring + `docs/03_DATA_ACCESS.md` clarify `dst_scoring_complete` is
+    a *presence* flag (stays true); the nflverse yards/sacks value-accuracy gap is a dev-facing
+    upstream note, not a contract change.
+  - **No API response-shape change** → `gen:api` drift stays clean.
+  - Scoped frontend tests green: matchups/stats/players/managers/teams = **37 passed**;
+    backend harness **6 passed**. Full gate runs in VERIFY.
+- **fix-pass P1 — MERGED.** PR #30 merged to `dev` (analytics correctness/scoping/enrichment for
+  F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13). Branch deleted. Superseded detail below.
+- **fix-pass P1 (superseded note)** — VERIFY was on branch
+  `feature/fix-P1-analytics`. Backend-only analytics correctness/scoping/enrichment for
   findings F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13. Plan: `docs/plans/fix-P1-analytics.md`;
   tracker: `docs/plans/REVIEW_FIXES_ROADMAP.md`. What shipped this build:
   - **F-32** new `analytics/season_schedule.py` (config-driven `SeasonSchedule` + `phase_of_week`
@@ -99,13 +127,14 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
   `docs/plans/players-audit-dashboard.md`.
 
-## Files that matter now
+## Files that matter now (fix-pass P2)
 
-- `src/ff_dashboard/analytics/players.py` — `list_player_index`, `ownership_timeline` (spans)
-- `src/ff_dashboard/api/routes/players.py` — `scope` param, enriched index
-- `src/ff_dashboard/api/schemas.py` — `PlayerIndexRow`, `OwnershipSpan`
-- `web/src/features/players/PlayersPage.tsx` / `PlayerDetailPage.tsx`
-- `docs/plans/players-audit-dashboard.md` · `docs/handoffs/players-audit-danger-zone.md`
+- `tests/test_coverage_integrity.py` — the F-43 gap-validation harness
+- `web/src/design-system/index.tsx` — `PRE2016_GAP_NOTE` + `DataGap` reason map (shared copy)
+- `web/src/features/{matchups/MatchupsPage,teams/TeamPage,stats/StatsPage}.tsx` — pre-2016 banners
+- `web/src/features/players/PlayerDetailPage.tsx` — F-26 unscored-era affordance
+- `src/ff_dashboard/analytics/coverage.py` + `docs/03_DATA_ACCESS.md` — F-48 flag-meaning reconcile
+- `docs/plans/fix-P2-honesty.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
 
 ## Open items / deviations
 

@@ -35,7 +35,7 @@ function SeasonSwitcher() {
         {seasons.map((s) => (
           <option key={s.season_id} value={s.season_id}>
             {s.season_year}
-            {s.is_scored ? "" : " · not scored"}
+            {s.is_scored ? "" : " · no player scoring"}
           </option>
         ))}
       </select>

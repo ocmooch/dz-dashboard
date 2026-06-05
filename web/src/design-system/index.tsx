@@ -158,11 +158,18 @@ export function Chip({ name, sub, size = "md" }: { name: string | null | undefin
   );
 }
 
+/** One warm, consistent sentence for the pre-2016 unscored era, reused across
+ *  every view so the affordance reads identically (F-33). The gap is scoped to
+ *  per-player fantasy scoring — team results, standings, and rosters are
+ *  complete for these seasons and must never read as incomplete (F-16/F-35). */
+export const PRE2016_GAP_NOTE =
+  "2010–2015: team results, standings, and rosters are complete — only per-player fantasy points were never reconstructed for these seasons.";
+
 /** The honesty component: shown wherever a metric is absent. Never a fake 0.
  *  Renders the dashed + hatched affordance with an amber diamond (drawn in CSS). */
 export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" | "sm" }) {
   const labels: Record<string, string> = {
-    season_unscored: "Not scored — pre-2016 season",
+    season_unscored: "Per-player scoring not reconstructed (pre-2016)",
     no_scored_data: "No scored data for this scope",
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",
@@ -172,6 +179,8 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     player_unscored: "Player not scored — value unavailable",
     insufficient_history: "Not enough draft history to value this slot",
     player_bio_unavailable: "Biographical data unavailable",
+    pre2016_unscored_rostered:
+      "Rostered in the unscored era (2010–2015) — no per-player fantasy scoring reconstructed; team data is complete",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">

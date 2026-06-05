@@ -163,7 +163,7 @@ function AvailabilityStrip({ playerId, season }: { playerId: number; season: num
 export function PlayerDetailPage() {
   const params = useParams();
   const playerId = Number(params.playerId);
-  const { current } = useSeasons();
+  const { current, seasons } = useSeasons();
   const season = current?.season_year;
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -176,6 +176,19 @@ export function PlayerDetailPage() {
   // active/retired flag — reads straight off the player's materialized
   // first/last_rostered_season columns, so no extra ownership round-trip.
   const span = data ? rosteredSpan(data.first_rostered_season, data.last_rostered_season) : null;
+
+  // The earliest scored season (the scored era begins 2016). Derived from the
+  // backend's per-season is_scored flag, not hardcoded.
+  const minScoredYear = seasons
+    .filter((s) => s.is_scored)
+    .reduce<number | null>((min, s) => (min == null ? s.season_year : Math.min(min, s.season_year)), null);
+  // A real league player whose entire rostered tenure predates the scored era
+  // has no reconstructed fantasy points — present that honestly (F-26) rather
+  // than as an empty/error scoring chart.
+  const unscoredEraOnly =
+    data?.last_rostered_season != null &&
+    minScoredYear != null &&
+    data.last_rostered_season < minScoredYear;
 
   return (
     <div className="dz-rise space-y-4">
@@ -247,7 +260,11 @@ export function PlayerDetailPage() {
 
           <Card>
             <CardHeader eyebrow={`season ${season ?? ""}`} title="Weekly Scoring" />
-            {season != null ? (
+            {unscoredEraOnly ? (
+              <div className="p-5">
+                <DataGap reason="pre2016_unscored_rostered" />
+              </div>
+            ) : season != null ? (
               <ScoringChart playerId={playerId} season={season} />
             ) : (
               <EmptyState title="Pick a season" hint="Use the season switcher above." />

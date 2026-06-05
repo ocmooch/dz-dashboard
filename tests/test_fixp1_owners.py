@@ -84,14 +84,24 @@ def test_undiscriminating_bracket_yields_none(tmp_path: Path) -> None:
             s.add_all(
                 [
                     Matchup(
-                        season_id=season.season_id, week=wk, team_id=t1.team_id,
-                        opponent_team_id=t2.team_id, team_score=asc, opponent_score=bsc,
-                        is_win=asc > bsc, is_playoff=playoff,
+                        season_id=season.season_id,
+                        week=wk,
+                        team_id=t1.team_id,
+                        opponent_team_id=t2.team_id,
+                        team_score=asc,
+                        opponent_score=bsc,
+                        is_win=asc > bsc,
+                        is_playoff=playoff,
                     ),
                     Matchup(
-                        season_id=season.season_id, week=wk, team_id=t2.team_id,
-                        opponent_team_id=t1.team_id, team_score=bsc, opponent_score=asc,
-                        is_win=bsc > asc, is_playoff=playoff,
+                        season_id=season.season_id,
+                        week=wk,
+                        team_id=t2.team_id,
+                        opponent_team_id=t1.team_id,
+                        team_score=bsc,
+                        opponent_score=asc,
+                        is_win=bsc > asc,
+                        is_playoff=playoff,
                     ),
                 ]
             )
