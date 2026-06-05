@@ -13,12 +13,30 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Active: fix-pass P3 (review-fixes program) — BUILD complete on branch
-  `feature/fix-P3-search`.** Search scope/teams/hardening for findings F-44, F-45,
-  F-47. Plan: `docs/plans/fix-P3-search.md`. Scoped backend tests green (full gate
-  runs in VERIFY: `uv run pytest tests/` = **206 passed**, ruff + mypy clean). No
-  API response-shape change (`SearchHit` unchanged → `gen:api` drift expected
-  clean; confirm in VERIFY). What shipped this build:
+- **Active: fix-pass P3 (review-fixes program) — VERIFY done, but BLOCKED on a new
+  upstream finding (F-50) before the PR can open.** Branch `feature/fix-P3-search`.
+  Search scope/teams/hardening for F-44, F-45, F-47. Plan: `docs/plans/fix-P3-search.md`.
+  - **Gate is green** (fixture-based): backend **206 pytest**, ruff check + format clean,
+    mypy clean, write-safety clean (lone hit is the `engine.py` docstring); frontend
+    **gen:api no drift**, typecheck clean, **129 vitest**. e2e not in scope for P3 (data/api
+    pass; dropdown scroll F-46 is P5).
+  - **VERIFY surfaced F-50 (BLOCKER, routed to UP).** The real-DB click-through 500s
+    **app-wide**: ff-pipeline advanced to **1.2.0** (added `teams.team_avatar_asset_id` /
+    `owner_avatar_asset_id`) but the on-disk `fantasy.db` predates those columns, so every
+    full-entity `select(Team)` raises `no such column`. Confirmed 500 on `/v1/search`,
+    `/v1/owners`, `/v1/owners/{id}`, `/v1/seasons` (`search.py:100`, `owners.py:94`,
+    `standings.py:67/152`). Fixture tests can't catch it (fixture DB built from the 1.2.0
+    ORM → all columns present). **User decision: fix upstream** — regenerate `fantasy.db`
+    with the 1.2.0 pipeline in danger-zone; dashboard code unchanged (a VERIFY-time
+    `select(Team)`→explicit-columns narrowing of `search.py` was reverted for uniformity).
+    See review doc **F-50** + roadmap UP row + BUILD-log line.
+  - **Search itself is verified correct:** with a temporary column workaround the real DB
+    returned correct results — F-44 league-scoped player hits (`mahomes` only, no ghosts),
+    F-45 NFL synonym/abbrev players-by-team (`chiefs`/`KC`) + fantasy-team→`/managers/{owner}`
+    deep-links, F-47 hardening (`%`, `' OR 1=1--`, `<script>`, blank all inert/0 hits).
+  - **NEXT:** once danger-zone regenerates `fantasy.db` (F-50), re-run the real-DB
+    click-through on search, then open the P3 PR to `dev` with trailers and tick the roadmap.
+  - What shipped in BUILD (unchanged, on branch):
   - **F-44** the player branch is now league-scoped — `global_search` calls
     `search_players(..., league_relevant=True)`; a never-rostered nflverse "ghost"
     never appears (mirrors `list_player_index`). The old `rank=None→1` over-match

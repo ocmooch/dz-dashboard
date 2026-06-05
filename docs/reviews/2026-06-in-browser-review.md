@@ -817,7 +817,7 @@ first (data/analytics foundations → analytics → views).
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 |
-| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27, F-37 (tier 2), F-49 |
+| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27, F-37 (tier 2), F-49, F-50 |
 
 ---
 
@@ -943,6 +943,20 @@ first (data/analytics foundations → analytics → views).
   a per-season `playoff_teams` count) in `ff_pipeline` so the bracket is distinguishable; once it lands,
   `made_playoffs` becomes derivable league-wide with no dashboard change. The dashboard guard already
   consumes the better data automatically. (`result` is unaffected — it derives from `final_rank`.)
+- **F-50 — stale on-disk `fantasy.db` is missing `teams.team_avatar_asset_id` / `owner_avatar_asset_id`
+  (surfaced by fix-pass P3 VERIFY).** danger-zone (ff-pipeline) advanced to **1.2.0**, adding
+  `team_avatar_asset_id` and `owner_avatar_asset_id` to the `teams` table, but the on-disk
+  `../danger-zone/data/fantasy.db` was built by an older pipeline and lacks both columns. Any
+  full-entity `select(Team)` therefore raises `OperationalError: no such column: teams.team_avatar_asset_id`
+  → **HTTP 500**. This breaks the dashboard **app-wide on the real DB**, not just search: confirmed 500
+  on `/v1/owners`, `/v1/owners/{id}`, `/v1/seasons`, and `/v1/search`; the offending reads are
+  `analytics/search.py:100`, `analytics/owners.py:94`, `analytics/standings.py:67`, `analytics/standings.py:152`.
+  Fixture tests don't catch it because the fixture DB is built from the live 1.2.0 ORM (every column
+  present). **UP fix (chosen):** regenerate `fantasy.db` with the 1.2.0 pipeline in danger-zone so the
+  columns exist; no dashboard code change. Once the DB is regenerated, every full-entity `select(Team)`
+  works again and the P3 search click-through can complete. (Considered-and-deferred dashboard
+  alternative: narrow each `select(Team)` to explicit columns so the dashboard tolerates an older DB —
+  rejected for now in favor of the single upstream regen, to keep the read-only dashboard code uniform.)
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.
