@@ -138,13 +138,24 @@ def _populate(session: Session) -> None:
         2016: ("mav", "ice", "goose", "slider"),
         2017: ("mav", "ice", "goose", "viper"),
     }
+    # Most team names default to a "{owner} {year}" alias, but a few carry a
+    # distinctive fantasy name so global search can be tested on the *team name*
+    # itself, not a mere owner alias (F-45). "Dynasty Crew" is reused across two
+    # seasons/owners to exercise most-recent-owner dedup (2016 Goose wins).
+    distinctive_team_names: dict[tuple[str, int], str] = {
+        ("viper", 2017): "Northvale Scumbags",
+        ("slider", 2015): "Dynasty Crew",
+        ("goose", 2016): "Dynasty Crew",
+    }
     team_id: dict[tuple[int, str], int] = {}
     for year, members in rosters_by_year.items():
         for key in members:
             t = Team(
                 season_id=sid[year],
                 owner_id=oid[key],
-                team_name=f"{owners[key].display_name} {year}",
+                team_name=distinctive_team_names.get(
+                    (key, year), f"{owners[key].display_name} {year}"
+                ),
                 team_abbrev=key.upper()[:4],
             )
             session.add(t)
@@ -257,6 +268,10 @@ def _populate(session: Session) -> None:
         "jjet": Player(name_full="Justin Jefferson", position="WR", nfl_team="MIN", gsis_id="G3"),
         "kelce": Player(name_full="Travis Kelce", position="TE", nfl_team="KC", gsis_id="G4"),
         "dst": Player(name_full="Ravens D/ST", position="DEF", nfl_team="BAL", gsis_id="G5"),
+        # A never-rostered nflverse "ghost": shares the "McCaffrey" substring with
+        # the rostered cmc and the "SF" nfl_team, but is on no team_rosters row, so
+        # league-scoped search (F-44) and the index must exclude it while cmc stays.
+        "ghost": Player(name_full="Ghost McCaffrey", position="RB", nfl_team="SF", gsis_id="G6"),
     }
     session.add_all(players.values())
     session.flush()
