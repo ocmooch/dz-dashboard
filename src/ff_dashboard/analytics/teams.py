@@ -12,7 +12,8 @@ Phase 1 facts:
   ``null`` (never 0) for unscored seasons / unscored slots.
 * :func:`team_schedule` — week-by-week results with the box-score deep-link.
 * :func:`team_scoring_trend` — the team's weekly score against the league average
-  that week (team scores exist even for pre-2016 seasons, so this is not gated).
+  that week (team scores can exist even when player scoring is absent, so this
+  is not gated).
 * :func:`team_transactions` — the season's moves involving this team.
 """
 
@@ -87,7 +88,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     """The team's roster for a week (latest when ``week`` is ``None``).
 
     Per-player league points are included where the player was scored that week;
-    they are ``null`` (never 0) for unscored slots / pre-2016 seasons.
+    they are ``null`` (never 0) for unscored slots/seasons.
     """
     require_league(session)
     team = get_team(session, team_id)
@@ -210,8 +211,8 @@ def team_schedule(session: Session, team_id: int) -> dict[str, Any] | None:
 def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
     """The team's weekly score vs the league average for that same week.
 
-    Team scores are authoritative from Phase 1 for every season (including the
-    pre-2016 player-scoring gap), so this view is not gated on ``is_scored``.
+    Team scores are authoritative from Phase 1 for every season that carries
+    matchup totals, so this view is not gated on ``is_scored``.
     """
     require_league(session)
     team = get_team(session, team_id)

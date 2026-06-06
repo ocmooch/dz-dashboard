@@ -30,8 +30,8 @@ def season_totals(
     Sums ``total_points`` over weeks ``<= championship_week`` (from the season
     schedule), so post-fantasy NFL weeks never inflate the total. Returns rows of
     ``{player_id, name_full, position, nfl_team, total_points, weeks_played}``
-    ordered by total descending. An unscored (pre-2016) season has no
-    ``player_stats_scored`` rows and returns ``[]`` — a gap, not zero-filled.
+    ordered by total descending. A season with no ``player_stats_scored`` rows
+    returns ``[]`` — a gap, not zero-filled.
     """
     schedule = season_schedule(session, season)
     stmt = (

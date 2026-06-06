@@ -812,13 +812,13 @@ first (data/analytics foundations → analytics → views).
 | Pass | Findings |
 |------|----------|
 | **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
-| **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31** (no contract change; F-48 = presence flag stays true, value-accuracy gap → upstream) |
+| **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31**; post-regen redo verified in `docs/plans/fix-P2-post-regen-redo.md` because F-51 changed the coverage premise |
 | **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 |
 | **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27 (data half ✅ landed → F-51), F-37 (tier 2), F-49, ~~F-50~~ ✅ regen, F-52 |
-| **Re-verify (post-regen) — pending a new pass** | **F-51** (pre-2016 reconstruction landed → P2 honesty affordances now over-claim; re-verify F-16/F-26/F-33/F-35 + P1 F-22 scored-window) |
+| **Re-verify (post-regen) — verified** | **F-51** (pre-2016 reconstruction landed → redo P2 honesty verification for F-16/F-26/F-33/F-35 + P1 F-22 scored-window); plan: `docs/plans/fix-P2-post-regen-redo.md` |
 
 ---
 

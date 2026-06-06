@@ -38,6 +38,20 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
     workaround** (read-only boundary; mirrors how F-50 blocked P3 until the regen). **NEXT:** await the
     danger-zone wk1 fix, then re-run the P4 real-DB click-through (should pass with no code change) and
     open the PR to `dev`. Branch `feature/fix-P4-transactions` stays open, build + docs committed.
+- **fix-pass P2 redo (post-regen data honesty) — MERGED, PR #34 → `dev`.** DB regen
+  changed the P2 premise: per-player scoring now spans **2010–2025**, so the historical
+  `fix-P2-honesty.md` plan is stale for BUILD. New plan:
+  `docs/plans/fix-P2-post-regen-redo.md`. This BUILD updated the F-43 coverage harness away from
+  hardcoded pre-2016 absence assumptions, kept the fixture's 2015 season as a **synthetic generic
+  unscored gap**, made records tests assert against `KNOWN["seasons_scored"]`, and cleaned stale
+  analytics comments. No DB writes and no API shape change. **Full VERIFY:** backend **206 pytest**,
+  ruff clean, mypy clean, write-safety grep only the known `engine.py` docstring; frontend
+  contract no drift, typecheck clean, **129 vitest**, `npm run lint` N/A (no script), SPA build
+  clean. **Real-DB checks:** 2010/2015/2025 `is_scored:true`; 2026 `is_scored:false`; meta and
+  records report scored window **2010–2025**; 2010/2015/2025 box scores are available with real
+  lineups; Arian Foster 2010 scoring is available (16 weeks, 368.8 pts); Arian Foster 2026 scoring
+  returns `season_unscored`; built SPA routes `/`, `/matchups`, `/stats`, `/players/8299`,
+  `/records` serve single-origin.
 - **F-51 (post-regen honesty reframe) — DONE on `feature/fix-F51-current-season-scoring`; PR → `dev`.**
   The `fantasy.db` regen reconstructed pre-2016 per-player scoring (`player_stats_scored` now spans
   **2010–2025**, `is_scored:true` for every completed season), so P2's hardcoded "pre-2016 unscored"
@@ -206,6 +220,10 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   unchanged (contract drift clean).
 
 ## Next
+
+- **Next:** await the danger-zone fix for **F-53** (`team_rosters` week-1 corrupt placeholder
+  snapshots), then re-run P4 real-DB click-through and open the P4 PR to `dev`. P2 redo is merged
+  via PR #34. F-52 (`seasons.status` all `in_progress`) remains UP/danger-zone.
 
 - **Phase B complete.** B1–B3 shipped via PR #25 (merged to `dev`). B4 confirmed this
   session — see below. No Phase B work remaining.

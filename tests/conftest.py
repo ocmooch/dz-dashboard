@@ -117,7 +117,7 @@ def _populate(session: Session) -> None:
     session.flush()
     oid = {k: o.owner_id for k, o in owners.items()}
 
-    # --- Seasons. 2015 is the unscored gap; 2016/2017 are scored.
+    # --- Seasons. 2015 is a synthetic unscored gap; 2016/2017 are scored.
     seasons: dict[int, Season] = {}
     for year in (2015, 2016, 2017):
         s = Season(
@@ -165,7 +165,7 @@ def _populate(session: Session) -> None:
     # --- Matchups: one game = two rows (team perspective + opponent perspective).
     # (year, week, home_key, home_score, away_key, away_score)
     games: list[tuple[int, int, str, float, str, float]] = [
-        # 2015 (scores exist from reconstruction, but no player-level scoring)
+        # 2015 (team scores exist, but no player-level scoring in the fixture)
         (2015, 1, "mav", 110.0, "ice", 100.0),
         (2015, 1, "slider", 120.0, "goose", 90.0),
         (2015, 2, "goose", 105.0, "mav", 95.0),
@@ -220,7 +220,8 @@ def _populate(session: Session) -> None:
     #     fix-P1 derivations: owner-season `result` from final_rank, `made_playoffs`
     #     derived from real (non-consolation) playoff games, and the records era
     #     split — Iceman's 50.0 consolation score is the all-time lowest team score
-    #     and lands in a pre-2016 season, proving team records span 2010-2015.
+    #     and lands in an unscored fixture season, proving team records are not
+    #     gated by player-scoring coverage.
     final_rank_2015 = {"slider": 1, "mav": 2, "goose": 3, "ice": 4}
     for key, rank in final_rank_2015.items():
         team = session.get(Team, team_id[(2015, key)])
@@ -284,7 +285,7 @@ def _populate(session: Session) -> None:
     session.flush()
     pid = {k: p.player_id for k, p in players.items()}
 
-    # --- Scored stats. 2016 + 2017 only (2015 is the unscored gap).
+    # --- Scored stats. 2016 + 2017 only (2015 is the synthetic unscored gap).
     # 2016: McCaffrey is the season top scorer (55.0); his wk1 30.0 is the week's best.
     _add_raw_and_scored(
         session,
