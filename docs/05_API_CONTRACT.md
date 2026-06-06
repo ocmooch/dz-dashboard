@@ -117,6 +117,23 @@ document, so the contract is enforced at build time.
 |----------|-------------|
 | `GET /v1/search?q={query}` | Typeahead across owners, teams, players, seasons; returns typed hits with deep-link targets |
 
+Hit shape is unchanged: `{type, id, label, sublabel, href}` (`SearchHit`). Match classes:
+
+- **owner** → `/managers/{owner_id}` — display-name match.
+- **team** → `/managers/{owner_id}` — a **fantasy team name** match. There is no
+  standalone team page, so a team hit deep-links to the owner who held that name;
+  a name reused across seasons collapses to its most-recent owner (one hit).
+- **season** → `/standings` — year-text match (season context switches client-side).
+- **player** → `/players/{player_id}` — **league-relevant only** (ever rostered); a
+  never-rostered nflverse "ghost" never appears. Surfaced two ways: by name, and by
+  **NFL-team token** — a city / nickname / abbreviation (e.g. `Vikings` / `Minnesota`
+  / `MIN`, multi-team metros like `New York` → both franchises) expands into that
+  team's players. The NFL team itself gets no standalone hit.
+
+Hardening: SQL LIKE wildcards (`%` `_`), regex metacharacters, and `<script>`/SQL
+injection strings are treated as inert literal data — re-filtered casefold (no
+`re`) over parameterized reads, so they neither over-match nor inject.
+
 ## Sample responses
 
 ### `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}`

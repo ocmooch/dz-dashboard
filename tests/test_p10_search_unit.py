@@ -1,8 +1,10 @@
 """P10 — global-search unit tests against the known-answer fixture.
 
-Verifies prefix-over-substring ranking, owner > season > player type ordering,
-the deep-link hrefs each hit carries, the honest empty result for a blank or
-no-match query, and that teams are deliberately never emitted.
+Verifies prefix-over-substring ranking, owner > team > season > player type
+ordering, the deep-link hrefs each hit carries, the honest empty result for a
+blank or no-match query, that a fantasy team name deep-links to its owner, and
+that an NFL-team token expands to players without a standalone team hit.
+(The scope/synonym/hardening suite lives in tests/test_search.py.)
 """
 
 from __future__ import annotations
@@ -29,11 +31,14 @@ def test_owner_prefix_match(session: Session) -> None:
 
 
 def test_player_substring_match(session: Session) -> None:
-    players = _of_type(global_search(session, "jeff"), "player")
-    jjet = next(h for h in players if h["label"] == "Justin Jefferson")
-    assert jjet["id"] == KNOWN["player_id"]["jjet"]
-    assert jjet["href"] == f"/players/{KNOWN['player_id']['jjet']}"
-    assert jjet["sublabel"] == "WR · MIN"
+    # cmc is league-relevant (rostered); the like-named ghost "Ghost McCaffrey" is
+    # never rostered, so league-scoped search returns only cmc (F-44).
+    players = _of_type(global_search(session, "McCaff"), "player")
+    cmc = next(h for h in players if h["label"] == "Christian McCaffrey")
+    assert cmc["id"] == KNOWN["player_id"]["cmc"]
+    assert cmc["href"] == f"/players/{KNOWN['player_id']['cmc']}"
+    assert cmc["sublabel"] == "RB · SF"
+    assert all(h["label"] != "Ghost McCaffrey" for h in players)
 
 
 def test_season_year_match(session: Session) -> None:
@@ -52,9 +57,19 @@ def test_prefix_owner_outranks_substring_players(session: Session) -> None:
     assert hits[0]["label"] == "Iceman"
 
 
-def test_teams_are_never_emitted(session: Session) -> None:
-    # Team names are "Maverick 2016" etc.; search must not deep-link to a dead team page.
-    assert all(h["type"] != "team" for h in global_search(session, "Maverick"))
+def test_fantasy_team_name_emits_owner_hit(session: Session) -> None:
+    # A distinctive fantasy team name now *is* searchable and deep-links to the
+    # owner who held it (no dead team page). See tests/test_search.py for the full
+    # F-45 suite; this guards the type ordering lands a team hit at all.
+    teams = _of_type(global_search(session, "Northvale"), "team")
+    hit = next(h for h in teams if h["label"] == "Northvale Scumbags")
+    assert hit["id"] == KNOWN["owner_id"]["viper"]
+    assert hit["href"] == f"/managers/{KNOWN['owner_id']['viper']}"
+
+
+def test_nfl_team_token_emits_no_standalone_team_hit(session: Session) -> None:
+    # An NFL-team token expands into players; the NFL team itself never gets a hit.
+    assert all(h["type"] != "team" for h in global_search(session, "49ers"))
 
 
 def test_blank_query_is_empty(session: Session) -> None:
