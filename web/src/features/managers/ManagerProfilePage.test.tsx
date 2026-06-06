@@ -87,7 +87,7 @@ describe("ManagerProfilePage", () => {
     renderProfile();
 
     const oldRow = (await screen.findByText("Old Alpha")).closest("tr")!;
-    expect(within(oldRow).getByText(/scoring not reconstructed \(pre-2016\)/i)).toBeInTheDocument();
+    expect(within(oldRow).getByText(/scoring not available for this season/i)).toBeInTheDocument();
     expect(within(oldRow).queryByText("0")).not.toBeInTheDocument();
   });
 

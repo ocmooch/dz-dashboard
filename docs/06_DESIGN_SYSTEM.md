@@ -132,7 +132,7 @@ Build these first; everything else composes from them.
 | `Skeleton` | loading placeholders matching final layout (prevents layout shift) |
 | `EmptyState` | "nothing here yet" with optional action |
 | `ErrorState` | error + retry (wired to TanStack Query retry) |
-| `DataGap` | **the honesty component** — a labeled affordance ("not scored — 2010–2015", "team defense not scored", "availability current-season only") used wherever a metric is absent. Never render 0 in place of missing data. |
+| `DataGap` | **the honesty component** — a labeled affordance ("per-player scoring not available for this season", "team defense not scored", "availability current-season only") used wherever a metric is absent. Never render 0 in place of missing data. The unscored-season copy is year-agnostic and data-driven on `is_scored` (F-51). |
 | `Trophy` | championship/podium marker for trophy cases |
 | `WeekStepper` | prev/next week control bound to the URL |
 

@@ -177,18 +177,19 @@ export function PlayerDetailPage() {
   // first/last_rostered_season columns, so no extra ownership round-trip.
   const span = data ? rosteredSpan(data.first_rostered_season, data.last_rostered_season) : null;
 
-  // The earliest scored season (the scored era begins 2016). Derived from the
-  // backend's per-season is_scored flag, not hardcoded.
-  const minScoredYear = seasons
-    .filter((s) => s.is_scored)
-    .reduce<number | null>((min, s) => (min == null ? s.season_year : Math.min(min, s.season_year)), null);
-  // A real league player whose entire rostered tenure predates the scored era
-  // has no reconstructed fantasy points — present that honestly (F-26) rather
-  // than as an empty/error scoring chart.
-  const unscoredEraOnly =
-    data?.last_rostered_season != null &&
-    minScoredYear != null &&
-    data.last_rostered_season < minScoredYear;
+  // Season years that have reconstructed per-player scoring, straight off the
+  // backend's per-season is_scored flag (data-driven, no hardcoded era).
+  const scoredYears = seasons.filter((s) => s.is_scored).map((s) => s.season_year);
+  // A real league player none of whose rostered seasons has per-player scoring
+  // (e.g. rostered only in a current, not-yet-scored season — the pre-2016
+  // reconstruction has since landed, F-51) has no points to chart. Present that
+  // honestly (F-26/F-51) rather than as an empty/error scoring chart.
+  const firstRostered = data?.first_rostered_season;
+  const lastRostered = data?.last_rostered_season;
+  const noScoredInTenure =
+    firstRostered != null &&
+    lastRostered != null &&
+    !scoredYears.some((y) => y >= firstRostered && y <= lastRostered);
 
   return (
     <div className="dz-rise space-y-4">
@@ -260,9 +261,9 @@ export function PlayerDetailPage() {
 
           <Card>
             <CardHeader eyebrow={`season ${season ?? ""}`} title="Weekly Scoring" />
-            {unscoredEraOnly ? (
+            {noScoredInTenure ? (
               <div className="p-5">
-                <DataGap reason="pre2016_unscored_rostered" />
+                <DataGap reason="unscored_tenure" />
               </div>
             ) : season != null ? (
               <ScoringChart playerId={playerId} season={season} />

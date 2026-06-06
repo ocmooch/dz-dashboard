@@ -52,7 +52,7 @@ do.
 | Data | Coverage | Reliability | UI obligation |
 |------|----------|-------------|---------------|
 | nflverse raw weekly stats (`player_stats_raw`) | 2010–2025, all 16 seasons (17–19k rows/season) | **Solid** | Use freely |
-| Scored fantasy points (`player_stats_scored`) | **2016–2025 only** (~182k rows) | **Solid 2016+** | 2010–2015 show "unscored" — never 0 points |
+| Scored fantasy points (`player_stats_scored`) | **2010–2025** since the pre-2016 reconstruction landed (F-51) | **Solid** for every completed season | A season without scoring (now normally the current/in-progress one) shows "unscored" — never 0 points. Gate on `is_scored`, never a hardcoded year |
 | Scoring rules (`scoring_rules`) | 2016–2025 (51 rules/season, current ruleset propagated) | **Solid 2016+; assumed-stable** | Note in scoring-rules view that 2016+ uses one ruleset; pre-2016 unknown |
 | Player identity & cross-IDs (`players`) | 25,035 GSIS / 3,525 Sleeper resolved | **Solid** | Use freely; some obscure players lack IDs (0-point edge cases) |
 | Transactions (`transactions`) | per-season log, real | **Solid** | Use freely |
@@ -93,12 +93,15 @@ reconstruction is still finishing.
 
 ### `is_scored` means *per-player fantasy scoring*, not "season complete" (F-16/F-35)
 
-The season-level `is_scored` flag (true ⇔ the season has `player_stats_scored` rows, i.e. 2016+)
-gates exactly **one** layer: per-player fantasy points. For 2010–2015 it is `false`, but the
-**team-level** data for those seasons is *complete and accurate* — team scores, margins,
-standings, final ranks, rosters (who started), and drafts all exist from the nfl.com
-reconstruction. Affordances must therefore scope the pre-2016 gap to "per-player fantasy
-scoring not reconstructed" and must **not** imply the grid/standings/roster is incomplete. The
+The season-level `is_scored` flag (true ⇔ the season has `player_stats_scored` rows) gates
+exactly **one** layer: per-player fantasy points. Since the pre-2016 reconstruction landed
+(F-51) every completed season 2010–2025 is `true`; the flag is now `false` only for a season
+with no scoring yet — normally the current/in-progress one. Even when `false`, the
+**team-level** data may still exist (team scores, margins, standings, final ranks, rosters,
+drafts) for a completed season, though for a live season it is partial. Affordances must
+therefore scope the gap to "per-player fantasy scoring not available for this season",
+gate on `is_scored` (**never a hardcoded year**), and must **not** imply the grid/standings/roster
+is incomplete for a completed season. The
 gap-validation harness (`tests/test_coverage_integrity.py`, F-43) asserts this split
 mechanically: present-but-unscored seasons still carry non-null team scores.
 

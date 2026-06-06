@@ -12,8 +12,10 @@ Conventions used below:
   (`opponent_team_id IS NULL`) are excluded from H2H counts.
 - "scored points" = `player_stats_scored.total_points`; "team score" =
   `matchups.team_score` (authoritative team total from Phase 1).
-- Metrics are computed over **2016–2025** wherever they require scored points; views over
-  2010–2015 fall back to record-only data and mark scoring gaps.
+- Metrics that require scored points are computed over the **data-driven scored window**
+  (`is_scored` seasons — now **2010–2025** since the pre-2016 reconstruction landed, F-51);
+  a season with no scoring yet (normally the current one) falls back to record-only data and
+  marks scoring gaps. Never hardcode the window — derive it from `is_scored`.
 
 ---
 

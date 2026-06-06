@@ -13,7 +13,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **fix-pass P3 (review-fixes program) — DONE, PR #32 open to `dev`.** Branch
+- **F-51 (post-regen honesty reframe) — DONE on `feature/fix-F51-current-season-scoring`; PR → `dev`.**
+  The `fantasy.db` regen reconstructed pre-2016 per-player scoring (`player_stats_scored` now spans
+  **2010–2025**, `is_scored:true` for every completed season), so P2's hardcoded "pre-2016 unscored"
+  copy inverted into an over-claim; the only unscored season is now the current in-progress one (2026).
+  Fix is **frontend copy + a generalized data-driven player-detail predicate, no gating change** (every
+  gate was already on `is_scored`): `PRE2016_GAP_NOTE`→`UNSCORED_SEASON_NOTE`, reworded `season_unscored`,
+  `pre2016_unscored_rostered`→`unscored_tenure` (no scored season in rostered span), reframed About copy,
+  updated `records.py` comments + live docs (CLAUDE/03/04/06). **Gate green** (188 pytest, ruff, mypy,
+  writecheck; gen:api no drift, typecheck, 129 vitest). **Real-DB click-through (built SPA, single-origin):**
+  2026 shows the new banner, 2010–2025 show none, About reads "Per-player scoring covers 2010–2025".
+  Branch-ordering: F-51's *finding* entry is on PR #32 (fix-P3); merge **#32 first** to avoid a trivial
+  duplicate-F-51 doc conflict. F-52 (`seasons.status` all `in_progress`) → danger-zone/UP.
+- **fix-pass P3 (review-fixes program) — MERGED, PR #32 → `dev`.** Branch
   `feature/fix-P3-search`. Search scope/teams/hardening for F-44, F-45, F-47. Plan:
   `docs/plans/fix-P3-search.md`. **No API response-shape change** (`gen:api` no drift).
   - **Gate green:** backend **206 pytest**, ruff check + format clean, mypy clean,

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, PRE2016_GAP_NOTE, Skeleton, Tabs } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, Tabs } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -80,7 +80,7 @@ export function StatsPage() {
       </div>
 
       {current && !current.is_scored && (
-        <Badge variant="gap">{PRE2016_GAP_NOTE}</Badge>
+        <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
       )}
 
       <Card className="p-4">

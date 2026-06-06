@@ -114,8 +114,8 @@ export function AboutPage() {
               />
             </div>
             <p className="px-1 pt-3 text-[var(--fs-sm)] text-muted">
-              League scoring begins in {data.coverage.scored_year_min ?? "—"}. Earlier seasons exist
-              as records but were never scored — those views show a data-gap marker, not a zero.
+              Per-player scoring covers {yearRange(data.coverage.seasons_scored)}. A season without
+              it — for example one still in progress — shows a data-gap marker, not a zero.
             </p>
           </Card>
 
@@ -141,7 +141,7 @@ export function AboutPage() {
                     domain="Scored fantasy points"
                     status={`scored ${yearRange(data.coverage.seasons_scored)}`}
                     tone="accent"
-                    note={`Pre-${data.coverage.scored_year_min ?? "scored-era"} seasons render as “not scored”, never as 0 points.`}
+                    note={`Seasons without scoring (e.g. one still in progress) render as “not scored”, never as 0 points.`}
                   />
                   <GapRow
                     domain="Standings, lineups & matchups"

@@ -974,6 +974,14 @@ first (data/analytics foundations → analytics → views).
   from `is_scored`/coverage, so much may self-correct — but it must be confirmed end-to-end, and the
   reconstruction's *trustworthiness* should be sanity-checked before we present it as authoritative).
   → resolves the data half of **F-27**; triggers re-verification of F-16/F-26/F-33/F-35 (P2) and F-22 (P1).
+  **✅ DASHBOARD HALF RESOLVED by PR #33** (`feature/fix-F51-current-season-scoring`): copy + semantics
+  reframe, no gating change (every gate was already data-driven on `is_scored`) — `PRE2016_GAP_NOTE`→
+  `UNSCORED_SEASON_NOTE` (year-agnostic, drops the false team-completeness claim); reworded the
+  `season_unscored` label; player-detail `pre2016_unscored_rostered`→ generalized data-driven
+  `unscored_tenure` (no scored season in the rostered span); reframed About copy; updated `records.py`
+  comments + live docs (CLAUDE.md, 03/04/06). Verified on the **real DB** (built SPA): 2026 shows the
+  new banner, 2010–2025 show none, About reads "Per-player scoring covers 2010–2025". The data half
+  (F-27) and **F-52** remain upstream (UP/danger-zone).
 - **F-52 — every season row is `status:in_progress`, including completed 2010–2025 (surfaced by
   fix-pass P3 VERIFY, 2026-06-06).** The regenerated `seasons` table has `status = 'in_progress'` for
   all **17** seasons; only 2026 should be in-progress. Any dashboard logic that keys on season status
