@@ -208,12 +208,12 @@ def test_player_index_row_enrichment(session: Session) -> None:
 
 
 def test_ownership_timeline_collapses_into_spans(session: Session) -> None:
-    # cmc is rostered one week each in 2016 and 2017 → two single-week spans, one
-    # per season, never one row per week.
+    # cmc is rostered weeks 1-2 of 2016 (contiguous → one collapsed span) and week 1
+    # of 2017 → two spans, one per season, never one row per week.
     data = ownership_timeline(session, KNOWN["player_id"]["cmc"])
     assert data is not None
     assert (data["first_rostered_season"], data["last_rostered_season"]) == (2016, 2017)
     assert [(s["season_year"], s["week_start"], s["week_end"]) for s in data["events"]] == [
-        (2016, 1, 1),
+        (2016, 1, 2),
         (2017, 1, 1),
     ]

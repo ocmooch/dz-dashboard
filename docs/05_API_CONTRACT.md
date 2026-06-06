@@ -71,7 +71,8 @@ document, so the contract is enforced at build time.
 | `GET /v1/teams/{team_id}/roster?week={n}` | Roster snapshot for a week |
 | `GET /v1/teams/{team_id}/schedule` | Week-by-week results for the team's season |
 | `GET /v1/teams/{team_id}/scoring-trend` | Points per week vs league average — for the chart |
-| `GET /v1/teams/{team_id}/transactions` | Transactions involving the team that season |
+| `GET /v1/teams/{team_id}/transactions` | Recorded transactions involving the team that season (draft-only on the real DB) |
+| `GET /v1/teams/{team_id}/roster-moves` | Derived in-season add/drop/retain from week-over-week roster diffs (`available:false` when <2 snapshots) |
 
 ### Owners / managers
 

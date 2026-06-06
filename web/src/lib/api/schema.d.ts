@@ -565,6 +565,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams/{team_id}/roster-moves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Team Roster Moves */
+        get: operations["get_team_roster_moves_v1_teams__team_id__roster_moves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -965,6 +982,11 @@ export interface components {
         /** Envelope[TeamOverview] */
         Envelope_TeamOverview_: {
             data: components["schemas"]["TeamOverview"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[TeamRosterMoves] */
+        Envelope_TeamRosterMoves_: {
+            data: components["schemas"]["TeamRosterMoves"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[TeamRosterOut] */
@@ -1473,6 +1495,19 @@ export interface components {
             /** Cells */
             cells: components["schemas"]["RivalryCell"][];
         };
+        /** RosterMove */
+        RosterMove: {
+            /** Week */
+            week: number;
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name?: string | null;
+            /** Position */
+            position?: string | null;
+            /** Action */
+            action: string;
+        };
         /** ScheduleGame */
         ScheduleGame: {
             /** Matchup Id */
@@ -1717,6 +1752,21 @@ export interface components {
             owner_id?: number | null;
             /** Owner Name */
             owner_name?: string | null;
+        };
+        /** TeamRosterMoves */
+        TeamRosterMoves: {
+            /** Team Id */
+            team_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Is Scored */
+            is_scored: boolean;
+            /** Available */
+            available: boolean;
+            /** Roster Weeks */
+            roster_weeks: number[];
+            /** Moves */
+            moves: components["schemas"]["RosterMove"][];
         };
         /** TeamRosterOut */
         TeamRosterOut: {
@@ -2854,6 +2904,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_TeamTransactions_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_team_roster_moves_v1_teams__team_id__roster_moves_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_TeamRosterMoves_"];
                 };
             };
             /** @description Validation Error */

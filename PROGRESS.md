@@ -13,6 +13,22 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+- **fix-pass P4 (Transactions, roster-diff tier) — BUILD DONE on `feature/fix-P4-transactions`; ready for VERIFY.**
+  F-37 tier 1. New `analytics/transactions.py:derive_roster_moves(session, team_id)` reconstructs
+  in-season add/drop/retain from week-over-week `team_rosters` diffs (stint model). Additive API:
+  `GET /v1/teams/{team_id}/roster-moves` + `RosterMove`/`TeamRosterMoves` schema (existing
+  `/transactions` shape untouched). Frontend: new `RosterMovesCard` ("In-season moves") +
+  `roster_history_unavailable` `DataGap`; the existing transactions card relabelled **"Draft"**
+  (draft-only on the real DB). Moves are **not gated on `is_scored`**; <2 snapshots → `available:false`
+  → `DataGap`, never zeros. `gen:api` drift = the new path only (+81 lines, 0 deletions; client
+  regenerated, committed). Fixture: mav-2016 wk2 rows (cmc retain / Ravens D/ST drop / "Waiver Wendell"
+  add) + mav-2015 unscored 2-week scenario ("Vintage Vince" retain). One prior known answer updated
+  legitimately — cmc's 2016 ownership span is now weeks 1–2 (cmc gained a wk2 row). **Scoped tests
+  green:** 211 backend pytest, 8 team-page vitest. Plan: `docs/plans/fix-P4-transactions.md`.
+  - **NEXT (VERIFY):** run the full green gate once (ruff/mypy/writecheck; gen:api drift + typecheck +
+    full vitest); click through a team page on the real DB (a season with mid-season churn + a
+    no-snapshot season); open the PR to `dev` with trailers; tick roadmap ☑ + mark F-37 (tier 1) with
+    the PR number.
 - **F-51 (post-regen honesty reframe) — DONE on `feature/fix-F51-current-season-scoring`; PR → `dev`.**
   The `fantasy.db` regen reconstructed pre-2016 per-player scoring (`player_stats_scored` now spans
   **2010–2025**, `is_scored:true` for every completed season), so P2's hardcoded "pre-2016 unscored"
@@ -192,16 +208,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
   `docs/plans/players-audit-dashboard.md`.
 
-## Files that matter now (fix-pass P3)
+## Files that matter now (fix-pass P4)
 
-- `src/ff_dashboard/analytics/search.py` — `global_search`: league scope, fantasy-team
-  + NFL-team-expander branches, input hardening
-- `src/ff_dashboard/analytics/nfl_teams.py` — `resolve_nfl_teams(q)` synonym table
-- `tests/test_search.py` — F-44/45/47 functional + security suite
-- `tests/test_p10_search_unit.py` — updated ranking/href tests (jjet→cmc, team-hit)
-- `tests/conftest.py` — ghost player + distinctive `team_name`s
-- `docs/05_API_CONTRACT.md` — `/v1/search` match classes (no shape change)
-- `docs/plans/fix-P3-search.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
+- `src/ff_dashboard/analytics/transactions.py` — `derive_roster_moves`: stint-model roster diff
+- `src/ff_dashboard/api/schemas.py` — `RosterMove`, `TeamRosterMoves`
+- `src/ff_dashboard/api/routes/teams.py` — `GET /v1/teams/{team_id}/roster-moves`
+- `web/src/features/teams/TeamPage.tsx` — `RosterMovesCard`; "Draft" relabel
+- `web/src/design-system/index.tsx` — `roster_history_unavailable` `DataGap` reason
+- `web/src/lib/queryKeys.ts` — `teamRosterMoves(teamId)`
+- `tests/test_p4_transactions.py` — known-answer + gap + not-gated + 404 tests
+- `tests/conftest.py` — mav-2016 wk2 (cmc/dst/wendell) + mav-2015 unscored (vince) scenarios
+- `web/src/features/teams/team.test.tsx` — RosterMovesCard render/gap/empty paths
+- `docs/04_ANALYTICS_MODEL.md` · `docs/05_API_CONTRACT.md` · `docs/07_PAGES_AND_VIEWS.md`
+- `docs/plans/fix-P4-transactions.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
 
 ## Open items / deviations
 

@@ -74,10 +74,14 @@ The landing view; a glanceable cockpit for the current season.
 ## Team  `/teams/{team_id}`
 
 - **Shows:** season summary (record, rank, owner); roster by week (with `WeekStepper`);
-  schedule with results; scoring trend vs league average; the season's transactions.
+  schedule with results; scoring trend vs league average; two distinct activity spaces —
+  **"Draft"** (recorded transactions, draft-only on the real DB) and **"In-season moves"**
+  (derived add/drop/retain from week-over-week roster diffs). A season with <2 roster
+  snapshots renders the `roster_history_unavailable` `DataGap`, never a fake "no moves".
 - **Endpoints:** `/v1/teams/{id}`, `/v1/teams/{id}/roster?week=`,
-  `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`.
-- **Components/charts:** `StatGrid`, roster `Table`, schedule list, `LineTrend`.
+  `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`,
+  `/v1/teams/{id}/roster-moves`.
+- **Components/charts:** `StatGrid`, roster `Table`, schedule list, `LineTrend`, action `Pill`s.
 
 ## Managers (index)  `/managers`
 

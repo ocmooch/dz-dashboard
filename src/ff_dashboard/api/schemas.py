@@ -694,6 +694,23 @@ class TeamTransactions(BaseModel):
     transactions: list[TeamTransaction]
 
 
+class RosterMove(BaseModel):
+    week: int
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+    action: str  # "add" | "drop" | "retain"
+
+
+class TeamRosterMoves(BaseModel):
+    team_id: int
+    season_year: int
+    is_scored: bool  # informational; moves are NOT gated on it
+    available: bool  # False when <2 distinct roster snapshot weeks
+    roster_weeks: list[int]
+    moves: list[RosterMove]
+
+
 # ---------------------------------------------------------------------------
 # Global search (typeahead across owners, seasons, and players)
 # ---------------------------------------------------------------------------
