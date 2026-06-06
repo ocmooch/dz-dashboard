@@ -943,6 +943,21 @@ first (data/analytics foundations → analytics → views).
   a per-season `playoff_teams` count) in `ff_pipeline` so the bracket is distinguishable; once it lands,
   `made_playoffs` becomes derivable league-wide with no dashboard change. The dashboard guard already
   consumes the better data automatically. (`result` is unaffected — it derives from `final_rank`.)
+- **F-51 — pre-2016 per-player scoring reconstruction landed → honesty affordances reframed
+  (surfaced by fix-pass P3 VERIFY 2026-06-06; ✅ resolved by this PR).** A `fantasy.db` regen now
+  populates `player_stats_scored` for **2010–2025** (`is_scored:true` for every completed season);
+  the only unscored season is now the current/in-progress one (2026). The merged P1/P2 honesty work
+  had hardcoded a "pre-2016 / 2010–2015 / not reconstructed" framing in the *copy*, which inverted into
+  an over-claim (and rendered nonsensically when shown for 2026). **Fix (frontend copy + semantics,
+  no gating-logic change — all gates were already data-driven on `is_scored`):** `PRE2016_GAP_NOTE`→
+  `UNSCORED_SEASON_NOTE` (year-agnostic, no false team-completeness claim); reworded the
+  `season_unscored` DataGap label; replaced the player-detail `pre2016_unscored_rostered` branch with a
+  generalized, data-driven `unscored_tenure` (player has no scored season within their rostered span —
+  covers a current-season-only player too); reframed the About-page coverage copy; updated stale
+  `records.py` window comments and the live docs (CLAUDE.md, 03/04/06). Verified on the **real DB**
+  (built SPA, single-origin): 2026 matchups/stats show the new banner, 2010–2025 show none, About reads
+  "Per-player scoring covers 2010–2025". Resolves the *dashboard* half; the data half is F-27 (UP).
+  (NB: the F-50/F-52 finding entries live on PR #32 — F-52 = `seasons.status` all `in_progress`, → UP.)
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.

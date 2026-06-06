@@ -26,7 +26,10 @@ disagree with the backend because the frontend does no math.
 - **Never hand-edit the generated API client** (`web/src/lib/api/`). Change the BFF
   schema and run `npm run gen:api`.
 - **Never render 0 for missing data.** Use `available:false` / the `DataGap` affordance.
-  Gaps that exist: unscored 2010–2015, current-season-only availability, partial DST.
+  Gaps that exist: an unscored current/in-progress season (the pre-2016 per-player
+  reconstruction has landed — `player_stats_scored` now spans 2010–2025; F-51),
+  current-season-only availability, partial DST. The unscored gap is **data-driven on the
+  per-season `is_scored` flag** — never hardcode a year.
 - **Don't modify Phase 1** except additive read-only helpers in
   `ff_pipeline/repository/queries.py`.
 - **Don't merge milestones.** Finish one cleanly before the next.

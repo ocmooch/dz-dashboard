@@ -206,11 +206,11 @@ describe("MatchupsPage", () => {
       return Promise.resolve(routeByPath(path));
     });
     renderWithProviders(<MatchupsPage />);
-    // The affordance must scope the gap to per-player scoring and affirm the
-    // team-level grid is complete (F-16) — never label the grid incomplete.
-    const banner = await screen.findByText(/per-player fantasy points were never reconstructed/i);
+    // The affordance scopes the gap to per-player scoring for the season, and is
+    // year-agnostic (the pre-2016 reconstruction has landed; F-51) — it never
+    // labels the team-level grid incomplete.
+    const banner = await screen.findByText(/per-player fantasy scoring isn't available for this season/i);
     expect(banner).toBeInTheDocument();
-    expect(banner.textContent).toMatch(/team results.*are complete/i);
   });
 });
 
@@ -244,7 +244,7 @@ describe("BoxScorePage", () => {
       Promise.resolve(
         envelope({
           matchup_id: 99,
-          season_year: 2015,
+          season_year: 2026,
           week: 1,
           available: false,
           reason: "season_unscored",
@@ -257,7 +257,7 @@ describe("BoxScorePage", () => {
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
     expect(
-      await screen.findByText(/Per-player scoring not reconstructed \(pre-2016\)/i),
+      await screen.findByText(/Per-player scoring not available for this season/i),
     ).toBeInTheDocument();
   });
 

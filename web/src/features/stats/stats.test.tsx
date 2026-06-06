@@ -83,21 +83,21 @@ describe("StatsPage", () => {
     expect(await screen.findByText("Total")).toBeInTheDocument();
   });
 
-  it("surfaces the pre-2016 gap for an unscored season", async () => {
+  it("surfaces the gap for an unscored season", async () => {
     seasonMock.mockReturnValue({
-      current: { season_id: 9, season_year: 2015, is_scored: false },
-      seasons: [{ season_id: 9, season_year: 2015, is_scored: false }],
+      current: { season_id: 9, season_year: 2026, is_scored: false },
+      seasons: [{ season_id: 9, season_year: 2026, is_scored: false }],
       setSeasonId: vi.fn(),
       isLoading: false,
     });
     get.mockImplementation((path: string) => {
       if (path === "/v1/stats/top-scorers")
-        return Promise.resolve(envelope({ ...TOP_SCORERS, season_year: 2015, scorers: [] }));
+        return Promise.resolve(envelope({ ...TOP_SCORERS, season_year: 2026, scorers: [] }));
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
     expect(
-      await screen.findByText(/per-player fantasy points were never reconstructed/i),
+      await screen.findByText(/per-player fantasy scoring isn't available for this season/i),
     ).toBeInTheDocument();
   });
 });

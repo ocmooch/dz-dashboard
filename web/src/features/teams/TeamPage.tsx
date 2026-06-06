@@ -10,7 +10,7 @@ import {
   DataGap,
   EmptyState,
   ErrorState,
-  PRE2016_GAP_NOTE,
+  UNSCORED_SEASON_NOTE,
   Pill,
   RecordLine,
   Skeleton,
@@ -309,7 +309,7 @@ export function TeamPage() {
             </div>
             {!data.is_scored && (
               <div className="mt-4 border-t border-[var(--hairline)] pt-4">
-                <Badge variant="gap">{PRE2016_GAP_NOTE} This team&apos;s record, points, and roster are complete.</Badge>
+                <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
               </div>
             )}
           </Card>

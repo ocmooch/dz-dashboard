@@ -211,7 +211,7 @@ describe("PlayerDetailPage", () => {
     expect(await screen.findByText(/Availability — current season only/i)).toBeInTheDocument();
   });
 
-  it("presents an unscored-era-only rostered player honestly, not as empty (F-26)", async () => {
+  it("presents a player with no scored seasons honestly, not as empty (F-26/F-51)", async () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/players/{player_id}")
         return Promise.resolve(
@@ -226,10 +226,10 @@ describe("PlayerDetailPage", () => {
     });
     renderWithProviders(<PlayerDetailPage />, "/players/1");
     await screen.findByRole("heading", { name: "Aaron Hernandez" });
-    // A real league player whose tenure is entirely pre-2016 gets an explanatory
-    // affordance, not a blank/error scoring chart.
+    // A real league player none of whose rostered seasons has reconstructed
+    // scoring gets an explanatory affordance, not a blank/error scoring chart.
     expect(
-      await screen.findByText(/Rostered in the unscored era \(2010–2015\)/i),
+      await screen.findByText(/no per-player fantasy scoring available/i),
     ).toBeInTheDocument();
     // The current (scored) season's chart must not render for this player.
     expect(screen.queryByLabelText(/Weekly league points/i)).not.toBeInTheDocument();
