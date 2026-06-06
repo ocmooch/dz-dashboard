@@ -62,6 +62,14 @@ async function fetchTransactions(id: number) {
   return data.data;
 }
 
+async function fetchRosterMoves(id: number) {
+  const { data, error } = await api.GET("/v1/teams/{team_id}/roster-moves", {
+    params: { path: { team_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load roster moves");
+  return data.data;
+}
+
 function RosterCard({ teamId }: { teamId: number }) {
   const [params, setParams] = useSearchParams();
   const weekParam = params.get("week");
@@ -230,10 +238,10 @@ function TransactionsCard({ teamId }: { teamId: number }) {
   });
   return (
     <Card>
-      <CardHeader eyebrow="moves" title="Transactions" />
+      <CardHeader eyebrow="recorded" title="Draft" />
       {isLoading && <Skeleton className="m-5 h-32" />}
       {data && data.transactions.length === 0 && (
-        <EmptyState title="No transactions" hint="No moves recorded for this team's season." />
+        <EmptyState title="No draft picks recorded" hint="No recorded transactions for this team's season." />
       )}
       {data && data.transactions.length > 0 && (
         <ol className="divide-y divide-[var(--hairline)]">
@@ -250,6 +258,59 @@ function TransactionsCard({ teamId }: { teamId: number }) {
             </li>
           ))}
         </ol>
+      )}
+    </Card>
+  );
+}
+
+function RosterMovesCard({ teamId }: { teamId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.teamRosterMoves(teamId),
+    queryFn: () => fetchRosterMoves(teamId),
+  });
+
+  const adds = data?.moves.filter((m) => m.action === "add") ?? [];
+  const drops = data?.moves.filter((m) => m.action === "drop") ?? [];
+  const churn = [...adds, ...drops].sort((a, b) => a.week - b.week);
+  const retained = data?.moves.filter((m) => m.action === "retain") ?? [];
+
+  return (
+    <Card>
+      <CardHeader eyebrow="derived from rosters" title="In-season moves" />
+      {isLoading && <Skeleton className="m-5 h-32" />}
+      {data && data.available === false && (
+        <div className="p-5">
+          <DataGap reason="roster_history_unavailable" size="sm" />
+        </div>
+      )}
+      {data && data.available && churn.length === 0 && (
+        <EmptyState title="No in-season moves" hint="No adds or drops recorded this season." />
+      )}
+      {data && data.available && churn.length > 0 && (
+        <>
+          <ol className="divide-y divide-[var(--hairline)]">
+            {churn.map((m) => (
+              <li
+                key={`${m.action}-${m.player_id}-${m.week}`}
+                className="flex items-center justify-between gap-3 px-5 py-3"
+              >
+                <div>
+                  <span className="text-text">{m.player_name ?? "—"}</span>
+                  <div className="text-[var(--fs-xs)] text-faint">
+                    wk {m.week}
+                    {m.position ? ` · ${m.position}` : ""}
+                  </div>
+                </div>
+                <Pill tone={m.action === "add" ? "win" : "loss"}>{m.action}</Pill>
+              </li>
+            ))}
+          </ol>
+          {retained.length > 0 && (
+            <div className="border-t border-[var(--hairline)] px-5 py-3 text-[var(--fs-xs)] text-faint">
+              {retained.length} player{retained.length === 1 ? "" : "s"} retained all season
+            </div>
+          )}
+        </>
       )}
     </Card>
   );
@@ -320,7 +381,10 @@ export function TeamPage() {
           </div>
 
           <ScoringTrendCard teamId={teamId} />
-          <TransactionsCard teamId={teamId} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <RosterMovesCard teamId={teamId} />
+            <TransactionsCard teamId={teamId} />
+          </div>
         </>
       )}
     </div>

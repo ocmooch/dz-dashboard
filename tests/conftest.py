@@ -273,6 +273,13 @@ def _populate(session: Session) -> None:
         # the rostered cmc and the "SF" nfl_team, but is on no team_rosters row, so
         # league-scoped search (F-44) and the index must exclude it while cmc stays.
         "ghost": Player(name_full="Ghost McCaffrey", position="RB", nfl_team="SF", gsis_id="G6"),
+        # A mid-season waiver pickup on Maverick's 2016 team (wk2 only) — exercises
+        # the derived-roster-moves "add" path (F-37 tier 1). Distinct name/gsis so it
+        # collides with no existing search substring or known answer.
+        "wendell": Player(name_full="Waiver Wendell", position="RB", nfl_team="DEN", gsis_id="G7"),
+        # Rostered only in the unscored 2015 season (2 weeks) — proves derived
+        # roster moves are NOT gated on is_scored (snapshots predate scoring).
+        "vince": Player(name_full="Vintage Vince", position="WR", nfl_team="GB", gsis_id="G8"),
     }
     session.add_all(players.values())
     session.flush()
@@ -464,6 +471,52 @@ def _populate(session: Session) -> None:
                 season_year=2016,
                 week=1,
                 roster_slot="DEF",
+                is_starter=True,
+                acquisition_type="draft",
+                acquisition_week=1,
+            ),
+            # --- mav 2016 week-2 snapshot: a 2-week roster diff scenario for the
+            #     derived-roster-moves view (F-37 tier 1). McCaffrey persists (drafted
+            #     wk1, kept) → retain; the Ravens D/ST has no wk2 row → drop at wk2;
+            #     Waiver Wendell first appears wk2 → add at wk2.
+            TeamRoster(
+                team_id=team_id[(2016, "mav")],
+                player_id=pid["cmc"],
+                season_year=2016,
+                week=2,
+                roster_slot="RB",
+                is_starter=True,
+                acquisition_type="draft",
+                acquisition_week=1,
+            ),
+            TeamRoster(
+                team_id=team_id[(2016, "mav")],
+                player_id=pid["wendell"],
+                season_year=2016,
+                week=2,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="waiver",
+                acquisition_week=2,
+            ),
+            # --- mav 2015 (unscored) two-week snapshot: Vince persists both weeks →
+            #     a derivable retain in an unscored season (moves not gated on scoring).
+            TeamRoster(
+                team_id=team_id[(2015, "mav")],
+                player_id=pid["vince"],
+                season_year=2015,
+                week=1,
+                roster_slot="WR",
+                is_starter=True,
+                acquisition_type="draft",
+                acquisition_week=1,
+            ),
+            TeamRoster(
+                team_id=team_id[(2015, "mav")],
+                player_id=pid["vince"],
+                season_year=2015,
+                week=2,
+                roster_slot="WR",
                 is_starter=True,
                 acquisition_type="draft",
                 acquisition_week=1,

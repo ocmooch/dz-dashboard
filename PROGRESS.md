@@ -13,7 +13,43 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **fix-pass P2 redo (post-regen data honesty) — VERIFIED green.** DB regen
+- **fix-pass P4 (Transactions, roster-diff tier) — BUILD DONE on `feature/fix-P4-transactions`; ready for VERIFY.**
+  F-37 tier 1. New `analytics/transactions.py:derive_roster_moves(session, team_id)` reconstructs
+  in-season add/drop/retain from week-over-week `team_rosters` diffs (stint model). Additive API:
+  `GET /v1/teams/{team_id}/roster-moves` + `RosterMove`/`TeamRosterMoves` schema (existing
+  `/transactions` shape untouched). Frontend: new `RosterMovesCard` ("In-season moves") +
+  `roster_history_unavailable` `DataGap`; the existing transactions card relabelled **"Draft"**
+  (draft-only on the real DB). Moves are **not gated on `is_scored`**; <2 snapshots → `available:false`
+  → `DataGap`, never zeros. `gen:api` drift = the new path only (+81 lines, 0 deletions; client
+  regenerated, committed). Fixture: mav-2016 wk2 rows (cmc retain / Ravens D/ST drop / "Waiver Wendell"
+  add) + mav-2015 unscored 2-week scenario ("Vintage Vince" retain). One prior known answer updated
+  legitimately — cmc's 2016 ownership span is now weeks 1–2 (cmc gained a wk2 row). **Scoped tests
+  green:** 211 backend pytest, 8 team-page vitest. Plan: `docs/plans/fix-P4-transactions.md`.
+  - **VERIFY (2026-06-06): full gate GREEN, but real-DB click-through found a BLOCKER → P4 PR held.**
+    Gate: backend **211 pytest** + ruff + mypy + write-safety clean; frontend **gen:api no drift** +
+    typecheck + **132 vitest** clean. Real-DB run of `/v1/teams/{id}/roster-moves` surfaced **F-53**:
+    `team_rosters` **week 1 is a corrupt/placeholder snapshot in every season 2010–2025** — disjoint
+    (0–7/17 player-id overlap) from wk0 (the genuine draft roster) and wk2+ (the settled roster); a 2010
+    team's wk1 lists modern players (Brock Purdy, Bucky Irving), identical to a 2016 team's wk1. The
+    existing single-week roster view hides this (it renders only wk17); P4 is the first reader to diff
+    *all* weeks, so it faithfully turns wk1 into fabricated churn (e.g. team 184/2024: 68 adds + 67 drops
+    at wk1). **P4's derivation is logically correct on the input — the defect is upstream data.**
+    Honesty rule ⇒ can't ship the card rendering this. **F-53 routed to UP/danger-zone; no dashboard
+    workaround** (read-only boundary; mirrors how F-50 blocked P3 until the regen). Branch
+    `feature/fix-P4-transactions` stays open, build + docs committed.
+  - **F-53 FIXED in danger-zone (regen), confirmed 2026-06-06 → P4 UNBLOCKED.** Lightweight real-DB
+    recheck on `../danger-zone/data/fantasy.db`: for the 12 real franchises wk1∩wk2 player-id overlap
+    is now **0.71–0.88** across every season 2010–2025 (was 0–7/17), and wk1 holds period-correct
+    players (2010 wk1 → Dez Bryant, not Brock Purdy). The fabricated "68 adds + 67 drops at wk1" churn
+    is gone. **No dashboard code change** (as predicted). **Real-DB verification PASSED (2026-06-06):**
+    ran `/v1/teams/{id}/roster-moves` through the app (TestClient, default real DB) — team **184/2024**
+    (the original 68-adds/67-drops case) now returns **wk1 adds=2, drops=0**; 2010 team 13 → wk1 5/5
+    with period-correct players (Vinatieri, LT — no Brock Purdy); all-season totals are normal waiver
+    levels. **NEXT:** open the P4 PR to `dev` (optional: browser click-through of the card — the SPA
+    renders this BFF output verbatim). Residual non-blocker (separate identity artifact, not the churn
+    corruption): 1–2 phantom **week-1-only** teams per season with garbled/duplicate names, present
+    2010–2018, absent 2019/2023/2025 — belongs with the owner/team-identity work.
+- **fix-pass P2 redo (post-regen data honesty) — MERGED, PR #34 → `dev`.** DB regen
   changed the P2 premise: per-player scoring now spans **2010–2025**, so the historical
   `fix-P2-honesty.md` plan is stale for BUILD. New plan:
   `docs/plans/fix-P2-post-regen-redo.md`. This BUILD updated the F-43 coverage harness away from
@@ -196,8 +232,10 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- **Next:** commit/open PR for the P2 redo once the branch base/ownership is settled; leave
-  F-52 (`seasons.status` all `in_progress`) in UP/danger-zone.
+- **Next:** **F-53 fixed in danger-zone → P4 unblocked AND real-DB-verified (2026-06-06).**
+  `/v1/teams/{id}/roster-moves` returns sane churn on the real DB (team 184/2024: wk1 2 adds/0 drops,
+  was 68/67). Only step left for P4 is **opening the PR to `dev`** (no code change). P2 redo is merged
+  via PR #34. F-52 (`seasons.status` all `in_progress`) remains UP/danger-zone.
 
 - **Phase B complete.** B1–B3 shipped via PR #25 (merged to `dev`). B4 confirmed this
   session — see below. No Phase B work remaining.
@@ -209,16 +247,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
   `docs/plans/players-audit-dashboard.md`.
 
-## Files that matter now (fix-pass P2 redo)
+## Files that matter now (fix-pass P4)
 
-- `docs/plans/fix-P2-post-regen-redo.md` — source of truth for the post-regen BUILD/VERIFY pass
-- `tests/test_coverage_integrity.py` — update stale pre-2016 absence assertions
-- records test module / `src/ff_dashboard/analytics/records.py` — verify scored windows derive from
-  current `is_scored` coverage
-- `web/src/design-system/index.tsx` — shared unscored-season `DataGap` copy
-- `web/src/features/{matchups,teams,stats,players}/` — stale gap copy/tests
-- `web/src/app/shell/AppShell.tsx` — season selector unscored label
-- `docs/plans/REVIEW_FIXES_ROADMAP.md` · `docs/reviews/2026-06-in-browser-review.md`
+- `src/ff_dashboard/analytics/transactions.py` — `derive_roster_moves`: stint-model roster diff
+- `src/ff_dashboard/api/schemas.py` — `RosterMove`, `TeamRosterMoves`
+- `src/ff_dashboard/api/routes/teams.py` — `GET /v1/teams/{team_id}/roster-moves`
+- `web/src/features/teams/TeamPage.tsx` — `RosterMovesCard`; "Draft" relabel
+- `web/src/design-system/index.tsx` — `roster_history_unavailable` `DataGap` reason
+- `web/src/lib/queryKeys.ts` — `teamRosterMoves(teamId)`
+- `tests/test_p4_transactions.py` — known-answer + gap + not-gated + 404 tests
+- `tests/conftest.py` — mav-2016 wk2 (cmc/dst/wendell) + mav-2015 unscored (vince) scenarios
+- `web/src/features/teams/team.test.tsx` — RosterMovesCard render/gap/empty paths
+- `docs/04_ANALYTICS_MODEL.md` · `docs/05_API_CONTRACT.md` · `docs/07_PAGES_AND_VIEWS.md`
+- `docs/plans/fix-P4-transactions.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
 
 ## Open items / deviations
 

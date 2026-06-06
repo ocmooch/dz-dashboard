@@ -211,8 +211,16 @@ Per-(season, team) rollups feeding the team page.
 - **Schedule** — week-by-week opponent + result + margin for the team's season.
 - **Scoring trend** — the team's points-per-week against the league average that week (the
   line chart).
-- **Transactions** — the season's transactions involving the team (passthrough of Phase 1's
-  `transactions`, scoped to the team).
+- **Transactions** — the season's recorded transactions involving the team (passthrough of
+  Phase 1's `transactions`, scoped to the team). On the real DB this table is **draft-only**,
+  so the team page labels this space "Draft".
+- **Derived roster moves** (`analytics/transactions.py:derive_roster_moves`) — in-season
+  add/drop/retain reconstructed from **week-over-week `team_rosters` diffs** (a player first
+  seen after the opening week is an `add`; one that disappears is a `drop`; one drafted at the
+  opening week and kept is a `retain`; drop-then-readd is two stints). Tier-1 *shape only* — no
+  nfl.com scrape, exact dates, waiver-vs-FA, or FAAB bids (those are upstream, F-37 tier 2).
+  **Not gated on `is_scored`** (roster snapshots predate the scoring reconstruction). A season
+  with <2 snapshot weeks returns `available:false` → the UI renders a `DataGap`, never zeros.
 
 ## 10. Global search (`analytics/search.py`)
 

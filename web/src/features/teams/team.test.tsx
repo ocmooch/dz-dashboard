@@ -62,12 +62,28 @@ const TREND = {
 
 const TRANSACTIONS = { team_id: 10, season_year: 2017, transactions: [] };
 
+const ROSTER_MOVES = {
+  team_id: 10,
+  season_year: 2017,
+  is_scored: true,
+  available: true,
+  roster_weeks: [1, 2],
+  moves: [
+    { week: 1, player_id: 1, player_name: "Kept Player", position: "RB", action: "retain" },
+    { week: 2, player_id: 3, player_name: "Waiver Wendell", position: "RB", action: "add" },
+    { week: 2, player_id: 2, player_name: "Dropped D/ST", position: "DEF", action: "drop" },
+  ],
+};
+
+let rosterMoves: unknown = ROSTER_MOVES;
+
 function routeByPath(path: string) {
   if (path === "/v1/teams/{team_id}") return envelope(OVERVIEW);
   if (path === "/v1/teams/{team_id}/roster") return envelope(ROSTER);
   if (path === "/v1/teams/{team_id}/schedule") return envelope(SCHEDULE);
   if (path === "/v1/teams/{team_id}/scoring-trend") return envelope(TREND);
   if (path === "/v1/teams/{team_id}/transactions") return envelope(TRANSACTIONS);
+  if (path === "/v1/teams/{team_id}/roster-moves") return envelope(rosterMoves);
   throw new Error(`unexpected path ${path}`);
 }
 
@@ -86,6 +102,7 @@ function renderPage() {
 
 beforeEach(() => {
   get.mockReset();
+  rosterMoves = ROSTER_MOVES;
   get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
 });
 
@@ -121,8 +138,47 @@ describe("TeamPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an empty state when there are no transactions", async () => {
+  it("shows an empty state when there are no draft picks", async () => {
     renderPage();
-    expect(await screen.findByText(/No transactions/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No draft picks recorded/i)).toBeInTheDocument();
+  });
+
+  it("renders in-season add/drop rows with action pills and a retained count", async () => {
+    renderPage();
+    await screen.findByText("Waiver Wendell");
+    expect(screen.getByText("Dropped D/ST")).toBeInTheDocument();
+    expect(screen.getByText("add")).toBeInTheDocument();
+    expect(screen.getByText("drop")).toBeInTheDocument();
+    // Retained players are a de-emphasised secondary count, not full rows.
+    expect(screen.getByText(/1 player retained all season/i)).toBeInTheDocument();
+    expect(screen.queryByText("Kept Player")).not.toBeInTheDocument();
+  });
+
+  it("renders the roster-history gap (not zeros) when moves are unavailable", async () => {
+    rosterMoves = {
+      team_id: 10,
+      season_year: 2017,
+      is_scored: true,
+      available: false,
+      roster_weeks: [],
+      moves: [],
+    };
+    renderPage();
+    const gap = await screen.findByText(/Week-by-week roster history isn't available/i);
+    expect(gap).toBeInTheDocument();
+    expect(gap.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("shows 'No in-season moves' when there is churn-free retain-only history", async () => {
+    rosterMoves = {
+      team_id: 10,
+      season_year: 2017,
+      is_scored: true,
+      available: true,
+      roster_weeks: [1, 2],
+      moves: [{ week: 1, player_id: 1, player_name: "Kept Player", position: "RB", action: "retain" }],
+    };
+    renderPage();
+    expect(await screen.findByText(/No in-season moves/i)).toBeInTheDocument();
   });
 });

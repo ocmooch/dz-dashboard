@@ -183,6 +183,8 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     player_bio_unavailable: "Biographical data unavailable",
     unscored_tenure:
       "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
+    roster_history_unavailable:
+      "Week-by-week roster history isn't available for this season, so adds and drops can't be derived",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">
