@@ -40,9 +40,9 @@ def scored_window(session: Session) -> set[int]:
 def team_record_window(session: Session) -> set[int]:
     """Season ids that have team totals — any matchup with a non-null team score.
 
-    Historically wider than :func:`scored_window` (team scores were reconstructed
-    back to 2010 while per-player scoring began later). With the pre-2016
-    per-player reconstruction landed (F-51) the two windows now coincide, but the
+    Historically wider than :func:`scored_window` when team scores existed for
+    seasons before player scoring had been reconstructed. With the reconstruction
+    landed (F-51) the real-DB windows now coincide for completed seasons, but the
     split is kept data-driven so the records book stays correct if coverage ever
     diverges again (e.g. a current season with team totals but no scoring yet).
     """
@@ -77,9 +77,9 @@ def records_book(session: Session) -> dict[str, Any]:
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
     # Team/score/margin records span every season with team totals; player-level
-    # records stay scoped to the scored era. Both windows are data-driven — since
-    # the pre-2016 reconstruction landed (F-51) they coincide, but the split holds
-    # if a season ever has team totals without per-player scoring (e.g. in-progress).
+    # records stay scoped to the scored era. Both windows are data-driven; with
+    # F-51 they coincide on the real DB for completed seasons, but the split
+    # holds if a season ever has team totals without per-player scoring.
     team_season_ids = team_record_window(session)
     teams = _team_context(session)
 

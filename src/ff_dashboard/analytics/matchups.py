@@ -9,8 +9,8 @@ Two views, both built on Phase 1 facts (``matchups`` for the game result,
 * :func:`box_score` — both lineups with per-player league points + breakdown,
   bench points, the **optimal lineup** and "points left on the bench", and
   projection-vs-actual. Honest about gaps: a starter with no scored row (a DEF
-  whose team/week was never scored, or any unscored player) and an unscored
-  (pre-2016) season are surfaced, never rendered as zero.
+  whose team/week was never scored, or any unscored player) and a season with
+  no player scoring are surfaced, never rendered as zero.
 
 The optimal lineup is a real constrained max-assignment, not a heuristic: given
 the week's roster and the league's slot eligibility, it is the highest-scoring
@@ -374,7 +374,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     """Full box score for a matchup, or ``None`` if no such matchup (404).
 
     Returns an ``available: false`` payload (never zeros) when the matchup's
-    season predates player-level scoring (the pre-2016 gap).
+    season has no player-level scoring.
     """
     require_league(session)  # 503 when the pipeline has never run
     m = get_matchup(session, matchup_id)

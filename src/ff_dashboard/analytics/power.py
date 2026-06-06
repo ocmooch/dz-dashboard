@@ -21,9 +21,8 @@ minus power_rank, so the UI can show who the model rates above or below their re
 ("risers" and "fallers" — the Home top-movers strip).
 
 Inputs come from ``matchups.team_score`` (the authoritative team total) and the
-win record, both of which exist for every reconstructed season — so the power
-ranking is computed even for the pre-2016 record-only seasons. It does not need
-player-level scoring.
+win record, both of which exist for every season with reconstructed team totals.
+The model does not need player-level scoring.
 """
 
 from __future__ import annotations

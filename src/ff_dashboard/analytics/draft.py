@@ -20,8 +20,8 @@ regular-season scored total:
 Honest about gaps: a season with **no** captured draft transactions returns
 ``available: false`` rather than an invented board (the case for any league the
 reconstruction never captured). When picks exist but a pick references an
-unscored player (the pre-2016 scoring gap, a DST) — or its overall slot has no
-historical neighbours to anchor an expectation — the pick stays on the board but
+unscored player (a season/player scoring gap, a DST) — or its overall slot has
+no historical neighbours to anchor an expectation — the pick stays on the board but
 its value is ``available: false`` rather than a fake zero.
 """
 

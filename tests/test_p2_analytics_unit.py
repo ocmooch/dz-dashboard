@@ -153,9 +153,10 @@ def test_records_closest_rivalry(session: Session) -> None:
 
 def test_records_only_use_scored_era(session: Session) -> None:
     book = records_book(session)
-    assert book["scored_era"] == KNOWN["seasons_scored"]  # [2016, 2017]
-    # The best player week must come from a scored season, never 2015.
-    assert book["best_player_week"]["season_year"] in {2016, 2017}
+    assert book["scored_era"] == KNOWN["seasons_scored"]
+    # The best player week must come from a scored season, never a generic
+    # present-but-unscored gap season.
+    assert book["best_player_week"]["season_year"] in set(KNOWN["seasons_scored"])
 
 
 # --- Players + gap behavior ------------------------------------------------
