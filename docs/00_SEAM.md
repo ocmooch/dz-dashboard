@@ -7,11 +7,12 @@ diving in.
 
 ## Repo boundaries (who owns what)
 
-- **`../danger-zone` (Phase 1, package `ff_pipeline`, tag `v1.0.0`)** — *owns and produces the
+- **`../danger-zone` (Phase 1, package `ff_pipeline`)** — *owns and produces the
   data*. Crawlers (nflverse / Sleeper / nfl.com) → normalizer → scoring engine (dz-rules) →
   `reconstruct` / `backfill` → writes **`data/fantasy.db`** (a ~280 MB SQLite file) and one
   `pipeline_runs` row per run ("run #N"). It exposes its own read API too. **It is the only
-  thing that writes.**
+  thing that writes.** The active dashboard source is the editable sibling checkout, so it tracks
+  the current pipeline and live DB schema (including the ≥1.2.0 avatar columns).
 - **`dz-dashboard` (Phase 2)** — *read-only consumer*, in two halves:
   - **BFF** — `src/ff_dashboard/` (FastAPI). Computes derived metrics, serves `/v1/*`.
   - **SPA** — `web/` (Vite + React + TS). Pure presentation; holds no business logic.
@@ -23,10 +24,12 @@ diving in.
 ### 1. Python reuse seam (BFF ⇄ `ff_pipeline`)
 
 `dz-dashboard` depends on `ff-pipeline` as an **editable path dependency** (`../danger-zone`)
-in `pyproject.toml` `[tool.uv.sources]`; the reproducible / CI fallback is the pinned git tag
-`v1.0.0` (documented in the same block). `ff_pipeline` ships no `py.typed`, so the dashboard
-sets `follow_untyped_imports` for `ff_pipeline.*` — we consume its real types without editing
-Phase 1. The BFF imports a deliberately small surface:
+in `pyproject.toml` `[tool.uv.sources]`; the reproducible / CI fallback is a pinned git tag
+example (`v1.0.0` in the current snippet), but any pinned release must match the live DB schema
+the dashboard reads. The live DB now requires the ≥1.2.0 schema with team/owner avatar columns.
+`ff_pipeline` ships no `py.typed`, so the dashboard sets `follow_untyped_imports` for
+`ff_pipeline.*` — we consume its real types without editing Phase 1. The BFF imports a deliberately
+small surface:
 
 - `repository.models` — the ORM tables (`leagues, seasons, owners, teams, scoring_rules,
   players, team_rosters, player_availability, matchups, transactions, player_stats_raw,
@@ -75,10 +78,13 @@ changes and the whole cache is bypassed — invalidation is free and correct.
   pairwise head-to-head.
 - **Owner identity spans seasons and renames.** Career and rivalry math keys on `owner_id`,
   not `team_id` (teams are per-season).
-- **Scored era is 2016–2025.** 2010–2015 are record-only (`teams.final_rank` exists, no scored
-  points). Coverage flags ride on `/v1/meta`: `seasons_present`, `seasons_scored`,
-  `reconstruction_complete`, `availability_current_season_only` (true),
-  `dst_scoring_complete` (now data-derived — true once every scored season has scored DEF rows).
+- **Per-player fantasy scoring spans 2010–2025.** `player_stats_scored` covers the completed
+  historical window since the pre-2016 reconstruction landed (F-51). The only unscored season is
+  normally the current/in-progress one. Gap affordances are data-driven on the per-season
+  `is_scored` flag — never a hardcoded year. Coverage flags ride on `/v1/meta`:
+  `seasons_present`, `seasons_scored`, `reconstruction_complete`,
+  `availability_current_season_only` (true), `dst_scoring_complete` (now data-derived — true once
+  every scored season has scored DEF rows).
 - **Standings rank.** Prefer Phase 1's reconstructed `final_rank` (the NFL.com truth) for full
   seasons; otherwise compute wins-desc → points-for-desc, exposing `rank_basis` and a
   `tiebreak_caveat` flag (true when computed *and* season < 2019). Do not re-implement the

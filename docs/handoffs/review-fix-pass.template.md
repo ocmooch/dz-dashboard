@@ -46,8 +46,9 @@ STANDARDS & PROTOCOLS (hard rules — never violate):
 - No metric math in web/ — all math in ff_dashboard/analytics/. Never hand-edit web/src/lib/api/;
   change the BFF schema and run `npm run gen:api`.
 - Honesty: never render 0/dash for missing data — use available:false / DataGap. Keep the
-  raw-vs-scored coverage truth in mind (team totals/standings/rosters/drafts exist 2010–2015;
-  per-player fantasy scoring does not).
+  coverage truth in mind: per-player fantasy scoring now spans 2010–2025 since F-51; the normal
+  unscored gap is the current/in-progress season, and it is data-driven on `is_scored`, never a
+  hardcoded year.
 
 STAGE — do only this stage's work:
 - PLAN: write docs/plans/fix-{{PASS_ID}}-<name>.md — concrete scope, exact files to touch,

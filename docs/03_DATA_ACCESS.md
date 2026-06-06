@@ -57,7 +57,7 @@ do.
 | Player identity & cross-IDs (`players`) | 25,035 GSIS / 3,525 Sleeper resolved | **Solid** | Use freely; some obscure players lack IDs (0-point edge cases) |
 | Transactions (`transactions`) | per-season log, real | **Solid** | Use freely |
 | Standings / season metadata (`seasons`, `teams`: champion, final_rank, W-L-T, PF/PA) | reconstructed 2010–2025 | **Solid after the reconstruction run completes** (see note) | If a season lacks champion/records, show "season metadata pending" |
-| Per-week lineups (`team_rosters`: starters, points, locked) | reconstructed from gamecenter, 2010–2025 | **Solid after reconstruction**; pre-2016 lineups exist but carry no scored points | Pre-2016 box scores show lineup + NFL.com points if captured, but no league-scored breakdown |
+| Per-week lineups (`team_rosters`: starters, points, locked) | reconstructed from gamecenter, 2010–2025 | **Solid after reconstruction**; lineups exist for the historical window | Box scores show lineup + league-scored breakdown wherever the season is `is_scored:true`; a genuinely missing row renders a gap |
 | Full-season matchups (`matchups`) | all weeks, reconstructed | **Solid after reconstruction** | Use freely; playoff vs consolation bracket is **not** distinguished (see below) |
 | Player availability (`player_availability`: FA / owned / waivers) | **current season only** | **Absent for history** | Availability views are current-season-only; historical availability renders "not reconstructable" |
 | Team-defense / DST scoring | **2016–2025**, scored from nflverse team-defense rollups | **Solid 2016+** | DST starters carry real league points; a genuinely-missing team/week row still shows "not scored", never 0 |
@@ -66,14 +66,10 @@ do.
 
 ### Important reconstruction caveat (timing)
 
-At the time this package was written, Phase 1's **historical reconstruction code is complete
-and tested but the full 16-season run was pending** (`PHASE1_COMPLETION_PLAN.md` item C5,
-~2 hrs of live scraping). Phase 2 assumes that run has completed before the relevant views
-are built. **Prerequisite:** confirm `ff-pipeline reconstruct --start 2010 --end 2025` has
-run and `verify --sweep` meets the Phase 1 bar before building standings/matchup/box-score
-views. Build order in `09_ROADMAP.md` front-loads the views that depend only on
-already-solid data (players, stats, owners career from records) so work can start even if
-reconstruction is still finishing.
+Phase 1's historical reconstruction has completed, and F-51 added pre-2016 per-player scoring.
+If the DB is regenerated, confirm `ff-pipeline reconstruct --start 2010 --end 2025` plus the
+post-regen verification sweep before trusting standings/matchup/box-score views. Build order in
+`09_ROADMAP.md` still documents the original dependency sequencing.
 
 ### Specific gotchas the analytics layer must encode (not the frontend)
 

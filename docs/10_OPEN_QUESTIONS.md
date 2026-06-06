@@ -123,9 +123,10 @@ commit them, and add `playwright test visual` to the `e2e` job to close the gate
 - **Same git model** (`feature/*` → `dev` → `main`) and **AI commit trailers**
   (`AI-Model` / `Prompted-By` / `Reviewed-By`; never `Co-Authored-By: Claude`).
 - **No writes, no predictions, no pipeline control from the UI, localhost-only.**
-- **Honesty about data gaps is non-negotiable** — unscored 2010–2015, current-season-only
-  availability, and any genuinely-missing scored row (including a DST team/week) are surfaced,
-  never faked. DST is now scored end-to-end.
+- **Honesty about data gaps is non-negotiable** — an unscored current/in-progress season
+  (data-driven on `is_scored`), current-season-only availability, and any genuinely-missing
+  scored row (including a DST team/week) are surfaced, never faked. Per-player fantasy scoring now
+  spans 2010–2025 since F-51, and DST is now scored end-to-end.
 
 ---
 

@@ -1,5 +1,8 @@
 # P0 — Data-readiness note
 
+> **⚠️ Superseded historical snapshot (2026-05-29; pre-F-51 regen).** Current coverage truth lives
+> in [`../03_DATA_ACCESS.md`](../03_DATA_ACCESS.md); per-player scoring now spans 2010–2025.
+
 **Date:** 2026-05-29
 **DB:** `~/danger-zone/data/fantasy.db` (282 MB), read read-only by the dashboard.
 **Latest pipeline run:** `run_id=56`, status `success`.

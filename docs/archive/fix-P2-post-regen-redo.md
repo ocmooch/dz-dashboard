@@ -2,7 +2,7 @@
 
 Plan doc for redoing fix-pass **P2** after the 2026-06-06 `fantasy.db` regeneration changed the
 coverage premise. Use this as the BUILD/VERIFY guide for the P2 honesty layer; keep
-`docs/plans/fix-P2-honesty.md` as the historical PR #31 plan.
+`docs/archive/fix-P2-honesty.md` as the historical PR #31 plan.
 
 Base: `dev` after PR #33 (`feature/fix-F51-current-season-scoring`) is merged.
 Branch: `feature/fix-P2-post-regen-redo` -> PR to `dev`.

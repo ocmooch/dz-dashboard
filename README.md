@@ -14,8 +14,9 @@ Phase 2 is **two pieces plus a contract between them**:
    talks only to the `ff_dashboard` API via a client generated from the API's
    OpenAPI schema, and holds no business logic.
 
-> The full design package lives in `docs/` (`01_SPEC.md` … `10_OPEN_QUESTIONS.md`). Read
-> `docs/02_ARCHITECTURE.md` and `docs/03_DATA_ACCESS.md` first. The pre-build kickoff and
+> The full design package lives in `docs/` (`00_SEAM.md` … `10_OPEN_QUESTIONS.md`), with the
+> design handoff at `docs/DESIGN_HANDOFF.md`. Read `docs/00_SEAM.md`,
+> `docs/02_ARCHITECTURE.md`, and `docs/03_DATA_ACCESS.md` first. The pre-build kickoff and
 > prerequisites briefs are archived under `docs/archive/` for provenance.
 
 ## Relationship to Phase 1 (ff-pipeline)
@@ -97,9 +98,10 @@ make e2e-update        # refresh visual-regression baselines after an intended U
 
 - **Read-only.** No `INSERT/UPDATE/DELETE`; no imports of Phase 1 write/crawler code.
 - **All derived-metric math lives in `ff_dashboard/analytics/`** — never in the frontend.
-- **Honest about gaps.** Unscored 2010–2015, current-season-only availability, and any
-  genuinely-missing scored row (including a DST team/week) are surfaced via
-  `available:false`, never faked as zeros. DST itself is now scored end-to-end.
+- **Honest about gaps.** An unscored current/in-progress season (data-driven on `is_scored`),
+  current-season-only availability, and any genuinely-missing scored row (including a DST
+  team/week) are surfaced via `available:false`, never faked as zeros. Per-player fantasy scoring
+  now spans 2010–2025 since F-51; DST itself is now scored end-to-end.
 
 ## Status
 
@@ -107,4 +109,4 @@ Phase 2 is built end-to-end per `09_ROADMAP.md` (P0–P11): the analytics BFF, t
 full SPA (home, standings, power, matchups/box-score, rivalries, records,
 players, stats, draft, coverage, global search), one-command operations, and a
 both-domain test gate (analytics unit + contract, component/feature, and
-Playwright e2e/visual-regression). See the git log for the per-milestone history.
+Playwright e2e/visual-regression). See `CHANGELOG.md` for per-pass history.

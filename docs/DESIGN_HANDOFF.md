@@ -15,10 +15,11 @@ seasons of league history plus the live current season. Treat dz-dashboard as
 
 - **Repos:**
   - Dashboard: `github.com/ocmooch/dz-dashboard` (React + TS SPA in `web/`; read-only FastAPI BFF)
-  - Data pipeline: `github.com/ocmooch/danger-zone` (`v1.0.0`)
+  - Data pipeline: `github.com/ocmooch/danger-zone` (active source is the editable sibling checkout;
+    the live DB schema is ≥1.2.0 with team/owner avatar columns)
 - **Starting point:** the dashboard is built end-to-end (Home, Standings, Power,
   Matchups + Box score, Rivalries, Records, Players + detail, Stats, Draft,
-  Coverage/About; manager pages are still placeholder stubs). It is a point to
+  Coverage/About, Managers index + profiles). It is a point to
   iterate on, **not a constraint to preserve**.
 
 ## What's wanted
@@ -98,10 +99,12 @@ win/loss-colored) · `OwnerChip`/`PlayerChip`/`TeamChip` (avatar + name) ·
 
 ## Non-negotiables (these shape the UI, not just the backend)
 
-- **Honesty about data gaps.** Unscored pre-2016 seasons, current-season-only
-  availability, un-scored team defense, and never-met rivalries must render a
-  dedicated **`DataGap`** affordance (a labeled badge, e.g. "Not scored — pre-2016
-  season") — **never a fake `0`**. Design what this looks like; it appears throughout.
+- **Honesty about data gaps.** An unscored current/in-progress season, current-season-only
+  availability, a genuinely missing team-defense row, and never-met rivalries must render a
+  dedicated **`DataGap`** affordance (a labeled badge, e.g. "Current season not scored yet" or
+  "No meetings on record") — **never a fake `0`**. Per-player fantasy scoring now spans
+  2010–2025 since F-51; gap affordances are data-driven on `is_scored`, never hardcoded years.
+  Design what this looks like; it appears throughout.
 - **Every score/record/stat is monospaced + tabular** so numeric columns align.
 - **Accessibility is baseline:** WCAG AA contrast (verify orange-on-dark and muted
   text), visible focus rings, non-color encodings on charts (direct labels),
