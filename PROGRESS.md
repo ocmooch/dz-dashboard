@@ -35,9 +35,20 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
     *all* weeks, so it faithfully turns wk1 into fabricated churn (e.g. team 184/2024: 68 adds + 67 drops
     at wk1). **P4's derivation is logically correct on the input — the defect is upstream data.**
     Honesty rule ⇒ can't ship the card rendering this. **F-53 routed to UP/danger-zone; no dashboard
-    workaround** (read-only boundary; mirrors how F-50 blocked P3 until the regen). **NEXT:** await the
-    danger-zone wk1 fix, then re-run the P4 real-DB click-through (should pass with no code change) and
-    open the PR to `dev`. Branch `feature/fix-P4-transactions` stays open, build + docs committed.
+    workaround** (read-only boundary; mirrors how F-50 blocked P3 until the regen). Branch
+    `feature/fix-P4-transactions` stays open, build + docs committed.
+  - **F-53 FIXED in danger-zone (regen), confirmed 2026-06-06 → P4 UNBLOCKED.** Lightweight real-DB
+    recheck on `../danger-zone/data/fantasy.db`: for the 12 real franchises wk1∩wk2 player-id overlap
+    is now **0.71–0.88** across every season 2010–2025 (was 0–7/17), and wk1 holds period-correct
+    players (2010 wk1 → Dez Bryant, not Brock Purdy). The fabricated "68 adds + 67 drops at wk1" churn
+    is gone. **No dashboard code change** (as predicted). **Real-DB verification PASSED (2026-06-06):**
+    ran `/v1/teams/{id}/roster-moves` through the app (TestClient, default real DB) — team **184/2024**
+    (the original 68-adds/67-drops case) now returns **wk1 adds=2, drops=0**; 2010 team 13 → wk1 5/5
+    with period-correct players (Vinatieri, LT — no Brock Purdy); all-season totals are normal waiver
+    levels. **NEXT:** open the P4 PR to `dev` (optional: browser click-through of the card — the SPA
+    renders this BFF output verbatim). Residual non-blocker (separate identity artifact, not the churn
+    corruption): 1–2 phantom **week-1-only** teams per season with garbled/duplicate names, present
+    2010–2018, absent 2019/2023/2025 — belongs with the owner/team-identity work.
 - **fix-pass P2 redo (post-regen data honesty) — MERGED, PR #34 → `dev`.** DB regen
   changed the P2 premise: per-player scoring now spans **2010–2025**, so the historical
   `fix-P2-honesty.md` plan is stale for BUILD. New plan:
@@ -221,8 +232,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- **Next:** await the danger-zone fix for **F-53** (`team_rosters` week-1 corrupt placeholder
-  snapshots), then re-run P4 real-DB click-through and open the P4 PR to `dev`. P2 redo is merged
+- **Next:** **F-53 fixed in danger-zone → P4 unblocked AND real-DB-verified (2026-06-06).**
+  `/v1/teams/{id}/roster-moves` returns sane churn on the real DB (team 184/2024: wk1 2 adds/0 drops,
+  was 68/67). Only step left for P4 is **opening the PR to `dev`** (no code change). P2 redo is merged
   via PR #34. F-52 (`seasons.status` all `in_progress`) remains UP/danger-zone.
 
 - **Phase B complete.** B1–B3 shipped via PR #25 (merged to `dev`). B4 confirmed this

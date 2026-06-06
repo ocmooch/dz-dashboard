@@ -1016,6 +1016,15 @@ first (data/analytics foundations → analytics → views).
   week 0 the canonical opening/draft roster (so the fantasy weeks are 0-indexed), or should the opening
   roster live at week 1? P4's derivation treats the first present week as the opening roster either way,
   so it is robust to that choice once wk1 is not corrupt. → **assigned to UP.**
+  *(Resolved 2026-06-06: danger-zone regen fixed the wk1 snapshot. Lightweight real-DB recheck
+  on `../danger-zone/data/fantasy.db` — for the 12 real franchises, wk1∩wk2 player-id overlap is
+  now **0.71–0.88** of the roster across every season 2010–2025 (was 0–7/17), and wk1 holds
+  period-correct players (2010 wk1 → Dez Bryant, not Brock Purdy). The "68 adds + 67 drops at wk1"
+  fabricated churn is gone; real-team wk0→wk1 churn is now normal post-draft waiver activity. **P4
+  unblocked, no dashboard code change.** Residual (separate identity artifact, not this churn
+  corruption): 1–2 phantom **week-1-only** teams per season with duplicate/garbled names
+  ("JFCFPWCPGAWWLTDOSGT", "Rev Russell's Sunday Service") and ~2 matchups each, present 2010–2018,
+  absent in 2019/2023/2025 — relates to the owner/team-identity work, not F-53.)*
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.
