@@ -1,7 +1,7 @@
 # Prerequisites — Things to confirm/do before Phase 2 kickoff
 
 > **⚠️ Archived (historical).** These are the pre-build prerequisites, completed before Phase 2
-> started. The data-readiness outcome is recorded in [`../P0_DATA_READINESS.md`](../P0_DATA_READINESS.md);
+> started. The data-readiness outcome is recorded in [`P0_DATA_READINESS.md`](P0_DATA_READINESS.md);
 > the live operational playbook is [`../PHASE2_RUNBOOK.md`](../PHASE2_RUNBOOK.md). Kept for provenance.
 
 Phase 2 has far fewer human-only blockers than Phase 1 (no cookies, no secrets). The work

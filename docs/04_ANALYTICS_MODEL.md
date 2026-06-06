@@ -198,7 +198,7 @@ Mostly passthrough of Phase 1 facts, lightly aggregated for charts.
   (fix-pass P1 / F-31). Sums `total_points` only over **fantasy weeks** (`week <=
   championship_week` from the season-schedule model), so NFL post-season weeks don't inflate a
   player's season line. Same output shape as the old Phase-1 query (no contract change); an
-  unscored (pre-2016) season returns `[]`, never zero-filled rows. The Phase-1
+  unscored current/in-progress season returns `[]`, never zero-filled rows. The Phase-1
   `queries.season_totals` is left untouched (read-only cross-repo boundary).
 - **Availability (current season only)** — owned/FA/waivers per week from
   `player_availability`; historical seasons render the documented gap.
@@ -250,5 +250,5 @@ ranking (`/v1/seasons/{id}/power`) and arranges them — doing no math, only lay
 Each function above gets unit tests against a **small fixture database** with hand-computed
 expected answers (see `08_TESTING_STRATEGY.md`). The fixture encodes a few seasons, a known
 champion, a known blowout, a known steal-draft-pick, scored DST starters, and at least one
-data-gap case (an unscored 2015 season, a genuinely-missing DEF row) so the "honest about gaps"
+data-gap case (a synthetic unscored season, a genuinely-missing DEF row) so the "honest about gaps"
 behavior is tested, not assumed.

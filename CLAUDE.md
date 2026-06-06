@@ -64,6 +64,7 @@ dumps every test log hits the limit mid-milestone and stalls. Default to **less 
 
 | Doc | Read it when… | Usually need |
 |-----|---------------|--------------|
+| `docs/00_SEAM.md` | orienting on repo boundaries / Phase 1 seam | skim |
 | `docs/01_SPEC.md` | scope is unclear | a paragraph |
 | `docs/02_ARCHITECTURE.md` | adding a module/route | the layout block |
 | `docs/03_DATA_ACCESS.md` | touching DB reads / gaps | the gap table |
@@ -74,6 +75,8 @@ dumps every test log hits the limit mid-milestone and stalls. Default to **less 
 | `docs/08_TESTING_STRATEGY.md` | deciding what to test | the relevant test kind |
 | `docs/09_ROADMAP.md` | every milestone — confirm scope + "Done when" | the one P# row |
 | `docs/10_OPEN_QUESTIONS.md` | a decision is ambiguous | the one Q |
+
+Use `CHANGELOG.md` for pass/PR history; keep `PROGRESS.md` for current state only.
 
 Per-milestone deep-doc hints (from the roadmap): P3→06; P5→04 §3 + 05/07; P6→04 §4–7.
 

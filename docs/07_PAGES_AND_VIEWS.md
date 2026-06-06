@@ -34,7 +34,7 @@ The landing view; a glanceable cockpit for the current season.
 - **Endpoints:** `/v1/seasons/{id}/standings?through_week=`,
   `/v1/seasons/{id}/standings/timeline`.
 - **Components/charts:** `Table` (sortable), `RankFlow`, `WeekStepper`, `RecordLine`.
-- **Gaps:** 2010–2015 standings exist (record-only) → render normally; if season metadata is
+- **Gaps:** historical standings exist for 2010–2025 → render normally; if season metadata is
   pending, `DataGap`.
 
 ## Power ranking  `/power`
@@ -68,8 +68,9 @@ The landing view; a glanceable cockpit for the current season.
 - **Components/charts:** two-column lineup tables, `StackedBreakdown` per expandable player
   row, `Stat` for totals/bench/left-on-bench.
 - **Gaps:** a DST slot whose row is genuinely missing → `DataGap` "team defense not scored"
-  (DST is otherwise scored end-to-end); pre-2016 → breakdowns absent, show captured points only
-  with a note.
+  (DST is otherwise scored end-to-end); per-player scoring and breakdowns now exist for 2010–2025
+  since F-51; only an unscored current/in-progress season should show the season-unscored
+  affordance, driven by `is_scored`.
 
 ## Team  `/teams/{team_id}`
 
@@ -122,8 +123,9 @@ The landing view; a glanceable cockpit for the current season.
   history / dynasty timeline; best/worst draft picks ever.
 - **Endpoints:** `/v1/records`, `/v1/records/championships`, `/v1/records/draft`.
 - **Components:** record `Card`s, `Trophy`, dynasty `LineTrend`/timeline.
-- **Gaps:** scored-era records labeled "2016–2025"; record-only superlatives (titles) note
-  their broader range.
+- **Gaps:** player records use the scored player window (now 2010–2025); team-record
+  superlatives use `team_record_era`, and record-only superlatives (titles) note their broader
+  range.
 
 ## Players (index)  `/players`
 

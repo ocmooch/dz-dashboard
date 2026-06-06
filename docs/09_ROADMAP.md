@@ -125,7 +125,7 @@ error states present; e2e green.
 - Endpoints: week matchups, box-score.
 - Views: week matchups grid (+week-stepper), box score (two-column lineups, expandable
   `StackedBreakdown` per player, totals/bench/left-on-bench `Stat`s).
-- DST and pre-2016 gap handling via `DataGap`.
+- DST gaps and current/in-progress unscored-season handling via `DataGap`.
 
 **Done when:** box score matches a hand-checked matchup to the decimal; gaps render honestly;
 e2e (home → matchup → box score) green.

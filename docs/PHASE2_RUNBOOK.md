@@ -114,7 +114,9 @@ match the new schema; never edit `schema.d.ts` by hand.
   ```
 
   After swapping, run `uv lock && uv sync --extra dev`. The DB schema the tag produces must match
-  the `DATABASE_URL` you point at, or you'll see the schema-mismatch symptoms below.
+  the `DATABASE_URL` you point at, or you'll see the schema-mismatch symptoms below. The current
+  live DB requires the ≥1.2.0 schema with team/owner avatar columns; treat `v1.0.0` as the literal
+  fallback example in `pyproject.toml`, not as proof it matches today's DB.
 
 ---
 
@@ -138,11 +140,12 @@ success row.
 
 ### A view shows a gap banner / "not scored" instead of numbers
 
-Also expected. Documented gaps (unscored 2010–2015, current-season-only availability, a
-genuinely-missing DST team/week row) surface as `available:false` and render a `DataGap`, never a
-fake `0`. DST is otherwise scored end-to-end. Verify against `/v1/meta` coverage. Only worry if a
-season `/v1/meta` reports as *scored* (and `dst_scoring_complete:true`) shows a gap where data
-should exist.
+Also expected. Documented gaps (an unscored current/in-progress season, current-season-only
+availability, a genuinely-missing DST team/week row) surface as `available:false` and render a
+`DataGap`, never a fake `0`. Per-player fantasy scoring now spans 2010–2025 since F-51; the
+unscored-season affordance is driven by the per-season `is_scored` flag. DST is otherwise scored
+end-to-end. Verify against `/v1/meta` coverage. Only worry if a season `/v1/meta` reports as
+*scored* (and `dst_scoring_complete:true`) shows a gap where data should exist.
 
 ### Numbers look wrong
 
