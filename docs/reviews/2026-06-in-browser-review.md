@@ -813,11 +813,12 @@ first (data/analytics foundations → analytics → views).
 |------|----------|
 | **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
 | **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31** (no contract change; F-48 = presence flag stays true, value-accuracy gap → upstream) |
-| **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 |
+| **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 |
-| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27, F-37 (tier 2), F-49, F-50 |
+| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27 (data half ✅ landed → F-51), F-37 (tier 2), F-49, ~~F-50~~ ✅ regen, F-52 |
+| **Re-verify (post-regen) — pending a new pass** | **F-51** (pre-2016 reconstruction landed → P2 honesty affordances now over-claim; re-verify F-16/F-26/F-33/F-35 + P1 F-22 scored-window) |
 
 ---
 
@@ -944,7 +945,8 @@ first (data/analytics foundations → analytics → views).
   `made_playoffs` becomes derivable league-wide with no dashboard change. The dashboard guard already
   consumes the better data automatically. (`result` is unaffected — it derives from `final_rank`.)
 - **F-50 — stale on-disk `fantasy.db` is missing `teams.team_avatar_asset_id` / `owner_avatar_asset_id`
-  (surfaced by fix-pass P3 VERIFY).** danger-zone (ff-pipeline) advanced to **1.2.0**, adding
+  (surfaced by fix-pass P3 VERIFY). ✅ RESOLVED 2026-06-06 by the DB regen** (the new `fantasy.db`
+  carries both columns; app-wide 500s gone, P3 click-through completed). danger-zone (ff-pipeline) advanced to **1.2.0**, adding
   `team_avatar_asset_id` and `owner_avatar_asset_id` to the `teams` table, but the on-disk
   `../danger-zone/data/fantasy.db` was built by an older pipeline and lacks both columns. Any
   full-entity `select(Team)` therefore raises `OperationalError: no such column: teams.team_avatar_asset_id`
@@ -957,6 +959,27 @@ first (data/analytics foundations → analytics → views).
   works again and the P3 search click-through can complete. (Considered-and-deferred dashboard
   alternative: narrow each `select(Team)` to explicit columns so the dashboard tolerates an older DB —
   rejected for now in favor of the single upstream regen, to keep the read-only dashboard code uniform.)
+- **F-51 — pre-2016 per-player scoring reconstruction has LANDED in the DB → live honesty
+  affordances now over-claim a gap that is filled (surfaced by fix-pass P3 VERIFY, 2026-06-06).**
+  The regenerated `fantasy.db` now has `player_stats_scored` rows for **2010–2025** (~6,560/yr for
+  2010–2015; previously 2016–2025 only), and `/v1/seasons` reports `is_scored:true` for every
+  2010–2025 season. This is the **F-27 reconstruction landing** — a major data advance, not a defect.
+  **Impact:** the P2 honesty work (merged PR #31) is now *inverted* — the pre-2016 "Per-player scoring
+  not reconstructed" banners (F-16/F-35/F-33), the `season_unscored` / `pre2016_unscored_rostered`
+  DataGap reasons (F-26), and the season-selector "· no player scoring" label now describe a gap that
+  no longer exists, so the dashboard currently **mis-states** pre-2016 coverage. The P1 era-split
+  (F-22: team records over 2010–2025, player records over a `scored_window` that was 2016–2025) also
+  needs revisiting now that the scored window is 2010–2025. **Action:** a re-verify pass to retire/rework
+  the pre-2016 gap affordances and widen the scored window to the data (the affordances already derive
+  from `is_scored`/coverage, so much may self-correct — but it must be confirmed end-to-end, and the
+  reconstruction's *trustworthiness* should be sanity-checked before we present it as authoritative).
+  → resolves the data half of **F-27**; triggers re-verification of F-16/F-26/F-33/F-35 (P2) and F-22 (P1).
+- **F-52 — every season row is `status:in_progress`, including completed 2010–2025 (surfaced by
+  fix-pass P3 VERIFY, 2026-06-06).** The regenerated `seasons` table has `status = 'in_progress'` for
+  all **17** seasons; only 2026 should be in-progress. Any dashboard logic that keys on season status
+  (current-season detection, completed-season framing) will read every historical season as live.
+  Likely a pipeline regen artifact (status not finalised). → **UP:** danger-zone should set terminal
+  status on completed seasons; re-check any dashboard `status`-dependent rendering once corrected.
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.

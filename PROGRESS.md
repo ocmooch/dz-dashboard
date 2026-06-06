@@ -13,30 +13,34 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Active: fix-pass P3 (review-fixes program) — VERIFY done, but BLOCKED on a new
-  upstream finding (F-50) before the PR can open.** Branch `feature/fix-P3-search`.
-  Search scope/teams/hardening for F-44, F-45, F-47. Plan: `docs/plans/fix-P3-search.md`.
-  - **Gate is green** (fixture-based): backend **206 pytest**, ruff check + format clean,
-    mypy clean, write-safety clean (lone hit is the `engine.py` docstring); frontend
-    **gen:api no drift**, typecheck clean, **129 vitest**. e2e not in scope for P3 (data/api
-    pass; dropdown scroll F-46 is P5).
-  - **VERIFY surfaced F-50 (BLOCKER, routed to UP).** The real-DB click-through 500s
-    **app-wide**: ff-pipeline advanced to **1.2.0** (added `teams.team_avatar_asset_id` /
-    `owner_avatar_asset_id`) but the on-disk `fantasy.db` predates those columns, so every
-    full-entity `select(Team)` raises `no such column`. Confirmed 500 on `/v1/search`,
-    `/v1/owners`, `/v1/owners/{id}`, `/v1/seasons` (`search.py:100`, `owners.py:94`,
-    `standings.py:67/152`). Fixture tests can't catch it (fixture DB built from the 1.2.0
-    ORM → all columns present). **User decision: fix upstream** — regenerate `fantasy.db`
-    with the 1.2.0 pipeline in danger-zone; dashboard code unchanged (a VERIFY-time
-    `select(Team)`→explicit-columns narrowing of `search.py` was reverted for uniformity).
-    See review doc **F-50** + roadmap UP row + BUILD-log line.
-  - **Search itself is verified correct:** with a temporary column workaround the real DB
-    returned correct results — F-44 league-scoped player hits (`mahomes` only, no ghosts),
-    F-45 NFL synonym/abbrev players-by-team (`chiefs`/`KC`) + fantasy-team→`/managers/{owner}`
-    deep-links, F-47 hardening (`%`, `' OR 1=1--`, `<script>`, blank all inert/0 hits).
-  - **NEXT:** once danger-zone regenerates `fantasy.db` (F-50), re-run the real-DB
-    click-through on search, then open the P3 PR to `dev` with trailers and tick the roadmap.
-  - What shipped in BUILD (unchanged, on branch):
+- **fix-pass P3 (review-fixes program) — DONE, PR #32 open to `dev`.** Branch
+  `feature/fix-P3-search`. Search scope/teams/hardening for F-44, F-45, F-47. Plan:
+  `docs/plans/fix-P3-search.md`. **No API response-shape change** (`gen:api` no drift).
+  - **Gate green:** backend **206 pytest**, ruff check + format clean, mypy clean,
+    write-safety clean (lone hit is the `engine.py` docstring); frontend **gen:api no
+    drift**, typecheck clean, **129 vitest**. e2e not in scope for P3 (dropdown scroll
+    F-46 is P5).
+  - **Real-DB click-through done (post-regen):** F-44 `mahomes` → that player only (no
+    ghosts); F-45 `chiefs`/`KC`/`kansas city` → players-by-team, `new york` → NYG+NYJ,
+    fantasy names → `/managers/{owner}`; F-47 `%`,`_`,`' OR 1=1--`,`<script>`,`.*`,blank
+    → all 0 hits / inert.
+  - **F-50 resolved by the DB regen** (the original app-wide 500: ff-pipeline 1.2.0 added
+    `teams.team_avatar_asset_id`/`owner_avatar_asset_id`; the old `fantasy.db` lacked them).
+    Fixed upstream by regenerating the DB; no dashboard code change.
+  - **NEXT:** merge PR #32 → tick roadmap & review doc with the merge; delete branch.
+  - ⚠️ **The regen brought significant new data → two NEW findings, both outside P3:**
+    - **F-51 (HONESTY REGRESSION, live on `dev`)** — pre-2016 per-player scoring is now
+      reconstructed (`player_stats_scored` spans **2010–2025**, `is_scored:true` for all
+      2010–2025). This *inverts* the merged **P2** honesty work: the pre-2016 "no player
+      scoring" banners/DataGaps (F-16/F-26/F-33/F-35) and the season-selector label now
+      over-claim a gap that's filled, and **P1**'s F-22 scored-window (2016–2025) is stale.
+      Needs a **re-verify pass** (much may self-correct since affordances derive from
+      `is_scored`/coverage, but confirm end-to-end + sanity-check the reconstruction's
+      trustworthiness). Resolves the data half of **F-27**.
+    - **F-52 (likely pipeline artifact)** — every `seasons.status` is `in_progress` (all
+      17 rows incl. completed 2010–2025); only 2026 should be live. UP/danger-zone should
+      set terminal status; re-check any `status`-keyed dashboard rendering after.
+  - What shipped in BUILD:
   - **F-44** the player branch is now league-scoped — `global_search` calls
     `search_players(..., league_relevant=True)`; a never-rostered nflverse "ghost"
     never appears (mirrors `list_player_index`). The old `rank=None→1` over-match
