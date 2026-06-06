@@ -988,6 +988,34 @@ first (data/analytics foundations → analytics → views).
   (current-season detection, completed-season framing) will read every historical season as live.
   Likely a pipeline regen artifact (status not finalised). → **UP:** danger-zone should set terminal
   status on completed seasons; re-check any dashboard `status`-dependent rendering once corrected.
+  *(Note 2026-06-06: a later regen appears to have fixed this — `/v1/seasons` now reports
+  `status:"completed"` for 2010–2025 and `in_progress` only for 2026. Re-confirm on the live DB
+  before closing.)*
+- **F-53 — `team_rosters` week 1 is a corrupt/placeholder snapshot in every season (surfaced by
+  fix-pass P4 VERIFY, 2026-06-06).** On the regenerated `fantasy.db`, for **every** season 2010–2025
+  the `week = 1` roster snapshot is disjoint from both its `week = 0` neighbour (the genuine draft /
+  opening roster) and its `week = 2` neighbour (the settled in-season roster): player-id overlap is
+  **0–7 of 17** across all seasons (e.g. 2010 ROBZILLA `team_id=22`: wk1 ∩ wk0 = 0/17, wk1 ∩ wk2 =
+  0/17). The week-1 rows carry the correct `season_year` but reference anachronistic players — a 2010
+  team's week 1 lists modern players (Brock Purdy, Bucky Irving), identical to a 2016 team's week 1,
+  while that same team's weeks 0 and 2–17 hold genuine 2010 players (Roethlisberger, Joseph Addai).
+  **Why the rest of the app doesn't show it:** the existing `/v1/teams/{id}/roster` view renders a
+  single week (it defaults to the last available week, e.g. wk17, and its `weeks_available` already
+  excludes wk0), so it never surfaces the wk1 anomaly. **fix-pass P4's `derive_roster_moves` is the
+  first reader that diffs *all* weeks**, so it faithfully turns the corrupt wk1 into a storm of
+  fabricated adds (everyone in wk1) and drops (everyone gone by wk2), plus phantom drop-then-re-add of
+  the genuine roster across the wk0→wk1→wk2 gap (e.g. team 184/2024: 68 adds + 67 drops at wk1). The
+  dashboard derivation is **logically correct on the input**; the defect is the source data. **Impact:**
+  the P4 roster-moves card would render misleading churn for every season → violates the honesty rule;
+  P4's real-DB sign-off is **BLOCKED** until the data is corrected (mirrors how F-50 blocked P3). **UP
+  fix:** danger-zone should fix the week-1 snapshot ingestion (it looks like a placeholder/seed roster
+  written at week 1, or week-0/week-1 indexing being off-by-one with a bad seed). No dashboard code
+  change — encoding a "skip week 1" workaround would be a fragile patch over corrupt data and is
+  rejected (read-only boundary; stop at the dashboard boundary). Once week 1 is consistent with its
+  neighbours, P4 derives correct adds/drops with no code change. **Open question for danger-zone:** is
+  week 0 the canonical opening/draft roster (so the fantasy weeks are 0-indexed), or should the opening
+  roster live at week 1? P4's derivation treats the first present week as the opening roster either way,
+  so it is robust to that choice once wk1 is not corrupt. → **assigned to UP.**
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.

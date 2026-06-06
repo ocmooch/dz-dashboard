@@ -25,10 +25,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   add) + mav-2015 unscored 2-week scenario ("Vintage Vince" retain). One prior known answer updated
   legitimately — cmc's 2016 ownership span is now weeks 1–2 (cmc gained a wk2 row). **Scoped tests
   green:** 211 backend pytest, 8 team-page vitest. Plan: `docs/plans/fix-P4-transactions.md`.
-  - **NEXT (VERIFY):** run the full green gate once (ruff/mypy/writecheck; gen:api drift + typecheck +
-    full vitest); click through a team page on the real DB (a season with mid-season churn + a
-    no-snapshot season); open the PR to `dev` with trailers; tick roadmap ☑ + mark F-37 (tier 1) with
-    the PR number.
+  - **VERIFY (2026-06-06): full gate GREEN, but real-DB click-through found a BLOCKER → P4 PR held.**
+    Gate: backend **211 pytest** + ruff + mypy + write-safety clean; frontend **gen:api no drift** +
+    typecheck + **132 vitest** clean. Real-DB run of `/v1/teams/{id}/roster-moves` surfaced **F-53**:
+    `team_rosters` **week 1 is a corrupt/placeholder snapshot in every season 2010–2025** — disjoint
+    (0–7/17 player-id overlap) from wk0 (the genuine draft roster) and wk2+ (the settled roster); a 2010
+    team's wk1 lists modern players (Brock Purdy, Bucky Irving), identical to a 2016 team's wk1. The
+    existing single-week roster view hides this (it renders only wk17); P4 is the first reader to diff
+    *all* weeks, so it faithfully turns wk1 into fabricated churn (e.g. team 184/2024: 68 adds + 67 drops
+    at wk1). **P4's derivation is logically correct on the input — the defect is upstream data.**
+    Honesty rule ⇒ can't ship the card rendering this. **F-53 routed to UP/danger-zone; no dashboard
+    workaround** (read-only boundary; mirrors how F-50 blocked P3 until the regen). **NEXT:** await the
+    danger-zone wk1 fix, then re-run the P4 real-DB click-through (should pass with no code change) and
+    open the PR to `dev`. Branch `feature/fix-P4-transactions` stays open, build + docs committed.
 - **F-51 (post-regen honesty reframe) — DONE on `feature/fix-F51-current-season-scoring`; PR → `dev`.**
   The `fantasy.db` regen reconstructed pre-2016 per-player scoring (`player_stats_scored` now spans
   **2010–2025**, `is_scored:true` for every completed season), so P2's hardcoded "pre-2016 unscored"
