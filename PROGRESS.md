@@ -25,8 +25,61 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   2026 shows the new banner, 2010–2025 show none, About reads "Per-player scoring covers 2010–2025".
   Branch-ordering: F-51's *finding* entry is on PR #32 (fix-P3); merge **#32 first** to avoid a trivial
   duplicate-F-51 doc conflict. F-52 (`seasons.status` all `in_progress`) → danger-zone/UP.
-- **Active: fix-pass P2 (review-fixes program) — VERIFY complete on branch
-  `feature/fix-P2-honesty`; **PR #31** open → `dev`.** Data honesty &
+- **fix-pass P3 (review-fixes program) — MERGED, PR #32 → `dev`.** Branch
+  `feature/fix-P3-search`. Search scope/teams/hardening for F-44, F-45, F-47. Plan:
+  `docs/plans/fix-P3-search.md`. **No API response-shape change** (`gen:api` no drift).
+  - **Gate green:** backend **206 pytest**, ruff check + format clean, mypy clean,
+    write-safety clean (lone hit is the `engine.py` docstring); frontend **gen:api no
+    drift**, typecheck clean, **129 vitest**. e2e not in scope for P3 (dropdown scroll
+    F-46 is P5).
+  - **Real-DB click-through done (post-regen):** F-44 `mahomes` → that player only (no
+    ghosts); F-45 `chiefs`/`KC`/`kansas city` → players-by-team, `new york` → NYG+NYJ,
+    fantasy names → `/managers/{owner}`; F-47 `%`,`_`,`' OR 1=1--`,`<script>`,`.*`,blank
+    → all 0 hits / inert.
+  - **F-50 resolved by the DB regen** (the original app-wide 500: ff-pipeline 1.2.0 added
+    `teams.team_avatar_asset_id`/`owner_avatar_asset_id`; the old `fantasy.db` lacked them).
+    Fixed upstream by regenerating the DB; no dashboard code change.
+  - **NEXT:** merge PR #32 → tick roadmap & review doc with the merge; delete branch.
+  - ⚠️ **The regen brought significant new data → two NEW findings, both outside P3:**
+    - **F-51 (HONESTY REGRESSION, live on `dev`)** — pre-2016 per-player scoring is now
+      reconstructed (`player_stats_scored` spans **2010–2025**, `is_scored:true` for all
+      2010–2025). This *inverts* the merged **P2** honesty work: the pre-2016 "no player
+      scoring" banners/DataGaps (F-16/F-26/F-33/F-35) and the season-selector label now
+      over-claim a gap that's filled, and **P1**'s F-22 scored-window (2016–2025) is stale.
+      Needs a **re-verify pass** (much may self-correct since affordances derive from
+      `is_scored`/coverage, but confirm end-to-end + sanity-check the reconstruction's
+      trustworthiness). Resolves the data half of **F-27**.
+    - **F-52 (likely pipeline artifact)** — every `seasons.status` is `in_progress` (all
+      17 rows incl. completed 2010–2025); only 2026 should be live. UP/danger-zone should
+      set terminal status; re-check any `status`-keyed dashboard rendering after.
+  - What shipped in BUILD:
+  - **F-44** the player branch is now league-scoped — `global_search` calls
+    `search_players(..., league_relevant=True)`; a never-rostered nflverse "ghost"
+    never appears (mirrors `list_player_index`). The old `rank=None→1` over-match
+    coercion is **dropped**: a candidate whose `_match_rank` is `None` is skipped,
+    which also neutralises Phase-1 `ilike` `%`/`_` wildcards dashboard-side.
+  - **F-45** new `analytics/nfl_teams.py:resolve_nfl_teams(q)` (static 32-team
+    city/nickname/abbrev table; multi-team metros → list). NFL-team tokens expand
+    into that team's league-relevant players (deduped, no standalone team hit).
+    New fantasy-team branch over `Team`: a `team_name` match emits a `type="team"`
+    hit deep-linking to `/managers/{owner_id}` (the owner who held it), collapsing
+    a reused name to its most-recent owner. `_TYPE_RANK` is now owner>team>season>player.
+  - **F-47** new `tests/test_search.py` (24 tests): league scope, NFL synonyms,
+    players-by-team scoping, fantasy-name match + dedup, and the hardening suite
+    (LIKE wildcards, SQL injection, regex metachars, `<script>`, blank/whitespace
+    all inert). Frontend: no `dangerouslySetInnerHTML` in `web/src/` → React
+    escaping covers render-side XSS; no P5 item needed.
+  - **Fixture** (`tests/conftest.py`): added a never-rostered ghost "Ghost
+    McCaffrey" (SF, shares cmc's substring) and three distinctive `team_name`s
+    ("Northvale Scumbags" viper-2017; "Dynasty Crew" slider-2015 & goose-2016 for
+    dedup). Preserves P1's 2015 bracket / 2017 wk4 cap rows.
+  - **Deviation:** the plan's F-45 positive cases (planned on jjet=MIN) were
+    re-pointed at **cmc=SF** because jjet is the fixture's deliberate never-rostered
+    scope example; jjet=MIN now serves the exclusion case. See roadmap BUILD log.
+  - **NEXT (VERIFY):** run the green gate once (incl. `gen:api` drift + vitest +
+    frontend typecheck); click through the search dropdown on the real DB; open the
+    PR to `dev` with trailers; tick roadmap ☑ + mark F-44/45/47 with the PR number.
+- **fix-pass P2 (review-fixes program) — MERGED.** **PR #31** merged → `dev`. Data honesty &
   affordance precision for findings F-16, F-35, F-26, F-33, F-48, F-43. Plan:
   `docs/plans/fix-P2-honesty.md`. **Full gate green:** backend **188 pytest** (+6 harness), ruff
   check + format clean, mypy clean, write-safety clean; frontend **gen:api no drift**, typecheck
@@ -139,14 +192,16 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
   `docs/plans/players-audit-dashboard.md`.
 
-## Files that matter now (fix-pass P2)
+## Files that matter now (fix-pass P3)
 
-- `tests/test_coverage_integrity.py` — the F-43 gap-validation harness
-- `web/src/design-system/index.tsx` — `PRE2016_GAP_NOTE` + `DataGap` reason map (shared copy)
-- `web/src/features/{matchups/MatchupsPage,teams/TeamPage,stats/StatsPage}.tsx` — pre-2016 banners
-- `web/src/features/players/PlayerDetailPage.tsx` — F-26 unscored-era affordance
-- `src/ff_dashboard/analytics/coverage.py` + `docs/03_DATA_ACCESS.md` — F-48 flag-meaning reconcile
-- `docs/plans/fix-P2-honesty.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
+- `src/ff_dashboard/analytics/search.py` — `global_search`: league scope, fantasy-team
+  + NFL-team-expander branches, input hardening
+- `src/ff_dashboard/analytics/nfl_teams.py` — `resolve_nfl_teams(q)` synonym table
+- `tests/test_search.py` — F-44/45/47 functional + security suite
+- `tests/test_p10_search_unit.py` — updated ranking/href tests (jjet→cmc, team-hit)
+- `tests/conftest.py` — ghost player + distinctive `team_name`s
+- `docs/05_API_CONTRACT.md` — `/v1/search` match classes (no shape change)
+- `docs/plans/fix-P3-search.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
 
 ## Open items / deviations
 

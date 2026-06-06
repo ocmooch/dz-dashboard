@@ -813,11 +813,12 @@ first (data/analytics foundations → analytics → views).
 |------|----------|
 | **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
 | **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31** (no contract change; F-48 = presence flag stays true, value-accuracy gap → upstream) |
-| **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 |
+| **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 |
-| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27, F-37 (tier 2), F-49 |
+| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27 (data half ✅ landed → F-51), F-37 (tier 2), F-49, ~~F-50~~ ✅ regen, F-52 |
+| **Re-verify (post-regen) — pending a new pass** | **F-51** (pre-2016 reconstruction landed → P2 honesty affordances now over-claim; re-verify F-16/F-26/F-33/F-35 + P1 F-22 scored-window) |
 
 ---
 
@@ -943,21 +944,50 @@ first (data/analytics foundations → analytics → views).
   a per-season `playoff_teams` count) in `ff_pipeline` so the bracket is distinguishable; once it lands,
   `made_playoffs` becomes derivable league-wide with no dashboard change. The dashboard guard already
   consumes the better data automatically. (`result` is unaffected — it derives from `final_rank`.)
-- **F-51 — pre-2016 per-player scoring reconstruction landed → honesty affordances reframed
-  (surfaced by fix-pass P3 VERIFY 2026-06-06; ✅ resolved by this PR).** A `fantasy.db` regen now
-  populates `player_stats_scored` for **2010–2025** (`is_scored:true` for every completed season);
-  the only unscored season is now the current/in-progress one (2026). The merged P1/P2 honesty work
-  had hardcoded a "pre-2016 / 2010–2015 / not reconstructed" framing in the *copy*, which inverted into
-  an over-claim (and rendered nonsensically when shown for 2026). **Fix (frontend copy + semantics,
-  no gating-logic change — all gates were already data-driven on `is_scored`):** `PRE2016_GAP_NOTE`→
-  `UNSCORED_SEASON_NOTE` (year-agnostic, no false team-completeness claim); reworded the
-  `season_unscored` DataGap label; replaced the player-detail `pre2016_unscored_rostered` branch with a
-  generalized, data-driven `unscored_tenure` (player has no scored season within their rostered span —
-  covers a current-season-only player too); reframed the About-page coverage copy; updated stale
-  `records.py` window comments and the live docs (CLAUDE.md, 03/04/06). Verified on the **real DB**
-  (built SPA, single-origin): 2026 matchups/stats show the new banner, 2010–2025 show none, About reads
-  "Per-player scoring covers 2010–2025". Resolves the *dashboard* half; the data half is F-27 (UP).
-  (NB: the F-50/F-52 finding entries live on PR #32 — F-52 = `seasons.status` all `in_progress`, → UP.)
+- **F-50 — stale on-disk `fantasy.db` is missing `teams.team_avatar_asset_id` / `owner_avatar_asset_id`
+  (surfaced by fix-pass P3 VERIFY). ✅ RESOLVED 2026-06-06 by the DB regen** (the new `fantasy.db`
+  carries both columns; app-wide 500s gone, P3 click-through completed). danger-zone (ff-pipeline) advanced to **1.2.0**, adding
+  `team_avatar_asset_id` and `owner_avatar_asset_id` to the `teams` table, but the on-disk
+  `../danger-zone/data/fantasy.db` was built by an older pipeline and lacks both columns. Any
+  full-entity `select(Team)` therefore raises `OperationalError: no such column: teams.team_avatar_asset_id`
+  → **HTTP 500**. This breaks the dashboard **app-wide on the real DB**, not just search: confirmed 500
+  on `/v1/owners`, `/v1/owners/{id}`, `/v1/seasons`, and `/v1/search`; the offending reads are
+  `analytics/search.py:100`, `analytics/owners.py:94`, `analytics/standings.py:67`, `analytics/standings.py:152`.
+  Fixture tests don't catch it because the fixture DB is built from the live 1.2.0 ORM (every column
+  present). **UP fix (chosen):** regenerate `fantasy.db` with the 1.2.0 pipeline in danger-zone so the
+  columns exist; no dashboard code change. Once the DB is regenerated, every full-entity `select(Team)`
+  works again and the P3 search click-through can complete. (Considered-and-deferred dashboard
+  alternative: narrow each `select(Team)` to explicit columns so the dashboard tolerates an older DB —
+  rejected for now in favor of the single upstream regen, to keep the read-only dashboard code uniform.)
+- **F-51 — pre-2016 per-player scoring reconstruction has LANDED in the DB → live honesty
+  affordances now over-claim a gap that is filled (surfaced by fix-pass P3 VERIFY, 2026-06-06).**
+  The regenerated `fantasy.db` now has `player_stats_scored` rows for **2010–2025** (~6,560/yr for
+  2010–2015; previously 2016–2025 only), and `/v1/seasons` reports `is_scored:true` for every
+  2010–2025 season. This is the **F-27 reconstruction landing** — a major data advance, not a defect.
+  **Impact:** the P2 honesty work (merged PR #31) is now *inverted* — the pre-2016 "Per-player scoring
+  not reconstructed" banners (F-16/F-35/F-33), the `season_unscored` / `pre2016_unscored_rostered`
+  DataGap reasons (F-26), and the season-selector "· no player scoring" label now describe a gap that
+  no longer exists, so the dashboard currently **mis-states** pre-2016 coverage. The P1 era-split
+  (F-22: team records over 2010–2025, player records over a `scored_window` that was 2016–2025) also
+  needs revisiting now that the scored window is 2010–2025. **Action:** a re-verify pass to retire/rework
+  the pre-2016 gap affordances and widen the scored window to the data (the affordances already derive
+  from `is_scored`/coverage, so much may self-correct — but it must be confirmed end-to-end, and the
+  reconstruction's *trustworthiness* should be sanity-checked before we present it as authoritative).
+  → resolves the data half of **F-27**; triggers re-verification of F-16/F-26/F-33/F-35 (P2) and F-22 (P1).
+  **✅ DASHBOARD HALF RESOLVED by PR #33** (`feature/fix-F51-current-season-scoring`): copy + semantics
+  reframe, no gating change (every gate was already data-driven on `is_scored`) — `PRE2016_GAP_NOTE`→
+  `UNSCORED_SEASON_NOTE` (year-agnostic, drops the false team-completeness claim); reworded the
+  `season_unscored` label; player-detail `pre2016_unscored_rostered`→ generalized data-driven
+  `unscored_tenure` (no scored season in the rostered span); reframed About copy; updated `records.py`
+  comments + live docs (CLAUDE.md, 03/04/06). Verified on the **real DB** (built SPA): 2026 shows the
+  new banner, 2010–2025 show none, About reads "Per-player scoring covers 2010–2025". The data half
+  (F-27) and **F-52** remain upstream (UP/danger-zone).
+- **F-52 — every season row is `status:in_progress`, including completed 2010–2025 (surfaced by
+  fix-pass P3 VERIFY, 2026-06-06).** The regenerated `seasons` table has `status = 'in_progress'` for
+  all **17** seasons; only 2026 should be in-progress. Any dashboard logic that keys on season status
+  (current-season detection, completed-season framing) will read every historical season as live.
+  Likely a pipeline regen artifact (status not finalised). → **UP:** danger-zone should set terminal
+  status on completed seasons; re-check any dashboard `status`-dependent rendering once corrected.
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule
   slice config-driven; UP/F-27 builds the scoring slice; user supplies switch-years and ownership.
