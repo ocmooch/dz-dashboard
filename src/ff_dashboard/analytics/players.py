@@ -90,8 +90,8 @@ def list_player_index(
 def player_scoring(session: Session, player_id: int, season_year: int) -> dict[str, Any] | None:
     """Weekly league points (+ breakdown) for a (player, season).
 
-    Returns ``available: false`` for unscored seasons (e.g. 2010-2015) rather
-    than an empty/zero series.
+    Returns ``available: false`` for seasons with no scored rows rather than an
+    empty/zero series.
     """
     if get_player(session, player_id) is None:
         return None

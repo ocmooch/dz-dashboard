@@ -13,6 +13,20 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+- **fix-pass P2 redo (post-regen data honesty) — VERIFIED green.** DB regen
+  changed the P2 premise: per-player scoring now spans **2010–2025**, so the historical
+  `fix-P2-honesty.md` plan is stale for BUILD. New plan:
+  `docs/plans/fix-P2-post-regen-redo.md`. This BUILD updated the F-43 coverage harness away from
+  hardcoded pre-2016 absence assumptions, kept the fixture's 2015 season as a **synthetic generic
+  unscored gap**, made records tests assert against `KNOWN["seasons_scored"]`, and cleaned stale
+  analytics comments. No DB writes and no API shape change. **Full VERIFY:** backend **206 pytest**,
+  ruff clean, mypy clean, write-safety grep only the known `engine.py` docstring; frontend
+  contract no drift, typecheck clean, **129 vitest**, `npm run lint` N/A (no script), SPA build
+  clean. **Real-DB checks:** 2010/2015/2025 `is_scored:true`; 2026 `is_scored:false`; meta and
+  records report scored window **2010–2025**; 2010/2015/2025 box scores are available with real
+  lineups; Arian Foster 2010 scoring is available (16 weeks, 368.8 pts); Arian Foster 2026 scoring
+  returns `season_unscored`; built SPA routes `/`, `/matchups`, `/stats`, `/players/8299`,
+  `/records` serve single-origin.
 - **F-51 (post-regen honesty reframe) — DONE on `feature/fix-F51-current-season-scoring`; PR → `dev`.**
   The `fantasy.db` regen reconstructed pre-2016 per-player scoring (`player_stats_scored` now spans
   **2010–2025**, `is_scored:true` for every completed season), so P2's hardcoded "pre-2016 unscored"
@@ -182,6 +196,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
+- **Next:** commit/open PR for the P2 redo once the branch base/ownership is settled; leave
+  F-52 (`seasons.status` all `in_progress`) in UP/danger-zone.
+
 - **Phase B complete.** B1–B3 shipped via PR #25 (merged to `dev`). B4 confirmed this
   session — see below. No Phase B work remaining.
 
@@ -192,16 +209,16 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   found 0 firing. Guard kept as defense-in-depth; no code change. See Phase B in
   `docs/plans/players-audit-dashboard.md`.
 
-## Files that matter now (fix-pass P3)
+## Files that matter now (fix-pass P2 redo)
 
-- `src/ff_dashboard/analytics/search.py` — `global_search`: league scope, fantasy-team
-  + NFL-team-expander branches, input hardening
-- `src/ff_dashboard/analytics/nfl_teams.py` — `resolve_nfl_teams(q)` synonym table
-- `tests/test_search.py` — F-44/45/47 functional + security suite
-- `tests/test_p10_search_unit.py` — updated ranking/href tests (jjet→cmc, team-hit)
-- `tests/conftest.py` — ghost player + distinctive `team_name`s
-- `docs/05_API_CONTRACT.md` — `/v1/search` match classes (no shape change)
-- `docs/plans/fix-P3-search.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
+- `docs/plans/fix-P2-post-regen-redo.md` — source of truth for the post-regen BUILD/VERIFY pass
+- `tests/test_coverage_integrity.py` — update stale pre-2016 absence assertions
+- records test module / `src/ff_dashboard/analytics/records.py` — verify scored windows derive from
+  current `is_scored` coverage
+- `web/src/design-system/index.tsx` — shared unscored-season `DataGap` copy
+- `web/src/features/{matchups,teams,stats,players}/` — stale gap copy/tests
+- `web/src/app/shell/AppShell.tsx` — season selector unscored label
+- `docs/plans/REVIEW_FIXES_ROADMAP.md` · `docs/reviews/2026-06-in-browser-review.md`
 
 ## Open items / deviations
 

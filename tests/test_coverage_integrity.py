@@ -6,14 +6,17 @@ found the honesty layer over-claiming (F-16/F-22/F-25/F-31/F-35). The
 assertions are **invariants/relationships**, not fixture-specific magic numbers,
 so they hold on the real DB too:
 
-* per-player scoring is absent before 2016 while team totals are present
-  (F-16/F-31/F-35 — "complete 2010-2015 team data must not read as incomplete");
+* seasons with per-player scoring are discovered from ``player_stats_scored``,
+  never from a hardcoded era;
+* present-but-unscored seasons can still carry team totals, so team data must not
+  read as incomplete just because player scoring is unavailable (F-16/F-31/F-35);
 * the player index never leaks never-rostered players (F-25/F-44);
 * the records windows match their coverage — team records span all team-totals
   seasons, player records stay in the scored era (F-22);
 * the ``dst_scoring_complete`` flag agrees with the scored DEF rows (F-48).
 
-Read-only, against the conftest fixture (2015 unscored; 2016/2017 scored).
+Read-only, against the conftest fixture (one generic unscored gap season plus
+scored seasons).
 """
 
 from __future__ import annotations
@@ -40,11 +43,6 @@ from ff_dashboard.analytics.records import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
-# The player-scored era begins in 2016; the pipeline never reconstructed
-# per-player fantasy points for 2010-2015 (only team totals exist). This is the
-# coverage truth every pre-2016 affordance must respect.
-FIRST_SCORED_YEAR = 2016
-
 
 def _matchups_with_team_scores(session: Session, year: int) -> int:
     """Count matchup rows carrying a real team score for a given season year."""
@@ -57,29 +55,28 @@ def _matchups_with_team_scores(session: Session, year: int) -> int:
     )
 
 
-def test_player_scoring_absent_pre_2016(session: Session) -> None:
-    """No season before 2016 carries per-player scoring; scored ⊆ present."""
+def test_player_scoring_window_is_data_driven(session: Session) -> None:
+    """Scored seasons are discovered from rows; scored ⊆ present."""
     scored = seasons_scored(session)
     present = seasons_present(session)
     assert scored, "fixture must have at least one scored season"
-    assert min(scored) >= FIRST_SCORED_YEAR
     assert set(scored) <= set(present)
-    # The exact F-16/F-31 case: a present-but-unscored historical season exists,
-    # so the affordance has something honest to scope to.
-    assert set(present) - set(scored), "expected an unscored historical season"
+    # The fixture keeps one present-but-unscored season so the affordance has a
+    # generic gap case to scope to. This must not imply a calendar-era rule.
+    assert set(present) - set(scored), "expected a present unscored gap season"
 
 
-def test_team_totals_present_in_unscored_era(session: Session) -> None:
+def test_team_totals_present_in_unscored_seasons(session: Session) -> None:
     """Present-but-unscored seasons still carry real team scores (F-16/F-35).
 
-    The explicit gap case: an unscored season (2015 in the fixture) has matchups
-    with non-null team scores, so team results/standings/rosters are complete
-    even where per-player scoring is absent. Labeling those seasons "incomplete"
-    is the over-claim the review caught.
+    The explicit gap case has matchups with non-null team scores, so team
+    results/standings/rosters can be complete even where per-player scoring is
+    absent. Labeling those seasons "incomplete" is the over-claim the review
+    caught.
     """
     scored = set(seasons_scored(session))
     unscored_present = [y for y in seasons_present(session) if y not in scored]
-    assert unscored_present, "fixture must include an unscored historical season"
+    assert unscored_present, "fixture must include a present unscored gap season"
     for year in unscored_present:
         assert _matchups_with_team_scores(session, year) > 0, (
             f"unscored season {year} must still have complete team scores"
@@ -108,7 +105,7 @@ def test_records_windows_match_coverage(session: Session) -> None:
     team_window = team_record_window(session)
     player_window = scored_window(session)
     # Player-record window is the scored era; team-record window is wider/equal
-    # (team totals reconstructed back through the unscored era).
+    # when team totals exist for an unscored season.
     assert player_window <= team_window
     # Team window must cover every season that actually has team scores.
     seasons_with_scores = {
