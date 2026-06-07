@@ -216,6 +216,7 @@ export function WeekStepper({
   max: number;
   onChange: (week: number) => void;
 }) {
+  const weeks = Array.from({ length: Math.max(0, max - min + 1) }, (_, i) => min + i);
   return (
     <div className="inline-flex items-center gap-2" role="group" aria-label="Week">
       <Button
@@ -226,7 +227,22 @@ export function WeekStepper({
       >
         ‹
       </Button>
-      <span className="num text-[var(--fs-sm)] text-muted">Wk {week}</span>
+      <label className="sr-only" htmlFor="week-stepper-select">
+        Select week
+      </label>
+      <select
+        id="week-stepper-select"
+        className="dz-select num w-[5.75rem] py-1 text-[var(--fs-sm)]"
+        aria-label="Select week"
+        value={week}
+        onChange={(e) => onChange(Number(e.target.value))}
+      >
+        {weeks.map((w) => (
+          <option key={w} value={w}>
+            Wk {w}
+          </option>
+        ))}
+      </select>
       <Button
         variant="ghost"
         aria-label="Next week"

@@ -32,6 +32,7 @@ describe("cartesian chart wrappers", () => {
       <RankFlow data={data} series={series} xKey="wk" xLabel="Week" title="Rank flow" teamCount={2} />,
     );
     expect(screen.getByRole("figure", { name: "Rank flow" })).toBeInTheDocument();
+    expect(screen.getAllByText("Alpha").length).toBeGreaterThan(0);
   });
 });
 

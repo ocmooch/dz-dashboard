@@ -48,6 +48,9 @@ describe("ManagersPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /Points For/ }));
     // By points-for, Bravo (7000) leads Alpha (6000).
     expect(order()[0]).toContain("Bravo");
+
+    await userEvent.click(screen.getByRole("button", { name: /Points For/ }));
+    expect(order()[0]).toContain("Alpha");
   });
 
   it("shows an error state when the request fails", async () => {

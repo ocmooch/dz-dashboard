@@ -61,6 +61,11 @@ function PickCell({ pick }: { pick: Pick }) {
   );
 }
 
+function orderedRoundPicks(round: number, picks: Pick[]) {
+  const ordered = [...picks].sort((a, b) => (a.pick_in_round ?? a.overall) - (b.pick_in_round ?? b.overall));
+  return round % 2 === 0 ? ordered.reverse() : ordered;
+}
+
 /** A steal/bust leaderboard row, deep-linking to the drafted player. */
 function PickLine({ pick, rank }: { pick: Pick; rank: number }) {
   return (
@@ -191,12 +196,16 @@ export function DraftPage() {
               eyebrow={`${board.data.num_teams ?? "—"} teams`}
               title="Draft board"
             />
-            <div className="space-y-5 p-5">
+            <div className="space-y-5 overflow-x-auto p-5">
               {board.data.rounds.map((rnd) => (
                 <div key={rnd.round}>
                   <div className="dz-eyebrow mb-2">Round {rnd.round}</div>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                    {rnd.picks.map((p) => (
+                  <div
+                    aria-label={`Round ${rnd.round} snake picks`}
+                    className="grid min-w-[108rem] gap-3"
+                    style={{ gridTemplateColumns: "repeat(12, minmax(8.5rem, 1fr))" }}
+                  >
+                    {orderedRoundPicks(rnd.round, rnd.picks).map((p) => (
                       <PickCell key={p.overall} pick={p} />
                     ))}
                   </div>

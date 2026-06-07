@@ -97,6 +97,15 @@ describe("ManagerProfilePage", () => {
 
     const rival = await screen.findByRole("link", { name: /Bravo/ });
     expect(rival).toHaveAttribute("href", "/rivalries/1/vs/2");
+    expect(rival).toHaveTextContent("4 GP");
+  });
+
+  it("links to the latest roster through the latest team season", async () => {
+    mockEndpoints();
+    renderProfile();
+
+    const latest = await screen.findByRole("link", { name: /Latest roster \(2020\)/i });
+    expect(latest).toHaveAttribute("href", "/teams/101");
   });
 
   it("renders a not-found state when the owner does not exist", async () => {

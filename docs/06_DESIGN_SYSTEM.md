@@ -134,7 +134,7 @@ Build these first; everything else composes from them.
 | `ErrorState` | error + retry (wired to TanStack Query retry) |
 | `DataGap` | **the honesty component** — a labeled affordance ("per-player scoring not available for this season", "team defense not scored", "availability current-season only") used wherever a metric is absent. Never render 0 in place of missing data. The unscored-season copy is year-agnostic and data-driven on `is_scored` (F-51). |
 | `Trophy` | championship/podium marker for trophy cases |
-| `WeekStepper` | prev/next week control bound to the URL |
+| `WeekStepper` | prev/next plus direct week select, bound to the URL |
 
 ## Charts (`charts/`)
 
@@ -147,11 +147,11 @@ charts match the theme and re-skin for free. Standard chart types:
 | `BarCompare` | matchup team comparison, season totals, projection vs actual |
 | `StackedBreakdown` | per-player point breakdown (passing/rushing/receiving/bonus) |
 | `Heatmap` | rivalry matrix |
-| `RankFlow` | standings-over-time as a bump/rank chart (one line per team) |
+| `RankFlow` | standings/power over time as a bump/rank chart with Week N, rank-ordered tooltips |
 
 Chart rules:
 - Always provide a non-color encoding too (labels, direct labeling) so meaning survives
-  color-blindness; use the categorical ramp above.
+  color-blindness; use the 12-team categorical ramp above.
 - Tooltips show exact mono numbers; axes use abbreviated formats.
 - Charts have accessible titles and a data-table fallback (a `<details>` with the raw
   numbers) for screen readers.

@@ -411,8 +411,9 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    max-height: 60vh;
+    max-height: min(24rem, calc(100vh - 96px));
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .dz-search-empty {
     padding: var(--s3) var(--s4);

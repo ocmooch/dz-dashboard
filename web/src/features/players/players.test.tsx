@@ -24,7 +24,6 @@ const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefine
 const PLAYER_INDEX = {
   limit: 50,
   offset: 0,
-  scope: "league",
   players: [
     {
       player_id: 1,
@@ -33,7 +32,6 @@ const PLAYER_INDEX = {
       nfl_team: "BAL",
       first_rostered_season: 2018,
       last_rostered_season: 2023,
-      has_scored: true,
     },
     {
       player_id: 2,
@@ -42,7 +40,6 @@ const PLAYER_INDEX = {
       nfl_team: "SF",
       first_rostered_season: 2017,
       last_rostered_season: 2017,
-      has_scored: false,
     },
   ],
 };
@@ -145,21 +142,12 @@ describe("PlayersPage", () => {
     });
   });
 
-  it("renders the rostered span and a scored marker per row", async () => {
+  it("renders the rostered span without scored markers", async () => {
     renderWithProviders(<PlayersPage />);
     await screen.findByText("Lamar Jackson");
     expect(screen.getByText("2018–2023")).toBeInTheDocument(); // Lamar's rostered span
-    expect(screen.getByText("scored")).toBeInTheDocument(); // Lamar has_scored
-  });
-
-  it("passes the scope=all param when switching to all NFL players", async () => {
-    renderWithProviders(<PlayersPage />);
-    await screen.findByText("Lamar Jackson");
-    await userEvent.selectOptions(screen.getByLabelText("Player scope"), "All NFL players");
-    await waitFor(() => {
-      const calls = get.mock.calls.filter((c) => c[0] === "/v1/players");
-      expect(calls.some((c) => (c[1] as any).params.query.scope === "all")).toBe(true);
-    });
+    expect(screen.queryByText("scored")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Player scope")).not.toBeInTheDocument();
   });
 
   it("shows an empty state when no players match", async () => {

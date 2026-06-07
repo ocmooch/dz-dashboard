@@ -100,7 +100,7 @@ function RivalrySnapshot({ ownerId, matrix }: { ownerId: number; matrix: Rivalry
     >
       <Chip name={nameOf.get(b) ?? `#${b}`} />
       <span className="num text-[var(--fs-sm)] text-muted">
-        {pct(winPct)} <span className="text-faint">· {games}g</span>
+        {pct(winPct)} <span className="text-faint">· {games} GP</span>
       </span>
     </Link>
   );
@@ -155,6 +155,9 @@ export function ManagerProfilePage() {
   const c = career.data;
   const years = (seasons.data ?? []).map((s) => s.season_year).filter((y): y is number => y != null);
   const span = years.length > 0 ? `${Math.min(...years)}–${Math.max(...years)}` : null;
+  const latestSeason = [...(seasons.data ?? [])]
+    .filter((s) => s.team_id != null && s.season_year != null)
+    .sort((a, b) => Number(b.season_year) - Number(a.season_year))[0];
 
   // Trajectory is final rank per season (record-only seasons still have a rank),
   // drawn 1-on-top. Domain is the deepest finish on record, min 8 so a small
@@ -170,6 +173,11 @@ export function ManagerProfilePage() {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">{c?.display_name ?? "—"}</h1>
           {c && c.championships > 0 && <Trophy label="Champion" count={c.championships} />}
+          {latestSeason && (
+            <Link to={`/teams/${latestSeason.team_id}`} className="text-muted hover:text-accent">
+              Latest roster ({latestSeason.season_year})
+            </Link>
+          )}
         </div>
       </div>
 

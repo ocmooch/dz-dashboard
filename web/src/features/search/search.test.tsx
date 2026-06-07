@@ -99,4 +99,13 @@ describe("GlobalSearch", () => {
       expect(get.mock.calls.filter((c) => c[0] === "/v1/search")).toHaveLength(0);
     });
   });
+
+  it("requests enough results for the scrollable menu", async () => {
+    renderSearch();
+    await userEvent.type(screen.getByLabelText("Global search"), "ma");
+    await screen.findByText("Maverick");
+    const call = get.mock.calls.find((c) => c[0] === "/v1/search");
+    expect((call![1] as any).params.query.limit).toBe(25);
+    expect(screen.getByRole("listbox", { name: "Search results" })).toHaveClass("dz-search-menu");
+  });
 });

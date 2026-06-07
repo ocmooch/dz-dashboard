@@ -220,8 +220,16 @@ export function BoxScorePage() {
       {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
-        <Card className="p-8">
+        <Card className="space-y-4 p-8">
           <DataGap reason={data.reason ?? undefined} />
+          <p className="text-[var(--fs-sm)] text-muted">
+            Team totals can still be reviewed from the weekly matchups view.
+          </p>
+          {data.week != null && (
+            <Link to={`/matchups?week=${data.week}`} className="text-accent hover:underline">
+              View week {data.week} matchups
+            </Link>
+          )}
         </Card>
       )}
 

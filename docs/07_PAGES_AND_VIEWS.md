@@ -29,11 +29,11 @@ The landing view; a glanceable cockpit for the current season.
 
 ## Standings  `/standings`
 
-- **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, streak); a
-  standings-over-time chart; a "through week" stepper for time-travel.
+- **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, completed-season
+  finish, streak); a standings-over-time chart with rank-ordered Week N tooltips.
 - **Endpoints:** `/v1/seasons/{id}/standings?through_week=`,
   `/v1/seasons/{id}/standings/timeline`.
-- **Components/charts:** `Table` (sortable), `RankFlow`, `WeekStepper`, `RecordLine`.
+- **Components/charts:** `Table`, `RankFlow`, `RecordLine`, `Trophy`.
 - **Gaps:** historical standings exist for 2010–2025 → render normally; if season metadata is
   pending, `DataGap`.
 
@@ -56,7 +56,7 @@ The landing view; a glanceable cockpit for the current season.
 ## Matchups (week view)  `/matchups`
 
 - **Shows:** all matchups for the (switcher-selected season, week) as cards (both teams,
-  scores, win/loss, margin); a `WeekStepper`.
+  scores, win/loss, signed margin per side); a `WeekStepper` with prev/next and direct week select.
 - **Endpoint:** `/v1/seasons/{id}/weeks/{week}/matchups`.
 - **Components:** matchup cards, `BarCompare` (optional per-card mini bar), `Badge`.
 
@@ -74,14 +74,15 @@ The landing view; a glanceable cockpit for the current season.
 
 ## Team  `/teams/{team_id}`
 
-- **Shows:** season summary (record, rank, owner); roster by week (with `WeekStepper`);
+- **Shows:** season summary (record, rank, owner) with season navigation across the manager's
+  teams; roster by week (with `WeekStepper`);
   schedule with results; scoring trend vs league average; two distinct activity spaces —
   **"Draft"** (recorded transactions, draft-only on the real DB) and **"In-season moves"**
   (derived add/drop/retain from week-over-week roster diffs). A season with <2 roster
   snapshots renders the `roster_history_unavailable` `DataGap`, never a fake "no moves".
 - **Endpoints:** `/v1/teams/{id}`, `/v1/teams/{id}/roster?week=`,
   `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`,
-  `/v1/teams/{id}/roster-moves`.
+  `/v1/teams/{id}/roster-moves`, `/v1/owners/{owner_id}/seasons`.
 - **Components/charts:** `StatGrid`, roster `Table`, schedule list, `LineTrend`, action `Pill`s.
 
 ## Managers (index)  `/managers`
@@ -90,16 +91,17 @@ The landing view; a glanceable cockpit for the current season.
   win %, most points, most seasons) over a sortable career table (manager, seasons, win %,
   record, points for, titles, best/avg finish). Each row deep-links to the manager profile.
 - **Endpoint:** `/v1/owners` (built + tested).
-- **Sort/derive:** default order is the BFF's (titles → wins → PF); columns re-sort
+- **Sort/derive:** default order is the BFF's (titles → wins → PF); columns toggle asc/desc
   client-side. Win % is derived in-component over decided games — managers with no games on
   record show `—`, never a fake 0 %.
 
 ## Manager profile  `/managers/{owner_id}`
 
-- **Shows:** career aggregate header (seasons, W-L-T, win %, PF, best finish, titles);
+- **Shows:** career aggregate header (seasons, W-L-T, win %, PF, best finish, titles) with a
+  latest-roster link when the manager has season/team history;
   trophy case (championships + podium finishes); career trajectory chart (final finish by
   season, `RankFlow`); season-by-season record table; rivalry snapshot ("owns" / "owned by"
-  splits deep-linking to the pairwise pages).
+  splits deep-linking to the pairwise pages, games labelled as `N GP`).
 - **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`,
   `/v1/owners/rivalry-matrix` (all built + tested).
 - **Gaps:** record-only (pre-coverage) seasons return 0 PF and render a `DataGap` in the
@@ -129,33 +131,34 @@ The landing view; a glanceable cockpit for the current season.
 
 ## Players (index)  `/players`
 
-- **Shows:** searchable/filterable player index (name, position, NFL team, active).
+- **Shows:** searchable/filterable league-relevant player index (name, position, NFL team,
+  active, rostered-season span). It does not expose a public all-player scope or a scored flag.
 - **Endpoint:** `/v1/players?...`.
 - **Components:** search bar, filter chips, paginated `Table` + `PlayerChip`.
 
 ## Player detail  `/players/{player_id}`
 
 - **Shows:** metadata + cross-platform IDs; weekly scoring history chart (per season);
-  ownership timeline within the league; projections; current-season availability.
+  compact ownership cards within the league; projections; current-season availability.
 - **Endpoints:** `/v1/players/{id}`, `/v1/players/{id}/scoring?season=`,
   `/v1/players/{id}/ownership`, `/v1/players/{id}/availability?season=`.
-- **Components/charts:** `LineTrend`/`BarCompare` (weekly scoring), ownership timeline,
+- **Components/charts:** `LineTrend`/`BarCompare` (weekly scoring), ownership cards,
   availability strip.
 - **Gaps:** availability for non-current seasons → `DataGap`.
 
 ## Stats explorer  `/stats`
 
-- **Shows:** top scorers and season totals by position, sortable/filterable; jump-off to
-  player detail.
+- **Shows:** season totals by default, with top scorers/weekly leaders still reachable by tab;
+  position filters and jump-off links to player detail.
 - **Endpoints:** `/v1/stats/top-scorers?...`, `/v1/stats/season-totals?...`.
 - **Components:** filter bar, `Table`.
 
 ## Draft  `/draft`
 
-- **Shows:** draft board (round × team grid); pick-value analysis (steals/busts) with a
-  by-round chart.
+- **Shows:** draft board as a horizontal 12-column snake grid; pick-value analysis
+  (steals/busts) with a by-pick chart.
 - **Endpoints:** `/v1/seasons/{id}/draft`, `/v1/seasons/{id}/draft/value`.
-- **Components/charts:** draft grid `Table`, `BarCompare` (value by round), `PlayerChip`.
+- **Components/charts:** draft grid, `BarCompare` (value by pick), `PlayerChip`.
 - **Gaps:** seasons without captured drafts → `DataGap`.
 
 ## Coverage / About  `/about`

@@ -8,7 +8,6 @@ import {
   Chip,
   EmptyState,
   ErrorState,
-  Pill,
   Skeleton,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
@@ -17,13 +16,10 @@ import { qk } from "@/lib/queryKeys";
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
 const PAGE_SIZE = 50;
 
-type Scope = "league" | "all";
-
 type Filters = {
   name: string;
   position: string;
   nfl_team: string;
-  scope: Scope;
   offset: number;
 };
 
@@ -34,7 +30,6 @@ async function fetchPlayers(f: Filters) {
         name: f.name || undefined,
         position: f.position || undefined,
         nfl_team: f.nfl_team || undefined,
-        scope: f.scope,
         limit: PAGE_SIZE,
         offset: f.offset,
       },
@@ -56,7 +51,6 @@ export function PlayersPage() {
     name: params.get("name") ?? "",
     position: params.get("position") ?? "",
     nfl_team: params.get("nfl_team") ?? "",
-    scope: params.get("scope") === "all" ? "all" : "league",
     offset: Math.max(0, Number(params.get("offset") ?? "0") || 0),
   };
 
@@ -119,15 +113,6 @@ export function PlayersPage() {
             value={filters.nfl_team}
             onChange={(e) => set({ nfl_team: e.target.value.toUpperCase() })}
           />
-          <select
-            className="dz-select"
-            aria-label="Player scope"
-            value={filters.scope}
-            onChange={(e) => set({ scope: e.target.value === "all" ? "all" : "league" })}
-          >
-            <option value="league">League players</option>
-            <option value="all">All NFL players</option>
-          </select>
         </div>
       </Card>
 
@@ -178,7 +163,6 @@ export function PlayersPage() {
                   <th>Pos</th>
                   <th>NFL</th>
                   <th>Rostered</th>
-                  <th>Scored</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,13 +177,6 @@ export function PlayersPage() {
                     <td className="text-muted">{p.nfl_team ?? "—"}</td>
                     <td className="num text-muted">
                       {rosteredSpan(p.first_rostered_season, p.last_rostered_season)}
-                    </td>
-                    <td>
-                      {p.has_scored ? (
-                        <Pill tone="win">scored</Pill>
-                      ) : (
-                        <span className="text-faint">—</span>
-                      )}
                     </td>
                   </tr>
                 ))}

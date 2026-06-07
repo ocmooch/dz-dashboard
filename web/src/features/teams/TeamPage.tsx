@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
 import {
@@ -19,8 +19,11 @@ import {
   WeekStepper,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
+
+type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
 
 async function fetchOverview(id: number) {
   const { data, error } = await api.GET("/v1/teams/{team_id}", {
@@ -68,6 +71,14 @@ async function fetchRosterMoves(id: number) {
   });
   if (error || !data) throw new Error("Failed to load roster moves");
   return data.data;
+}
+
+async function fetchOwnerSeasons(ownerId: number): Promise<OwnerSeasonRow[]> {
+  const { data, error } = await api.GET("/v1/owners/{owner_id}/seasons", {
+    params: { path: { owner_id: ownerId } },
+  });
+  if (error || !data) throw new Error("Failed to load owner seasons");
+  return data.data.seasons;
 }
 
 function RosterCard({ teamId }: { teamId: number }) {
@@ -155,7 +166,7 @@ function RosterCard({ teamId }: { teamId: number }) {
   );
 }
 
-function ScheduleCard({ teamId }: { teamId: number }) {
+function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScoresAvailable: boolean }) {
   const { data, isLoading } = useQuery({
     queryKey: qk.teamSchedule(teamId),
     queryFn: () => fetchSchedule(teamId),
@@ -175,7 +186,10 @@ function ScheduleCard({ teamId }: { teamId: number }) {
                 <div className="flex items-center gap-3">
                   <span className={`num w-6 font-bold ${tone}`}>{g.result ?? "—"}</span>
                   <div>
-                    <Link to={`/matchups/${g.matchup_id}`} className="text-text hover:text-accent">
+                    <Link
+                      to={boxScoresAvailable ? `/matchups/${g.matchup_id}` : `/matchups?week=${g.week}`}
+                      className="text-text hover:text-accent"
+                    >
                       vs {g.opponent_owner_name ?? g.opponent_team_name ?? "Bye"}
                     </Link>
                     <div className="text-[var(--fs-xs)] text-faint">
@@ -316,6 +330,37 @@ function RosterMovesCard({ teamId }: { teamId: number }) {
   );
 }
 
+function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number }) {
+  const navigate = useNavigate();
+  const { data } = useQuery({
+    queryKey: qk.ownerSeasons(ownerId),
+    queryFn: () => fetchOwnerSeasons(ownerId),
+  });
+  const seasons = [...(data ?? [])]
+    .filter((s) => s.team_id != null && s.season_year != null)
+    .sort((a, b) => Number(b.season_year) - Number(a.season_year));
+
+  if (seasons.length <= 1) return null;
+
+  return (
+    <label className="inline-flex items-center gap-2 text-[var(--fs-sm)] text-muted">
+      Season
+      <select
+        className="dz-select py-1"
+        aria-label="Team season"
+        value={teamId}
+        onChange={(e) => navigate(`/teams/${e.target.value}`)}
+      >
+        {seasons.map((s) => (
+          <option key={s.team_id} value={s.team_id}>
+            {s.season_year}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function TeamPage() {
   const params = useParams();
   const teamId = Number(params.teamId);
@@ -341,6 +386,7 @@ export function TeamPage() {
               {data.owner_name ?? "—"}
             </Link>
           )}
+          {data && <TeamSeasonSelect ownerId={data.owner_id} teamId={teamId} />}
         </div>
       </div>
 
@@ -377,7 +423,7 @@ export function TeamPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RosterCard teamId={teamId} />
-            <ScheduleCard teamId={teamId} />
+            <ScheduleCard teamId={teamId} boxScoresAvailable={data.is_scored} />
           </div>
 
           <ScoringTrendCard teamId={teamId} />

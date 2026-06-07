@@ -30,17 +30,28 @@ async function fetchSeasonSummary(seasonId: number) {
 function TeamSide({
   team,
   align,
+  margin,
 }: {
   team: GameCard["team_a"];
   align: "left" | "right";
+  margin: number | null | undefined;
 }) {
   if (!team) return <div className="text-faint">Bye</div>;
   const winner = team.is_winner;
+  const signedMargin = margin == null ? null : winner ? margin : -margin;
   return (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
       <Chip name={team.owner_name} sub={team.team_name ?? undefined} />
-      <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
-        {num(team.score)}
+      <span className="flex flex-col">
+        <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
+          {num(team.score)}
+        </span>
+        {signedMargin != null && (
+          <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+            {signedMargin > 0 ? "+" : ""}
+            {num(signedMargin)}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -55,16 +66,16 @@ function GameCardView({ game }: { game: GameCard }) {
       <div className="mb-2 flex items-center justify-between">
         <span className="dz-eyebrow">{game.is_playoff ? "playoff" : "regular season"}</span>
         {game.margin != null && (
-          <Badge variant={game.margin >= 40 ? "loss" : "default"}>
-            {game.margin >= 40 ? "blowout " : "margin "}
+          <Badge variant={game.is_blowout ? "loss" : "default"}>
+            {game.is_blowout ? "blowout " : "margin "}
             {num(game.margin)}
           </Badge>
         )}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <TeamSide team={game.team_a} align="left" />
+        <TeamSide team={game.team_a} align="left" margin={game.margin} />
         <span className="font-display text-[var(--fs-sm)] text-faint">vs</span>
-        <TeamSide team={game.team_b} align="right" />
+        <TeamSide team={game.team_b} align="right" margin={game.margin} />
       </div>
     </Link>
   );

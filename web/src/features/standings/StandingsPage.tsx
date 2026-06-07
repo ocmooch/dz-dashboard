@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num, pct } from "@/lib/format";
+import { num, ordinal, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -36,6 +36,12 @@ function StreakCell({ streak }: { streak: { result?: string | null; length?: num
   );
 }
 
+function PlacementCell({ finalRank }: { finalRank: number | null | undefined }) {
+  if (finalRank == null) return <span className="text-faint">—</span>;
+  if (finalRank === 1) return <Trophy label="Champion" />;
+  return <span className="num text-accent">{ordinal(finalRank)}</span>;
+}
+
 export function StandingsPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
@@ -51,6 +57,7 @@ export function StandingsPage() {
   });
 
   const flow = timeline.data ? toRankFlow(timeline.data.teams) : null;
+  const showFinalPlacement = data?.rows.some((r) => r.final_rank != null) ?? false;
 
   return (
     <div className="dz-rise space-y-4">
@@ -91,6 +98,7 @@ export function StandingsPage() {
                   <th className="dz-num">Win%</th>
                   <th className="dz-num">PF</th>
                   <th className="dz-num">PA</th>
+                  {showFinalPlacement && <th className="dz-num">Finish</th>}
                   <th className="dz-num">Streak</th>
                 </tr>
               </thead>
@@ -109,6 +117,11 @@ export function StandingsPage() {
                     <td className="dz-num text-muted">{pct(r.win_pct)}</td>
                     <td className="dz-num">{num(r.points_for)}</td>
                     <td className="dz-num text-muted">{num(r.points_against)}</td>
+                    {showFinalPlacement && (
+                      <td className="dz-num">
+                        <PlacementCell finalRank={r.final_rank} />
+                      </td>
+                    )}
                     <td className="dz-num">
                       <StreakCell streak={r.streak} />
                     </td>

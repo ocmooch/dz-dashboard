@@ -104,7 +104,7 @@ document, so the contract is enforced at build time.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /v1/players?name=&position=&nfl_team=&active=&limit=&offset=` | Searchable index |
+| `GET /v1/players?name=&position=&nfl_team=&active=&limit=&offset=` | Searchable league-relevant index (ever-rostered players only; no public `scope=all` or `has_scored` field) |
 | `GET /v1/players/{player_id}` | Metadata + cross-platform IDs |
 | `GET /v1/players/{player_id}/scoring?season={y}` | Weekly scoring history (raw + league points) for the chart |
 | `GET /v1/players/{player_id}/ownership` | Ownership timeline within the league |

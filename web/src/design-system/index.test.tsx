@@ -287,6 +287,13 @@ describe("WeekStepper", () => {
     await userEvent.click(screen.getByRole("button", { name: "Previous week" }));
     expect(onChange).toHaveBeenCalledWith(4);
   });
+
+  it("allows direct week selection", async () => {
+    const onChange = vi.fn();
+    render(<WeekStepper week={5} max={14} onChange={onChange} />);
+    await userEvent.selectOptions(screen.getByLabelText("Select week"), "12");
+    expect(onChange).toHaveBeenCalledWith(12);
+  });
 });
 
 describe("Tabs", () => {

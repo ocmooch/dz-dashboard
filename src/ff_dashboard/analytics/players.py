@@ -45,9 +45,9 @@ def list_player_index(
     them. ``scope="all"`` opts back into the full universe.
 
     Each row carries the player's rostered-season span (straight from the
-    columns) and whether the player has any scored week, so the caller can
-    render relevance at a glance without the SPA doing any joins. Relevance is
-    filtered *before* paging, so page sizes stay correct.
+    columns), so the caller can render relevance at a glance without the SPA
+    doing any joins. Relevance is filtered *before* paging, so page sizes stay
+    correct.
     """
     stmt = select(Player)
     if name is not None:
@@ -61,18 +61,6 @@ def list_player_index(
     stmt = stmt.order_by(Player.name_full).offset(offset).limit(limit)
     players = list(session.execute(stmt).scalars().all())
 
-    ids = [p.player_id for p in players]
-    scored: set[int] = set()
-    if ids:
-        scored = {
-            int(pid)
-            for (pid,) in session.execute(
-                select(PlayerStatsScored.player_id)
-                .where(PlayerStatsScored.player_id.in_(ids))
-                .distinct()
-            ).all()
-        }
-
     return [
         {
             "player_id": p.player_id,
@@ -81,7 +69,6 @@ def list_player_index(
             "nfl_team": p.nfl_team,
             "first_rostered_season": p.first_rostered_season,
             "last_rostered_season": p.last_rostered_season,
-            "has_scored": p.player_id in scored,
         }
         for p in players
     ]
