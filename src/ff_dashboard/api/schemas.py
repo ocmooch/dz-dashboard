@@ -190,6 +190,39 @@ class StandingsInsights(BaseModel):
     teams: list[StandingsInsightTeam]
 
 
+class BracketTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+    score: float | None = None
+    is_winner: bool = False
+
+
+class BracketGame(BaseModel):
+    matchup_id: int
+    is_playoff: bool = False
+    is_consolation: bool | None = None
+    team_a: BracketTeam | None = None
+    team_b: BracketTeam | None = None
+    winner_team_id: int | None = None
+
+
+class BracketWeek(BaseModel):
+    week: int
+    games: list[BracketGame]
+
+
+class SeasonBracket(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    available: bool
+    reason: str | None = None
+    caveat: str
+    weeks: list[BracketWeek]
+
+
 # ---------------------------------------------------------------------------
 # Owners
 # ---------------------------------------------------------------------------

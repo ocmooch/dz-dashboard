@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/bracket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Season Bracket */
+        get: operations["get_season_bracket_v1_seasons__season_id__bracket_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/owners": {
         parameters: {
             query?: never;
@@ -734,6 +751,47 @@ export interface components {
             /** Lineup */
             lineup: components["schemas"]["BoxPlayer"][];
         };
+        /** BracketGame */
+        BracketGame: {
+            /** Matchup Id */
+            matchup_id: number;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+            /** Is Consolation */
+            is_consolation?: boolean | null;
+            team_a?: components["schemas"]["BracketTeam"] | null;
+            team_b?: components["schemas"]["BracketTeam"] | null;
+            /** Winner Team Id */
+            winner_team_id?: number | null;
+        };
+        /** BracketTeam */
+        BracketTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Score */
+            score?: number | null;
+            /**
+             * Is Winner
+             * @default false
+             */
+            is_winner: boolean;
+        };
+        /** BracketWeek */
+        BracketWeek: {
+            /** Week */
+            week: number;
+            /** Games */
+            games: components["schemas"]["BracketGame"][];
+        };
         /** ChampionshipEntry */
         ChampionshipEntry: {
             /** Season Year */
@@ -997,6 +1055,11 @@ export interface components {
         /** Envelope[SearchResults] */
         Envelope_SearchResults_: {
             data: components["schemas"]["SearchResults"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonBracket] */
+        Envelope_SeasonBracket_: {
+            data: components["schemas"]["SeasonBracket"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[SeasonList] */
@@ -1689,6 +1752,23 @@ export interface components {
             /** Hits */
             hits: components["schemas"]["SearchHit"][];
         };
+        /** SeasonBracket */
+        SeasonBracket: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Caveat */
+            caveat: string;
+            /** Weeks */
+            weeks: components["schemas"]["BracketWeek"][];
+        };
         /** SeasonList */
         SeasonList: {
             /** Seasons */
@@ -2289,6 +2369,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_StandingsTimeline_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_season_bracket_v1_seasons__season_id__bracket_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonBracket_"];
                 };
             };
             /** @description Validation Error */

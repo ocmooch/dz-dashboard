@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AboutPage } from "@/features/about/AboutPage";
+import { BracketPage } from "@/features/bracket/BracketPage";
 import { HomePage } from "@/features/home/HomePage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
@@ -30,6 +31,7 @@ export function App() {
             <Route index element={<HomePage />} />
             <Route path="standings" element={<StandingsPage />} />
             <Route path="power" element={<PowerPage />} />
+            <Route path="bracket" element={<BracketPage />} />
             <Route path="records" element={<RecordsPage />} />
             <Route path="rivalries" element={<RivalriesPage />} />
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />

@@ -7,6 +7,7 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import get_season, get_team, list_seasons_for_league
 
+from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.standings import (
@@ -18,6 +19,7 @@ from ff_dashboard.analytics.standings import (
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
+    SeasonBracket,
     SeasonList,
     SeasonListItem,
     SeasonSummary,
@@ -103,3 +105,11 @@ def get_standings_timeline(season_id: int, session: SessionDep) -> Envelope[Stan
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=StandingsTimeline(**data), meta=build_meta(session))
+
+
+@router.get("/v1/seasons/{season_id}/bracket", response_model=Envelope[SeasonBracket])
+def get_season_bracket(season_id: int, session: SessionDep) -> Envelope[SeasonBracket]:
+    data = season_bracket(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonBracket(**data), meta=build_meta(session))

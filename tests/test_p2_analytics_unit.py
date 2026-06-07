@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
 from ff_dashboard.analytics.players import (
@@ -61,6 +62,31 @@ def test_standings_through_week_one(session: Session) -> None:
     assert data["through_week"] == 1
     mav = next(r for r in data["rows"] if r["owner_name"] == "Maverick")
     assert (mav["wins"], mav["points_for"]) == (1, 150.0)  # blowout week only
+
+
+def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session) -> None:
+    data = season_bracket(session, KNOWN["season_id"][2015])
+    assert data is not None
+    assert data["available"] is True
+    assert data["regular_season_weeks"] == 2
+    assert "Post-regular-season matchups" in data["caveat"]
+    assert [w["week"] for w in data["weeks"]] == [3]
+    games = data["weeks"][0]["games"]
+    assert len(games) == 2  # perspective rows folded into games
+    champ = next(g for g in games if g["is_consolation"] is False)
+    assert champ["team_a"]["owner_name"] == "Slider"
+    assert champ["team_a"]["score"] == 120.0
+    assert champ["winner_team_id"] == champ["team_a"]["team_id"]
+    consolation = next(g for g in games if g["is_consolation"] is True)
+    assert consolation["team_b"]["owner_name"] == "Iceman"
+
+
+def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
+    data = season_bracket(session, KNOWN["season_id"][2016])
+    assert data is not None
+    assert data["available"] is False
+    assert data["reason"] == "bracket_unavailable"
+    assert data["weeks"] == []
 
 
 # --- Owners ----------------------------------------------------------------

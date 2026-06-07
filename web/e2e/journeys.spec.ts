@@ -54,6 +54,18 @@ test("rivalry matrix renders", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Rivalries" })).toBeVisible();
 });
 
+test("bracket renders caveated postseason games", async ({ page }) => {
+  await page.goto("/");
+  await selectSeason(page, "2015 · no player scoring");
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Bracket" }).click();
+  await expect(page).toHaveURL(/\/bracket$/);
+  await expect(page.getByRole("heading", { name: "Bracket" })).toBeVisible();
+  await expect(page.getByText(/Post-regular-season matchups/i)).toBeVisible();
+  await expect(page.getByText("Week 3")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Slider.*Maverick/s })).toBeVisible();
+  await expect(page.getByRole("link", { name: /consolation.*Goose.*Iceman/s })).toBeVisible();
+});
+
 test("gap honesty: a pre-2016 box score is shown as not-scored, never faked", async ({ page }) => {
   // 2015 is present but unscored at the player level; its box score must render
   // a DataGap (role="note"), never invented zeros.
