@@ -1,13 +1,13 @@
-"""Derived in-season roster moves (``analytics/transactions.py``).
+"""Derived roster-diff fallback moves (``analytics/transactions.py``).
 
-The Phase-1 ``Transaction`` table is draft-only on the real DB (F-37), so it
-cannot show in-season waiver/add-drop activity. ``team_rosters`` *is* week-grained,
-though, so week-over-week diffs reconstruct the **shape** of that activity —
-adds, drops, and retained players — with no nfl.com scrape.
+The Phase-1 ``Transaction`` table now carries the exact activity log where the
+upstream scrape has rows. This module remains useful as a fallback/estimate from
+``team_rosters`` snapshots: week-over-week diffs reconstruct the **shape** of
+activity — adds, drops, and retained players — even when exact rows are absent.
 
-Tier-1 only: this derives *what changed and when* (by fantasy week), not the
-exact calendar date, waiver-vs-FA classification, or FAAB bid — those need the
-nfl.com transaction feed and are deferred to the upstream program (F-37 tier 2).
+Fallback only: this derives *what changed and when* by fantasy week, not the
+exact calendar date, waiver-vs-FA classification, or FAAB bid. Prefer
+``team_transactions`` when exact recorded rows exist.
 
 Moves are **not** gated on ``is_scored``: roster snapshots exist for the unscored
 (pre-reconstruction) seasons too, so add/drop shape is available even where
@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 def derive_roster_moves(session: Session, team_id: int) -> dict[str, Any] | None:
     """In-season add/drop/retain derived from week-over-week ``team_rosters`` diffs.
 
-    Tier-1 (dashboard, read-only): the *shape* of activity only — no nfl.com
-    scrape, no exact dates / waiver-vs-FA / FAAB bids (those are UP, F-37 tier 2).
+    Fallback (dashboard, read-only): the *shape* of activity only — no exact
+    dates / waiver-vs-FA / FAAB bids.
     Returns ``None`` for an unknown ``team_id`` (404).
 
     A player drafted at the opening roster week and kept all season is a

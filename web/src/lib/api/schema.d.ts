@@ -1985,12 +1985,20 @@ export interface components {
             player_name?: string | null;
             /** Direction */
             direction?: string | null;
+            /** Waiver Priority Used */
+            waiver_priority_used?: number | null;
+            /** Faab Bid */
+            faab_bid?: number | null;
             /** Counterpart Team Id */
             counterpart_team_id?: number | null;
             /** Counterpart Team Name */
             counterpart_team_name?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Extra Data */
+            extra_data?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** TeamTransactions */
         TeamTransactions: {

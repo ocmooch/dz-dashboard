@@ -137,8 +137,23 @@ def test_scoring_trend_works_for_unscored_season(session: Session) -> None:
 # --- Transactions ----------------------------------------------------------
 
 
-def test_transactions_empty_when_none_recorded(session: Session) -> None:
+def test_transactions_include_exact_recorded_rows(session: Session) -> None:
     ice_2017 = KNOWN["team_id"][(2017, "ice")]
     data = team_transactions(session, ice_2017)
     assert data is not None
-    assert data["transactions"] == []
+    assert [t["transaction_type"] for t in data["transactions"]] == [
+        "waiver_add",
+        "lineup_change",
+    ]
+
+    waiver = data["transactions"][0]
+    assert waiver["executed_at"] == "2017-09-12T10:15:00"
+    assert waiver["effective_week"] == 2
+    assert waiver["player_name"] == "Justin Jefferson"
+    assert waiver["direction"] == "in"
+    assert waiver["waiver_priority_used"] == 4
+    assert waiver["faab_bid"] is None
+    assert waiver["notes"] == "Iceman"
+
+    lineup = data["transactions"][1]
+    assert lineup["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}
