@@ -25,8 +25,8 @@ The landing view; a glanceable cockpit for the current season.
   `GET /v1/records`, `GET /v1/stats/top-scorers`, and season/champion metadata (there is no
   `/v1/home` composite; the page orchestrates, it does no math).
 - **Components/charts:** `StatGrid`, `Card`, `Table` (standings), `Trophy`, record cards.
-- **Gaps:** bracket/activity data is not inferred; unavailable bracket structure renders a
-  `DataGap` until `/v1/seasons/{id}/bracket` is proven.
+- **Gaps:** bracket/activity data is not inferred; unavailable bracket rows render a `DataGap`
+  through the caveated `/v1/seasons/{id}/bracket` endpoint.
 
 ## Standings  `/standings`
 
@@ -47,13 +47,15 @@ The landing view; a glanceable cockpit for the current season.
 - **Components/charts:** `Table`, `RankFlow`/`LineTrend`, `Tabs`.
 - **Gaps:** current season not yet scored → `DataGap`.
 
-## Playoffs / Bracket  *(not built)*
+## Playoffs / Bracket  `/bracket`
 
-- **Planned route:** `/bracket` · **planned endpoint:** `/v1/seasons/{id}/bracket`.
-- **Status:** specified (F2.3) but **not implemented** — neither the route nor the endpoint
-  exists yet. Champion/runner-up/last-place are surfaced today via the season summary and the
-  records book. If built, it must show the "post-regular-season weeks, not a proven
-  championship-vs-consolation bracket" caveat badge. Tracked in `10_OPEN_QUESTIONS.md`.
+- **Shows:** post-regular-season matchup cards grouped by week, with team refs, scores,
+  winners, and a source caveat. `is_consolation` is shown only when the source data
+  distinguishes it.
+- **Endpoint:** `/v1/seasons/{id}/bracket`.
+- **Components:** `Card`, `Badge`, `Chip`, `DataGap`.
+- **Gaps:** seasons with no post-regular-season matchup rows return `available:false` with
+  `bracket_unavailable`; the SPA never infers a bracket tree or playoff berth.
 
 ## Matchups (week view)  `/matchups`
 
@@ -80,9 +82,10 @@ The landing view; a glanceable cockpit for the current season.
 - **Shows:** season summary (record, rank, owner) with season navigation across the manager's
   teams; roster by week (with `WeekStepper`);
   schedule with results; scoring trend vs league average; two distinct activity spaces —
-  **"Draft"** (recorded transactions, draft-only on the real DB) and **"In-season moves"**
-  (derived add/drop/retain from week-over-week roster diffs). A season with <2 roster
-  snapshots renders the `roster_history_unavailable` `DataGap`, never a fake "no moves".
+  **"Transactions"** (exact recorded rows with dates/type/direction/waiver priority and
+  nullable FAAB) and **"Roster-diff fallback"** (estimated add/drop/retain from
+  week-over-week roster diffs). A season with <2 roster snapshots renders the
+  `roster_history_unavailable` `DataGap`, never a fake "no moves".
 - **Endpoints:** `/v1/teams/{id}`, `/v1/teams/{id}/roster?week=`,
   `/v1/teams/{id}/schedule`, `/v1/teams/{id}/scoring-trend`, `/v1/teams/{id}/transactions`,
   `/v1/teams/{id}/roster-moves`, `/v1/owners/{owner_id}/seasons`.
@@ -187,5 +190,6 @@ Anticipating the most-used and highest-value views, and respecting data readines
 
 > **As-built note:** all of the above ship, including the Manager index/profile pages (#1),
 > which are now composed against their ready backend (`feature/managers-page`). The
-> Playoffs/Bracket view (above) was never built. Everything else is additive composition of the
-> same primitives + one endpoint each, as designed.
+> Playoffs/Bracket view ships as a caveated post-regular-season matchup surface, not an inferred
+> tree. Everything else is additive composition of the same primitives + one endpoint each, as
+> designed.

@@ -14,7 +14,7 @@ Phase 1 facts:
 * :func:`team_scoring_trend` — the team's weekly score against the league average
   that week (team scores can exist even when player scoring is absent, so this
   is not gated).
-* :func:`team_transactions` — the season's moves involving this team.
+* :func:`team_transactions` — the season's recorded transaction log involving this team.
 """
 
 from __future__ import annotations
@@ -258,7 +258,7 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
 
 
 def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
-    """The season's transactions involving this team (as actor or counterpart)."""
+    """The season's recorded transactions involving this team (as actor or counterpart)."""
     require_league(session)
     team = get_team(session, team_id)
     if team is None:
@@ -282,10 +282,26 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
                 "player_id": t.player_id,
                 "player_name": player.name_full if player is not None else None,
                 "direction": t.direction,
+                "waiver_priority_used": t.waiver_priority_used,
+                "faab_bid": _faab_bid(t.extra_data),
                 "counterpart_team_id": t.counterpart_team_id,
                 "counterpart_team_name": counterpart.team_name if counterpart is not None else None,
                 "notes": t.notes,
+                "extra_data": t.extra_data,
             }
         )
 
     return {"team_id": team_id, "season_year": season.year, "transactions": items}
+
+
+def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
+    """Return a FAAB bid when Phase 1 records one; current DB rows generally do not."""
+    if not extra_data:
+        return None
+    raw = extra_data.get("faab_bid") or extra_data.get("faab") or extra_data.get("bid")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None

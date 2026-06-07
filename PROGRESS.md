@@ -17,7 +17,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 - **Phase 2 implemented app features are functionally complete.** Roadmap milestones P0–P11 are
   shipped. P11 now includes committed Chromium/Linux visual-regression baselines, and CI runs the
   full Playwright suite (journeys plus visual snapshots). The Playoffs/Bracket view from F2.3
-  remains an **open product decision**, not a shipped feature.
+  is now landed locally as a caveated backend endpoint plus `/bracket` page: it renders proven
+  post-regular-season games and does not infer a bracket tree.
 - **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
   standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
   all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
@@ -49,8 +50,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 ## Next
 
 - **The P1–P6 review-fixes program is complete** — all six dashboard passes are merged to `dev`.
-  Remaining dashboard-side work is: decide whether to build or formally close the Playoffs/Bracket
-  view (N2/F2.3).
+  The remaining dashboard-side N2/F2.3 bracket decision is resolved locally by the caveated
+  build. Next dashboard step is review/PR packaging.
 - Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
   succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
   F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
@@ -64,10 +65,10 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Files that matter now
 
-- `docs/10_OPEN_QUESTIONS.md` — N2 Playoffs/Bracket product decision remains open
-- `docs/plans/REVIEW_FIXES_ROADMAP.md`
-- `docs/reviews/2026-06-in-browser-review.md`
-- P6 page surfaces: home, players, records/rivalries, managers, draft, power, standings
+- F2.3 bracket local surfaces: `src/ff_dashboard/analytics/bracket.py`,
+  `src/ff_dashboard/api/routes/seasons.py`, `web/src/features/bracket/BracketPage.tsx`
+- Docs/status touched for packaging: `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`,
+  `docs/10_OPEN_QUESTIONS.md`, `PROGRESS.md`
 
 ## Open items / deviations
 

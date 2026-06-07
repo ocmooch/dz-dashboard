@@ -55,7 +55,7 @@ do.
 | Scored fantasy points (`player_stats_scored`) | **2010–2025** since the pre-2016 reconstruction landed (F-51) | **Solid** for every completed season | A season without scoring (now normally the current/in-progress one) shows "unscored" — never 0 points. Gate on `is_scored`, never a hardcoded year |
 | Scoring rules (`scoring_rules`) | 2016–2025 (51 rules/season, current ruleset propagated) | **Solid 2016+; assumed-stable** | Note in scoring-rules view that 2016+ uses one ruleset; pre-2016 unknown |
 | Player identity & cross-IDs (`players`) | 25,035 GSIS / 3,525 Sleeper resolved | **Solid** | Use freely; some obscure players lack IDs (0-point edge cases) |
-| Transactions (`transactions`) | per-season log, real | **Solid** | Use freely |
+| Transactions (`transactions`) | per-season log, real; dated add/drop/waiver/trade/draft/lineup rows | **Solid**; no FAAB bid rows found in the current DB spot check | Use freely; render FAAB as nullable/missing, never as 0 |
 | Standings / season metadata (`seasons`, `teams`: champion, final_rank, W-L-T, PF/PA) | reconstructed 2010–2025 | **Solid after the reconstruction run completes** (see note) | If a season lacks champion/records, show "season metadata pending" |
 | Per-week lineups (`team_rosters`: starters, points, locked) | reconstructed from gamecenter, 2010–2025 | **Solid after reconstruction**; lineups exist for the historical window | Box scores show lineup + league-scored breakdown wherever the season is `is_scored:true`; a genuinely missing row renders a gap |
 | Full-season matchups (`matchups`) | all weeks, reconstructed | **Solid after reconstruction** | Use freely; playoff vs consolation bracket is **not** distinguished (see below) |

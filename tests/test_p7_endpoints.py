@@ -84,7 +84,13 @@ def test_team_scoring_trend_endpoint(client: TestClient) -> None:
 def test_team_transactions_endpoint(client: TestClient) -> None:
     tid = KNOWN["team_id"][(2017, "ice")]
     data = _envelope(client.get(f"/v1/teams/{tid}/transactions"))
-    assert data["transactions"] == []
+    assert [t["transaction_type"] for t in data["transactions"]] == [
+        "waiver_add",
+        "lineup_change",
+    ]
+    assert data["transactions"][0]["waiver_priority_used"] == 4
+    assert data["transactions"][0]["faab_bid"] is None
+    assert data["transactions"][1]["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}
 
 
 # --- 503 when the pipeline never ran (empty DB) ----------------------------
