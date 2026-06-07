@@ -16,7 +16,7 @@ type Hit = {
 
 async function fetchSearch(q: string): Promise<Hit[]> {
   const { data, error } = await api.GET("/v1/search", {
-    params: { query: { q, limit: 10 } },
+    params: { query: { q, limit: 25 } },
   });
   if (error || !data) throw new Error("Search failed");
   return data.data.hits as Hit[];

@@ -902,8 +902,8 @@ first (data/analytics foundations → analytics → views).
 
 ### P5 — Frontend: navigation & presentation fixes
 - **Scope:** Correctness/navigation bugs and presentation fixes that don't need new analytics.
-- **Findings:** F-34 (team season selector wiring), F-36 (pre-2016 matchup link → degrade to team-
-  total view, not error), F-05 (manager→latest-roster link via owner→team hop), F-24 (remove
+- **Findings:** F-34 (team season selector wiring), F-36 (unavailable box-score link → degrade
+  to team-total view, not error), F-05 (manager→latest-roster link via owner→team hop), F-24 (remove
   `scope=all` + `has_scored` from the players UI/contract), F-07 (sort direction toggle), F-15
   (week selector dropdown/list), F-46 (search dropdown scroll), F-14 (margin +/- green/red), F-11
   ("24g"→clear games label), F-40 (12-column snake draft board), F-30 (stats default = season

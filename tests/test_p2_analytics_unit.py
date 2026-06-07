@@ -205,7 +205,7 @@ def test_player_index_scopes_to_league_relevance(session: Session) -> None:
 def test_player_index_row_enrichment(session: Session) -> None:
     (row,) = list_player_index(session, name="McCaffrey")
     assert (row["first_rostered_season"], row["last_rostered_season"]) == (2016, 2017)
-    assert row["has_scored"] is True
+    assert "has_scored" not in row
 
 
 def test_ownership_timeline_collapses_into_spans(session: Session) -> None:

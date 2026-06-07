@@ -45,7 +45,7 @@ function PlayerCell({ id, name, sub }: { id: number; name: string; sub?: string 
 export function StatsPage() {
   const { current } = useSeasons();
   const season = current?.season_year;
-  const [view, setView] = useState<View>("top-scorers");
+  const [view, setView] = useState<View>("season-totals");
   const [position, setPosition] = useState("");
   const [week, setWeek] = useState<number | null>(null);
 

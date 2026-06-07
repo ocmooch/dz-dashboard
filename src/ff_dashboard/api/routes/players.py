@@ -43,7 +43,6 @@ def list_players(
     name: str | None = None,
     position: str | None = None,
     nfl_team: str | None = None,
-    scope: str = Query("league", pattern="^(league|all)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> Envelope[PlayerIndex]:
@@ -52,7 +51,7 @@ def list_players(
         name=name,
         position=position,
         nfl_team=nfl_team,
-        scope=scope,
+        scope="league",
         limit=limit,
         offset=offset,
     )
@@ -61,7 +60,6 @@ def list_players(
             players=[PlayerIndexRow(**r) for r in rows],
             limit=limit,
             offset=offset,
-            scope=scope,
         ),
         meta=build_meta(session),
     )

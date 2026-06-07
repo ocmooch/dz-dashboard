@@ -424,8 +424,8 @@ class DraftRecords(BaseModel):
 
 class PlayerIndexRow(BaseModel):
     """One row of the player index, enriched so relevance is legible without the
-    SPA doing any joins. ``first/last_rostered_season`` is null when the player
-    was never on a league roster (only reachable via ``scope=all``)."""
+    SPA doing any joins. Public index rows are always league-relevant, so
+    ``first/last_rostered_season`` should be present for normal data."""
 
     player_id: int
     name_full: str
@@ -433,14 +433,12 @@ class PlayerIndexRow(BaseModel):
     nfl_team: str | None = None
     first_rostered_season: int | None = None
     last_rostered_season: int | None = None
-    has_scored: bool = False
 
 
 class PlayerIndex(BaseModel):
     players: list[PlayerIndexRow]
     limit: int
     offset: int
-    scope: str = "league"  # "league" (rostered only) | "all" (full nflverse universe)
 
 
 class ScoringWeek(BaseModel):

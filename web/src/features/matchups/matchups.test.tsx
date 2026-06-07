@@ -38,6 +38,8 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
+      is_close: false,
+      is_blowout: false,
       winner_team_id: 10,
     },
     {
@@ -46,6 +48,8 @@ const WEEK_GAMES = {
       team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
       margin: 40.4,
+      is_close: false,
+      is_blowout: true,
       winner_team_id: 12,
     },
   ],
@@ -180,6 +184,13 @@ describe("MatchupsPage", () => {
     expect(screen.getByText(/blowout/i)).toBeInTheDocument();
   });
 
+  it("colors each side's margin with a signed winner and loser value", async () => {
+    renderWithProviders(<MatchupsPage />);
+    await screen.findByText("Iceman 2017");
+    expect(screen.getByText("+5.00")).toHaveClass("text-win");
+    expect(screen.getByText("-5.00")).toHaveClass("text-loss");
+  });
+
   it("deep-links each card to its box score", async () => {
     renderWithProviders(<MatchupsPage />);
     await screen.findByText("Iceman 2017");
@@ -259,6 +270,10 @@ describe("BoxScorePage", () => {
     expect(
       await screen.findByText(/Per-player scoring not available for this season/i),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View week 1 matchups/i })).toHaveAttribute(
+      "href",
+      "/matchups?week=1",
+    );
   });
 
   it("labels a no-stat IR player 'IR' and other absences '—', not a data gap", async () => {

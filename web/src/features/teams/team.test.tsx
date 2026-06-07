@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TeamPage } from "./TeamPage";
@@ -75,7 +76,21 @@ const ROSTER_MOVES = {
   ],
 };
 
+const OWNER_SEASONS = {
+  owner_id: 5,
+  display_name: "Iceman",
+  seasons: [
+    { season_id: 1, season_year: 2017, team_id: 10, team_name: "Iceman 2017", wins: 2, losses: 0, ties: 0, points_for: 235, final_rank: 1, made_playoffs: true, is_champion: false },
+    { season_id: 2, season_year: 2016, team_id: 9, team_name: "Iceman 2016", wins: 7, losses: 7, ties: 0, points_for: 1400, final_rank: 5, made_playoffs: null, is_champion: false },
+  ],
+};
+
 let rosterMoves: unknown = ROSTER_MOVES;
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="loc">{location.pathname}</div>;
+}
 
 function routeByPath(path: string) {
   if (path === "/v1/teams/{team_id}") return envelope(OVERVIEW);
@@ -84,6 +99,7 @@ function routeByPath(path: string) {
   if (path === "/v1/teams/{team_id}/scoring-trend") return envelope(TREND);
   if (path === "/v1/teams/{team_id}/transactions") return envelope(TRANSACTIONS);
   if (path === "/v1/teams/{team_id}/roster-moves") return envelope(rosterMoves);
+  if (path === "/v1/owners/{owner_id}/seasons") return envelope(OWNER_SEASONS);
   throw new Error(`unexpected path ${path}`);
 }
 
@@ -94,7 +110,9 @@ function renderPage() {
       <MemoryRouter initialEntries={["/teams/10"]}>
         <Routes>
           <Route path="/teams/:teamId" element={<TeamPage />} />
+          <Route path="/matchups" element={<div>Matchups route</div>} />
         </Routes>
+        <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -129,6 +147,24 @@ describe("TeamPage", () => {
     await screen.findByText(/vs Goose/i);
     const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/matchups/100");
     expect(link).toBeDefined();
+  });
+
+  it("uses weekly matchups for schedule links when box scores are unavailable", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/teams/{team_id}") return Promise.resolve(envelope({ ...OVERVIEW, is_scored: false }));
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    await screen.findByText(/vs Goose/i);
+    const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/matchups?week=1");
+    expect(link).toBeDefined();
+  });
+
+  it("navigates to the selected owner's team season", async () => {
+    renderPage();
+    await screen.findByRole("heading", { name: "Iceman 2017" });
+    await userEvent.selectOptions(await screen.findByLabelText("Team season"), "9");
+    await waitFor(() => expect(screen.getByTestId("loc")).toHaveTextContent("/teams/9"));
   });
 
   it("renders the scoring-trend chart vs league average", async () => {

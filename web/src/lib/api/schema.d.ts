@@ -1278,17 +1278,12 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
-            /**
-             * Scope
-             * @default league
-             */
-            scope: string;
         };
         /**
          * PlayerIndexRow
          * @description One row of the player index, enriched so relevance is legible without the
-         *     SPA doing any joins. ``first/last_rostered_season`` is null when the player
-         *     was never on a league roster (only reachable via ``scope=all``).
+         *     SPA doing any joins. Public index rows are always league-relevant, so
+         *     ``first/last_rostered_season`` should be present for normal data.
          */
         PlayerIndexRow: {
             /** Player Id */
@@ -1303,11 +1298,6 @@ export interface components {
             first_rostered_season?: number | null;
             /** Last Rostered Season */
             last_rostered_season?: number | null;
-            /**
-             * Has Scored
-             * @default false
-             */
-            has_scored: boolean;
         };
         /** PlayerOut */
         PlayerOut: {
@@ -2347,7 +2337,6 @@ export interface operations {
                 name?: string | null;
                 position?: string | null;
                 nfl_team?: string | null;
-                scope?: string;
                 limit?: number;
                 offset?: number;
             };

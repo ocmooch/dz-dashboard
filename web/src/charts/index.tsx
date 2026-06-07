@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  type TooltipProps,
   Bar,
   BarChart,
   CartesianGrid,
@@ -20,6 +21,39 @@ import { chartTheme, heatColor, seriesColor, tooltipProps } from "./chartTheme";
 
 export type ChartRow = Record<string, number | string | null>;
 export type SeriesDef = { key: string; label: string; color?: string };
+
+function rankTooltip({
+  active,
+  label,
+  payload,
+}: TooltipProps<number | string, string>): React.ReactElement | null {
+  if (!active || !payload?.length) return null;
+  const t = chartTheme();
+  const ranked = [...payload]
+    .filter((p) => p.value != null)
+    .sort((a, b) => Number(a.value) - Number(b.value));
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.borderStrong}`,
+        borderRadius: 10,
+        fontFamily: t.fontMono,
+        fontSize: 12,
+        padding: "8px 10px",
+      }}
+    >
+      <div style={{ color: t.text, marginBottom: 6 }}>Week {String(label)}</div>
+      <div className="space-y-1">
+        {ranked.map((p) => (
+          <div key={p.dataKey} style={{ color: p.color ?? t.text }}>
+            #{p.value} {p.name}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function DataTable({
   data,
@@ -112,7 +146,7 @@ export function LineTrend({ data, series, xKey, xLabel = xKey, title, height }: 
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
-        <Tooltip {...tooltipProps()} />
+        <Tooltip content={rankTooltip} />
         {series.map((s, i) => (
           <Line
             key={s.key}

@@ -27,14 +27,15 @@ function winPct(o: OwnerCareer): number | null {
 // The career table sorts client-side; the BFF's default order (titles → wins →
 // PF) is the initial view. Each column knows how to rank a career.
 type SortKey = "titles" | "winPct" | "points" | "seasons" | "bestFinish" | "avgFinish";
+type SortDir = "asc" | "desc";
 const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
-  titles: (a, b) => b.championships - a.championships || b.total_wins - a.total_wins,
-  winPct: (a, b) => (winPct(b) ?? -1) - (winPct(a) ?? -1),
-  points: (a, b) => b.total_points_for - a.total_points_for,
-  seasons: (a, b) => b.seasons_played - a.seasons_played,
+  titles: (a, b) => a.championships - b.championships || a.total_wins - b.total_wins,
+  winPct: (a, b) => (winPct(a) ?? -1) - (winPct(b) ?? -1),
+  points: (a, b) => a.total_points_for - b.total_points_for,
+  seasons: (a, b) => a.seasons_played - b.seasons_played,
   // Finishes are "lower is better", and a missing finish sorts last.
-  bestFinish: (a, b) => (a.best_finish ?? Infinity) - (b.best_finish ?? Infinity),
-  avgFinish: (a, b) => (a.avg_finish ?? Infinity) - (b.avg_finish ?? Infinity),
+  bestFinish: (a, b) => (b.best_finish ?? Infinity) - (a.best_finish ?? Infinity),
+  avgFinish: (a, b) => (b.avg_finish ?? Infinity) - (a.avg_finish ?? Infinity),
 };
 
 function LegendCard({ label, name, value }: { label: string; name: string | null | undefined; value: string }) {
@@ -72,12 +73,14 @@ function SortHeader({
   label,
   k,
   active,
+  dir,
   onSort,
   align = "right",
 }: {
   label: string;
   k: SortKey;
   active: SortKey;
+  dir: SortDir;
   onSort: (k: SortKey) => void;
   align?: "left" | "right";
 }) {
@@ -88,9 +91,10 @@ function SortHeader({
         onClick={() => onSort(k)}
         className={`inline-flex items-center gap-1 hover:text-text ${active === k ? "text-accent" : ""}`}
         aria-pressed={active === k}
+        aria-label={`${label} sort ${active === k ? dir : "inactive"}`}
       >
         {label}
-        {active === k && <span aria-hidden>▾</span>}
+        {active === k && <span aria-hidden>{dir === "asc" ? "▴" : "▾"}</span>}
       </button>
     </th>
   );
@@ -102,8 +106,20 @@ export function ManagersPage() {
     queryFn: fetchOwners,
   });
   const [sort, setSort] = useState<SortKey>("titles");
+  const [dir, setDir] = useState<SortDir>("desc");
 
-  const owners = useMemo(() => (data ? [...data].sort(SORTERS[sort]) : []), [data, sort]);
+  const owners = useMemo(() => {
+    const sorted = data ? [...data].sort(SORTERS[sort]) : [];
+    return dir === "asc" ? sorted : sorted.reverse();
+  }, [data, sort, dir]);
+
+  const onSort = (k: SortKey) => {
+    if (k === sort) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSort(k);
+      setDir("desc");
+    }
+  };
 
   return (
     <div className="dz-rise space-y-6">
@@ -140,13 +156,13 @@ export function ManagersPage() {
                 <thead>
                   <tr>
                     <th>Manager</th>
-                    <SortHeader label="Seasons" k="seasons" active={sort} onSort={setSort} />
-                    <SortHeader label="Win %" k="winPct" active={sort} onSort={setSort} />
+                    <SortHeader label="Seasons" k="seasons" active={sort} dir={dir} onSort={onSort} />
+                    <SortHeader label="Win %" k="winPct" active={sort} dir={dir} onSort={onSort} />
                     <th className="dz-num">Record</th>
-                    <SortHeader label="Points For" k="points" active={sort} onSort={setSort} />
-                    <SortHeader label="Titles" k="titles" active={sort} onSort={setSort} />
-                    <SortHeader label="Best" k="bestFinish" active={sort} onSort={setSort} />
-                    <SortHeader label="Avg finish" k="avgFinish" active={sort} onSort={setSort} />
+                    <SortHeader label="Points For" k="points" active={sort} dir={dir} onSort={onSort} />
+                    <SortHeader label="Titles" k="titles" active={sort} dir={dir} onSort={onSort} />
+                    <SortHeader label="Best" k="bestFinish" active={sort} dir={dir} onSort={onSort} />
+                    <SortHeader label="Avg finish" k="avgFinish" active={sort} dir={dir} onSort={onSort} />
                   </tr>
                 </thead>
                 <tbody>

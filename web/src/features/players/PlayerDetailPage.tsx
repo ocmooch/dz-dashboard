@@ -114,18 +114,23 @@ function OwnershipTimeline({ playerId }: { playerId: number }) {
     return <EmptyState title="Never rostered" hint="No league team has owned this player." />;
   }
   return (
-    <ol className="divide-y divide-[var(--hairline)]">
+    <ol className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
       {data.events.map((e, i) => (
-        <li key={i} className="flex items-center justify-between gap-3 px-5 py-3">
-          <div>
-            <Link to={`/teams/${e.team_id}`} className="font-semibold text-text hover:text-accent">
+        <li key={i}>
+          <Link
+            to={`/teams/${e.team_id}`}
+            className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <span className="font-semibold text-text">
               {e.team_name ?? `Team ${e.team_id}`}
-            </Link>
-            <div className="text-[var(--fs-xs)] text-faint">
+              </span>
+              {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
+            </div>
+            <div className="mt-1 text-[var(--fs-xs)] text-faint">
               {e.season_year} · {weekRange(e.week_start, e.week_end)}
             </div>
-          </div>
-          {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
+          </Link>
         </li>
       ))}
     </ol>

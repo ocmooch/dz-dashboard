@@ -12,7 +12,20 @@ const FALLBACK = {
   mono: "IBM Plex Mono, ui-monospace, monospace",
 };
 
-const SERIES_FALLBACK = ["#ff6a1a", "#5aa9ff", "#34d39e", "#f5b73d", "#b07cff", "#ff8fa3"];
+const SERIES_FALLBACK = [
+  "#ff6a1a",
+  "#5aa9ff",
+  "#34d39e",
+  "#f5b73d",
+  "#b07cff",
+  "#ff8fa3",
+  "#00c2c7",
+  "#d6d84f",
+  "#8f7cff",
+  "#ff9f1c",
+  "#4cc9f0",
+  "#c77dff",
+];
 
 function readVar(name: string, fallback: string): string {
   if (typeof window === "undefined" || typeof document === "undefined") return fallback;
@@ -42,7 +55,7 @@ export function chartTheme(): ChartTheme {
   };
 }
 
-/** Categorical color for series index i (wraps the 6-color ramp). */
+/** Categorical color for series index i (wraps the 12-team ramp). */
 export function seriesColor(i: number): string {
   const s = chartTheme().series;
   return s[i % s.length];
