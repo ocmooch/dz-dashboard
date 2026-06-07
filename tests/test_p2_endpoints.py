@@ -61,8 +61,27 @@ def test_standings_insights_endpoint(client: TestClient) -> None:
     assert by_owner["Slider"]["luck_delta"] == 0.33
 
 
+def test_bracket_endpoint(client: TestClient) -> None:
+    data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2015]}/bracket"))
+    assert data["available"] is True
+    assert data["reason"] is None
+    assert data["weeks"][0]["week"] == 3
+    assert len(data["weeks"][0]["games"]) == 2
+    assert {g["is_consolation"] for g in data["weeks"][0]["games"]} == {False, True}
+
+
+def test_bracket_endpoint_gap(client: TestClient) -> None:
+    data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2016]}/bracket"))
+    assert data["available"] is False
+    assert data["reason"] == "bracket_unavailable"
+    assert data["weeks"] == []
+
+
 def test_season_not_found(client: TestClient) -> None:
     resp = client.get("/v1/seasons/99999/standings")
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "not_found"
+    resp = client.get("/v1/seasons/99999/bracket")
     assert resp.status_code == 404
     assert resp.json()["error"] == "not_found"
 

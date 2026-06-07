@@ -52,11 +52,7 @@ document, so the contract is enforced at build time.
 | `GET /v1/seasons/{season_id}/standings/timeline` | Rank (and points-for) per team per week — for the standings-over-time chart |
 | `GET /v1/seasons/{season_id}/power?through_week={n}` | Power ranking + components + weights per team, including all-play win pct |
 | `GET /v1/seasons/{season_id}/power/timeline` | Power score per team per week |
-
-> **Not yet implemented:** `GET /v1/seasons/{season_id}/bracket` (playoff/post-season results).
-> The route and a Playoffs/Bracket page were specified (F2.3) but not built; the
-> "post-regular-season, bracket-not-proven" caveat still applies if/when added. Tracked in
-> `10_OPEN_QUESTIONS.md`.
+| `GET /v1/seasons/{season_id}/bracket` | Caveated post-regular-season matchup groups by week; returns `available:false` / `bracket_unavailable` when no postseason rows exist, and labels consolation only when source flags distinguish it |
 
 ### Matchups & box scores
 
