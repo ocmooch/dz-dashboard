@@ -223,12 +223,12 @@ Guardrails for the fixture edit (preserve prior passes' known answers):
 - Transaction-derived **records/insights** (F-20) → P6 / later.
 
 ## Done-when checklist (for BUILD/VERIFY)
-- [ ] `analytics/transactions.py:derive_roster_moves` + schema + route landed; `gen:api`
+- [x] `analytics/transactions.py:derive_roster_moves` + schema + route landed; `gen:api`
       run, drift = the new path only, committed.
-- [ ] Team page shows the In-season-moves space distinct from the draft space; gap +
+- [x] Team page shows the In-season-moves space distinct from the draft space; gap +
       empty paths render the right affordance.
-- [ ] Backend known-answer + gap tests green; frontend vitest green; full gate green.
-- [ ] Clicked through the team page on the real DB (a team with mid-season churn + a
+- [x] Backend known-answer + gap tests green; frontend vitest green; full gate green.
+- [x] Clicked through the team page on the real DB (a team with mid-season churn + a
       no-snapshot season).
-- [ ] `docs/05` (endpoint), `docs/07` (page), `docs/04` (metric), `PROGRESS.md`,
+- [x] `docs/05` (endpoint), `docs/07` (page), `docs/04` (metric), `PROGRESS.md`,
       roadmap row (☑ + PR#), review doc F-37 (PR#) updated.

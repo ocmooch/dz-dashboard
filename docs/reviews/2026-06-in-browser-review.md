@@ -591,6 +591,10 @@ response excerpt, not a paragraph.
 - Batch: see assignment map under "Proposed fix passes"
 
 ### F-37 — Transactions only shows drafted players; need full transaction history
+
+**RESOLVED tier 1:** dashboard roster-diff derivation shipped in **PR #35**. Tier 2 (exact
+transaction dates, waiver/FA/trade classification, FAAB bids) remains UP / Phase 1.
+
 - View/route: team page → transactions
 - Observed: "Transactions" shows only players **drafted** by the team — not adds/drops/trades/
   waivers across the season.
@@ -821,7 +825,7 @@ first (data/analytics foundations → analytics → views).
 | **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
 | **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31**; post-regen redo verified in `docs/archive/fix-P2-post-regen-redo.md` because F-51 changed the coverage premise |
 | **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
-| **P4 — Transactions (dashboard roster-diff tier)** | F-37 (tier 1) |
+| **P4 — Transactions (dashboard roster-diff tier)** | F-37 tier 1 — ✅ resolved by **PR #35** |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 |
 | **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27 (data half ✅ landed → F-51), F-37 (tier 2), F-49, ~~F-50~~ ✅ regen, F-52 |

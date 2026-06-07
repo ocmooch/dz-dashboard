@@ -16,8 +16,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
   below is closed out.
-- **fix-pass P4 (Transactions, roster-diff tier) — build done, unblocked, real-DB verified.**
-  Branch `feature/fix-P4-transactions` has the dashboard work for F-37 tier 1:
+- **fix-pass P4 (Transactions, roster-diff tier) — MERGED, PR #35.** F-37 tier 1 shipped:
   `derive_roster_moves(session, team_id)`, additive
   `GET /v1/teams/{team_id}/roster-moves`, `RosterMove` / `TeamRosterMoves`, and the team-page
   **In-season moves** card. The existing transactions card is relabelled **Draft** because the
@@ -27,30 +26,34 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   Real-DB verification on 2026-06-06 confirmed normal churn: team 184/2024 now returns wk1
   adds=2/drops=0 (was fabricated 68/67), and 2010 team 13 has period-correct week-1 players.
   No dashboard code change was needed after the regen.
-- **Everything else in the review-fixes program is merged or archived.** P1, P2, P2-redo, P3,
-  F-51, and the players audit history are in `CHANGELOG.md`; completed plan docs are under
-  `docs/archive/`. Active trackers remain in `docs/plans/`.
+- **fix-pass P5 (Frontend navigation & presentation fixes) — PLAN written.** Plan:
+  `docs/plans/fix-P5-frontend-fixes.md`. Scope: F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14,
+  F-11, F-40, F-30, F-04, F-28, F-02, F-42. F-24 is the only API contract cleanup; the rest is
+  frontend navigation/presentation.
 
 ## Next
 
-- Open the P4 PR from `feature/fix-P4-transactions` to `dev`. Optional before PR: one browser
-  click-through of the team-page card; the SPA renders the verified BFF output verbatim.
-- Then continue with **P5** and **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md`.
+- Start **P5 BUILD** from `docs/plans/fix-P5-frontend-fixes.md`. Recommended order:
+  F-24 contract cleanup → shared controls/charts → navigation fixes → page-local polish.
+- After P5 merges, continue with **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md`.
 - Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
 
-## Files that matter now (fix-pass P4)
+## Files that matter now (fix-pass P5)
 
-- `src/ff_dashboard/analytics/transactions.py` — `derive_roster_moves`: stint-model roster diff
-- `src/ff_dashboard/api/schemas.py` — `RosterMove`, `TeamRosterMoves`
-- `src/ff_dashboard/api/routes/teams.py` — `GET /v1/teams/{team_id}/roster-moves`
-- `web/src/features/teams/TeamPage.tsx` — `RosterMovesCard`; "Draft" relabel
-- `web/src/design-system/index.tsx` — `roster_history_unavailable` `DataGap` reason
-- `web/src/lib/queryKeys.ts` — `teamRosterMoves(teamId)`
-- `tests/test_p4_transactions.py` — known-answer + gap + not-gated + 404 tests
-- `tests/conftest.py` — mav-2016 wk2 and mav-2015 unscored two-week roster scenarios
-- `web/src/features/teams/team.test.tsx` — RosterMovesCard render/gap/empty paths
-- `docs/04_ANALYTICS_MODEL.md` · `docs/05_API_CONTRACT.md` · `docs/07_PAGES_AND_VIEWS.md`
-- `docs/plans/fix-P4-transactions.md` · `docs/plans/REVIEW_FIXES_ROADMAP.md`
+- `docs/plans/fix-P5-frontend-fixes.md` — BUILD plan
+- `src/ff_dashboard/api/routes/players.py` · `src/ff_dashboard/api/schemas.py` —
+  F-24 player-index contract cleanup
+- `web/src/features/players/PlayersPage.tsx` · `web/src/features/players/players.test.tsx`
+- `web/src/design-system/index.tsx` · `web/src/design-system/index.test.tsx` — `WeekStepper`
+- `web/src/charts/index.tsx` · `web/src/charts/chartTheme.ts` · chart tests — timeline legibility
+- `web/src/features/search/GlobalSearch.tsx` · `web/src/features/search/search.test.tsx`
+- `web/src/features/teams/TeamPage.tsx` · `web/src/features/teams/team.test.tsx`
+- `web/src/features/matchups/MatchupsPage.tsx` · `web/src/features/matchups/BoxScorePage.tsx`
+- `web/src/features/managers/ManagersPage.tsx` · `web/src/features/managers/ManagerProfilePage.tsx`
+- `web/src/features/draft/DraftPage.tsx` · `web/src/features/stats/StatsPage.tsx`
+- `web/src/features/standings/StandingsPage.tsx` · `web/src/features/power/PowerPage.tsx`
+- `docs/05_API_CONTRACT.md` · `docs/06_DESIGN_SYSTEM.md` · `docs/07_PAGES_AND_VIEWS.md`
+- `docs/plans/REVIEW_FIXES_ROADMAP.md` · `docs/reviews/2026-06-in-browser-review.md`
 
 ## Open items / deviations
 
