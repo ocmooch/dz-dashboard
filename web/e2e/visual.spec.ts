@@ -19,7 +19,7 @@ const PAGES: { name: string; path: string; ready: string }[] = [
 for (const p of PAGES) {
   test(`visual: ${p.name}`, async ({ page }) => {
     await page.goto(p.path);
-    await expect(page.getByRole("heading", { name: p.ready })).toBeVisible();
+    await expect(page.getByRole("heading", { name: p.ready, exact: true })).toBeVisible();
     await settle(page);
     await expect(page).toHaveScreenshot(`${p.name}.png`, {
       fullPage: true,

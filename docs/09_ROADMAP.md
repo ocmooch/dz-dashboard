@@ -10,6 +10,10 @@ on earlier milestones. Two ordering rules are deliberate:
 
 ## Milestone summary
 
+**As-built status (2026-06-07):** P0-P11 are complete. P11 includes Makefile/runbook,
+`make dev`/`make serve`, CI jobs, e2e journeys, a visual-regression spec, committed
+Chromium/Linux screenshot baselines, and the visual spec in CI.
+
 | # | Milestone | Est. | Deliverable |
 |---|-----------|------|-------------|
 | P0 | Prereqs & data-readiness gate | 0.5–1 hr | Phase 1 reconstruction complete & verified; data coverage confirmed |
@@ -199,6 +203,10 @@ renders a 0 where data is absent.
 
 **Done when:** a fresh checkout + `uv sync` + `npm ci` + one command brings up a working
 dashboard against the Phase 1 DB, with all tests green; PR `feature/* → dev`.
+
+> **Build outcome:** the run/ops pieces shipped (`make dev`, `make serve`, runbook/README,
+> CI, generated-client drift check, Playwright journeys, and visual-regression snapshots). The
+> CI e2e job runs the full Playwright suite, including `web/e2e/visual.spec.ts`.
 
 ---
 
