@@ -165,7 +165,11 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
         for r in rows
         if r["is_champion"] or (r["final_rank"] is not None and r["final_rank"] <= 3)
     ]
-    return {**career, "trophy_case": trophy_case, "consistency": owner_consistency(session, owner_id)}
+    return {
+        **career,
+        "trophy_case": trophy_case,
+        "consistency": owner_consistency(session, owner_id),
+    }
 
 
 def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
@@ -180,8 +184,9 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
         for tid, oid in session.execute(select(Team.team_id, Team.owner_id)).all()
     }
     rows = session.execute(
-        select(Matchup.team_id, Matchup.team_score, Matchup.opponent_team_id)
-        .where(Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None))
+        select(Matchup.team_id, Matchup.team_score, Matchup.opponent_team_id).where(
+            Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None)
+        )
     ).all()
     for team_id, score, _ in rows:
         oid = team_to_owner.get(int(team_id))

@@ -133,6 +133,15 @@ needs a decision — so passes inform each other and nothing is silently absorbe
   bracket metadata partly upstream. P6 BUILD should show proven last-season finish/championship
   context on Home, and use `DataGap` for unavailable bracket/activity data. → avoids inventing
   bracket structure while still satisfying the season-aware home re-curation.
+- [P6, 2026-06-07] **VERIFY:** full gate green (213 pytest, ruff, mypy, gen:api no-drift,
+  typecheck, 139 vitest, SPA production build; `npm run lint` is N/A — no script). Ran `ruff format`
+  on 3 P6 analytics files (formatting only). Real-DB checks: the two new insight endpoints
+  (`/v1/players/{id}/insights`, `/v1/seasons/{id}/standings/insights`) plus box-score, power, owners
+  return honest `available`/`reason` payloads with no 500s; the built SPA serves every P6 deep link.
+  PR #40 opened to `dev`. → **F-52 RESOLVED upstream**, confirmed here: real DB now reports
+  `status:completed` for 2010–2025 and `in_progress` only for 2026, so the season-phase helper's
+  decision to derive phase from data (not `seasons.status`) is validated; closing F-52 in the review
+  doc. No dashboard change needed.
 
 ## Done when (the whole program)
 

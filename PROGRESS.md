@@ -16,13 +16,16 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
   below is closed out.
-- **fix-pass P6 BUILD is implemented on `feature/fix-P6-frontend-insights`.** Shipped backend
-  helpers/endpoints for standings luck/all-play, manager consistency, player insights, box-score
-  enrichment, and revised all-play-aware power. Frontend now uses shared season phase, re-curates
-  Home, adds player/manager/standings insights, records trophy filtering, draft value filters +
-  drill-down focus, power all-play methodology, and richer box-score player rows. Focused backend
-  tests, ruff, mypy, frontend typecheck, and focused Vitest are green; VERIFY still needs the full
-  gate and real-DB click-through.
+- **fix-pass P6 VERIFY complete — PR #40 open to `dev`.** Shipped backend helpers/endpoints for
+  standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
+  all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
+  player/manager/standings insights, records trophy filtering, draft value filters + drill-down
+  focus, power all-play methodology, and richer box-score player rows. **Full gate green** (backend
+  pytest 213 + ruff + mypy; frontend gen:api no-drift + typecheck + Vitest 139; SPA production
+  build). Real-DB verification on 2026-06-07: the two new insight endpoints
+  (`/v1/players/{id}/insights`, `/v1/seasons/{id}/standings/insights`) plus box-score, power, and
+  owners return honest `available`/`reason` payloads with no 500s, and the built SPA serves every
+  P6 deep link. (No `lint` script exists in `web/`; typecheck is the TS gate.)
 - **fix-pass P4 (Transactions, roster-diff tier) — MERGED, PR #35.** F-37 tier 1 shipped:
   `derive_roster_moves(session, team_id)`, additive
   `GET /v1/teams/{team_id}/roster-moves`, `RosterMove` / `TeamRosterMoves`, and the team-page
@@ -43,10 +46,12 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- Start **P6 VERIFY** from `docs/plans/fix-P6-frontend-insights.md`: run the full green gate,
-  confirm generated-client drift is expected/additive, perform the real-DB browser click-through,
-  then mark findings/roadmap and open the PR.
-- Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
+- **Merge PR #40 (fix-pass P6) to `dev`**, then tick the roadmap P6 row to ☑ and delete the
+  feature branch (local + remote).
+- **F-52 is RESOLVED upstream** by the danger-zone regen: the real DB now reports
+  `status:completed` for 2010–2025 and `in_progress` only for 2026 (verified 2026-06-07). The P6
+  season-phase helper derives phase from data rather than `seasons.status`, so no dashboard change
+  is needed; a later pass could optionally trust `status` now that it is correct.
 
 ## Files that matter now (fix-pass P6)
 

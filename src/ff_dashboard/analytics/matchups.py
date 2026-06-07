@@ -382,9 +382,7 @@ def _team_box(
             entry["lineup_value"] = None
         elif entry["is_starter"] and entry["projection_delta"] is not None:
             projection_delta = cast("float", entry["projection_delta"])
-            entry["lineup_value"] = (
-                "starter_hit" if projection_delta > 0 else "starter_miss"
-            )
+            entry["lineup_value"] = "starter_hit" if projection_delta > 0 else "starter_miss"
         elif (
             not entry["is_starter"]
             and entry["roster_slot"] in BENCH_SLOTS

@@ -185,7 +185,9 @@ def all_play_index(
                     rec["ties"] += 1
     for rec in index.values():
         games = int(rec["games"])
-        rec["win_pct"] = round((float(rec["wins"]) + 0.5 * float(rec["ties"])) / games, 4) if games else 0.0
+        rec["win_pct"] = (
+            round((float(rec["wins"]) + 0.5 * float(rec["ties"])) / games, 4) if games else 0.0
+        )
     return index
 
 
@@ -219,8 +221,7 @@ def standings_insights(
         }
 
     pf_rank = {
-        r["team_id"]: i
-        for i, r in enumerate(sorted(rows, key=lambda x: -x["points_for"]), start=1)
+        r["team_id"]: i for i, r in enumerate(sorted(rows, key=lambda x: -x["points_for"]), start=1)
     }
     teams: list[dict[str, Any]] = []
     for r in rows:
