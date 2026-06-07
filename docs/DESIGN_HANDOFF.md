@@ -47,7 +47,8 @@ fantasy** (dated but clean hierarchy, legible tables). Discipline: **refined, no
 maximalist** — dense where data demands it, calm everywhere else. Avoid the
 "default AI dashboard" look, Inter/Roboto, and purple-gradient-on-white.
 
-**Tokens** (dark is default; design a light theme as a second token set behind `[data-theme]`):
+**Tokens** (dark is default; the app does **not** ship a light token set today. Design a light
+theme behind `[data-theme]` only if the theme-toggle enhancement is in scope):
 
 - Surfaces: `--bg #0b0e13`, `--surface-1 #12161d`, `--surface-2 #1a2029`, `--border #262d38`
 - Text: `--text #e7ecf3`, `--text-muted #9aa7b8`, `--text-faint #5f6b7c`
@@ -109,5 +110,5 @@ win/loss-colored) · `OwnerChip`/`PlayerChip`/`TeamChip` (avatar + name) ·
 - **Accessibility is baseline:** WCAG AA contrast (verify orange-on-dark and muted
   text), visible focus rings, non-color encodings on charts (direct labels),
   data-table fallbacks, semantic landmarks.
-- **Token-driven and re-skinnable** — commit to one direction per option, but make
-  the theme fully swappable via CSS variables.
+- **Token-driven and re-skinnable** — commit to one direction per option, but keep
+  the theme swappable via CSS variables. The shipped app currently has dark tokens only.

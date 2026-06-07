@@ -30,10 +30,10 @@ pass proceeds **config-driven with seeded defaults** and leaves a TODO keyed to 
 
 | Input | Needed by | Status | Value (fill in) |
 |-------|-----------|--------|-----------------|
-| Season-length switch year(s): regular 1–13 → 1–14; playoffs/championship week shift | P1 (F-32) | ☐ pending | _e.g. "switched in 20NN"_ |
-| Waiver standard-order → **FAAB** switch point | P4 / UP (F-37) | ☐ pending | _year/season_ |
-| Ownership-succession history (which owner held which team, which seasons) | UP (F-06) | ☐ pending | _source / table_ |
-| Pre-2016 scoring reconstruction: go / sequencing | UP (F-27) | ☐ pending | _go-ahead + priority_ |
+| Season-length switch year(s): regular 1–13 → 1–14; playoffs/championship week shift | P1 (F-32) | ⊘ optional / unresolved | Dashboard derives from DB columns until the exact switch year is supplied; `_CONFIRMED` remains empty. |
+| Waiver standard-order → **FAAB** switch point | UP (F-37) | ◐ partly retired | `danger-zone` now has dated transaction rows with waiver/free-agent/trade/drop/draft/lineup types, and dz-dashboard consumes them on the team page; no FAAB bid rows were present in the 2026-06-07 spot check. |
+| Ownership-succession history (which owner held which team, which seasons) | UP (F-06) | ☐ pending | Still needs a source / table. |
+| Pre-2016 scoring reconstruction: go / sequencing | UP (F-27) | ☑ data landed; ◐ trust check open | `player_stats_scored` spans 2010–2025; retain the F-27 sanity-check before treating every reconstructed score as final. |
 
 ## Status
 
@@ -47,7 +47,7 @@ Key: ☐ todo · ◐ in progress · ☑ merged · ⊘ blocked (needs an input ab
 | **P4** | Transactions (dashboard roster-diff tier) | analytics + api + frontend | — | F-37 (tier 1) | ☑ PR #35 merged (F-53 fixed upstream; real-DB verified) | `docs/plans/fix-P4-transactions.md` |
 | **P5** | Frontend: navigation & presentation fixes | frontend | P1 (data it renders) + F-24 contract | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 | ☑ PR #38 merged | `docs/plans/fix-P5-frontend-fixes.md` |
 | **P6** | Frontend: composition, seasonality & insight enhancements | frontend | P1, P4, P2 | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 | ☑ PR #40 merged (full gate green; real-DB verified; F-52 closed) | `docs/plans/fix-P6-frontend-insights.md` |
-| **UP** | Upstream / Phase-1 program & research (NOT dashboard PRs) | data (pipeline) + research | runs alongside | F-27 (data half ✅ landed → F-51), F-25, F-37 (tier 2), F-06, F-49, ~~F-50~~ ✅ regen, ~~F-52~~ ✅ regen (confirmed P6 VERIFY), ~~F-53~~ ✅ regen (wk1 fixed) | ☐ | per-program handoffs in `docs/handoffs/` |
+| **UP** | Upstream / Phase-1 program & research (NOT dashboard PRs) | data (pipeline) + research | runs alongside | F-27 (data half ✅ landed → F-51; sanity-check open), F-25 residual, F-37 tier 2 ◐ (dated typed rows exist and dashboard consumes them; FAAB rows absent), F-06, F-49, ~~F-50~~ ✅ regen, ~~F-52~~ ✅ regen (confirmed P6 VERIFY), ~~F-53~~ ✅ regen (wk1 fixed) | ◐ | per-program handoffs in `docs/handoffs/` |
 
 ### Recommended sequencing
 
@@ -77,8 +77,8 @@ spec; do not duplicate it. The PLAN stage expands it into `docs/plans/fix-P{N}-*
   (F-43) is the safety net; write it so it would have caught F-16/F-22/F-25/F-31/F-35.
 - **P3** — review doc § "P3 — Search". League-scope the player branch; team synonyms +
   players-by-team + fantasy-team names; injection/regex/XSS tests.
-- **P4** — review doc § "P4 — Transactions". Roster-diff derivation only; nfl.com scrape + FAAB
-  are UP.
+- **P4** — review doc § "P4 — Transactions". PR #35 shipped the roster-diff derivation; a later
+  local pass now consumes exact upstream transaction rows. FAAB availability remains UP/nullable.
 - **P5** — review doc § "P5 — Frontend: navigation & presentation fixes". Includes the F-24
   contract change (`scope`/`has_scored` removal) → run `gen:api` + drift check.
 - **P6** — review doc § "P6 — Frontend: composition, seasonality & insight enhancements". Build the
@@ -119,7 +119,7 @@ needs a decision — so passes inform each other and nothing is silently absorbe
 - [P4, 2026-06-06] **BUILD:** implemented `analytics/transactions.py:derive_roster_moves` (stint-model diff over `team_rosters`), additive `/v1/teams/{team_id}/roster-moves` + `RosterMove`/`TeamRosterMoves` schema, frontend `RosterMovesCard` + `roster_history_unavailable` `DataGap`; relabelled the existing transactions space "Draft" (draft-only on real DB). `gen:api` drift = the new path only (+81 lines, 0 deletions). Fixture gained mav-2016 wk2 rows (cmc retain / dst drop / "Waiver Wendell" add) and a mav-2015 unscored 2-week scenario ("Vintage Vince" retain). **One prior known-answer updated, legitimately:** cmc's 2016 ownership span is now weeks 1–2 (was a single week) since cmc gained a wk2 roster row — `test_ownership_timeline_collapses_into_spans` re-pointed to `(2016, 1, 2)` (still demonstrates contiguous-week collapse). 211 backend + 8 team-page vitest green. → no contract change beyond the additive path; VERIFY runs the full gate + real-DB click-through.
 - [P4, 2026-06-06] **VERIFY: full gate GREEN but real-DB click-through surfaced a blocker → new finding F-53.** Backend 211 pytest / ruff / mypy / write-safety all clean; frontend `gen:api` no drift / typecheck / 132 vitest clean. The real-DB click-through on `/v1/teams/{id}/roster-moves` revealed that `team_rosters` **week 1 is a corrupt/placeholder snapshot in every season 2010–2025** (disjoint from wk0 + wk2, 0–7/17 overlap; 2010 teams' wk1 lists modern players like Brock Purdy). P4's `derive_roster_moves` is the first reader to diff *all* weeks, so it faithfully renders the corrupt wk1 as fabricated churn (e.g. 68 adds + 67 drops at wk1) — an honesty violation if shipped. The existing single-week roster view hides this. **P4 code is correct on the input; the defect is upstream data.** → **P4's PR is BLOCKED until F-53 is fixed in danger-zone** (no dashboard workaround — read-only boundary; mirrors how F-50 blocked P3 until the regen). Once wk1 is consistent with its neighbours, P4 derives correctly with no code change. F-53 assigned to UP.
 - [P4/F-53, 2026-06-06] **F-53 FIXED in danger-zone (regen) → P4 UNBLOCKED.** Lightweight real-DB recheck on `../danger-zone/data/fantasy.db`: for the 12 real franchises, wk1∩wk2 player-id overlap is now **0.71–0.88** across every season 2010–2025 (was 0–7/17), and wk1 holds period-correct players (2010 wk1 → Dez Bryant, not Brock Purdy/Bucky Irving). The fabricated "68 adds + 67 drops at wk1" churn is gone. **No dashboard code change** — as predicted, P4's derivation is correct once the input is clean. **Real-DB verification PASSED (2026-06-06):** `/v1/teams/{id}/roster-moves` via the app — team 184/2024 (the original 68-adds/67-drops case) now returns wk1 2 adds/0 drops; 2010 team 13 → wk1 5/5, period-correct players; all-season totals at normal waiver levels. Residual (a separate identity artifact, *not* this churn corruption, not blocking): 1–2 phantom **week-1-only** teams per season with duplicate/garbled names ("JFCFPWCPGAWWLTDOSGT", "Rev Russell's Sunday Service"), ~2 matchups each, present 2010–2018 and absent 2019/2023/2025 — belongs with the owner/team-identity research, worth a follow-up finding if it surfaces in the UI.
-- [P4, 2026-06-06] **MERGED:** PR #35 (`feature/fix-P4-transactions`) merged to `dev`; F-37 tier 1 is complete. Exact transaction dates/FAAB remain UP as F-37 tier 2.
+- [P4, 2026-06-06] **MERGED:** PR #35 (`feature/fix-P4-transactions`) merged to `dev`; F-37 tier 1 is complete. Later local work consumes exact dated/type transaction rows from upstream; FAAB rows remain absent in the current spot check.
 - [P5, 2026-06-06] **PLAN:** wrote `docs/plans/fix-P5-frontend-fixes.md`. BUILD should start with F-24 contract cleanup, then shared controls/charts, then navigation fixes, then page-local presentation polish.
 - [P5, 2026-06-06] **BUILD:** implemented F-24 player-index contract cleanup, shared `WeekStepper`/search/timeline readability fixes, team/box-score/manager navigation fixes, manager sort/rivalry label polish, signed matchup margins, 12-column snake draft board, stats season-total default, standings finish column, and compact player ownership cards. Focused backend/frontend slices and frontend typecheck are green.
 - [P5, 2026-06-06] **VERIFY:** full gate green (211 pytest, ruff, mypy, generated-client drift clean, typecheck, 139 vitest; `npm run lint` is N/A because no script). Write-safety grep only hits the existing read-only guard docstring in `engine.py`. Real-DB browser click-through passed for players contract cleanup, manager sort/latest roster, team season navigation and schedule fallback, matchup week select and signed margins, scored box score, draft 12-column snake grid, stats season-total default, standings/power timelines, and scrollable search. → PR #38.
@@ -145,6 +145,13 @@ needs a decision — so passes inform each other and nothing is silently absorbe
 - [P6, 2026-06-07] **MERGED:** PR #40 (`feature/fix-P6-frontend-insights`) merged to `dev`; P6 is
   complete. All six dashboard passes P1–P6 are now merged — the remaining open scope is the **UP**
   upstream/danger-zone program.
+- [DOC-AUDIT, 2026-06-07] Reviewed plans/handoffs/roadmap/open-questions/reviews against code and
+  read-only DB state. Dashboard fix-passes P1-P6 remain complete. Roadmap P11 is now complete:
+  visual spec + Chromium/Linux baselines are committed, and CI runs the full Playwright suite. UP is
+  partially retired: transaction rows now include dated add/drop/waiver/trade/draft/lineup types and
+  dz-dashboard consumes them, but no FAAB bid rows were found. F-49 remains open
+  (`is_consolation=0` for all playoff rows in the local `danger-zone` DB); F-25 is improved but
+  residual (`last_season` nulls, rostered `rookie_year` nulls, and ghosts remain).
 
 ## Done when (the whole program)
 
@@ -153,4 +160,21 @@ needs a decision — so passes inform each other and nothing is silently absorbe
 - `PROGRESS.md` reflects the post-review state; `docs/09_ROADMAP.md` unaffected (this is a separate
   program); the review doc's findings each show their resolving PR.
 - UP items are tracked as Phase-1 programs with their own handoffs; this roadmap notes which
-  dashboard findings each UP win retires.
+  dashboard findings each UP win retires. P11 visual-regression work is closed in
+  `docs/09_ROADMAP.md` / `docs/10_OPEN_QUESTIONS.md`, not as a fix-pass.
+
+## Remaining-work handoff (brief)
+
+- **Bracket / F2.3 (dashboard decision):** resolved locally by the caveated `/bracket` endpoint
+  and page. It exposes proven post-regular-season games only; it still does not invent playoff
+  advancement or consolation structure in the SPA.
+- **F-06 (ownership succession):** needs a human/source ledger of team identity vs owner tenure.
+  This should precede schema or manager-record reinterpretation.
+- **F-25 (player identity residual):** rerun the player-audit handoff queries, then fix or document
+  the remaining `last_season`, `rookie_year`, and never-rostered/never-scored residuals upstream.
+- **F-27 (trust check):** reconstructed 2010-2015 scoring exists; validate representative weeks,
+  outliers, and season totals before treating it as authoritative.
+- **F-37 (FAAB only):** exact transaction rows are consumed by dz-dashboard; determine whether
+  historical FAAB bid amounts exist. If absent, document `faab_bid:null` as a true source gap.
+- **F-49 (playoff/consolation):** populate source-derived `is_consolation` or playoff-team metadata
+  in `ff-pipeline`; dashboard `made_playoffs` should then resolve without a contract change.

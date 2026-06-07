@@ -3,8 +3,8 @@
 The dashboard is a *reader*; Phase 1's pipeline is the only writer and takes a
 file lock while it runs. We open SQLite connections with:
 
-* ``PRAGMA query_only = ON`` — the connection rejects any write, so a stray
-  ``INSERT/UPDATE/DELETE`` fails loudly instead of corrupting the writer's data.
+* ``PRAGMA query_only = ON`` — the connection rejects any data-changing SQL, so a stray
+  write fails loudly instead of corrupting the writer's data.
   This is the enforcement behind the "BFF never writes" boundary.
 * ``PRAGMA busy_timeout`` — a read waits briefly for the writer's lock instead
   of erroring out, so a dashboard request during a pipeline run does not 500.

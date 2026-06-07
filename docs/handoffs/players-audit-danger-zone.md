@@ -13,6 +13,13 @@ existing columns.
 
 ## Findings (measured against `data/fantasy.db`, 3093 players)
 
+> **Status update from dz-dashboard doc audit (2026-06-07):** this handoff is now partially
+> superseded by upstream work in `danger-zone`. A read-only spot check of the current DB found:
+> `players` total = 3048; `last_season IS NULL` = 277; league-rostered `rookie_year IS NULL` = 38;
+> never-rostered/never-scored players = 400; duplicate same-player/same-season/same-week roster rows
+> = 0. Treat D5 as effectively resolved in the current DB, and D1/D2/D4 as improved but still open
+> unless the residual nulls/ghosts are documented true source gaps.
+
 | # | Problem | Evidence | Where it lives |
 |---|---------|----------|----------------|
 | D1 | **`last_season` is NULL for 100% of players** (all 3093) | `SELECT COUNT(*) FROM players WHERE last_season IS NULL;` → 3093 | nflverse player-metadata population / upsert |

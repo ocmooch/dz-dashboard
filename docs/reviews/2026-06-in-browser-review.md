@@ -411,6 +411,13 @@ response excerpt, not a paragraph.
 - Batch: see assignment map under "Proposed fix passes"
 
 ### F-25 — Roster→player match leakage: ghost/mismatched index entries (MAJOR data pass)
+- Status (2026-06-07 doc audit): **partially improved upstream, not closed.** Read-only spot check
+  of `danger-zone/data/fantasy.db` showed player metadata and roster idempotency are better than the
+  original handoff, but residual gaps remain: `last_season IS NULL` for 277 players, 38
+  league-rostered players still lack `rookie_year`, and 400 players are still
+  never-rostered/never-scored. Duplicate same-player/same-season/same-week roster rows are now 0.
+  Keep this as UP until the residual identity and metadata gaps are either fixed or documented as
+  true source gaps.
 - View/route: `/players` index (and any player surface)
 - Observed: `A.B. Brown` (player_id 3689) is the first index entry, `scope:league`,
   `first_rostered_season:2012, last_rostered_season:2013` — but the real A.B. Brown last played
@@ -592,16 +599,23 @@ response excerpt, not a paragraph.
 
 ### F-37 — Transactions only shows drafted players; need full transaction history
 
-**RESOLVED tier 1:** dashboard roster-diff derivation shipped in **PR #35**. Tier 2 (exact
-transaction dates, waiver/FA/trade classification, FAAB bids) remains UP / Phase 1.
+**RESOLVED tier 1:** dashboard roster-diff derivation shipped in **PR #35**.
+**Tier 2 is partly resolved and now consumed:** exact dated transaction rows with
+waiver/FA/trade/draft/lineup types are available from the upstream table and rendered on the team
+page; roster diffs remain as a fallback. FAAB/bid-bearing rows were not present in the current real
+DB spot check, so FAAB stays an honest nullable field rather than a fabricated value.
+
+**UP status (2026-06-07 doc audit):** partly landed in the sibling `danger-zone` DB. The
+`transactions` table now has dated `lineup_change`, `drop`, `free_agent_add`, `waiver_add`,
+`draft`, `trade`, and `setting_change` rows. No FAAB bid rows were found in `extra_data`, and
+dz-dashboard now renders the exact transaction log while keeping roster diffs as a fallback.
 
 - View/route: team page → transactions
 - Observed: "Transactions" shows only players **drafted** by the team — not adds/drops/trades/
   waivers across the season.
-- Expected: Full transaction history. Separate **draft** transactions into their own space; show
-  **in-season** free-agent/waiver/trade activity alongside. Surface FAAB bid info where applicable
-  (the league switched from standard waiver order → FAAB at a historical point — **TBD, expect it**;
-  same historical-model theme as F-32). Transactions are a rich source for records (F-20) and insights.
+- Expected: Full transaction history. Separate **draft** transactions from in-season
+  free-agent/waiver/trade/lineup activity. Surface FAAB bid info where available and otherwise keep
+  it nullable. Transactions are a rich source for records (F-20) and insights.
 - Severity: major (core data feature largely absent)
 - Layer: data + analytics + frontend.
 - **Recommended resolution (asked of model):** two-tier —
@@ -610,10 +624,10 @@ transaction dates, waiver/FA/trade classification, FAAB bids) remains UP / Phase
      ships in the dashboard; gives transaction *shape* without exact dates/bids. Game-time
      game-center rosters (e.g. 2012 wk10 post-MNF finals) are the authoritative weekly snapshot to diff.
   2. **Later, pipeline-scoped:** a new **nfl.com scrape pass** to capture the real transaction log
-     (exact dates, waiver vs FA vs trade, FAAB bids). This is a **Phase-1** job — escalate as its
-     own decision, not a dashboard fix.
-- Evidence: `/v1/teams/{id}/transactions` route exists but is draft-only per walkthrough;
-  `team_rosters` is week-grained and already read-only-available.
+     (exact dates, waiver vs FA vs trade, FAAB bids). **Current status:** exact dated/type rows now
+     exist and are consumed; only FAAB/bid presence remains unproven.
+- Evidence: historical walkthrough found `/v1/teams/{id}/transactions` draft-only. Current local
+  state renders exact recorded transactions and keeps `team_rosters` diffs as the read-only fallback.
 - Suspected location: `analytics/transactions.py` (roster-diff derivation) + schema/route +
   `web/src/features/teams/`; nfl.com scrape lives in `ff_pipeline`.
 - Batch: see assignment map under "Proposed fix passes"
@@ -827,8 +841,8 @@ first (data/analytics foundations → analytics → views).
 | **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 tier 1 — ✅ resolved by **PR #35** |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 — ✅ resolved by **PR #38** |
-| **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 — ✅ resolved by **PR #40** (full gate green; real-DB endpoint + built-SPA click-through verified 2026-06-07; awaiting merge to `dev`) |
-| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25, F-27 (data half ✅ landed → F-51), F-37 (tier 2), F-49, ~~F-50~~ ✅ regen, ~~F-52~~ ✅ regen (real DB now `completed` for 2010–2025, `in_progress` only 2026; verified P6 VERIFY 2026-06-07) |
+| **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 — ✅ resolved by **PR #40** (merged to `dev`; full gate green; real-DB endpoint + built-SPA click-through verified 2026-06-07) |
+| **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25 residual, F-27 sanity-check (data half ✅ landed → F-51), F-37 tier 2 ◐ (dated typed transactions exist and dz-dashboard consumes the exact log; FAAB bid rows still absent in spot check), F-49, ~~F-50~~ ✅ regen, ~~F-52~~ ✅ regen (real DB now `completed` for 2010–2025, `in_progress` only 2026; verified P6 VERIFY 2026-06-07), ~~F-53~~ ✅ regen |
 | **Re-verify (post-regen) — verified** | **F-51** (pre-2016 reconstruction landed → redo P2 honesty verification for F-16/F-26/F-33/F-35 + P1 F-22 scored-window); plan: `docs/archive/fix-P2-post-regen-redo.md` |
 
 ---
@@ -890,7 +904,8 @@ first (data/analytics foundations → analytics → views).
 
 ### P4 — Transactions (dashboard roster-diff tier)
 - **Scope:** Derive in-season transaction activity from `team_rosters` week diffs; separate draft
-  from in-season activity on the team page. (nfl.com scrape + FAAB → UP.)
+  from in-season activity on the team page. Later local work consumes exact upstream transaction rows;
+  FAAB remains nullable because no bid-bearing rows were present in the current spot check.
 - **Findings:** F-37 tier 1.
 - **Files likely touched:** new `analytics/transactions.py` (week-over-week roster diff →
   add/drop/retain), schema + `api/routes/teams.py`, `web/src/features/teams/` transactions section.
@@ -934,17 +949,30 @@ first (data/analytics foundations → analytics → views).
 ### UP — Upstream / Phase-1 program & research (NOT dashboard PRs)
 - These are data-origin / research efforts outside the dashboard's read-only scope. Each should be
   its own program with its own plan; dashboard passes consume their outputs.
-- **F-27 — Pre-2016 scoring reconstruction** (strategic north star). Discover each pre-2016 season's
-  scoring settings by reconciling `player_stats_raw` against definitive nfl.com scores; log a
-  per-season scoring-rules ledger; produce `player_stats_scored` for 2010–2015; self-validate. When
-  it lands, F-16/F-22-player/F-26/F-39 collapse and the coverage page becomes largely obsolete.
+- **F-27 — Pre-2016 scoring reconstruction** (strategic north star). The data half has landed:
+  `player_stats_scored` now spans 2010–2025 and the dashboard F-51/P2-redo work retired the stale
+  pre-2016 gap copy. Still UP: keep/finish the reconstruction trustworthiness sanity-check and the
+  per-season scoring-rules ledger so the reconstructed scores can be treated as final. **Next
+  session:** sample high/low/player-week outliers for 2010-2015 against source NFL.com points and
+  confirm reconstructed season totals align with stored team totals within expected rounding.
 - **F-25 — Roster→player match cleanup.** Automated, self-informing reconciliation of `team_rosters`
   → player identity (remove ghosts like A.B. Brown, fix mis-matches, audit the week-0 artifact).
-  Likely mutates pipeline data → `ff_pipeline`, not the dashboard.
-- **F-37 tier 2 — nfl.com transactions scrape.** Real transaction log (dates, waiver/FA/trade, FAAB
-  bids), incl. the standard-order→FAAB switch.
+  Still UP: the 2026-06-07 spot check found duplicate roster rows fixed (0 same-player/team-week
+  duplicates), but residual player metadata/ghost counts remain (`last_season` nulls, rostered
+  `rookie_year` nulls, never-rostered/never-scored players). **Next session:** rerun the audit
+  queries in `docs/handoffs/players-audit-danger-zone.md`, classify residual rows as fixable
+  identity/metadata bugs vs true source gaps, and update both the DB and handoff counts.
+- **F-37 tier 2 — nfl.com transactions scrape.** **Partly landed upstream and consumed by
+  dz-dashboard:** the local `danger-zone` DB now has dated transaction rows with
+  add/drop/waiver/trade/draft/lineup types, and the team page renders the exact transaction log
+  while keeping roster diffs as a fallback. Remaining upstream work is to verify/record FAAB bid
+  availability; the 2026-06-07 spot check found no FAAB/bid rows. **Next session:** verify whether
+  NFL.com exposes historical FAAB bid amounts for this league; if not, document FAAB as a true
+  unavailable field and keep `faab_bid:null`.
 - **F-06 — Ownership succession research.** Establish the team-line vs owner-tenure history; feeds a
-  correct owner identity model.
+  correct owner identity model. **Next session:** gather the authoritative owner-by-team-by-season
+  ledger first; only then change schema/analytics. This also owns the phantom week-1-only
+  duplicate/garbled team artifact noted after F-53.
 - **F-49 — `is_consolation` unpopulated → `made_playoffs` not derivable (surfaced by fix-pass P1).**
   Phase-1 sets `Matchup.is_playoff=True` on **every** post-regular-season game (championship *and*
   consolation brackets) but never sets `is_consolation` (0 rows in the real DB; all 12 teams carry
@@ -953,7 +981,9 @@ first (data/analytics foundations → analytics → views).
   whose bracket isn't a proper subset of the league (so most seasons read `None` today, a few older
   ones with a distinguishable bracket derive True/False). **UP fix:** populate `is_consolation` (and/or
   a per-season `playoff_teams` count) in `ff_pipeline` so the bracket is distinguishable; once it lands,
-  `made_playoffs` becomes derivable league-wide with no dashboard change. The dashboard guard already
+  `made_playoffs` becomes derivable league-wide with no dashboard change. **Next session:** inspect
+  NFL.com playoff/bracket pages or standings metadata in `danger-zone`; prefer source-derived
+  consolation flags over dashboard rank heuristics. The dashboard guard already
   consumes the better data automatically. (`result` is unaffected — it derives from `final_rank`.)
 - **F-50 — stale on-disk `fantasy.db` is missing `teams.team_avatar_asset_id` / `owner_avatar_asset_id`
   (surfaced by fix-pass P3 VERIFY). ✅ RESOLVED 2026-06-06 by the DB regen** (the new `fantasy.db`

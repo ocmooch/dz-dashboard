@@ -16,7 +16,7 @@ rationale isn't lost; none needs further action unless you want to revisit.
 |---|----------|---------------------|
 | Q1 | Data-access architecture | **BFF** reusing `ff_pipeline.repository`, read-only/WAL; all analytics server-side; SPA is pure presentation. (docs 02/03/05) |
 | Q2 | Frontend stack | React 18 + TypeScript + Vite + Tailwind + TanStack Query + React Router + Recharts + `openapi-typescript`/`openapi-fetch`. Primitives hand-built (no shadcn). |
-| Q3 | Visual direction | **"Danger Zone" HUD** — dark instrument-panel, afterburner-orange accent (`#ff6a1a`), mono/tabular numerics. Fonts: **Saira Condensed** (display), **IBM Plex Sans** (body), **IBM Plex Mono** (numbers) — not Inter. A light token set exists but is not exposed as a toggle (see Q10). |
+| Q3 | Visual direction | **"Danger Zone" HUD** — dark instrument-panel, afterburner-orange accent (`#ff6a1a`), mono/tabular numerics. Fonts: **Saira Condensed** (display), **IBM Plex Sans** (body), **IBM Plex Mono** (numbers) — not Inter. A future light token set is possible but not implemented (see Q10). |
 | Q4 | View priority | Built per default order; the Manager index/profile pages are now built (`feature/managers-page`). Only the Playoffs/Bracket view remains unbuilt — see "New issues" below. |
 | Q5 | Standings tiebreaker | Prefer reconstructed `teams.final_rank`; else compute wins→points-for, exposing `rank_basis` + `tiebreak_caveat` (computed & pre-2019). Old best-of-3 not re-derived. (`04_ANALYTICS_MODEL.md` §1) |
 | Q6 | Power-ranking model | Z-score blend **0.5·PPG + 0.3·win% + 0.2·last-3-PPG**; weights in one constant and shipped in the payload's `weights`. (`analytics/power.py`) |
@@ -54,8 +54,9 @@ if first-hit latency is noticeable.
 **Default:** dark-first, with a light theme implemented behind the token system but not
 necessarily exposed in the UI initially. Want a visible light/dark toggle on day one?
 
-**As built:** dark-first; light token set exists in `tokens.css` (`[data-theme="light"]`) but
-**no toggle is wired** in the UI. **Still open** if you want a visible switch.
+**As built:** dark-only. `tokens.css` is structured so a light token set can be added later, but
+there is **no `[data-theme="light"]` token set and no UI toggle** today. **Still open** if you want
+a visible switch.
 
 ### Q11. Avatars / team logos / manager photos
 
@@ -107,11 +108,25 @@ on the client rather than via a single `/v1/home` endpoint + `analytics/league.p
 still does no math (orchestration only). Docs 02/04/05/07 have been updated to match. No action
 unless first-paint round-trips become a concern (then re-introduce a composite).
 
-### N4. Visual-regression baselines not committed → not in the CI gate
+### N4. Visual-regression baselines — RESOLVED
 
-`e2e/visual.spec.ts` exists but per-platform snapshots aren't committed, so CI runs only
-`playwright test journeys`. Generate baselines on a browser-capable host (`make e2e-update`),
-commit them, and add `playwright test visual` to the `e2e` job to close the gate.
+`e2e/visual.spec.ts` now has committed Chromium/Linux baselines, and CI runs the full Playwright
+suite (`npx playwright test`) rather than journeys only. P11's original visual-regression gate is
+closed for the supported CI platform.
+
+### N5. Upstream data work is partially retired, not fully closed
+
+The dashboard fix-passes are merged, but several UP items remain outside this repo:
+ownership-succession history (F-06), residual player-identity cleanup / roster-stat sanity checks
+(F-25/F-27), and playoff/consolation metadata (F-49). The exact transaction log appears partly
+landed upstream (dated add/drop/waiver/trade/draft/lineup rows exist in `danger-zone`) and is ready
+for dashboard consumption. Roster diffs remain as a fallback; FAAB/bid-bearing rows were not present
+in the current real DB spot check.
+
+New-session note: these are primarily `../danger-zone` tasks. For F-25, start from
+`docs/handoffs/players-audit-danger-zone.md` but use the status-update counts, not the original
+counts. For F-27, sanity-check reconstructed 2010-2015 scores against source NFL.com/team totals
+before calling them final. For F-49, prefer fixing source flags over adding dashboard inference.
 
 ---
 
