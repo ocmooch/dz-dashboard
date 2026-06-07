@@ -14,8 +14,10 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
-  below is closed out.
+- **Phase 2 implemented app features are functionally complete.** Roadmap milestones P0–P11 are
+  shipped. P11 now includes committed Chromium/Linux visual-regression baselines, and CI runs the
+  full Playwright suite (journeys plus visual snapshots). The Playoffs/Bracket view from F2.3
+  remains an **open product decision**, not a shipped feature.
 - **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
   standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
   all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
@@ -47,16 +49,22 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 ## Next
 
 - **The P1–P6 review-fixes program is complete** — all six dashboard passes are merged to `dev`.
-  Remaining open work is the **UP** (upstream / danger-zone) program: F-06, F-25, F-37 tier 2,
-  F-49, and the F-27 trustworthiness sanity-check.
+  Remaining dashboard-side work is: decide whether to build or formally close the Playoffs/Bracket
+  view (N2/F2.3).
+- Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
+  succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
+  F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
+  partly landed upstream (dated transaction rows with add/drop/waiver/trade/draft/lineup types);
+  dashboard still renders the derived roster-diff tier and has not consumed exact transaction
+  dates/FAAB details.
 - **F-52 is RESOLVED upstream** by the danger-zone regen: the real DB now reports
   `status:completed` for 2010–2025 and `in_progress` only for 2026 (verified 2026-06-07). The P6
   season-phase helper derives phase from data rather than `seasons.status`, so no dashboard change
   is needed; a later pass could optionally trust `status` now that it is correct.
 
-## Files that matter now (fix-pass P6)
+## Files that matter now
 
-- `docs/plans/fix-P6-frontend-insights.md` — BUILD plan
+- `docs/10_OPEN_QUESTIONS.md` — N2 Playoffs/Bracket product decision remains open
 - `docs/plans/REVIEW_FIXES_ROADMAP.md`
 - `docs/reviews/2026-06-in-browser-review.md`
 - P6 page surfaces: home, players, records/rivalries, managers, draft, power, standings
@@ -88,7 +96,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 | P8 | Draft views | ☑ | — | gap-label seasons w/o drafts |
 | P9 | Power ranking + timelines | ☑ | — | shared chart wrappers |
 | P10 | Global search + coverage/about + gap polish | ☑ | — | no fake zeros anywhere |
-| P11 | Operations + docs + e2e/visual-regression | ☑ | — | Makefile, RUNBOOK, e2e specs |
+| P11 | Operations + docs + e2e/visual-regression | ☑ | — | Makefile/RUNBOOK/e2e + visual baselines in CI |
 
 Status key: ☐ todo · ◐ in progress · ☑ done. Put the plan path in **Plan** once a PLAN
 session writes `docs/plans/P{N}-{name}.md`.

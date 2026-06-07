@@ -67,11 +67,8 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # Contract seam + e2e: both toolchains. Boots the real BFF on the fixture DB
-  # (serving the built SPA single-origin) and runs the deterministic journeys.
-  # Visual-regression (e2e/visual.spec.ts) is intentionally NOT in the CI gate
-  # until per-platform baselines are committed (generate them with
-  # `make e2e-update` on a browser-capable host — see docs/PHASE2_RUNBOOK.md);
-  # add `npx playwright test visual` here once they exist.
+  # (serving the built SPA single-origin) and runs the deterministic journeys
+  # plus the visual-regression snapshot spec.
   # ----------------------------------------------------------------------------
   e2e:
     runs-on: ubuntu-latest
@@ -107,14 +104,15 @@ jobs:
           npx --yes wait-on http-get://127.0.0.1:8800/health
           cd web && npm run gen:api:check
 
-      # End-to-end journeys against the fixture DB (Playwright's webServer builds
-      # the SPA and boots scripts/serve_e2e.py on :8810).
+      # End-to-end journeys and visual snapshots against the fixture DB
+      # (Playwright's webServer builds the SPA and boots scripts/serve_e2e.py on
+      # :8810).
       - name: Install Playwright browser + system deps
         working-directory: web
         run: npx playwright install --with-deps chromium
-      - name: Run e2e journeys
+      - name: Run Playwright e2e and visual specs
         working-directory: web
-        run: npx playwright test journeys
+        run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
