@@ -61,7 +61,42 @@ const TREND = {
   ],
 };
 
-const TRANSACTIONS = { team_id: 10, season_year: 2017, transactions: [] };
+const TRANSACTIONS = {
+  team_id: 10,
+  season_year: 2017,
+  transactions: [
+    {
+      transaction_id: 1,
+      transaction_type: "waiver_add",
+      executed_at: "2017-09-12T10:15:00+00:00",
+      effective_week: 2,
+      player_id: 3,
+      player_name: "Waiver Wendell",
+      direction: "in",
+      waiver_priority_used: 4,
+      faab_bid: null,
+      counterpart_team_id: null,
+      counterpart_team_name: null,
+      notes: "Iceman",
+      extra_data: null,
+    },
+    {
+      transaction_id: 2,
+      transaction_type: "lineup_change",
+      executed_at: "2017-09-17T09:05:00+00:00",
+      effective_week: 2,
+      player_id: 1,
+      player_name: "Kept Player",
+      direction: null,
+      waiver_priority_used: null,
+      faab_bid: null,
+      counterpart_team_id: null,
+      counterpart_team_name: null,
+      notes: "Iceman",
+      extra_data: { from_slot: "BN", to_slot: "WR" },
+    },
+  ],
+};
 
 const ROSTER_MOVES = {
   team_id: 10,
@@ -174,9 +209,13 @@ describe("TeamPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an empty state when there are no draft picks", async () => {
+  it("renders exact recorded transactions with dates and waiver details", async () => {
     renderPage();
-    expect(await screen.findByText(/No draft picks recorded/i)).toBeInTheDocument();
+    expect(await screen.findByText("Transactions")).toBeInTheDocument();
+    expect((await screen.findAllByText("Waiver Wendell")).length).toBeGreaterThan(0);
+    expect(screen.getByText("waiver add")).toBeInTheDocument();
+    expect(screen.getByText(/waiver priority 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/BN to WR/i)).toBeInTheDocument();
   });
 
   it("renders in-season add/drop rows with action pills and a retained count", async () => {
@@ -185,9 +224,9 @@ describe("TeamPage", () => {
     expect(screen.getByText("Dropped D/ST")).toBeInTheDocument();
     expect(screen.getByText("add")).toBeInTheDocument();
     expect(screen.getByText("drop")).toBeInTheDocument();
-    // Retained players are a de-emphasised secondary count, not full rows.
+    // Retained roster-diff players are a de-emphasised secondary count, not full rows.
     expect(screen.getByText(/1 player retained all season/i)).toBeInTheDocument();
-    expect(screen.queryByText("Kept Player")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Kept Player")).toHaveLength(1);
   });
 
   it("renders the roster-history gap (not zeros) when moves are unavailable", async () => {
@@ -205,7 +244,7 @@ describe("TeamPage", () => {
     expect(gap.textContent).not.toMatch(/\b0\b/);
   });
 
-  it("shows 'No in-season moves' when there is churn-free retain-only history", async () => {
+  it("shows no roster churn when there is retain-only history", async () => {
     rosterMoves = {
       team_id: 10,
       season_year: 2017,
@@ -215,6 +254,6 @@ describe("TeamPage", () => {
       moves: [{ week: 1, player_id: 1, player_name: "Kept Player", position: "RB", action: "retain" }],
     };
     renderPage();
-    expect(await screen.findByText(/No in-season moves/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No roster churn detected/i)).toBeInTheDocument();
   });
 });

@@ -751,9 +751,12 @@ class TeamTransaction(BaseModel):
     player_id: int | None = None
     player_name: str | None = None
     direction: str | None = None
+    waiver_priority_used: int | None = None
+    faab_bid: float | None = None
     counterpart_team_id: int | None = None
     counterpart_team_name: str | None = None
     notes: str | None = None
+    extra_data: dict[str, Any] | None = None
 
 
 class TeamTransactions(BaseModel):

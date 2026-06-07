@@ -24,6 +24,7 @@ import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
+type TeamTransaction = components["schemas"]["TeamTransaction"];
 
 async function fetchOverview(id: number) {
   const { data, error } = await api.GET("/v1/teams/{team_id}", {
@@ -252,23 +253,22 @@ function TransactionsCard({ teamId }: { teamId: number }) {
   });
   return (
     <Card>
-      <CardHeader eyebrow="recorded" title="Draft" />
+      <CardHeader eyebrow="recorded exact log" title="Transactions" />
       {isLoading && <Skeleton className="m-5 h-32" />}
       {data && data.transactions.length === 0 && (
-        <EmptyState title="No draft picks recorded" hint="No recorded transactions for this team's season." />
+        <EmptyState title="No transactions recorded" hint="No exact transaction rows for this team's season." />
       )}
       {data && data.transactions.length > 0 && (
         <ol className="divide-y divide-[var(--hairline)]">
           {data.transactions.map((t) => (
             <li key={t.transaction_id} className="flex items-center justify-between gap-3 px-5 py-3">
               <div>
-                <span className="text-text">{t.player_name ?? "—"}</span>
+                <span className="text-text">{transactionTitle(t)}</span>
                 <div className="text-[var(--fs-xs)] text-faint">
-                  {t.effective_week != null ? `wk ${t.effective_week}` : ""}
-                  {t.direction ? ` · ${t.direction}` : ""}
+                  {transactionDetail(t)}
                 </div>
               </div>
-              <Pill>{t.transaction_type}</Pill>
+              <Pill tone={transactionTone(t)}>{transactionLabel(t.transaction_type)}</Pill>
             </li>
           ))}
         </ol>
@@ -290,7 +290,7 @@ function RosterMovesCard({ teamId }: { teamId: number }) {
 
   return (
     <Card>
-      <CardHeader eyebrow="derived from rosters" title="In-season moves" />
+      <CardHeader eyebrow="estimated from rosters" title="Roster-diff fallback" />
       {isLoading && <Skeleton className="m-5 h-32" />}
       {data && data.available === false && (
         <div className="p-5">
@@ -298,7 +298,7 @@ function RosterMovesCard({ teamId }: { teamId: number }) {
         </div>
       )}
       {data && data.available && churn.length === 0 && (
-        <EmptyState title="No in-season moves" hint="No adds or drops recorded this season." />
+        <EmptyState title="No roster churn detected" hint="Roster snapshots show no adds or drops." />
       )}
       {data && data.available && churn.length > 0 && (
         <>
@@ -328,6 +328,51 @@ function RosterMovesCard({ teamId }: { teamId: number }) {
       )}
     </Card>
   );
+}
+
+function transactionLabel(type: string) {
+  return type.replaceAll("_", " ");
+}
+
+function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
+  if (t.direction === "in" || t.transaction_type.includes("add")) return "win";
+  if (t.direction === "out" || t.transaction_type === "drop") return "loss";
+  return undefined;
+}
+
+function transactionTitle(t: TeamTransaction) {
+  if (t.player_name) return t.player_name;
+  if (t.transaction_type === "setting_change") return "League setting";
+  return "Transaction";
+}
+
+function transactionDetail(t: TeamTransaction) {
+  const parts = [
+    formatTransactionDate(t.executed_at),
+    t.effective_week != null ? `wk ${t.effective_week}` : null,
+    t.direction,
+    t.waiver_priority_used != null ? `waiver priority ${t.waiver_priority_used}` : null,
+    t.faab_bid != null ? `FAAB $${t.faab_bid}` : null,
+    slotMove(t.extra_data),
+    t.counterpart_team_name ? `with ${t.counterpart_team_name}` : null,
+    t.notes,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function formatTransactionDate(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function slotMove(extra: TeamTransaction["extra_data"]) {
+  if (!extra || typeof extra !== "object") return null;
+  const fromSlot = "from_slot" in extra ? extra.from_slot : null;
+  const toSlot = "to_slot" in extra ? extra.to_slot : null;
+  if (typeof fromSlot === "string" && typeof toSlot === "string") return `${fromSlot} to ${toSlot}`;
+  return null;
 }
 
 function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number }) {

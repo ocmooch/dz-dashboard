@@ -566,6 +566,33 @@ def _populate(session: Session) -> None:
             )
         )
 
+    # --- 2017 recorded transactions: exact transaction log rows now exist upstream.
+    session.add_all(
+        [
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 12, 10, 15, 0, tzinfo=UTC),
+                effective_week=2,
+                team_id=team_id[(2017, "ice")],
+                player_id=pid["jjet"],
+                direction="in",
+                waiver_priority_used=4,
+                notes="Iceman",
+            ),
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="lineup_change",
+                executed_at=datetime(2017, 9, 17, 9, 5, 0, tzinfo=UTC),
+                effective_week=2,
+                team_id=team_id[(2017, "ice")],
+                player_id=pid["jjet"],
+                notes="Iceman",
+                extra_data={"from_slot": "BN", "to_slot": "WR"},
+            ),
+        ]
+    )
+
     # --- A hand-solvable box score: Iceman's 2017 week-1 lineup (the ice vs goose
     #     game). A full starter set + bench + an IR player + a *scored* DST starter
     #     (9.0), authored so the optimal-lineup solver has a known answer:
