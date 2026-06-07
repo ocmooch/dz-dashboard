@@ -176,9 +176,9 @@ VERIFY:
 
 ## Done-when checklist
 
-- [ ] P5 findings implemented and focused tests added/updated.
-- [ ] F-24 contract cleanup landed; generated API client regenerated and committed.
-- [ ] Full gate green.
-- [ ] Real-DB browser click-through completed for the P5 routes above.
-- [ ] `docs/05`, `docs/06`, `docs/07`, `PROGRESS.md`, roadmap row, and review findings updated.
+- [x] P5 findings implemented and focused tests added/updated.
+- [x] F-24 contract cleanup landed; generated API client regenerated and committed.
+- [x] Full gate green.
+- [x] Real-DB browser click-through completed for the P5 routes above.
+- [x] `docs/05`, `docs/06`, `docs/07`, `PROGRESS.md`, roadmap row, and review findings updated.
 - [ ] PR opened to `dev` with trailers.
