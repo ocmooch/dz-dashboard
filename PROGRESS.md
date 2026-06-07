@@ -16,6 +16,11 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
   below is closed out.
+- **fix-pass P6 PLAN is written on `feature/fix-P6-frontend-insights`.** The plan scopes P6 as
+  season-aware frontend composition plus explicit backend helpers where insight metrics are needed:
+  standings luck/all-play, manager consistency, player insights, box-score enrichment, and a revised
+  team-level power model. It also records the bracket caveat: no frontend-inferred playoff bracket
+  while `/v1/seasons/{season_id}/bracket` remains unbuilt/caveated.
 - **fix-pass P4 (Transactions, roster-diff tier) — MERGED, PR #35.** F-37 tier 1 shipped:
   `derive_roster_moves(session, team_id)`, additive
   `GET /v1/teams/{team_id}/roster-moves`, `RosterMove` / `TeamRosterMoves`, and the team-page
@@ -36,8 +41,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- Start **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md` and
-  `docs/plans/fix-P6-frontend-insights.md`.
+- Start **P6 BUILD** from `docs/plans/fix-P6-frontend-insights.md`. Begin with the shared
+  `deriveSeasonPhase` helper, then backend helper/schema changes before rendering the modules.
 - Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
 
 ## Files that matter now (fix-pass P6)
