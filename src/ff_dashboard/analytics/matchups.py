@@ -20,7 +20,7 @@ the week's roster and the league's slot eligibility, it is the highest-scoring
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ff_pipeline.repository.models import Matchup, PlayerStatsScored
 from ff_pipeline.repository.queries import (
@@ -254,7 +254,9 @@ def _scored_points(
     return {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
 
 
-def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict[str, Any]:
+def _team_box(
+    session: Session, team_id: int, season: Season, week: int, total_score: float | None
+) -> dict[str, Any]:
     """One side of a box score: lineup, bench points, optimal + points-left."""
     team = get_team(session, team_id)
     owners = owner_name_map(session)
@@ -321,6 +323,16 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
         projrows = player_projections(session, player.player_id, season.year, week)
         if projrows and projrows[0].projected_points is not None:
             projection = round(float(projrows[0].projected_points), 2)
+        projection_delta = (
+            round(league_points - projection, 2)
+            if league_points is not None and projection is not None
+            else None
+        )
+        team_point_share = (
+            round(league_points / total_score, 4)
+            if league_points is not None and total_score is not None and total_score > 0
+            else None
+        )
 
         entry = {
             "roster_slot": slot,
@@ -331,10 +343,13 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
             "is_starter": is_starter,
             "breakdown": breakdown,
             "projection": projection,
+            "projection_delta": projection_delta,
+            "team_point_share": team_point_share,
             "available": available,
             "reason": reason,
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
+            "lineup_value": None,
         }
         lineup.append(entry)
 
@@ -353,12 +368,36 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
 
     optimal_total = solve_optimal(optimal_candidates, starting_slots)
     starter_points = round(starter_points, 2)
+    starter_min = min(
+        (
+            cast("float", p["league_points"])
+            for p in lineup
+            if p["is_starter"] and p["league_points"] is not None
+        ),
+        default=None,
+    )
+    for entry in lineup:
+        points = cast("float | None", entry["league_points"])
+        if points is None:
+            entry["lineup_value"] = None
+        elif entry["is_starter"] and entry["projection_delta"] is not None:
+            projection_delta = cast("float", entry["projection_delta"])
+            entry["lineup_value"] = "starter_hit" if projection_delta > 0 else "starter_miss"
+        elif (
+            not entry["is_starter"]
+            and entry["roster_slot"] in BENCH_SLOTS
+            and starter_min is not None
+            and points > starter_min
+        ):
+            entry["lineup_value"] = "bench_pop"
+        else:
+            entry["lineup_value"] = "neutral"
 
     return {
         "team_id": team_id,
         "team_name": team.team_name if team is not None else None,
         "owner_name": owners.get(team.owner_id) if team is not None else None,
-        "total_score": None,  # filled by box_score with the authoritative team score
+        "total_score": round(total_score, 2) if total_score is not None else None,
         "starter_points": starter_points,
         "bench_points": round(bench_points, 2),
         "optimal_total": optimal_total,
@@ -394,14 +433,12 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
             "is_playoff": bool(m.is_playoff),
         }
 
-    home = _team_box(session, m.team_id, season, m.week)
-    home["total_score"] = round(m.team_score, 2) if m.team_score is not None else None
+    home = _team_box(session, m.team_id, season, m.week, m.team_score)
 
     away: dict[str, Any] | None = None
     winner_team_id: int | None = None
     if m.opponent_team_id is not None:
-        away = _team_box(session, m.opponent_team_id, season, m.week)
-        away["total_score"] = round(m.opponent_score, 2) if m.opponent_score is not None else None
+        away = _team_box(session, m.opponent_team_id, season, m.week, m.opponent_score)
         # Winner from the authoritative team scores (the real game result).
         if m.team_score is not None and m.opponent_score is not None:
             if m.team_score > m.opponent_score:

@@ -3,6 +3,7 @@ export const qk = {
   meta: ["meta"] as const,
   seasons: ["seasons"] as const,
   standings: (seasonId: number) => ["standings", seasonId] as const,
+  standingsInsights: (seasonId: number) => ["standings", seasonId, "insights"] as const,
   owners: ["owners"] as const,
   owner: (ownerId: number) => ["owners", ownerId] as const,
   ownerSeasons: (ownerId: number) => ["owners", ownerId, "seasons"] as const,
@@ -23,6 +24,7 @@ export const qk = {
   playerScoring: (playerId: number, season: number) =>
     ["player", playerId, "scoring", season] as const,
   playerOwnership: (playerId: number) => ["player", playerId, "ownership"] as const,
+  playerInsights: (playerId: number) => ["player", playerId, "insights"] as const,
   playerAvailability: (playerId: number, season: number) =>
     ["player", playerId, "availability", season] as const,
   topScorers: (filters: Record<string, unknown>) => ["stats", "top-scorers", filters] as const,

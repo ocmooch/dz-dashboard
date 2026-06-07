@@ -7,7 +7,7 @@ and finishes from ``seasons`` / ``teams``.
 
 from __future__ import annotations
 
-from statistics import mean
+from statistics import mean, pstdev
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, Owner, Season, Team
@@ -165,7 +165,69 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
         for r in rows
         if r["is_champion"] or (r["final_rank"] is not None and r["final_rank"] <= 3)
     ]
-    return {**career, "trophy_case": trophy_case}
+    return {
+        **career,
+        "trophy_case": trophy_case,
+        "consistency": owner_consistency(session, owner_id),
+    }
+
+
+def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
+    """Weekly scoring consistency for one owner, ranked against current peers."""
+    if get_owner(session, owner_id) is None:
+        return None
+
+    owners = list(session.execute(select(Owner)).scalars().all())
+    per_owner: dict[int, list[float]] = {int(o.owner_id): [] for o in owners}
+    team_to_owner = {
+        int(tid): int(oid)
+        for tid, oid in session.execute(select(Team.team_id, Team.owner_id)).all()
+    }
+    rows = session.execute(
+        select(Matchup.team_id, Matchup.team_score, Matchup.opponent_team_id).where(
+            Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None)
+        )
+    ).all()
+    for team_id, score, _ in rows:
+        oid = team_to_owner.get(int(team_id))
+        if oid is not None:
+            per_owner.setdefault(oid, []).append(float(score))
+
+    ranked: list[tuple[int, float]] = [
+        (oid, pstdev(scores)) for oid, scores in per_owner.items() if len(scores) >= 2
+    ]
+    ranked.sort(key=lambda item: item[1])
+    rank_by_owner = {oid: i for i, (oid, _) in enumerate(ranked, start=1)}
+    scores = per_owner.get(owner_id, [])
+
+    season_rows = owner_seasons(session, owner_id) or []
+    scored_seasons = [r for r in season_rows if r["points_for"] and r["points_for"] > 0]
+    best = max(scored_seasons, key=lambda r: r["points_for"]) if scored_seasons else None
+
+    if len(scores) < 2:
+        return {
+            "available": False,
+            "reason": "no_scored_data",
+            "weekly_points_stdev": None,
+            "rank_among_owners": None,
+            "best_season_year": best["season_year"] if best else None,
+            "best_season_points_for": best["points_for"] if best else None,
+            "signature": None,
+        }
+
+    stdev = round(pstdev(scores), 2)
+    rank = rank_by_owner.get(owner_id)
+    midpoint = (len(ranked) + 1) / 2 if ranked else 0
+    signature = "steady scorer" if rank is not None and rank <= midpoint else "boom/bust"
+    return {
+        "available": True,
+        "reason": None,
+        "weekly_points_stdev": stdev,
+        "rank_among_owners": rank,
+        "best_season_year": best["season_year"] if best else None,
+        "best_season_points_for": best["points_for"] if best else None,
+        "signature": signature,
+    }
 
 
 def list_owners_career(session: Session) -> list[dict[str, Any]]:

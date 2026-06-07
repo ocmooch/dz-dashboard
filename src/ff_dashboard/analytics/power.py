@@ -6,9 +6,10 @@ scoring rather than win/loss luck. The model is deliberately simple and legible
 fixed, documented weights:
 
 ```
-power_score = 0.5 * z(points_for_per_game)
-            + 0.3 * z(win_pct)
-            + 0.2 * z(points_for_last_3_weeks_per_game)
+power_score = 0.40 * z(points_for_per_game)
+            + 0.25 * z(all_play_win_pct)
+            + 0.20 * z(win_pct)
+            + 0.15 * z(points_for_last_3_weeks_per_game)
 ```
 
 ``z(...)`` is the population z-score across that season's teams; a team with no
@@ -35,30 +36,33 @@ from ff_pipeline.repository.queries import get_season
 from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
-from ff_dashboard.analytics.standings import compute_standings
+from ff_dashboard.analytics.standings import all_play_index, compute_standings
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 # The model weights live in one place and travel to the UI in the payload.
-W_POINTS_FOR = 0.5
-W_WIN_PCT = 0.3
-W_RECENT = 0.2
+W_POINTS_FOR = 0.4
+W_ALL_PLAY = 0.25
+W_WIN_PCT = 0.2
+W_RECENT = 0.15
 
 # "Recent form" window for the third term (the last N regular-season weeks).
 RECENT_WEEKS = 3
 
 POWER_EXPLAINER = (
     "Power score blends three within-season z-scores (each team measured against "
-    f"its peers that year): {W_POINTS_FOR:g} x points-for per game, {W_WIN_PCT:g} x "
-    f"win pct, and {W_RECENT:g} x points-for per game over the last {RECENT_WEEKS} "
-    "weeks. It rewards strong, sustained scoring rather than win-loss luck, so it "
-    "can rate a team above or below its standings position. It is a transparent "
-    "model for argument's sake, not a prediction."
+    f"its peers that year): {W_POINTS_FOR:g} x points-for per game, {W_ALL_PLAY:g} x "
+    f"all-play win pct, {W_WIN_PCT:g} x actual win pct, and {W_RECENT:g} x "
+    f"points-for per game over the last {RECENT_WEEKS} weeks. All-play compares "
+    "each team's weekly score against every other team that week, so the model "
+    "rewards schedule-resistant scoring without needing player-level data. It is "
+    "a transparent model for argument's sake, not a prediction."
 )
 
 POWER_WEIGHTS = {
     "points_for_per_game": W_POINTS_FOR,
+    "all_play_win_pct": W_ALL_PLAY,
     "win_pct": W_WIN_PCT,
     "recent_points_for_per_game": W_RECENT,
 }
@@ -126,24 +130,33 @@ def power_ranking(
 
     lower = max(1, upper - RECENT_WEEKS + 1)
     recent = _recent_pf(session, season_id, lower, upper)
+    all_play = all_play_index(session, season_id, upper)
 
     pf_per_game: list[float] = []
+    all_play_win_pct: list[float] = []
     win_pct: list[float] = []
     recent_per_game: list[float] = []
     for r in base_rows:
         games = r["wins"] + r["losses"] + r["ties"]
         pf_per_game.append(r["points_for"] / games if games else 0.0)
+        all_play_win_pct.append(float(all_play.get(r["team_id"], {}).get("win_pct", 0.0)))
         win_pct.append(r["win_pct"])
         rp, rg = recent.get(r["team_id"], (0.0, 0))
         recent_per_game.append(rp / rg if rg else 0.0)
 
     z_pf = _zscores(pf_per_game)
+    z_all_play = _zscores(all_play_win_pct)
     z_win = _zscores(win_pct)
     z_recent = _zscores(recent_per_game)
 
     rows: list[dict[str, Any]] = []
     for i, r in enumerate(base_rows):
-        score = W_POINTS_FOR * z_pf[i] + W_WIN_PCT * z_win[i] + W_RECENT * z_recent[i]
+        score = (
+            W_POINTS_FOR * z_pf[i]
+            + W_ALL_PLAY * z_all_play[i]
+            + W_WIN_PCT * z_win[i]
+            + W_RECENT * z_recent[i]
+        )
         rows.append(
             {
                 "team_id": r["team_id"],
@@ -156,9 +169,11 @@ def power_ranking(
                 "points_for": r["points_for"],
                 "power_score": round(score, 4),
                 "points_for_per_game": round(pf_per_game[i], 2),
+                "all_play_win_pct": round(all_play_win_pct[i], 4),
                 "win_pct": r["win_pct"],
                 "recent_points_for_per_game": round(recent_per_game[i], 2),
                 "z_points_for": round(z_pf[i], 4),
+                "z_all_play_win_pct": round(z_all_play[i], 4),
                 "z_win_pct": round(z_win[i], 4),
                 "z_recent": round(z_recent[i], 4),
             }

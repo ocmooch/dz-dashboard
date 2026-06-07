@@ -16,6 +16,7 @@ import {
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
+import { deriveSeasonPhase } from "@/lib/seasonPhase";
 
 async function fetchPlayer(id: number) {
   const { data, error } = await api.GET("/v1/players/{player_id}", {
@@ -46,6 +47,14 @@ async function fetchAvailability(id: number, season: number) {
     params: { path: { player_id: id }, query: { season } },
   });
   if (error || !data) throw new Error("Failed to load availability");
+  return data.data;
+}
+
+async function fetchInsights(id: number) {
+  const { data, error } = await api.GET("/v1/players/{player_id}/insights", {
+    params: { path: { player_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load player insights");
   return data.data;
 }
 
@@ -165,10 +174,68 @@ function AvailabilityStrip({ playerId, season }: { playerId: number; season: num
   );
 }
 
+function PlayerInsightsCard({ playerId }: { playerId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.playerInsights(playerId),
+    queryFn: () => fetchInsights(playerId),
+  });
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!data || !data.available) {
+    return (
+      <div className="p-5">
+        <DataGap reason={data?.reason ?? "no_scored_data"} />
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+      <div>
+        <div className="dz-eyebrow mb-1">Best week</div>
+        {data.best_week ? (
+          <div className="text-[var(--fs-sm)] text-muted">
+            <span className="num text-accent">{num(data.best_week.points)}</span> pts ·{" "}
+            {data.best_week.season_year} wk {data.best_week.week}
+          </div>
+        ) : (
+          <DataGap reason="no_scored_data" size="sm" />
+        )}
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">Best season</div>
+        {data.best_season ? (
+          <div className="text-[var(--fs-sm)] text-muted">
+            <span className="num text-accent">{num(data.best_season.points)}</span> pts ·{" "}
+            {data.best_season.season_year}
+          </div>
+        ) : (
+          <DataGap reason="no_scored_data" size="sm" />
+        )}
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">League span</div>
+        <div className="text-[var(--fs-sm)] text-muted">
+          {rosteredSpan(
+            data.league_roster_span.first_rostered_season,
+            data.league_roster_span.last_rostered_season,
+          ) ?? "Never rostered"}
+        </div>
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">Most rostered by</div>
+        <div className="text-[var(--fs-sm)] text-muted">
+          {data.most_rostered_by?.display_name ?? "—"}
+          {data.most_rostered_by ? ` · ${data.most_rostered_by.weeks} weeks` : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PlayerDetailPage() {
   const params = useParams();
   const playerId = Number(params.playerId);
   const { current, seasons } = useSeasons();
+  const phase = deriveSeasonPhase({ current, seasons });
   const season = current?.season_year;
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -279,11 +346,20 @@ export function PlayerDetailPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
+              <CardHeader eyebrow="league signal" title="Player Insights" />
+              <PlayerInsightsCard playerId={playerId} />
+            </Card>
+            <Card>
               <CardHeader eyebrow="within the league" title="Ownership" />
               <OwnershipTimeline playerId={playerId} />
             </Card>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
-              <CardHeader eyebrow={`season ${season ?? ""}`} title="Availability" />
+              <CardHeader
+                eyebrow={phase.phase === "offseason" ? "current season only" : `season ${season ?? ""}`}
+                title="Availability"
+              />
               {season != null ? (
                 <AvailabilityStrip playerId={playerId} season={season} />
               ) : (

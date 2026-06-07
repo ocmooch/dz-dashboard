@@ -16,6 +16,7 @@ from ff_dashboard.analytics.players import (
     availability,
     list_player_index,
     ownership_timeline,
+    player_insights,
     player_scoring,
 )
 from ff_dashboard.analytics.stats import season_totals
@@ -25,6 +26,7 @@ from ff_dashboard.api.schemas import (
     PlayerAvailability,
     PlayerIndex,
     PlayerIndexRow,
+    PlayerInsights,
     PlayerOut,
     PlayerOwnership,
     PlayerScoring,
@@ -89,6 +91,14 @@ def get_player_ownership(player_id: int, session: SessionDep) -> Envelope[Player
     if data is None:
         raise not_found(f"No player with id {player_id}")
     return Envelope(data=PlayerOwnership(**data), meta=build_meta(session))
+
+
+@router.get("/v1/players/{player_id}/insights", response_model=Envelope[PlayerInsights])
+def get_player_insights(player_id: int, session: SessionDep) -> Envelope[PlayerInsights]:
+    data = player_insights(session, player_id)
+    if data is None:
+        raise not_found(f"No player with id {player_id}")
+    return Envelope(data=PlayerInsights(**data), meta=build_meta(session))
 
 
 @router.get("/v1/players/{player_id}/availability", response_model=Envelope[PlayerAvailability])

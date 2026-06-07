@@ -48,6 +48,10 @@ the records era split, week-capped season totals, and matchup entering-records a
   standings-over-time chart (one rank line per team across weeks).
 - **Streak** — current/longest W or L run within a season, computed from the week-ordered
   result sequence.
+- **Schedule luck / all-play insight** — for each regular-season week, compare every played
+  team's score against every other played team's score. `standings_insights()` exposes all-play
+  win pct, expected wins, and `luck_delta = actual_wins - expected_wins`. This is team-total
+  only and works for any season with matchup scores.
 
 ## 2. Power ranking (`analytics/power.py`)
 
@@ -55,14 +59,17 @@ A model-driven ranking distinct from raw standings (rewards strong scoring, not 
 **Default model (transparent, explainable — this is not Phase 3 prediction):**
 
 ```
-power_score = 0.5 * z(points_for_per_game)
-            + 0.3 * z(win_pct)
-            + 0.2 * z(points_for_last_3_weeks_per_game)
+power_score = 0.40 * z(points_for_per_game)
+            + 0.25 * z(all_play_win_pct)
+            + 0.20 * z(win_pct)
+            + 0.15 * z(points_for_last_3_weeks_per_game)
 ```
 
 where `z(...)` is the within-season z-score across teams. Rank by `power_score` desc. The
-weights live in one constant and are documented in the UI ("how this is computed"). Provide
-both a current-week power ranking and a power-ranking-over-time line per team.
+weights live in one constant and are documented in the UI ("how this is computed"). All-play
+uses the same team-total helper as the standings insight, so the model is schedule-luck aware
+without depending on player-level scoring. Provide both a current-week power ranking and a
+power-ranking-over-time line per team.
 
 > Keep the model simple and legible. The point of the power ranking is to start an argument
 > at the bar, not to predict the future — that's Phase 3.
@@ -104,6 +111,9 @@ Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored
   Computed in one query per request, folded per team — no N+1.
 - **Projection vs actual** — per starter where a `projections` row exists; aggregate "beat
   projection by" per team. Current/recent seasons only.
+- **Per-player contribution labels** — player rows also carry team point share, projection
+  delta, and a backend `lineup_value` label (`starter_hit`, `starter_miss`, `bench_pop`,
+  `neutral`) so the UI can enrich the expandable table without doing metric math.
 
 ## 4. Head-to-head & rivalries (`analytics/head_to_head.py`)
 
@@ -165,8 +175,9 @@ record. `team_record_window()` / `scored_window()` are the two helpers in `recor
 - **Trajectory chart** — final rank (inverted axis) or points-for per season across the
   owner's tenure.
 - **Trophy case** — championship and podium finishes with year + team name.
-- **Consistency** — stdev of weekly team score within seasons (lower = more consistent);
-  league-relative percentile.
+- **Consistency** — stdev of weekly team score across the owner's teams (lower = more
+  consistent), ranked league-wide and returned on the owner career payload with a best-season
+  pointer and stable signature label.
 
 ## 7. Draft (`analytics/draft.py`)
 
@@ -186,6 +197,11 @@ season scored totals.
 > wasn't captured, the view shows "draft not available for this season" — do not infer.
 
 ## 8. Players (`analytics/players.py`)
+
+- **Player insights** — `player_insights()` summarizes best fantasy week, best fantasy-season
+  total (capped to the season's fantasy regular-season weeks), rostered league span, and the
+  owner who rostered the player most often. Missing scoring facts stay null/gap-labelled rather
+  than rendered as zero.
 
 Mostly passthrough of Phase 1 facts, lightly aggregated for charts.
 

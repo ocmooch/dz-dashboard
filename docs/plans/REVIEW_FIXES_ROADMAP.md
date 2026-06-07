@@ -46,7 +46,7 @@ Key: ☐ todo · ◐ in progress · ☑ merged · ⊘ blocked (needs an input ab
 | **P3** | Search: scope, teams, hardening | data/analytics + api + tests | — | F-44, F-45, F-47 | ☑ PR #32 (real-DB click-through done post-regen; F-50 resolved) | `docs/archive/fix-P3-search.md` |
 | **P4** | Transactions (dashboard roster-diff tier) | analytics + api + frontend | — | F-37 (tier 1) | ☑ PR #35 merged (F-53 fixed upstream; real-DB verified) | `docs/plans/fix-P4-transactions.md` |
 | **P5** | Frontend: navigation & presentation fixes | frontend | P1 (data it renders) + F-24 contract | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 | ☑ PR #38 merged | `docs/plans/fix-P5-frontend-fixes.md` |
-| **P6** | Frontend: composition, seasonality & insight enhancements | frontend | P1, P4, P2 | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 | ☐ | `docs/plans/fix-P6-frontend-insights.md` |
+| **P6** | Frontend: composition, seasonality & insight enhancements | frontend | P1, P4, P2 | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 | ◐ | `docs/plans/fix-P6-frontend-insights.md` |
 | **UP** | Upstream / Phase-1 program & research (NOT dashboard PRs) | data (pipeline) + research | runs alongside | F-27 (data half ✅ landed → F-51), F-25, F-37 (tier 2), F-06, F-49, ~~F-50~~ ✅ regen, F-52 (likely ✅ later regen), ~~F-53~~ ✅ regen (wk1 fixed) | ☐ | per-program handoffs in `docs/handoffs/` |
 
 ### Recommended sequencing
@@ -128,6 +128,20 @@ needs a decision — so passes inform each other and nothing is silently absorbe
 - [P2-redo, 2026-06-06] **PLAN:** post-regen P2 redo plan written at `docs/archive/fix-P2-post-regen-redo.md`. The historical P2 plan is retained for PR #31, but BUILD should now follow the redo plan: update stale coverage harness assumptions, confirm records/player windows derive from `is_scored`, and verify 2010/2015/2025/current-season behavior on the real DB. → no DB writes; no API shape change expected.
 - [P2-redo, 2026-06-06] **BUILD:** F-43 harness no longer asserts "player scoring absent pre-2016"; it discovers scored seasons from rows and keeps 2015 only as a synthetic generic unscored gap in the fixture. Records tests now assert player windows against `KNOWN["seasons_scored"]`; stale analytics comments were reframed to generic coverage gaps. Scoped backend/frontend checks green. → VERIFY still needs the full gate and real-DB click-through.
 - [P2-redo, 2026-06-06] **VERIFY:** full gate green (206 pytest, ruff, mypy, contract no drift, typecheck, 129 vitest; `npm run lint` is N/A because no script). Real DB confirms 2010/2015/2025 scored, 2026 unscored, records/meta scored window 2010–2025, 2010/2015/2025 box scores available, player 8299/Arian Foster has 2010 scoring and a 2026 `season_unscored` gap. Built SPA single-origin routes served. → P2 redo is verified; F-52 remains UP.
+- [P6, 2026-06-06] **PLAN:** the requested home playoff bracket is not planned as frontend
+  inference because `/v1/seasons/{season_id}/bracket` is still unbuilt/caveated and F-49 leaves
+  bracket metadata partly upstream. P6 BUILD should show proven last-season finish/championship
+  context on Home, and use `DataGap` for unavailable bracket/activity data. → avoids inventing
+  bracket structure while still satisfying the season-aware home re-curation.
+- [P6, 2026-06-07] **VERIFY:** full gate green (213 pytest, ruff, mypy, gen:api no-drift,
+  typecheck, 139 vitest, SPA production build; `npm run lint` is N/A — no script). Ran `ruff format`
+  on 3 P6 analytics files (formatting only). Real-DB checks: the two new insight endpoints
+  (`/v1/players/{id}/insights`, `/v1/seasons/{id}/standings/insights`) plus box-score, power, owners
+  return honest `available`/`reason` payloads with no 500s; the built SPA serves every P6 deep link.
+  PR #40 opened to `dev`. → **F-52 RESOLVED upstream**, confirmed here: real DB now reports
+  `status:completed` for 2010–2025 and `in_progress` only for 2026, so the season-phase helper's
+  decision to derive phase from data (not `seasons.status`) is validated; closing F-52 in the review
+  doc. No dashboard change needed.
 
 ## Done when (the whole program)
 

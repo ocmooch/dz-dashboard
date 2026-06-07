@@ -7,14 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Player, PlayerStatsScored, Season
+from ff_pipeline.repository.models import Owner, Player, PlayerStatsScored, Season, Team, TeamRoster
 from ff_pipeline.repository.queries import (
     availability_timeline,
     get_player,
     player_availability_for_season,
     player_ownership,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -208,3 +208,71 @@ def availability(session: Session, player_id: int, season_year: int) -> dict[str
 def has_any_availability(session: Session, player_id: int) -> bool:
     """Whether the player has any availability rows at all (any season)."""
     return bool(availability_timeline(session, player_id))
+
+
+def player_insights(session: Session, player_id: int) -> dict[str, Any] | None:
+    """Best scoring and league ownership summary for a player."""
+    if get_player(session, player_id) is None:
+        return None
+
+    ownership = ownership_timeline(session, player_id)
+    best_week_row = session.execute(
+        select(Season.year, PlayerStatsScored.week, PlayerStatsScored.total_points)
+        .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .where(PlayerStatsScored.player_id == player_id)
+        .order_by(PlayerStatsScored.total_points.desc())
+        .limit(1)
+    ).first()
+    season_rows = session.execute(
+        select(Season.year, func.sum(PlayerStatsScored.total_points))
+        .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .where(
+            PlayerStatsScored.player_id == player_id,
+            PlayerStatsScored.week <= Season.regular_season_weeks,
+        )
+        .group_by(Season.year)
+        .order_by(func.sum(PlayerStatsScored.total_points).desc())
+    ).all()
+    owner_rows = session.execute(
+        select(Owner.owner_id, Owner.display_name, func.count())
+        .join(Team, Team.owner_id == Owner.owner_id)
+        .join(TeamRoster, TeamRoster.team_id == Team.team_id)
+        .where(TeamRoster.player_id == player_id)
+        .group_by(Owner.owner_id, Owner.display_name)
+        .order_by(func.count().desc(), Owner.display_name)
+    ).all()
+
+    best_week = None
+    if best_week_row is not None:
+        year, week, points = best_week_row
+        best_week = {
+            "season_year": int(year),
+            "week": int(week),
+            "points": round(float(points), 2),
+        }
+    best_season = None
+    if season_rows:
+        year, points = season_rows[0]
+        best_season = {"season_year": int(year), "points": round(float(points or 0.0), 2)}
+    most_rostered_by = None
+    if owner_rows:
+        owner_id, display_name, weeks = owner_rows[0]
+        most_rostered_by = {
+            "owner_id": int(owner_id),
+            "display_name": display_name,
+            "weeks": int(weeks),
+        }
+
+    has_any = bool(best_week or best_season or most_rostered_by or ownership)
+    return {
+        "player_id": player_id,
+        "available": has_any,
+        "reason": None if has_any else "no_scored_data",
+        "best_week": best_week,
+        "best_season": best_season,
+        "league_roster_span": {
+            "first_rostered_season": ownership["first_rostered_season"] if ownership else None,
+            "last_rostered_season": ownership["last_rostered_season"] if ownership else None,
+        },
+        "most_rostered_by": most_rostered_by,
+    }
