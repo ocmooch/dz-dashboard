@@ -26,7 +26,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   Real-DB verification on 2026-06-06 confirmed normal churn: team 184/2024 now returns wk1
   adds=2/drops=0 (was fabricated 68/67), and 2010 team 13 has period-correct week-1 players.
   No dashboard code change was needed after the regen.
-- **fix-pass P5 (Frontend navigation & presentation fixes) — VERIFIED, PR #38 open.** Implemented:
+- **fix-pass P5 (Frontend navigation & presentation fixes) — MERGED, PR #38.** Implemented:
   F-24 player-index contract cleanup, `WeekStepper` direct select, scrollable global search,
   rank-ordered timeline tooltips + 12-color ramp, team season navigation, unavailable box-score
   fallback links, manager latest-roster link, manager sort toggles, clearer rivalry labels, signed
@@ -36,26 +36,16 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- Merge **P5 PR #38** to `dev`.
-- After P5 merges, continue with **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md`.
+- Start **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md` and
+  `docs/plans/fix-P6-frontend-insights.md`.
 - Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
 
-## Files that matter now (fix-pass P5)
+## Files that matter now (fix-pass P6)
 
-- `docs/plans/fix-P5-frontend-fixes.md` — BUILD plan
-- `src/ff_dashboard/api/routes/players.py` · `src/ff_dashboard/api/schemas.py` —
-  F-24 player-index contract cleanup
-- `web/src/features/players/PlayersPage.tsx` · `web/src/features/players/players.test.tsx`
-- `web/src/design-system/index.tsx` · `web/src/design-system/index.test.tsx` — `WeekStepper`
-- `web/src/charts/index.tsx` · `web/src/charts/chartTheme.ts` · chart tests — timeline legibility
-- `web/src/features/search/GlobalSearch.tsx` · `web/src/features/search/search.test.tsx`
-- `web/src/features/teams/TeamPage.tsx` · `web/src/features/teams/team.test.tsx`
-- `web/src/features/matchups/MatchupsPage.tsx` · `web/src/features/matchups/BoxScorePage.tsx`
-- `web/src/features/managers/ManagersPage.tsx` · `web/src/features/managers/ManagerProfilePage.tsx`
-- `web/src/features/draft/DraftPage.tsx` · `web/src/features/stats/StatsPage.tsx`
-- `web/src/features/standings/StandingsPage.tsx` · `web/src/features/power/PowerPage.tsx`
-- `docs/05_API_CONTRACT.md` · `docs/06_DESIGN_SYSTEM.md` · `docs/07_PAGES_AND_VIEWS.md`
-- `docs/plans/REVIEW_FIXES_ROADMAP.md` · `docs/reviews/2026-06-in-browser-review.md`
+- `docs/plans/fix-P6-frontend-insights.md` — BUILD plan
+- `docs/plans/REVIEW_FIXES_ROADMAP.md`
+- `docs/reviews/2026-06-in-browser-review.md`
+- P6 page surfaces: home, players, records/rivalries, managers, draft, power, standings
 
 ## Open items / deviations
 
