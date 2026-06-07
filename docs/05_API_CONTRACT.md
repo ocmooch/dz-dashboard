@@ -36,7 +36,8 @@ document, so the contract is enforced at build time.
 ### Home / command center
 
 > **No `/v1/home` composite endpoint.** The landing view is composed **client-side** from the
-> standings, records, and power endpoints below (the SPA does orchestration, not math). This
+> standings, records, top-scorers, and season/championship endpoints below (the SPA does
+> orchestration, not math). This
 > replaced the originally-planned single composite; see `04_ANALYTICS_MODEL.md` §"League
 > command center" and `07_PAGES_AND_VIEWS.md`.
 
@@ -47,8 +48,9 @@ document, so the contract is enforced at build time.
 | `GET /v1/seasons` | All seasons with status, champion, scored/availability coverage flags |
 | `GET /v1/seasons/{season_id}` | Season summary: champion, runner-up, last place, week counts |
 | `GET /v1/seasons/{season_id}/standings?through_week={n}` | Standings (current or as-of week n), with streaks; carries `rank_basis` + `tiebreak_caveat` |
+| `GET /v1/seasons/{season_id}/standings/insights?through_week={n}` | Schedule-luck insight: all-play win pct, expected wins, luck delta, PF rank |
 | `GET /v1/seasons/{season_id}/standings/timeline` | Rank (and points-for) per team per week — for the standings-over-time chart |
-| `GET /v1/seasons/{season_id}/power?through_week={n}` | Power ranking + components + weights per team |
+| `GET /v1/seasons/{season_id}/power?through_week={n}` | Power ranking + components + weights per team, including all-play win pct |
 | `GET /v1/seasons/{season_id}/power/timeline` | Power score per team per week |
 
 > **Not yet implemented:** `GET /v1/seasons/{season_id}/bracket` (playoff/post-season results).
@@ -61,7 +63,7 @@ document, so the contract is enforced at build time.
 | Endpoint | Description |
 |----------|-------------|
 | `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `is_close` / `is_blowout` (backend margin flags) and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
-| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual; a genuinely-missing DEF row flagged |
+| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual, team point share, lineup-value labels; a genuinely-missing DEF row flagged |
 
 ### Teams
 
@@ -79,7 +81,7 @@ document, so the contract is enforced at build time.
 | Endpoint | Description |
 |----------|-------------|
 | `GET /v1/owners` | All managers with quick career line (record, championships) |
-| `GET /v1/owners/{owner_id}` | Career aggregate + trophy case |
+| `GET /v1/owners/{owner_id}` | Career aggregate + trophy case + consistency insight |
 | `GET /v1/owners/{owner_id}/seasons` | Season-by-season record table. Each row carries a derived `result` (`"Champion"`/`"Runner-up"`/`"3rd place"`/`"Nth"`, `null` when rank-less) and a data-derived `made_playoffs` (`true`/`false`/`null`) |
 | `GET /v1/owners/{owner_id}/trajectory` | Finish/points per season — for the chart |
 | `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}` | All-time pairwise record + superlatives |
@@ -106,6 +108,7 @@ document, so the contract is enforced at build time.
 |----------|-------------|
 | `GET /v1/players?name=&position=&nfl_team=&active=&limit=&offset=` | Searchable league-relevant index (ever-rostered players only; no public `scope=all` or `has_scored` field) |
 | `GET /v1/players/{player_id}` | Metadata + cross-platform IDs |
+| `GET /v1/players/{player_id}/insights` | Best week/best season/league roster-span/most-rostered-by summary |
 | `GET /v1/players/{player_id}/scoring?season={y}` | Weekly scoring history (raw + league points) for the chart |
 | `GET /v1/players/{player_id}/ownership` | Ownership timeline within the league |
 | `GET /v1/players/{player_id}/availability?season={y}` | Per-week availability (current season; gap-marked otherwise) |

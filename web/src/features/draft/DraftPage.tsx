@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
@@ -39,11 +40,13 @@ function ValueTag({ value }: { value: number | null | undefined }) {
   );
 }
 
-function PickCell({ pick }: { pick: Pick }) {
+function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
   return (
     <Link
       to={pick.player_id != null ? `/players/${pick.player_id}` : "#"}
-      className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
+      className={`block rounded-[var(--radius-sm)] border bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)] ${
+        focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
+      }`}
     >
       <div className="mb-1 flex items-center justify-between">
         <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
@@ -67,11 +70,12 @@ function orderedRoundPicks(round: number, picks: Pick[]) {
 }
 
 /** A steal/bust leaderboard row, deep-linking to the drafted player. */
-function PickLine({ pick, rank }: { pick: Pick; rank: number }) {
+function PickLine({ pick, rank, onFocus }: { pick: Pick; rank: number; onFocus: (overall: number) => void }) {
   return (
-    <Link
-      to={pick.player_id != null ? `/players/${pick.player_id}` : "#"}
-      className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-[var(--surface-1)]"
+    <button
+      type="button"
+      onClick={() => onFocus(pick.overall)}
+      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2 py-1.5 text-left hover:bg-[var(--surface-1)]"
     >
       <span className="flex items-center gap-2 truncate">
         <span className="num w-4 text-[var(--fs-xs)] text-faint">{rank}</span>
@@ -81,13 +85,16 @@ function PickLine({ pick, rank }: { pick: Pick; rank: number }) {
         </span>
       </span>
       <ValueTag value={pick.value} />
-    </Link>
+    </button>
   );
 }
 
 export function DraftPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
+  const [position, setPosition] = useState("");
+  const [round, setRound] = useState("");
+  const [focusedOverall, setFocusedOverall] = useState<number | null>(null);
 
   const board = useQuery({
     queryKey: seasonId ? qk.draftBoard(seasonId) : ["draft", "none"],
@@ -100,9 +107,23 @@ export function DraftPage() {
     enabled: seasonId != null && board.data?.available === true,
   });
 
+  const positions = useMemo(
+    () => Array.from(new Set(value.data?.picks.map((p) => p.position).filter(Boolean))).sort(),
+    [value.data?.picks],
+  );
+  const rounds = useMemo(
+    () => Array.from(new Set(value.data?.picks.map((p) => p.round).filter(Boolean))).sort((a, b) => a - b),
+    [value.data?.picks],
+  );
+  const filteredPicks =
+    value.data?.picks.filter((p) => {
+      if (position && p.position !== position) return false;
+      if (round && p.round !== Number(round)) return false;
+      return true;
+    }) ?? [];
   const chartRows =
-    value.data?.picks
-      ?.filter((p) => p.value != null)
+    filteredPicks
+      .filter((p) => p.value != null)
       .map((p) => ({
         label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
         value: p.value as number,
@@ -152,7 +173,7 @@ export function DraftPage() {
                     <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear steals.</p>
                   )}
                   {value.data.steals.map((p, i) => (
-                    <PickLine key={p.overall} pick={p} rank={i + 1} />
+                    <PickLine key={p.overall} pick={p} rank={i + 1} onFocus={setFocusedOverall} />
                   ))}
                 </div>
               </Card>
@@ -163,7 +184,7 @@ export function DraftPage() {
                     <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear busts.</p>
                   )}
                   {value.data.busts.map((p, i) => (
-                    <PickLine key={p.overall} pick={p} rank={i + 1} />
+                    <PickLine key={p.overall} pick={p} rank={i + 1} onFocus={setFocusedOverall} />
                   ))}
                 </div>
               </Card>
@@ -173,6 +194,24 @@ export function DraftPage() {
           {chartRows.length > 0 && (
             <Card>
               <CardHeader eyebrow="points above / below slot expectation" title="Pick value" />
+              <div className="flex flex-wrap gap-2 px-5 pt-5">
+                <select className="dz-input" value={position} onChange={(e) => setPosition(e.target.value)}>
+                  <option value="">All positions</option>
+                  {positions.map((p) => (
+                    <option key={p} value={p ?? ""}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <select className="dz-input" value={round} onChange={(e) => setRound(e.target.value)}>
+                  <option value="">All rounds</option>
+                  {rounds.map((r) => (
+                    <option key={r} value={r}>
+                      Round {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="p-5">
                 <BarCompare
                   title="Draft pick value by overall pick"
@@ -206,7 +245,7 @@ export function DraftPage() {
                     style={{ gridTemplateColumns: "repeat(12, minmax(8.5rem, 1fr))" }}
                   >
                     {orderedRoundPicks(rnd.round, rnd.picks).map((p) => (
-                      <PickCell key={p.overall} pick={p} />
+                      <PickCell key={p.overall} pick={p} focused={p.overall === focusedOverall} />
                     ))}
                   </div>
                 </div>

@@ -16,11 +16,13 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
   below is closed out.
-- **fix-pass P6 PLAN is written on `feature/fix-P6-frontend-insights`.** The plan scopes P6 as
-  season-aware frontend composition plus explicit backend helpers where insight metrics are needed:
-  standings luck/all-play, manager consistency, player insights, box-score enrichment, and a revised
-  team-level power model. It also records the bracket caveat: no frontend-inferred playoff bracket
-  while `/v1/seasons/{season_id}/bracket` remains unbuilt/caveated.
+- **fix-pass P6 BUILD is implemented on `feature/fix-P6-frontend-insights`.** Shipped backend
+  helpers/endpoints for standings luck/all-play, manager consistency, player insights, box-score
+  enrichment, and revised all-play-aware power. Frontend now uses shared season phase, re-curates
+  Home, adds player/manager/standings insights, records trophy filtering, draft value filters +
+  drill-down focus, power all-play methodology, and richer box-score player rows. Focused backend
+  tests, ruff, mypy, frontend typecheck, and focused Vitest are green; VERIFY still needs the full
+  gate and real-DB click-through.
 - **fix-pass P4 (Transactions, roster-diff tier) — MERGED, PR #35.** F-37 tier 1 shipped:
   `derive_roster_moves(session, team_id)`, additive
   `GET /v1/teams/{team_id}/roster-moves`, `RosterMove` / `TeamRosterMoves`, and the team-page
@@ -41,8 +43,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- Start **P6 BUILD** from `docs/plans/fix-P6-frontend-insights.md`. Begin with the shared
-  `deriveSeasonPhase` helper, then backend helper/schema changes before rendering the modules.
+- Start **P6 VERIFY** from `docs/plans/fix-P6-frontend-insights.md`: run the full green gate,
+  confirm generated-client drift is expected/additive, perform the real-DB browser click-through,
+  then mark findings/roadmap and open the PR.
 - Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
 
 ## Files that matter now (fix-pass P6)

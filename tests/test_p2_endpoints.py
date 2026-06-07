@@ -52,6 +52,15 @@ def test_standings_timeline_endpoint(client: TestClient) -> None:
     assert len(a_team["points"]) == 2  # one point per regular-season week
 
 
+def test_standings_insights_endpoint(client: TestClient) -> None:
+    data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2016]}/standings/insights"))
+    assert data["available"] is True
+    by_owner = {row["owner_name"]: row for row in data["teams"]}
+    assert by_owner["Goose"]["all_play_win_pct"] == 0.6667
+    assert by_owner["Goose"]["luck_delta"] == -0.33
+    assert by_owner["Slider"]["luck_delta"] == 0.33
+
+
 def test_season_not_found(client: TestClient) -> None:
     resp = client.get("/v1/seasons/99999/standings")
     assert resp.status_code == 404
@@ -71,6 +80,8 @@ def test_owner_career(client: TestClient) -> None:
     data = _envelope(client.get(f"/v1/owners/{KNOWN['owner_id']['mav']}"))
     assert data["championships"] == 2
     assert any(t["is_champion"] for t in data["trophy_case"])
+    assert data["consistency"]["available"] is True
+    assert data["consistency"]["signature"] in {"steady scorer", "boom/bust"}
 
 
 def test_owner_seasons_and_trajectory(client: TestClient) -> None:
@@ -160,6 +171,16 @@ def test_player_availability_gap_endpoint(client: TestClient) -> None:
     pid = KNOWN["player_id"]["jjet"]
     data = _envelope(client.get(f"/v1/players/{pid}/availability?season=2016"))
     assert data["available"] is False
+
+
+def test_player_insights_endpoint(client: TestClient) -> None:
+    pid = KNOWN["player_id"]["cmc"]
+    data = _envelope(client.get(f"/v1/players/{pid}/insights"))
+    assert data["available"] is True
+    assert data["best_week"]["points"] == 30.0
+    assert data["best_season"]["season_year"] == 2016
+    assert data["league_roster_span"]["first_rostered_season"] == 2016
+    assert data["most_rostered_by"]["display_name"] == "Maverick"
 
 
 def test_top_scorers_and_season_totals(client: TestClient) -> None:

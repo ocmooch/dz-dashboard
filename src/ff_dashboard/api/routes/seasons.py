@@ -12,6 +12,7 @@ from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.standings import (
     compute_standings,
     season_summary,
+    standings_insights,
     standings_timeline,
 )
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
@@ -21,6 +22,7 @@ from ff_dashboard.api.schemas import (
     SeasonListItem,
     SeasonSummary,
     Standings,
+    StandingsInsights,
     StandingsTimeline,
     TeamRef,
 )
@@ -75,6 +77,21 @@ def get_standings(
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=Standings(**data), meta=build_meta(session))
+
+
+@router.get(
+    "/v1/seasons/{season_id}/standings/insights",
+    response_model=Envelope[StandingsInsights],
+)
+def get_standings_insights(
+    season_id: int,
+    session: SessionDep,
+    through_week: int | None = Query(None, ge=1),
+) -> Envelope[StandingsInsights]:
+    data = standings_insights(session, season_id, through_week)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=StandingsInsights(**data), meta=build_meta(session))
 
 
 @router.get(

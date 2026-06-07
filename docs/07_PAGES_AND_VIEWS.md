@@ -18,29 +18,31 @@ departure from the originally-sketched season-in-URL scheme.)
 
 The landing view; a glanceable cockpit for the current season.
 
-- **Shows:** standings snippet (top 4 / bottom 4), the power ranking, and the records book —
-  arranged as a cockpit.
+- **Shows:** season-aware summary, full standings context for the latest completed/scored
+  season when the current season is unscored, champion callout, top scorers, and an expanded
+  records strip. The power top-movers strip is intentionally not on Home.
 - **Endpoints:** composed **client-side** from `GET /v1/seasons/{id}/standings`,
-  `GET /v1/records`, and `GET /v1/seasons/{id}/power` (there is no `/v1/home` composite; the
-  page orchestrates, it does no math).
-- **Components/charts:** `StatGrid`, `Card`, `Table` (mini standings), `RankFlow` thumbnail.
-- **Gaps:** pre-week-1 → `EmptyState` ("season hasn't started"); current season not yet
-  scored → power ranking shows `DataGap`.
+  `GET /v1/records`, `GET /v1/stats/top-scorers`, and season/champion metadata (there is no
+  `/v1/home` composite; the page orchestrates, it does no math).
+- **Components/charts:** `StatGrid`, `Card`, `Table` (standings), `Trophy`, record cards.
+- **Gaps:** bracket/activity data is not inferred; unavailable bracket structure renders a
+  `DataGap` until `/v1/seasons/{id}/bracket` is proven.
 
 ## Standings  `/standings`
 
 - **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, completed-season
-  finish, streak); a standings-over-time chart with rank-ordered Week N tooltips.
+  finish, streak); schedule-luck/all-play insight; a standings-over-time chart with
+  rank-ordered Week N tooltips.
 - **Endpoints:** `/v1/seasons/{id}/standings?through_week=`,
-  `/v1/seasons/{id}/standings/timeline`.
+  `/v1/seasons/{id}/standings/insights`, `/v1/seasons/{id}/standings/timeline`.
 - **Components/charts:** `Table`, `RankFlow`, `RecordLine`, `Trophy`.
 - **Gaps:** historical standings exist for 2010–2025 → render normally; if season metadata is
   pending, `DataGap`.
 
 ## Power ranking  `/power`
 
-- **Shows:** the current power ranking (with each team's components and the model weights), an
-  "how this is computed" explainer, and a power-score-over-time chart.
+- **Shows:** the current power ranking (with PF/g, all-play win pct, actual win pct, recent
+  PF/g, model weights), an "how this is computed" explainer, and a power-score-over-time chart.
 - **Endpoints:** `/v1/seasons/{id}/power?through_week=`, `/v1/seasons/{id}/power/timeline`.
 - **Components/charts:** `Table`, `RankFlow`/`LineTrend`, `Tabs`.
 - **Gaps:** current season not yet scored → `DataGap`.
@@ -63,7 +65,8 @@ The landing view; a glanceable cockpit for the current season.
 ## Box Score  `/matchups/{matchup_id}`
 
 - **Shows:** both lineups side by side; per-player league points + breakdown; bench points;
-  optimal lineup and "points left on the bench"; projection vs actual per starter.
+  optimal lineup and "points left on the bench"; projection vs actual, team point share, and
+  lineup-value labels.
 - **Endpoint:** `/v1/matchups/{matchup_id}/box-score`.
 - **Components/charts:** two-column lineup tables, `StackedBreakdown` per expandable player
   row, `Stat` for totals/bench/left-on-bench.
@@ -99,9 +102,9 @@ The landing view; a glanceable cockpit for the current season.
 
 - **Shows:** career aggregate header (seasons, W-L-T, win %, PF, best finish, titles) with a
   latest-roster link when the manager has season/team history;
-  trophy case (championships + podium finishes); career trajectory chart (final finish by
-  season, `RankFlow`); season-by-season record table; rivalry snapshot ("owns" / "owned by"
-  splits deep-linking to the pairwise pages, games labelled as `N GP`).
+  trophy case (championships + podium finishes); consistency insight; career trajectory chart
+  (final finish by season, `RankFlow`); season-by-season record table; rivalry snapshot
+  ("owns" / "owned by" splits deep-linking to the pairwise pages, games labelled as `N GP`).
 - **Endpoints:** `/v1/owners/{id}`, `/v1/owners/{id}/seasons`, `/v1/owners/{id}/trajectory`,
   `/v1/owners/rivalry-matrix` (all built + tested).
 - **Gaps:** record-only (pre-coverage) seasons return 0 PF and render a `DataGap` in the
@@ -121,8 +124,8 @@ The landing view; a glanceable cockpit for the current season.
 
 - **Shows:** the superlatives (highest/lowest team score, biggest blowout, narrowest win,
   highest-scoring matchup, best player week, longest streaks, most titles, etc.), each as a
-  `Card` with the value and a deep-link to its source matchup/player/season; championship
-  history / dynasty timeline; best/worst draft picks ever.
+  `Card` with the value and a deep-link to its source matchup/player/season; searchable
+  league-wide trophy case / championship history; best/worst draft picks ever.
 - **Endpoints:** `/v1/records`, `/v1/records/championships`, `/v1/records/draft`.
 - **Components:** record `Card`s, `Trophy`, dynasty `LineTrend`/timeline.
 - **Gaps:** player records use the scored player window (now 2010–2025); team-record
@@ -139,9 +142,11 @@ The landing view; a glanceable cockpit for the current season.
 ## Player detail  `/players/{player_id}`
 
 - **Shows:** metadata + cross-platform IDs; weekly scoring history chart (per season);
-  compact ownership cards within the league; projections; current-season availability.
+  player insight summary; compact ownership cards within the league; current-season
+  availability de-prioritized when the shared phase helper detects off-season.
 - **Endpoints:** `/v1/players/{id}`, `/v1/players/{id}/scoring?season=`,
-  `/v1/players/{id}/ownership`, `/v1/players/{id}/availability?season=`.
+  `/v1/players/{id}/insights`, `/v1/players/{id}/ownership`,
+  `/v1/players/{id}/availability?season=`.
 - **Components/charts:** `LineTrend`/`BarCompare` (weekly scoring), ownership cards,
   availability strip.
 - **Gaps:** availability for non-current seasons → `DataGap`.
@@ -156,7 +161,7 @@ The landing view; a glanceable cockpit for the current season.
 ## Draft  `/draft`
 
 - **Shows:** draft board as a horizontal 12-column snake grid; pick-value analysis
-  (steals/busts) with a by-pick chart.
+  (steals/busts) with position/round filters, drill-down focus, and a by-pick chart.
 - **Endpoints:** `/v1/seasons/{id}/draft`, `/v1/seasons/{id}/draft/value`.
 - **Components/charts:** draft grid, `BarCompare` (value by pick), `PlayerChip`.
 - **Gaps:** seasons without captured drafts → `DataGap`.

@@ -168,6 +168,28 @@ class StandingsTimeline(BaseModel):
     teams: list[TimelineTeam]
 
 
+class StandingsInsightTeam(BaseModel):
+    team_id: int
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    actual_wins: float
+    all_play_win_pct: float
+    expected_wins: float
+    luck_delta: float
+    points_for_rank: int
+    standings_rank: int
+
+
+class StandingsInsights(BaseModel):
+    season_id: int
+    season_year: int
+    through_week: int
+    available: bool
+    reason: str | None = None
+    teams: list[StandingsInsightTeam]
+
+
 # ---------------------------------------------------------------------------
 # Owners
 # ---------------------------------------------------------------------------
@@ -178,6 +200,16 @@ class TrophyEntry(BaseModel):
     team_name: str | None = None
     finish: int | None = None
     is_champion: bool
+
+
+class OwnerConsistency(BaseModel):
+    available: bool
+    reason: str | None = None
+    weekly_points_stdev: float | None = None
+    rank_among_owners: int | None = None
+    best_season_year: int | None = None
+    best_season_points_for: float | None = None
+    signature: str | None = None
 
 
 class OwnerCareer(BaseModel):
@@ -192,6 +224,7 @@ class OwnerCareer(BaseModel):
     best_finish: int | None = None
     avg_finish: float | None = None
     trophy_case: list[TrophyEntry] = []
+    consistency: OwnerConsistency | None = None
 
 
 class OwnersList(BaseModel):
@@ -250,9 +283,11 @@ class PowerRow(BaseModel):
     points_for: float
     power_score: float
     points_for_per_game: float
+    all_play_win_pct: float
     win_pct: float
     recent_points_for_per_game: float
     z_points_for: float
+    z_all_play_win_pct: float
     z_win_pct: float
     z_recent: float
     standings_rank: int
@@ -491,6 +526,38 @@ class PlayerAvailability(BaseModel):
     weeks: list[AvailabilityWeek]
 
 
+class PlayerInsightWeek(BaseModel):
+    season_year: int
+    week: int
+    points: float
+
+
+class PlayerInsightSeason(BaseModel):
+    season_year: int
+    points: float
+
+
+class PlayerRosterSpan(BaseModel):
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+
+
+class PlayerInsightOwner(BaseModel):
+    owner_id: int
+    display_name: str | None = None
+    weeks: int
+
+
+class PlayerInsights(BaseModel):
+    player_id: int
+    available: bool
+    reason: str | None = None
+    best_week: PlayerInsightWeek | None = None
+    best_season: PlayerInsightSeason | None = None
+    league_roster_span: PlayerRosterSpan
+    most_rostered_by: PlayerInsightOwner | None = None
+
+
 class TopScorers(BaseModel):
     season_year: int
     week: int | None = None
@@ -559,6 +626,9 @@ class BoxPlayer(BaseModel):
     is_starter: bool
     breakdown: dict[str, Any] = {}
     projection: float | None = None
+    projection_delta: float | None = None
+    team_point_share: float | None = None
+    lineup_value: str | None = None
     available: bool = True
     reason: str | None = None
     # Context for a *0.0* league result (null otherwise). "bye" / "did_not_play"

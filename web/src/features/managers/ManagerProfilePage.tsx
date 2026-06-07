@@ -226,6 +226,36 @@ export function ManagerProfilePage() {
         </Card>
       )}
 
+      {c?.consistency && (
+        <Card>
+          <CardHeader eyebrow="weekly scoring profile" title="Consistency" />
+          <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-4">
+            {c.consistency.available ? (
+              <>
+                <Stat
+                  label="Weekly stdev"
+                  value={num(c.consistency.weekly_points_stdev, 1)}
+                  tone="accent"
+                />
+                <Stat label="Consistency rank" value={ordinal(c.consistency.rank_among_owners)} />
+                <Stat
+                  label="Best season"
+                  value={c.consistency.best_season_year ?? "—"}
+                  unit={
+                    c.consistency.best_season_points_for != null
+                      ? `${num(c.consistency.best_season_points_for, 0)} PF`
+                      : undefined
+                  }
+                />
+                <Stat label="Signature" value={c.consistency.signature ?? "—"} />
+              </>
+            ) : (
+              <DataGap reason={c.consistency.reason ?? "no_scored_data"} />
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card>
         <CardHeader eyebrow="finish by season" title="Career Trajectory" />
         <div className="p-5">

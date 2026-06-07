@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, ordinal, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -22,6 +22,14 @@ async function fetchTimeline(seasonId: number) {
     params: { path: { season_id: seasonId } },
   });
   if (error || !data) throw new Error("Failed to load standings timeline");
+  return data.data;
+}
+
+async function fetchInsights(seasonId: number) {
+  const { data, error } = await api.GET("/v1/seasons/{season_id}/standings/insights", {
+    params: { path: { season_id: seasonId } },
+  });
+  if (error || !data) throw new Error("Failed to load standings insights");
   return data.data;
 }
 
@@ -53,6 +61,11 @@ export function StandingsPage() {
   const timeline = useQuery({
     queryKey: seasonId ? qk.standingsTimeline(seasonId) : ["standings", "none", "timeline"],
     queryFn: () => fetchTimeline(seasonId as number),
+    enabled: seasonId != null,
+  });
+  const insights = useQuery({
+    queryKey: seasonId ? qk.standingsInsights(seasonId) : ["standings", "none", "insights"],
+    queryFn: () => fetchInsights(seasonId as number),
     enabled: seasonId != null,
   });
 
@@ -125,6 +138,47 @@ export function StandingsPage() {
                     <td className="dz-num">
                       <StreakCell streak={r.streak} />
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader eyebrow="all-play vs actual wins" title="Schedule Luck" />
+        {insights.isLoading && <Skeleton className="m-5 h-28 w-[calc(100%-2.5rem)]" />}
+        {insights.data && !insights.data.available && (
+          <div className="p-5">
+            <DataGap reason={insights.data.reason ?? "no_standings_rows"} />
+          </div>
+        )}
+        {insights.data?.available && (
+          <div className="overflow-x-auto">
+            <table className="dz-table">
+              <thead>
+                <tr>
+                  <th>Manager</th>
+                  <th className="dz-num">Actual W</th>
+                  <th className="dz-num">Expected W</th>
+                  <th className="dz-num">Luck</th>
+                  <th className="dz-num">PF rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.data.teams.map((r) => (
+                  <tr key={r.team_id}>
+                    <td>
+                      <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                    </td>
+                    <td className="dz-num">{num(r.actual_wins, 2)}</td>
+                    <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>
+                    <td className={`dz-num ${r.luck_delta >= 0 ? "text-win" : "text-loss"}`}>
+                      {r.luck_delta > 0 ? "+" : ""}
+                      {num(r.luck_delta, 2)}
+                    </td>
+                    <td className="dz-num text-muted">#{r.points_for_rank}</td>
                   </tr>
                 ))}
               </tbody>

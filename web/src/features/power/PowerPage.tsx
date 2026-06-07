@@ -74,7 +74,7 @@ export function PowerPage() {
       )}
 
       <Card>
-        <CardHeader eyebrow="model · scoring over luck" title="This week" />
+        <CardHeader eyebrow="model · all-play adjusted" title="This week" />
         {power.isLoading && (
           <div className="space-y-2 p-5">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -92,6 +92,7 @@ export function PowerPage() {
                   <th className="dz-num">Power</th>
                   <th className="dz-num">Record</th>
                   <th className="dz-num">PF/g</th>
+                  <th className="dz-num">All-play</th>
                   <th className="dz-num">Win%</th>
                   <th className="dz-num">Last 3 PF/g</th>
                   <th className="dz-num">vs standings</th>
@@ -109,6 +110,7 @@ export function PowerPage() {
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
                     </td>
                     <td className="dz-num">{num(r.points_for_per_game)}</td>
+                    <td className="dz-num text-muted">{pct(r.all_play_win_pct)}</td>
                     <td className="dz-num text-muted">{pct(r.win_pct)}</td>
                     <td className="dz-num text-muted">{num(r.recent_points_for_per_game)}</td>
                     <td className="dz-num">

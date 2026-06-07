@@ -142,6 +142,120 @@ def compute_standings(
     }
 
 
+def all_play_index(
+    session: Session, season_id: int, through_week: int | None = None
+) -> dict[int, dict[str, float | int]]:
+    """Team all-play record for regular-season weeks.
+
+    For each week, every played team is compared against every other played
+    team's score. This measures schedule luck without player-level data.
+    """
+    season = get_season(session, season_id)
+    if season is None:
+        return {}
+    reg_weeks = regular_season_weeks(session, season)
+    upper = reg_weeks if through_week is None else min(through_week, reg_weeks)
+    rows = session.execute(
+        select(Matchup.team_id, Matchup.week, Matchup.team_score).where(
+            Matchup.season_id == season_id,
+            Matchup.week <= upper,
+            Matchup.team_score.is_not(None),
+            Matchup.opponent_team_id.is_not(None),
+        )
+    ).all()
+    by_week: dict[int, list[tuple[int, float]]] = {}
+    for team_id, week, score in rows:
+        by_week.setdefault(int(week), []).append((int(team_id), float(score)))
+
+    index: dict[int, dict[str, float | int]] = {}
+    for played in by_week.values():
+        if len(played) < 2:
+            continue
+        for team_id, score in played:
+            rec = index.setdefault(team_id, {"wins": 0, "losses": 0, "ties": 0, "games": 0})
+            for other_id, other_score in played:
+                if other_id == team_id:
+                    continue
+                rec["games"] += 1
+                if score > other_score:
+                    rec["wins"] += 1
+                elif score < other_score:
+                    rec["losses"] += 1
+                else:
+                    rec["ties"] += 1
+    for rec in index.values():
+        games = int(rec["games"])
+        rec["win_pct"] = round((float(rec["wins"]) + 0.5 * float(rec["ties"])) / games, 4) if games else 0.0
+    return index
+
+
+def standings_insights(
+    session: Session, season_id: int, through_week: int | None = None
+) -> dict[str, Any] | None:
+    """Schedule-luck standings insight using all-play expected wins."""
+    standings = compute_standings(session, season_id, through_week)
+    if standings is None:
+        return None
+    rows = standings["rows"]
+    if not rows:
+        return {
+            "season_id": season_id,
+            "season_year": standings["season_year"],
+            "through_week": standings["through_week"],
+            "available": False,
+            "reason": "no_standings_rows",
+            "teams": [],
+        }
+
+    all_play = all_play_index(session, season_id, standings["through_week"])
+    if not all_play:
+        return {
+            "season_id": season_id,
+            "season_year": standings["season_year"],
+            "through_week": standings["through_week"],
+            "available": False,
+            "reason": "no_completed_matchups",
+            "teams": [],
+        }
+
+    pf_rank = {
+        r["team_id"]: i
+        for i, r in enumerate(sorted(rows, key=lambda x: -x["points_for"]), start=1)
+    }
+    teams: list[dict[str, Any]] = []
+    for r in rows:
+        games = r["wins"] + r["losses"] + r["ties"]
+        ap = all_play.get(r["team_id"])
+        if ap is None or not games:
+            continue
+        all_play_pct = float(ap["win_pct"])
+        actual_wins = r["wins"] + 0.5 * r["ties"]
+        expected_wins = all_play_pct * games
+        teams.append(
+            {
+                "team_id": r["team_id"],
+                "owner_id": r["owner_id"],
+                "owner_name": r["owner_name"],
+                "team_name": r["team_name"],
+                "actual_wins": round(actual_wins, 2),
+                "all_play_win_pct": round(all_play_pct, 4),
+                "expected_wins": round(expected_wins, 2),
+                "luck_delta": round(actual_wins - expected_wins, 2),
+                "points_for_rank": pf_rank[r["team_id"]],
+                "standings_rank": r["rank"],
+            }
+        )
+    teams.sort(key=lambda r: r["luck_delta"], reverse=True)
+    return {
+        "season_id": season_id,
+        "season_year": standings["season_year"],
+        "through_week": standings["through_week"],
+        "available": bool(teams),
+        "reason": None if teams else "no_completed_matchups",
+        "teams": teams,
+    }
+
+
 def standings_timeline(session: Session, season_id: int) -> dict[str, Any] | None:
     """Rank (computed) and cumulative points-for per team per regular-season week."""
     season = get_season(session, season_id)

@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type BoxScore = Awaited<ReturnType<typeof fetchBoxScore>>;
@@ -60,6 +60,8 @@ function LineupTable({ team }: { team: BoxTeam }) {
           <th>Slot</th>
           <th>Player</th>
           <th className="dz-num">Proj</th>
+          <th className="dz-num">Share</th>
+          <th className="dz-num">Value</th>
           <th className="dz-num">Pts</th>
         </tr>
       </thead>
@@ -69,7 +71,7 @@ function LineupTable({ team }: { team: BoxTeam }) {
         ))}
         {bench.length > 0 && (
           <tr>
-            <td colSpan={4} className="dz-eyebrow pt-3 text-faint">
+            <td colSpan={6} className="dz-eyebrow pt-3 text-faint">
               bench
             </td>
           </tr>
@@ -116,6 +118,14 @@ function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
 }
 
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
+  const valueLabel =
+    p.lineup_value === "bench_pop"
+      ? "bench pop"
+      : p.lineup_value === "starter_hit"
+        ? "hit"
+        : p.lineup_value === "starter_miss"
+          ? "miss"
+          : null;
   return (
     <tr>
       <td className="num text-faint">{p.roster_slot ?? "—"}</td>
@@ -124,6 +134,23 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
+      <td className="dz-num text-faint">
+        {p.team_point_share != null ? pct(p.team_point_share) : "—"}
+      </td>
+      <td className="dz-num">
+        <span
+          className={
+            p.projection_delta == null
+              ? "text-faint"
+              : p.projection_delta >= 0
+                ? "text-win"
+                : "text-loss"
+          }
+        >
+          {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
+        </span>
+        {valueLabel && <span className="ml-1 text-[var(--fs-xs)] text-faint">{valueLabel}</span>}
+      </td>
       <td className="dz-num">
         {!p.available ? (
           // Pipeline explicitly flagged this entry as a gap (e.g. a known scoring hole).

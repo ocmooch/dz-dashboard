@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/standings/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Standings Insights */
+        get: operations["get_standings_insights_v1_seasons__season_id__standings_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons/{season_id}/standings/timeline": {
         parameters: {
             query?: never;
@@ -319,6 +336,23 @@ export interface paths {
         };
         /** Get Player Ownership */
         get: operations["get_player_ownership_v1_players__player_id__ownership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/players/{player_id}/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Player Insights */
+        get: operations["get_player_insights_v1_players__player_id__insights_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -637,6 +671,12 @@ export interface components {
             };
             /** Projection */
             projection?: number | null;
+            /** Projection Delta */
+            projection_delta?: number | null;
+            /** Team Point Share */
+            team_point_share?: number | null;
+            /** Lineup Value */
+            lineup_value?: string | null;
             /**
              * Available
              * @default true
@@ -914,6 +954,11 @@ export interface components {
             data: components["schemas"]["PlayerIndex"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[PlayerInsights] */
+        Envelope_PlayerInsights_: {
+            data: components["schemas"]["PlayerInsights"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[PlayerOut] */
         Envelope_PlayerOut_: {
             data: components["schemas"]["PlayerOut"];
@@ -967,6 +1012,11 @@ export interface components {
         /** Envelope[SeasonTotals] */
         Envelope_SeasonTotals_: {
             data: components["schemas"]["SeasonTotals"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[StandingsInsights] */
+        Envelope_StandingsInsights_: {
+            data: components["schemas"]["StandingsInsights"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[StandingsTimeline] */
@@ -1178,6 +1228,24 @@ export interface components {
              * @default []
              */
             trophy_case: components["schemas"]["TrophyEntry"][];
+            consistency?: components["schemas"]["OwnerConsistency"] | null;
+        };
+        /** OwnerConsistency */
+        OwnerConsistency: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Weekly Points Stdev */
+            weekly_points_stdev?: number | null;
+            /** Rank Among Owners */
+            rank_among_owners?: number | null;
+            /** Best Season Year */
+            best_season_year?: number | null;
+            /** Best Season Points For */
+            best_season_points_for?: number | null;
+            /** Signature */
+            signature?: string | null;
         };
         /** OwnerRef */
         OwnerRef: {
@@ -1299,6 +1367,44 @@ export interface components {
             /** Last Rostered Season */
             last_rostered_season?: number | null;
         };
+        /** PlayerInsightOwner */
+        PlayerInsightOwner: {
+            /** Owner Id */
+            owner_id: number;
+            /** Display Name */
+            display_name?: string | null;
+            /** Weeks */
+            weeks: number;
+        };
+        /** PlayerInsightSeason */
+        PlayerInsightSeason: {
+            /** Season Year */
+            season_year: number;
+            /** Points */
+            points: number;
+        };
+        /** PlayerInsightWeek */
+        PlayerInsightWeek: {
+            /** Season Year */
+            season_year: number;
+            /** Week */
+            week: number;
+            /** Points */
+            points: number;
+        };
+        /** PlayerInsights */
+        PlayerInsights: {
+            /** Player Id */
+            player_id: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            best_week?: components["schemas"]["PlayerInsightWeek"] | null;
+            best_season?: components["schemas"]["PlayerInsightSeason"] | null;
+            league_roster_span: components["schemas"]["PlayerRosterSpan"];
+            most_rostered_by?: components["schemas"]["PlayerInsightOwner"] | null;
+        };
         /** PlayerOut */
         PlayerOut: {
             /** Player Id */
@@ -1346,6 +1452,13 @@ export interface components {
             last_rostered_season?: number | null;
             /** Events */
             events: components["schemas"]["OwnershipSpan"][];
+        };
+        /** PlayerRosterSpan */
+        PlayerRosterSpan: {
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
         };
         /** PlayerScoring */
         PlayerScoring: {
@@ -1405,12 +1518,16 @@ export interface components {
             power_score: number;
             /** Points For Per Game */
             points_for_per_game: number;
+            /** All Play Win Pct */
+            all_play_win_pct: number;
             /** Win Pct */
             win_pct: number;
             /** Recent Points For Per Game */
             recent_points_for_per_game: number;
             /** Z Points For */
             z_points_for: number;
+            /** Z All Play Win Pct */
+            z_all_play_win_pct: number;
             /** Z Win Pct */
             z_win_pct: number;
             /** Z Recent */
@@ -1673,6 +1790,44 @@ export interface components {
             tiebreak_caveat: boolean;
             /** Rows */
             rows: components["schemas"]["StandingRow"][];
+        };
+        /** StandingsInsightTeam */
+        StandingsInsightTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Actual Wins */
+            actual_wins: number;
+            /** All Play Win Pct */
+            all_play_win_pct: number;
+            /** Expected Wins */
+            expected_wins: number;
+            /** Luck Delta */
+            luck_delta: number;
+            /** Points For Rank */
+            points_for_rank: number;
+            /** Standings Rank */
+            standings_rank: number;
+        };
+        /** StandingsInsights */
+        StandingsInsights: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Through Week */
+            through_week: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Teams */
+            teams: components["schemas"]["StandingsInsightTeam"][];
         };
         /** StandingsTimeline */
         StandingsTimeline: {
@@ -2075,6 +2230,39 @@ export interface operations {
             };
         };
     };
+    get_standings_insights_v1_seasons__season_id__standings_insights_get: {
+        parameters: {
+            query?: {
+                through_week?: number | null;
+            };
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_StandingsInsights_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_standings_timeline_v1_seasons__season_id__standings_timeline_get: {
         parameters: {
             query?: never;
@@ -2448,6 +2636,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_PlayerOwnership_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_player_insights_v1_players__player_id__insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PlayerInsights_"];
                 };
             };
             /** @description Validation Error */
