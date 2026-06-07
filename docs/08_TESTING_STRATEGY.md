@@ -138,7 +138,7 @@ A single workflow (`.github/workflows/ci.yml`) runs **three jobs** on every push
 backend:  uv sync --extra dev → ruff check → mypy src/ → uv run pytest
 frontend: npm ci → npm run typecheck → npm run test → npm run build
 e2e:      uv sync + npm ci → boot BFF → npm run gen:api:check  (contract drift)
-                           → playwright install chromium → playwright test journeys
+                           → playwright install chromium → playwright test
 ```
 
 Notes on the as-built workflow:
@@ -147,5 +147,5 @@ Notes on the as-built workflow:
   tag to drop that step — see `PHASE2_RUNBOOK.md`).
 - There is **no `npm run lint`** target; linting on the frontend is `tsc` (typecheck). Ruff is
   the backend linter.
-- **Visual-regression** (`e2e/visual.spec.ts`) is intentionally **not** in the gate until
-  per-platform baselines are committed; only `playwright test journeys` runs in CI.
+- **Visual-regression** (`e2e/visual.spec.ts`) is now in the CI gate with committed
+  Chromium/Linux baselines. Refresh them with `make e2e-update` after intentional UI changes.
