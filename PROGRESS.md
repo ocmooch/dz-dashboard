@@ -16,7 +16,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - **Phase 2 is functionally complete.** All roadmap milestones P0–P11 shipped and the tracker
   below is closed out.
-- **fix-pass P6 VERIFY complete — PR #40 open to `dev`.** Shipped backend helpers/endpoints for
+- **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
   standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
   all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
   player/manager/standings insights, records trophy filtering, draft value filters + drill-down
@@ -46,8 +46,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- **Merge PR #40 (fix-pass P6) to `dev`**, then tick the roadmap P6 row to ☑ and delete the
-  feature branch (local + remote).
+- **The P1–P6 review-fixes program is complete** — all six dashboard passes are merged to `dev`.
+  Remaining open work is the **UP** (upstream / danger-zone) program: F-06, F-25, F-37 tier 2,
+  F-49, and the F-27 trustworthiness sanity-check.
 - **F-52 is RESOLVED upstream** by the danger-zone regen: the real DB now reports
   `status:completed` for 2010–2025 and `in_progress` only for 2026 (verified 2026-06-07). The P6
   season-phase helper derives phase from data rather than `seasons.status`, so no dashboard change
