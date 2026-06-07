@@ -26,7 +26,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   Real-DB verification on 2026-06-06 confirmed normal churn: team 184/2024 now returns wk1
   adds=2/drops=0 (was fabricated 68/67), and 2010 team 13 has period-correct week-1 players.
   No dashboard code change was needed after the regen.
-- **fix-pass P5 (Frontend navigation & presentation fixes) — VERIFIED, PR pending.** Implemented:
+- **fix-pass P5 (Frontend navigation & presentation fixes) — VERIFIED, PR #38 open.** Implemented:
   F-24 player-index contract cleanup, `WeekStepper` direct select, scrollable global search,
   rank-ordered timeline tooltips + 12-color ramp, team season navigation, unavailable box-score
   fallback links, manager latest-roster link, manager sort toggles, clearer rivalry labels, signed
@@ -36,7 +36,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Next
 
-- Open/merge the **P5 PR** to `dev`.
+- Merge **P5 PR #38** to `dev`.
 - After P5 merges, continue with **P6** from `docs/plans/REVIEW_FIXES_ROADMAP.md`.
 - Keep F-52 (`seasons.status` all `in_progress`) with danger-zone / upstream tracking.
 

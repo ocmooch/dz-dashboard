@@ -181,4 +181,4 @@ VERIFY:
 - [x] Full gate green.
 - [x] Real-DB browser click-through completed for the P5 routes above.
 - [x] `docs/05`, `docs/06`, `docs/07`, `PROGRESS.md`, roadmap row, and review findings updated.
-- [ ] PR opened to `dev` with trailers.
+- [x] PR opened to `dev` with trailers: #38.
