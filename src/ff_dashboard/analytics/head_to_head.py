@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Season
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import owner_name_map, team_owner_map
+from ff_dashboard.analytics.common import owner_active_map, owner_name_map, team_owner_map
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -160,6 +160,7 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
 def rivalry_matrix(session: Session) -> dict[str, Any]:
     """Full NxN win-pct matrix (row owner's wins / games vs column owner)."""
     names = owner_name_map(session)
+    active = owner_active_map(session)
     owner_ids = sorted(names)
     pairs = all_pairwise(session)
 
@@ -185,7 +186,14 @@ def rivalry_matrix(session: Session) -> dict[str, Any]:
             )
 
     return {
-        "owners": [{"owner_id": oid, "display_name": names.get(oid)} for oid in owner_ids],
+        "owners": [
+            {
+                "owner_id": oid,
+                "display_name": names.get(oid),
+                "is_active": active.get(oid, True),
+            }
+            for oid in owner_ids
+        ],
         "cells": cells,
     }
 

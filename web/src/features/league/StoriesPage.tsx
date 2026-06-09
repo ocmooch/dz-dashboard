@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type LeagueStories = components["schemas"]["LeagueStories"];
@@ -18,7 +18,7 @@ async function fetchStories(): Promise<LeagueStories> {
 
 function storySubject(story: StoryCard) {
   if (story.primary_team) {
-    return <Chip name={story.primary_team.team_name ?? story.primary_team.owner_name} sub={story.primary_team.owner_name ?? undefined} />;
+    return <Chip name={story.primary_team.team_name ?? story.primary_team.owner_name} sub={story.primary_team.owner_name ?? undefined} avatarUrl={teamAvatarUrl(story.primary_team.team_id)} />;
   }
   if (story.primary_owner) {
     return <Chip name={story.primary_owner.display_name} />;

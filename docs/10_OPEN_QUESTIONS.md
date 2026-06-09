@@ -55,8 +55,9 @@ if first-hit latency is noticeable.
 necessarily exposed in the UI initially. Want a visible light/dark toggle on day one?
 
 **As built:** dark-only. `tokens.css` is structured so a light token set can be added later, but
-there is **no `[data-theme="light"]` token set and no UI toggle** today. **Still open** if you want
-a visible switch.
+there is **no `[data-theme="light"]` token set and no UI toggle** today. **Settled 2026-06-08:
+keep dark-only** — the HUD aesthetic is deliberately dark. `tokens.css` stays structured for a
+light set if ever wanted, so this remains reversible.
 
 ### Q11. Avatars / team logos / manager photos
 
@@ -64,19 +65,26 @@ Sleeper-style chips look best with avatars. Phase 1 may not store these. **Defau
 initials/monogram chips generated from names; optional later enhancement to let you drop in
 manager avatars via a small local config. Confirm if you want avatars early.
 
-**As built:** monogram chips from names; no avatar config. **Still open** as an enhancement.
+**As built:** monogram chips from names. **Decided 2026-06-08: pull team logos from the DB
+when present, monogram fallback.** Phase 1's regen populated `teams.team_avatar_asset_id` (190
+rows) with bytes in the content-addressed asset store; the BFF streams them via
+`GET /v1/teams/{team_id}/avatar` and the `Chip` renders the logo, falling back to the monogram on
+any null/404/load-error. **Owner/manager photos stay a true source gap** — `owner_avatar_asset_id`
+is populated on 0 rows, so manager chips remain monograms pending an upstream backfill (relate F-06).
 
 ### Q12. Mobile priority
 
 **Default:** laptop-first, responsive down to phone (usable, not pixel-perfect). If you'll
 mostly check it on a phone, we raise mobile to a first-class target and adjust layouts/charts
-accordingly. **As built:** laptop-first responsive, per default.
+accordingly. **As built:** laptop-first responsive, per default. **Settled 2026-06-08: keep
+laptop-first** — no phone-first rework. Reversible if usage moves to mobile.
 
 ### Q13. Exports / sharing
 
 **Default:** none in Phase 2 (it's localhost, single-user). A "copy chart as image" or "export
 table as CSV" affordance is a cheap later add if you want to share records in the league chat.
-**As built:** none. **Still open** as a later add.
+**As built:** none. **Settled 2026-06-08: no exports** — localhost single-user. Reversible; revisit
+only if league-chat sharing becomes a real need.
 
 ---
 

@@ -540,8 +540,14 @@ class RivalryCell(BaseModel):
     a_win_pct: float | None = None
 
 
+class RivalryOwner(OwnerRef):
+    # Drives the "show inactive managers" toggle on the rivalry grid: managers
+    # who have left the league default to hidden so the matrix stays readable.
+    is_active: bool = True
+
+
 class RivalryMatrix(BaseModel):
-    owners: list[OwnerRef]
+    owners: list[RivalryOwner]
     cells: list[RivalryCell]
 
 

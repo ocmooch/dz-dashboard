@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, WeekStepper } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type GameCard = NonNullable<
@@ -41,7 +41,7 @@ function TeamSide({
   const signedMargin = margin == null ? null : winner ? margin : -margin;
   return (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
-      <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} />
+      <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} avatarUrl={teamAvatarUrl(team.team_id)} />
       <span className="flex flex-col">
         <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
           {num(team.score)}

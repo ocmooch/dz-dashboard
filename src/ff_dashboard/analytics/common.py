@@ -49,6 +49,12 @@ def owner_name_map(session: Session) -> dict[int, str | None]:
     return {int(oid): name for oid, name in rows}
 
 
+def owner_active_map(session: Session) -> dict[int, bool]:
+    """owner_id -> is_active for every owner (managers still in the league)."""
+    rows = session.execute(select(Owner.owner_id, Owner.is_active)).all()
+    return {int(oid): bool(active) for oid, active in rows}
+
+
 def team_owner_map(session: Session) -> dict[int, int]:
     """team_id -> owner_id for every team (career/rivalry metrics key on owner)."""
     rows = session.execute(select(Team.team_id, Team.owner_id)).all()

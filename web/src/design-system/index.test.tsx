@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -130,6 +130,22 @@ describe("Chip", () => {
     render(<Chip name={null} />);
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("··")).toBeInTheDocument();
+  });
+
+  it("renders a team logo when an avatarUrl is given, not the monogram", () => {
+    const { container } = render(<Chip name="Joe Cool" avatarUrl="/v1/teams/7/avatar" />);
+    const img = container.querySelector("img.dz-avatar");
+    expect(img).toHaveAttribute("src", "/v1/teams/7/avatar");
+    expect(screen.queryByText("JC")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the monogram when the avatar image fails to load (404)", () => {
+    const { container } = render(<Chip name="Joe Cool" avatarUrl="/v1/teams/7/avatar" />);
+    const img = container.querySelector("img.dz-avatar");
+    expect(img).toBeInTheDocument();
+    fireEvent.error(img as Element);
+    expect(screen.getByText("JC")).toBeInTheDocument();
+    expect(container.querySelector("img.dz-avatar")).not.toBeInTheDocument();
   });
 });
 

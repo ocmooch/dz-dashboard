@@ -5,7 +5,7 @@ import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num, ordinal, pct } from "@/lib/format";
+import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -121,7 +121,7 @@ export function StandingsPage() {
                     <td className="num text-faint">{r.rank}</td>
                     <td>
                       <Link to={`/teams/${r.team_id}`} className="hover:text-accent">
-                        <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
+                        <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
                       </Link>
                     </td>
                     <td className="dz-num">
@@ -170,7 +170,7 @@ export function StandingsPage() {
                 {insights.data.teams.map((r) => (
                   <tr key={r.team_id}>
                     <td>
-                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
                     </td>
                     <td className="dz-num">{num(r.actual_wins, 2)}</td>
                     <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>

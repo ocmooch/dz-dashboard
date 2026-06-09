@@ -9,6 +9,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   (`docs/plans/P{N}-*.md`) if one exists. Stop there — don't browse the tree.
 - At session end / checkpoint, update **Current state**, **Next**, and **Files that matter now**.
 - Historical fix-pass and audit narrative lives in `CHANGELOG.md`.
+- **Aggregated records:** all finished work → `docs/archive/COMPLETED_WORK.md`; all remaining /
+  in-progress work, blockers, and open decisions → `docs/ACTIVE_WORK.md`.
 
 ---
 
@@ -36,6 +38,13 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   0-point inactive/injury/bye weeks render as zero bars with reason indicators instead of
   disappearing from the weekly chart. Real-DB spot check: player 11827 / 2025 now includes weeks
   5–12 as zero-point reasoned weeks, with week 9 marked bye.
+- **Deferred product decisions resolved (Q10–Q13); team avatars built (Q11) — landed locally.**
+  Q10 dark-only, Q12 laptop-first, Q13 no-exports settled at default (doc-only, reversible). Q11
+  ships team logos from the DB: read-only binary `GET /v1/teams/{team_id}/avatar` streams from
+  Phase 1's on-disk asset store (`ASSETS_ROOT` setting; `assets_root` on `app.state`), 404ing
+  cleanly to a monogram fallback; `Chip` gained `avatarUrl`, wired across team chips. Owner photos
+  remain a true source gap (0 rows; F-06). No contract change. Plan:
+  `docs/plans/deferred-product-decisions.md`. Real-DB spot check passed (team 1 logo streams).
 - **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
   standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
   all-play-aware power. Frontend uses shared season phase, re-curates Home, adds

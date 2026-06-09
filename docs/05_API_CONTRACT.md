@@ -71,6 +71,7 @@ document, so the contract is enforced at build time.
 | `GET /v1/teams/{team_id}/scoring-trend` | Points per week vs league average — for the chart |
 | `GET /v1/teams/{team_id}/transactions` | Exact recorded transaction log involving the team that season, including dates, type, direction, waiver priority, nullable FAAB, notes, and slot-change `extra_data` |
 | `GET /v1/teams/{team_id}/roster-moves` | Derived roster-diff fallback: add/drop/retain from week-over-week roster diffs (`available:false` when <2 snapshots) |
+| `GET /v1/teams/{team_id}/avatar` | **Binary** (not JSON): streams the team's season logo from Phase 1's on-disk asset store with an immutable cache header. 404s (never errors) when the team is unknown, has no avatar, the store is unconfigured, or the bytes are missing — the SPA's `Chip` falls back to a monogram. The frontend builds the URL from `team_id` (`teamAvatarUrl`); no JSON field carries it, so it is excluded from the OpenAPI schema. Owner/manager photos are **not** served — 0 source rows (a true source gap). |
 
 ### Owners / managers
 

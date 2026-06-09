@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     # --- Database (the only data source; read-only) ---
     database_url: str = DEFAULT_DATABASE_URL
 
+    # --- Asset store (team logos; read-only, on disk) ---
+    # Phase 1 stores avatar *bytes* on disk under a content-addressed path; the
+    # DB row only holds the relative ``storage_path``. This points at that root
+    # so the BFF can stream a team logo. Unset → derived next to the DB file
+    # (``<db_dir>/assets``), matching Phase 1's layout. Never written.
+    assets_root: Path | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DASHBOARD_ASSETS_ROOT", "ASSETS_ROOT"),
+    )
+
     # --- API server ---
     host: str = Field("127.0.0.1", validation_alias=AliasChoices("DASHBOARD_HOST", "HOST"))
     port: int = Field(8800, validation_alias=AliasChoices("DASHBOARD_PORT", "PORT"))
@@ -70,6 +80,28 @@ class Settings(BaseSettings):
         if not path.is_absolute():
             path = PROJECT_ROOT / path
         return path.resolve()
+
+    def resolved_assets_root(self) -> Path:
+        """Return the on-disk avatar asset-store root as an absolute path.
+
+        When ``assets_root`` is unset, derive it next to the resolved SQLite DB
+        file (``<db_dir>/assets``) — Phase 1's default layout. A relative
+        configured path resolves against the project root. The path is not
+        required to exist; the avatar route 404s gracefully when a file is
+        missing so the UI falls back to a monogram.
+        """
+        if self.assets_root is not None:
+            path = self.assets_root
+            if not path.is_absolute():
+                path = PROJECT_ROOT / path
+            return path.resolve()
+        url = self.resolved_database_url()
+        prefix = "sqlite:///"
+        if url.startswith(prefix):
+            db_path = Path(url[len(prefix) :])
+            return (db_path.parent / "assets").resolve()
+        # Non-SQLite (e.g. Postgres path) — fall back to the sibling default.
+        return (_DEFAULT_DB.parent / "assets").resolve()
 
     def resolved_database_url(self) -> str:
         """Return ``database_url`` with any relative SQLite path made absolute
