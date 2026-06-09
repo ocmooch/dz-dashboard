@@ -35,6 +35,7 @@ from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import _authoritative_points, roster_sort_key
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -65,7 +66,7 @@ def team_overview(session: Session, team_id: int) -> dict[str, Any] | None:
 
     return {
         "team_id": team_id,
-        "team_name": team.team_name,
+        "team_name": period_team_name(team, season.year),
         "season_id": season.season_id,
         "season_year": season.year,
         "owner_id": team.owner_id,
@@ -194,7 +195,9 @@ def team_schedule(session: Session, team_id: int) -> dict[str, Any] | None:
                 "week": m.week,
                 "is_playoff": bool(m.is_playoff),
                 "opponent_team_id": m.opponent_team_id,
-                "opponent_team_name": opp.team_name if opp is not None else None,
+                "opponent_team_name": period_team_name(opp, season.year)
+                if opp is not None
+                else None,
                 "opponent_owner_name": owners.get(opp.owner_id) if opp is not None else None,
                 "team_score": round(m.team_score, 2) if m.team_score is not None else None,
                 "opponent_score": round(m.opponent_score, 2)
@@ -285,7 +288,9 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
                 "waiver_priority_used": t.waiver_priority_used,
                 "faab_bid": _faab_bid(t.extra_data),
                 "counterpart_team_id": t.counterpart_team_id,
-                "counterpart_team_name": counterpart.team_name if counterpart is not None else None,
+                "counterpart_team_name": period_team_name(counterpart, season.year)
+                if counterpart is not None
+                else None,
                 "notes": t.notes,
                 "extra_data": t.extra_data,
             }

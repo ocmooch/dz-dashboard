@@ -21,6 +21,10 @@ from ff_dashboard.analytics.common import (
     owner_name_map,
     regular_season_weeks,
 )
+from ff_dashboard.analytics.historical_team_names import (
+    period_team_name,
+    period_team_name_by_slot,
+)
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -105,7 +109,7 @@ def compute_standings(
         rows.append(
             {
                 "team_id": team_id,
-                "team_name": team.team_name,
+                "team_name": period_team_name(team, season.year),
                 "owner_id": team.owner_id,
                 "owner_name": owners.get(team.owner_id),
                 "wins": a["wins"],
@@ -269,7 +273,7 @@ def standings_timeline(session: Session, season_id: int) -> dict[str, Any] | Non
     series: dict[int, dict[str, Any]] = {
         t.team_id: {
             "team_id": t.team_id,
-            "team_name": t.team_name,
+            "team_name": period_team_name(t, season.year),
             "owner_id": t.owner_id,
             "owner_name": owners.get(t.owner_id),
             "points": [],
@@ -300,12 +304,15 @@ def season_summary(session: Session, season: Season) -> dict[str, Any]:
     """Champion / runner-up / last-place names + week counts for a season."""
     owners = owner_name_map(session)
     team_rows = session.execute(
-        select(Team.team_id, Team.team_name, Team.owner_id).where(
+        select(Team.team_id, Team.team_name, Team.team_abbrev, Team.owner_id).where(
             Team.season_id == season.season_id
         )
     ).all()
-    name_by_team = {int(tid): tname for tid, tname, _ in team_rows}
-    owner_by_team = {int(tid): int(oid) for tid, _, oid in team_rows}
+    name_by_team = {
+        int(tid): period_team_name_by_slot(season.year, abbrev, tname)
+        for tid, tname, abbrev, _ in team_rows
+    }
+    owner_by_team = {int(tid): int(oid) for tid, _, _, oid in team_rows}
 
     def label(team_id: int | None) -> dict[str, Any] | None:
         if team_id is None:

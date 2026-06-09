@@ -14,6 +14,7 @@ from ff_pipeline.repository.queries import get_season, get_team
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
+from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -67,7 +68,7 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
             teams[team_id] = team
         return {
             "team_id": team_id,
-            "team_name": team.team_name if team is not None else None,
+            "team_name": period_team_name(team) if team is not None else None,
             "owner_id": team.owner_id if team is not None else None,
             "owner_name": owners.get(team.owner_id) if team is not None else None,
             "score": round(score, 2) if score is not None else None,

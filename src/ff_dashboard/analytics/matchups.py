@@ -34,6 +34,7 @@ from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.season_schedule import season_schedule
 
 # Margin thresholds for the week-matchup flags. Kept here (backend) rather than
@@ -395,7 +396,7 @@ def _team_box(
 
     return {
         "team_id": team_id,
-        "team_name": team.team_name if team is not None else None,
+        "team_name": period_team_name(team) if team is not None else None,
         "owner_name": owners.get(team.owner_id) if team is not None else None,
         "total_score": round(total_score, 2) if total_score is not None else None,
         "starter_points": starter_points,
@@ -541,7 +542,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
             teams[team_id] = team
         return {
             "team_id": team_id,
-            "team_name": team.team_name if team is not None else None,
+            "team_name": period_team_name(team) if team is not None else None,
             "owner_name": owners.get(team.owner_id) if team is not None else None,
             "score": round(score, 2) if score is not None else None,
             "is_winner": is_winner,
