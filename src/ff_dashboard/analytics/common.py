@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ff_pipeline.api.errors import service_unavailable
-from ff_pipeline.repository.models import League, Owner, Season, Team
-from sqlalchemy import func, select
+from ff_pipeline.repository.models import League, Matchup, Owner, Season, Team
+from sqlalchemy import distinct, func, select
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -35,12 +35,34 @@ def regular_season_weeks(session: Session, season: Season) -> int:
     week when the column is unset (never hardcode 14/17)."""
     if season.regular_season_weeks is not None:
         return int(season.regular_season_weeks)
-    from ff_pipeline.repository.models import Matchup
-
     maxweek = session.execute(
         select(func.max(Matchup.week)).where(Matchup.season_id == season.season_id)
     ).scalar_one_or_none()
     return int(maxweek) if maxweek is not None else 0
+
+
+def played_season_ids(session: Session) -> set[int]:
+    """season_ids that have at least one played game (a ``Matchup`` row).
+
+    A season created for an upcoming year — teams and offseason rosters seeded
+    but no games played yet — has no matchups. Every season-enumerating surface
+    (the season selector, the museum timeline, manager trajectories, the
+    coverage view) filters on this set so the dashboard never shows an empty,
+    resultless season; it reappears automatically once its first games land.
+    Data-driven on played games — it never keys on a hardcoded year."""
+    rows = session.execute(select(distinct(Matchup.season_id))).scalars().all()
+    return {int(s) for s in rows}
+
+
+def displayed_seasons(session: Session, league_id: str) -> list[Season]:
+    """``list_seasons_for_league`` minus not-yet-played seasons.
+
+    The single canonical season list for display surfaces — see
+    ``played_season_ids`` for why upcoming-but-unplayed seasons are withheld."""
+    from ff_pipeline.repository.queries import list_seasons_for_league
+
+    played = played_season_ids(session)
+    return [s for s in list_seasons_for_league(session, league_id) if int(s.season_id) in played]
 
 
 def owner_name_map(session: Session) -> dict[int, str | None]:

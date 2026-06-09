@@ -66,6 +66,21 @@ def test_player_scoring_window_is_data_driven(session: Session) -> None:
     assert set(present) - set(scored), "expected a present unscored gap season"
 
 
+def test_seasons_present_excludes_unplayed_seasons(session: Session) -> None:
+    """Coverage reports only seasons with results, never an upcoming empty one.
+
+    The fixture seeds an upcoming season (teams but no games). It has no played
+    matchup, so it must be absent from ``seasons_present`` — the coverage view
+    must not claim a resultless future season. Data-driven on played games.
+    """
+    present = set(seasons_present(session))
+    all_years = {int(y) for y in session.execute(select(Season.year)).scalars().all()}
+    unplayed = all_years - present
+    assert unplayed, "fixture must seed an upcoming, not-yet-played season"
+    for year in unplayed:
+        assert _matchups_with_team_scores(session, year) == 0
+
+
 def test_team_totals_present_in_unscored_seasons(session: Session) -> None:
     """Present-but-unscored seasons still carry real team scores (F-16/F-35).
 

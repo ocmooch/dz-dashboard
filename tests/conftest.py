@@ -177,6 +177,33 @@ def _populate(session: Session) -> None:
             session.flush()
             team_id[(year, key)] = t.team_id
 
+    # --- An upcoming, not-yet-played season (mirrors the live DB's offseason
+    # 2026): teams are seeded but no game has been played. The dashboard hides
+    # such resultless seasons everywhere — they carry no matchups, so
+    # ``played_season_ids`` excludes them and they must never appear in the
+    # season selector, the museum timeline, manager trajectories, or the
+    # coverage view. It reappears automatically once its first games land.
+    upcoming_year = 2018
+    upcoming = Season(
+        league_id=LEAGUE_ID,
+        year=upcoming_year,
+        status="in_progress",
+        regular_season_weeks=None,
+        playoff_weeks=None,
+    )
+    session.add(upcoming)
+    session.flush()
+    for key in ("mav", "ice", "goose", "viper"):
+        session.add(
+            Team(
+                season_id=upcoming.season_id,
+                owner_id=oid[key],
+                team_name=f"{owners[key].display_name} {upcoming_year}",
+                team_abbrev=key.upper()[:4],
+            )
+        )
+    session.flush()
+
     # --- Matchups: one game = two rows (team perspective + opponent perspective).
     # (year, week, home_key, home_score, away_key, away_score)
     games: list[tuple[int, int, str, float, str, float]] = [

@@ -26,7 +26,10 @@ def _envelope(resp) -> dict:  # type: ignore[no-untyped-def]
 def test_list_seasons(client: TestClient) -> None:
     data = _envelope(client.get("/v1/seasons"))
     years = {s["season_year"]: s for s in data["seasons"]}
+    # The upcoming, not-yet-played 2018 season (seeded with teams but no games)
+    # is withheld — it has no results to show. It reappears once games land.
     assert set(years) == {2015, 2016, 2017}
+    assert 2018 not in years
     assert years[2015]["is_scored"] is False
     assert years[2016]["is_scored"] is True
     assert years[2016]["champion"]["owner_name"] == "Maverick"

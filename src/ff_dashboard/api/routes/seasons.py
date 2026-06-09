@@ -5,10 +5,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
-from ff_pipeline.repository.queries import get_season, get_team, list_seasons_for_league
+from ff_pipeline.repository.queries import get_season, get_team
 
 from ff_dashboard.analytics.bracket import season_bracket
-from ff_dashboard.analytics.common import owner_name_map, require_league
+from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.standings import (
     compute_standings,
@@ -38,7 +38,7 @@ def list_seasons(session: SessionDep) -> Envelope[SeasonList]:
     scored = set(seasons_scored(session))
     owners = owner_name_map(session)
     items: list[SeasonListItem] = []
-    for s in list_seasons_for_league(session, league.league_id):
+    for s in displayed_seasons(session, league.league_id):
         champion = None
         if s.champion_team_id is not None:
             team = get_team(session, s.champion_team_id)
