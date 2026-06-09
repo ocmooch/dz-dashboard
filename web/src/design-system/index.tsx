@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 
 import { initials, record } from "@/lib/format";
 
@@ -89,6 +89,24 @@ export function Button({
       {loading && <span className="dz-live-dot" aria-hidden />}
       {children}
     </button>
+  );
+}
+
+export function Checkbox({
+  label,
+  hint,
+  className = "",
+  ...props
+}: {
+  label: ReactNode;
+  hint?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+  return (
+    <label className={`dz-checkbox ${className}`.trim()}>
+      <input type="checkbox" className="dz-checkbox__box" {...props} />
+      <span className="dz-checkbox__label">{label}</span>
+      {hint && <span className="dz-checkbox__hint">{hint}</span>}
+    </label>
   );
 }
 

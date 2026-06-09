@@ -1982,9 +1982,21 @@ export interface components {
         /** RivalryMatrix */
         RivalryMatrix: {
             /** Owners */
-            owners: components["schemas"]["OwnerRef"][];
+            owners: components["schemas"]["RivalryOwner"][];
             /** Cells */
             cells: components["schemas"]["RivalryCell"][];
+        };
+        /** RivalryOwner */
+        RivalryOwner: {
+            /** Owner Id */
+            owner_id: number;
+            /** Display Name */
+            display_name?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
         };
         /** RosterMove */
         RosterMove: {

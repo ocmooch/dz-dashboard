@@ -132,6 +132,8 @@ def test_rivalry_matrix_endpoint(client: TestClient) -> None:
     data = _envelope(client.get("/v1/owners/rivalry-matrix"))
     assert len(data["owners"]) == 5
     assert len(data["cells"]) == 25  # 5x5
+    # Each owner carries an active flag so the grid can hide departed managers.
+    assert all(isinstance(o["is_active"], bool) for o in data["owners"])
 
 
 def test_owner_not_found(client: TestClient) -> None:

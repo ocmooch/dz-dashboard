@@ -286,7 +286,8 @@ export function RankFlow({
 
 /** rivalry win-pct matrix. Plain CSS grid (per the handoff), not Recharts.
  *  values[r][c] = row owner's win-pct vs col owner (0–100); null = never met /
- *  pre-coverage → a hatched DataGap cell showing "—", never 0. */
+ *  pre-coverage → a quiet "no history" cell (faint hatch + dash), never 0.
+ *  rowInactive/colInactive dim departed managers when they're toggled on. */
 export function Heatmap({
   rows,
   cols,
@@ -294,6 +295,8 @@ export function Heatmap({
   title,
   selected,
   onSelect,
+  rowInactive,
+  colInactive,
 }: {
   rows: string[];
   cols: string[];
@@ -301,6 +304,8 @@ export function Heatmap({
   title: string;
   selected?: { r: number; c: number } | null;
   onSelect?: (r: number, c: number) => void;
+  rowInactive?: boolean[];
+  colInactive?: boolean[];
 }) {
   const template = `minmax(64px, 1fr) repeat(${cols.length}, minmax(28px, 1fr))`;
   return (
@@ -308,14 +313,23 @@ export function Heatmap({
       <figcaption className="sr-only">{title}</figcaption>
       <div role="grid" className="grid gap-px" style={{ gridTemplateColumns: template, minWidth: cols.length * 32 + 64 }}>
         <div role="columnheader" aria-hidden />
-        {cols.map((c) => (
-          <div key={c} role="columnheader" className="truncate p-1 text-center font-mono text-[10px] uppercase text-faint">
+        {cols.map((c, ci) => (
+          <div
+            key={c}
+            role="columnheader"
+            title={colInactive?.[ci] ? `${c} (inactive manager)` : undefined}
+            className={`truncate p-1 text-center font-mono text-[10px] uppercase text-faint${colInactive?.[ci] ? " dz-heat-dim" : ""}`}
+          >
             {c}
           </div>
         ))}
         {rows.map((rowName, r) => (
           <div key={rowName} role="row" className="contents">
-            <div role="rowheader" className="truncate p-1 text-right font-mono text-[11px] text-muted">
+            <div
+              role="rowheader"
+              title={rowInactive?.[r] ? `${rowName} (inactive manager)` : undefined}
+              className={`truncate p-1 text-right font-mono text-[11px] text-muted${rowInactive?.[r] ? " dz-heat-dim" : ""}`}
+            >
               {rowName}
             </div>
             {cols.map((_, c) => {
@@ -329,10 +343,11 @@ export function Heatmap({
                     key={c}
                     role="gridcell"
                     title="never met / not in coverage"
-                    className="dz-datagap grid place-items-center rounded-none border-0 p-0 text-[10px]"
+                    aria-label={`${rowName} vs ${cols[c]}: no recorded history`}
+                    className="dz-heat-empty grid place-items-center"
                     style={{ minHeight: 28 }}
                   >
-                    —
+                    <span aria-hidden>·</span>
                   </div>
                 );
               }
