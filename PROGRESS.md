@@ -19,6 +19,23 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   full Playwright suite (journeys plus visual snapshots). The Playoffs/Bracket view from F2.3
   is now landed locally as a caveated backend endpoint plus `/bracket` page: it renders proven
   post-regular-season games and does not infer a bracket tree.
+- **League-history product slice landed locally.** Added read-only `/v1/league/overview`,
+  `/v1/league/timeline`, `/v1/league/eras`, `/v1/league/stories`, and `/v1/league/managers`
+  endpoints backed by `ff_dashboard.analytics.league_history`. The SPA now exposes top-level
+  Seasons, Rules & Eras, Stories, and About Data navigation, with Home linking into the league
+  archive. Accuracy pass now keeps the league at the active standings-backed 12-team size,
+  caveats inactive/artifact team rows, and renders concrete change details for scoring rules,
+  schedule length, roster/RES slots, waiver/FAAB, standings tiebreakers, manager churn, and
+  source/provenance gaps.
+- **Season-aware (period-correct) team names landed locally.** `analytics/historical_team_names.py`
+  recovers the NFL.com season/slot name keyed by `(season_year, team_abbrev)` and
+  `period_team_name()` overrides the post-merge canonical `team_name` on season-scoped surfaces
+  (player ownership timelines). Falls back to the stored name when the slot/year is unknown.
+- **Player scoring DNP/bye zero-week fix landed locally.** `/v1/players/{id}/scoring` now unions
+  reconstructed scored rows with authoritative NFL.com roster points when available, so proven
+  0-point inactive/injury/bye weeks render as zero bars with reason indicators instead of
+  disappearing from the weekly chart. Real-DB spot check: player 11827 / 2025 now includes weeks
+  5–12 as zero-point reasoned weeks, with week 9 marked bye.
 - **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
   standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
   all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
@@ -52,6 +69,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 - **The P1–P6 review-fixes program is complete** — all six dashboard passes are merged to `dev`.
   The remaining dashboard-side N2/F2.3 bracket decision is resolved locally by the caveated
   build. Next dashboard step is review/PR packaging.
+- Next league-history expansion should consume upstream/manual identity and rules data when
+  available: durable human manager overrides, roster-slot settings, full scoring-rule tables,
+  playoff format metadata, and verified scoring mismatch classification.
 - Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
   succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
   F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
@@ -67,7 +87,12 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 - F2.3 bracket local surfaces: `src/ff_dashboard/analytics/bracket.py`,
   `src/ff_dashboard/api/routes/seasons.py`, `web/src/features/bracket/BracketPage.tsx`
-- Docs/status touched for packaging: `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`,
+- League-history local surfaces: `src/ff_dashboard/analytics/league_history.py`,
+  `src/ff_dashboard/api/routes/league.py`, `web/src/features/league/`
+- Player scoring zero-week surfaces: `src/ff_dashboard/analytics/players.py`,
+  `src/ff_dashboard/api/schemas.py`, `web/src/features/players/PlayerDetailPage.tsx`
+- Docs/status touched for packaging: `docs/03_DATA_ACCESS.md`, `docs/04_ANALYTICS_MODEL.md`,
+  `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`, `docs/09_ROADMAP.md`,
   `docs/10_OPEN_QUESTIONS.md`, `PROGRESS.md`
 
 ## Open items / deviations

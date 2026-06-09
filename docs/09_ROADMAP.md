@@ -14,6 +14,12 @@ on earlier milestones. Two ordering rules are deliberate:
 `make dev`/`make serve`, CI jobs, e2e journeys, a visual-regression spec, committed
 Chromium/Linux screenshot baselines, and the visual spec in CI.
 
+**Post-roadmap slice — League history (2026-06-08, `feature/season-aware-team-names`):** a
+read-only league-archive product beyond P0–P11. Adds `analytics/league_history.py` (+
+`historical_team_names.py`), the `/v1/league/*` endpoints (overview/timeline/eras/stories/
+managers — see `05_API_CONTRACT.md`), and the Seasons / Rules & Eras / Stories pages plus the
+About Data nav relabel (see `07_PAGES_AND_VIEWS.md`). Still local on the feature branch.
+
 | # | Milestone | Est. | Deliverable |
 |---|-----------|------|-------------|
 | P0 | Prereqs & data-readiness gate | 0.5–1 hr | Phase 1 reconstruction complete & verified; data coverage confirmed |

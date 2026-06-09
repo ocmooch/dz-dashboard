@@ -28,6 +28,27 @@ The landing view; a glanceable cockpit for the current season.
 - **Gaps:** bracket/activity data is not inferred; unavailable bracket rows render a `DataGap`
   through the caveated `/v1/seasons/{id}/bracket` endpoint.
 
+## League History  `/seasons`
+
+- **Shows:** one row per season with active league size, schedule shape, champion, scoring
+  provenance, and backend-derived change details. The league has always displayed as the
+  active standings-backed team count; inactive/artifact source rows are shown as data-quality
+  caveats, not league-size changes.
+- **Endpoint:** `/v1/league/timeline`.
+- **Components:** `Card`, `Stat`, `Badge`, `Chip`, `DataGap`.
+- **Gaps:** missing champions render `DataGap`; source-limited change details keep their
+  certainty/source labels.
+
+## Rules & Eras  `/rules`
+
+- **Shows:** derived eras plus a material change log. Change details include concrete
+  before/after values where the DB can prove them: scoring-rule changes, schedule length,
+  roster/RES slot shape, waiver/FAAB settings, standings tiebreakers, and manager churn.
+- **Endpoint:** `/v1/league/eras`.
+- **Components:** `Card`, `Stat`, `Badge`, `DataGap`.
+- **Gaps:** detailed settings that are not stored stay labelled as source-limited rather than
+  fabricated.
+
 ## Standings  `/standings`
 
 - **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, completed-season
@@ -169,8 +190,18 @@ The landing view; a glanceable cockpit for the current season.
 - **Components/charts:** draft grid, `BarCompare` (value by pick), `PlayerChip`.
 - **Gaps:** seasons without captured drafts → `DataGap`.
 
-## Coverage / About  `/about`
+## Stories  `/stories`
 
+- **Shows:** backend-computed league story cards (notable runs, records, and moments) derived
+  from existing facts only.
+- **Endpoint:** `/v1/league/stories`.
+- **Components:** `Card`, `Stat`, `Badge`, `DataGap`.
+- **Gaps:** stories that depend on source-limited data carry their certainty/source labels;
+  nothing is fabricated to fill a card.
+
+## About Data / Coverage  `/about`
+
+- **Nav label:** **About Data** (formerly "Coverage").
 - **Shows:** the data coverage panel (what's scored, reconstruction status, known gaps), data
   provenance, and attribution (nflverse CC-BY, Sleeper) — satisfies Phase 1's attribution
   obligation in the UI.

@@ -9,17 +9,20 @@ import { useSeasons } from "./SeasonContext";
 // honest placeholders and carry a "soon" tag until their milestone lands.
 const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/", label: "Home", ready: true },
+  { to: "/seasons", label: "Seasons", ready: true },
+  { to: "/managers", label: "Managers", ready: true },
   { to: "/standings", label: "Standings", ready: true },
   { to: "/power", label: "Power", ready: true },
   { to: "/bracket", label: "Bracket", ready: true },
   { to: "/matchups", label: "Matchups", ready: true },
-  { to: "/managers", label: "Managers", ready: true },
   { to: "/rivalries", label: "Rivalries" },
   { to: "/records", label: "Records", ready: true },
+  { to: "/rules", label: "Rules & Eras", ready: true },
+  { to: "/stories", label: "Stories", ready: true },
   { to: "/players", label: "Players", ready: true },
   { to: "/stats", label: "Stats", ready: true },
   { to: "/draft", label: "Draft", ready: true },
-  { to: "/about", label: "Coverage", ready: true },
+  { to: "/about", label: "About Data", ready: true },
 ];
 
 function SeasonSwitcher() {

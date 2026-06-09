@@ -54,8 +54,8 @@ const RECORDS: { key: string; label: string; suffix?: string }[] = [
 function who(rec: RecordValue): string {
   const parts: string[] = [];
   if (rec.player_name) parts.push(rec.player_name);
-  if (rec.owner_name) parts.push(rec.owner_name);
-  else if (rec.team_name) parts.push(rec.team_name);
+  if (rec.team_name) parts.push(rec.team_name);
+  else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year)
     parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
   return parts.join(" — ") || "—";
@@ -155,7 +155,9 @@ function ChampionshipTimeline({ query }: { query: string }) {
       s.season_year,
       s.champion?.owner_name,
       s.champion?.team_name,
+      s.runner_up?.team_name,
       s.runner_up?.owner_name,
+      s.last_place?.team_name,
       s.last_place?.owner_name,
     ]
       .filter(Boolean)
@@ -166,21 +168,21 @@ function ChampionshipTimeline({ query }: { query: string }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {filtered.map((s) => {
-        const ownerId = s.champion?.owner_id;
+        const teamId = s.champion?.team_id;
         const inner = (
           <>
             <div className="num text-[var(--fs-sm)] text-faint">{s.season_year}</div>
             <div className="mt-1 flex items-center gap-1.5">
               <Trophy />
               <span className="truncate font-semibold text-text">
-                {s.champion?.owner_name ?? s.champion?.team_name ?? "—"}
+                {s.champion?.team_name ?? s.champion?.owner_name ?? "—"}
               </span>
             </div>
           </>
         );
         const cls = "dz-card dz-card--hover min-w-[140px] shrink-0 p-3";
-        return ownerId != null ? (
-          <Link key={s.season_year} to={`/managers/${ownerId}`} className={`${cls} block`}>
+        return teamId != null ? (
+          <Link key={s.season_year} to={`/teams/${teamId}`} className={`${cls} block`}>
             {inner}
           </Link>
         ) : (

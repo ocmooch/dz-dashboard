@@ -27,7 +27,7 @@ function GameLabel({ game }: { game: BracketGame }) {
 function TeamLine({ team }: { team: NonNullable<BracketGame["team_a"]> }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] bg-[var(--surface-1)] px-3 py-2">
-      <Chip name={team.owner_name} sub={team.team_name ?? undefined} />
+      <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} />
       <span className={`num text-[var(--fs-lg)] ${team.is_winner ? "text-win" : "text-muted"}`}>
         {team.score != null ? num(team.score) : "—"}
       </span>

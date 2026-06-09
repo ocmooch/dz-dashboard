@@ -252,6 +252,41 @@ Per-(season, team) rollups feeding the team page.
   derived from table probes + the latest `pipeline_runs` row. This is what drives every
   `DataGap` affordance in the UI.
 
+## 12. League history (`analytics/league_history.py`)
+
+Turns existing Phase 1 facts into product-facing league context for the museum/archive
+surfaces. It **invents no rules or settings** — unavailable or inferred facts are labelled in
+the payload (`source`, `certainty`, before/after) so the UI keeps caveats next to affected
+data. Five public read models:
+
+- **`league_timeline(session)`** — one row per season: active league size, schedule shape,
+  champion, scoring provenance, and a `changes` block with concrete `details[]`. `league_size`
+  is the **active standings-backed** team count; inactive/artifact source rows are caveated in
+  `changes.details`, never shown as a league-size change.
+- **`league_eras(session)`** — derived era groups plus a material change log. Each change keeps
+  compatibility booleans and a `details[]` list (`category`, `title`, `summary`, optional
+  `before`/`after`, `source`, `certainty`) covering scoring rules, schedule length, roster/RES
+  slots, waiver/FAAB, standings tiebreakers, and manager churn.
+- **`league_overview(session)`** — high-level command-center summary: span, counts, current
+  era, and data caveats.
+- **`league_stories(session)`** — backend-computed story cards (dedup games via `_unique_games`
+  so a head-to-head is not double-counted).
+- **`manager_directory(session)`** — human-manager directory with identity and team-name
+  history.
+
+Period-correct labels come from the companion **`analytics/historical_team_names.py`**
+(`period_team_name`) — see `03_DATA_ACCESS.md`. All math stays read-only over existing tables;
+no scoring is recomputed.
+
+## 13. Postseason bracket (`analytics/bracket.py`)
+
+- **`season_bracket(session, season_id)`** — a **caveated** postseason surface. Phase 1 stores
+  matchup rows, not a reliable championship/consolation tree, so this exposes the **proven
+  post-regular-season games grouped by week** and labels a game consolation **only when the
+  source actually distinguishes it** — it does not infer a bracket tree or a champion path.
+  Returns `None` when the season has no post-regular-season games to show. Pairs with the
+  `made_playoffs`/`is_consolation` caveat in §5 and `03_DATA_ACCESS.md`.
+
 ## League command center (home view — no dedicated module)
 
 The home/command-center view is **composed client-side** from existing endpoints rather than a

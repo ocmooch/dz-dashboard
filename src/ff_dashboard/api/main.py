@@ -18,6 +18,7 @@ from ff_pipeline.api.errors import install_error_handlers
 from ff_dashboard.api.routes import (
     draft,
     health,
+    league,
     matchups,
     owners,
     players,
@@ -76,6 +77,7 @@ def create_app(
         )
 
     app.include_router(health.router)
+    app.include_router(league.router)
     app.include_router(seasons.router)
     app.include_router(owners.router)
     app.include_router(records.router)

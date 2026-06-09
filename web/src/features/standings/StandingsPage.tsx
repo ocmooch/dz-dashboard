@@ -106,7 +106,7 @@ export function StandingsPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Manager</th>
+                  <th>Team</th>
                   <th className="dz-num">Record</th>
                   <th className="dz-num">Win%</th>
                   <th className="dz-num">PF</th>
@@ -121,7 +121,7 @@ export function StandingsPage() {
                     <td className="num text-faint">{r.rank}</td>
                     <td>
                       <Link to={`/teams/${r.team_id}`} className="hover:text-accent">
-                        <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                        <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
                       </Link>
                     </td>
                     <td className="dz-num">
@@ -159,7 +159,7 @@ export function StandingsPage() {
             <table className="dz-table">
               <thead>
                 <tr>
-                  <th>Manager</th>
+                  <th>Team</th>
                   <th className="dz-num">Actual W</th>
                   <th className="dz-num">Expected W</th>
                   <th className="dz-num">Luck</th>
@@ -170,7 +170,7 @@ export function StandingsPage() {
                 {insights.data.teams.map((r) => (
                   <tr key={r.team_id}>
                     <td>
-                      <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
                     </td>
                     <td className="dz-num">{num(r.actual_wins, 2)}</td>
                     <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>

@@ -280,6 +280,10 @@ def _populate(session: Session) -> None:
         # Rostered only in the unscored 2015 season (2 weeks) — proves derived
         # roster moves are NOT gated on is_scored (snapshots predate scoring).
         "vince": Player(name_full="Vintage Vince", position="WR", nfl_team="GB", gsis_id="G8"),
+        # Rostered in a scored season but held out/bye in NFL.com history. This
+        # exercises player charts that must show proven 0-point DNP weeks rather
+        # than dropping them as missing scored rows.
+        "dnp": Player(name_full="DNP Dana", position="RB", nfl_team="TB", gsis_id="G9"),
     }
     session.add_all(players.values())
     session.flush()
@@ -520,6 +524,38 @@ def _populate(session: Session) -> None:
                 is_starter=True,
                 acquisition_type="draft",
                 acquisition_week=1,
+            ),
+            TeamRoster(
+                # dnp lives on goose (the away/edge-case team), not the canonical
+                # ice box-lineup, so the hand-authored ice roster stays 13 players.
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["dnp"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="waiver",
+                acquisition_week=1,
+                extra_data={
+                    "snapshot_kind": "history",
+                    "nfl_com_points": 0.0,
+                    "opponent": "ATL",
+                },
+            ),
+            TeamRoster(
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["dnp"],
+                season_year=2017,
+                week=2,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="waiver",
+                acquisition_week=1,
+                extra_data={
+                    "snapshot_kind": "history",
+                    "nfl_com_points": 0.0,
+                    "opponent": "Bye",
+                },
             ),
         ]
     )

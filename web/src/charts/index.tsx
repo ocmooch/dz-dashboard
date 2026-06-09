@@ -66,6 +66,7 @@ function DataTable({
   xKey: string;
   xLabel: string;
 }) {
+  const hasNotes = data.some((row) => typeof row.__note === "string" && row.__note.length > 0);
   return (
     <table className="dz-table mt-1">
       <thead>
@@ -76,6 +77,7 @@ function DataTable({
               {s.label}
             </th>
           ))}
+          {hasNotes && <th>Note</th>}
         </tr>
       </thead>
       <tbody>
@@ -87,6 +89,7 @@ function DataTable({
                 {row[s.key] ?? "—"}
               </td>
             ))}
+            {hasNotes && <td>{typeof row.__note === "string" ? row.__note : ""}</td>}
           </tr>
         ))}
       </tbody>
@@ -130,6 +133,7 @@ type CartesianProps = {
   xLabel?: string;
   title: string;
   height?: number;
+  minPointSize?: number;
 };
 
 const axisTick = () => {
@@ -165,7 +169,42 @@ export function LineTrend({ data, series, xKey, xLabel = xKey, title, height }: 
 }
 
 /** matchup team comparison, season totals, projection vs actual. */
-export function BarCompare({ data, series, xKey, xLabel = xKey, title, height }: CartesianProps) {
+function barTooltip({
+  active,
+  label,
+  payload,
+}: TooltipProps<number | string, string>): React.ReactElement | null {
+  if (!active || !payload?.length) return null;
+  const t = chartTheme();
+  const note = payload.find((p) => typeof p.payload?.__note === "string")?.payload
+    ?.__note as string | undefined;
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.borderStrong}`,
+        borderRadius: 10,
+        fontFamily: t.fontMono,
+        fontSize: 12,
+        padding: "8px 10px",
+      }}
+    >
+      <div style={{ color: t.text, marginBottom: 6 }}>{String(label)}</div>
+      <div className="space-y-1">
+        {payload
+          .filter((p) => p.value != null)
+          .map((p) => (
+            <div key={p.dataKey} style={{ color: p.color ?? t.text }}>
+              {p.name}: {p.value}
+            </div>
+          ))}
+      </div>
+      {note && <div style={{ color: t.text, marginTop: 6 }}>{note}</div>}
+    </div>
+  );
+}
+
+export function BarCompare({ data, series, xKey, xLabel = xKey, title, height, minPointSize }: CartesianProps) {
   const t = chartTheme();
   return (
     <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
@@ -173,9 +212,9 @@ export function BarCompare({ data, series, xKey, xLabel = xKey, title, height }:
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
-        <Tooltip {...tooltipProps()} cursor={{ fill: t.grid, opacity: 0.4 }} />
+        <Tooltip content={barTooltip} cursor={{ fill: t.grid, opacity: 0.4 }} />
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? seriesColor(i)} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? seriesColor(i)} radius={[3, 3, 0, 0]} minPointSize={minPointSize} isAnimationActive={false} />
         ))}
       </BarChart>
     </ChartFrame>

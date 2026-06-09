@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton } from "@/design-system";
+import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton } from "@/design-system";
 import { BarCompare } from "@/charts";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
@@ -40,25 +40,51 @@ function ValueTag({ value }: { value: number | null | undefined }) {
   );
 }
 
+function compactPlayerName(name: string | null | undefined) {
+  if (!name) return "—";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
+
+function compactPoints(points: number | null | undefined) {
+  if (points == null) return "—";
+  return `${num(points).replace(/\.00$/, "")} pts`;
+}
+
 function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
+  const ownerLabel = pick.owner_name ?? pick.team_name ?? "—";
+  const teamSub =
+    pick.team_name && pick.owner_name && !pick.team_name.toLowerCase().includes(pick.owner_name.toLowerCase())
+      ? pick.team_name
+      : null;
+
   return (
     <Link
       to={pick.player_id != null ? `/players/${pick.player_id}` : "#"}
-      className={`block rounded-[var(--radius-sm)] border bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)] ${
+      title={pick.player_name ?? undefined}
+      className={`flex min-h-36 min-w-0 flex-col rounded-[var(--radius-sm)] border bg-[var(--surface-1)] p-2.5 transition-colors hover:border-[var(--accent)] ${
         focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
       }`}
     >
-      <div className="mb-1 flex items-center justify-between">
-        <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
-        {pick.available ? <ValueTag value={pick.value} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />}
+      <div className="mb-2 space-y-1">
+        <span className="num block text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
+        <div className="min-w-0">
+          {pick.available ? <ValueTag value={pick.value} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />}
+        </div>
       </div>
-      <div className="font-semibold text-text">{pick.player_name ?? "—"}</div>
-      <div className="flex items-center justify-between text-[var(--fs-xs)] text-muted">
-        <span>{pick.position ?? "—"}</span>
-        <span className="num">{pick.season_points != null ? `${num(pick.season_points)} pts` : "—"}</span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-semibold leading-snug text-text">
+          {compactPlayerName(pick.player_name)}
+        </div>
+        <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
+          <span>{pick.position ?? "—"}</span>
+          <span className="num block truncate">{compactPoints(pick.season_points)}</span>
+        </div>
       </div>
-      <div className="mt-2 border-t border-[var(--hairline)] pt-2">
-        <Chip name={pick.owner_name} sub={pick.team_name ?? undefined} />
+      <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
+        <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
+        {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
       </div>
     </Link>
   );
@@ -81,7 +107,7 @@ function PickLine({ pick, rank, onFocus }: { pick: Pick; rank: number; onFocus: 
         <span className="num w-4 text-[var(--fs-xs)] text-faint">{rank}</span>
         <span className="truncate font-medium text-text">{pick.player_name ?? "—"}</span>
         <span className="text-[var(--fs-xs)] text-faint">
-          #{pick.overall} · {pick.owner_name ?? "—"}
+          #{pick.overall} · {pick.team_name ?? pick.owner_name ?? "—"}
         </span>
       </span>
       <ValueTag value={pick.value} />
@@ -235,14 +261,14 @@ export function DraftPage() {
               eyebrow={`${board.data.num_teams ?? "—"} teams`}
               title="Draft board"
             />
-            <div className="space-y-5 overflow-x-auto p-5">
+            <div className="space-y-5 p-5">
               {board.data.rounds.map((rnd) => (
                 <div key={rnd.round}>
                   <div className="dz-eyebrow mb-2">Round {rnd.round}</div>
                   <div
                     aria-label={`Round ${rnd.round} snake picks`}
-                    className="grid min-w-[108rem] gap-3"
-                    style={{ gridTemplateColumns: "repeat(12, minmax(8.5rem, 1fr))" }}
+                    className="grid min-w-0 gap-2"
+                    style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }}
                   >
                     {orderedRoundPicks(rnd.round, rnd.picks).map((p) => (
                       <PickCell key={p.overall} pick={p} focused={p.overall === focusedOverall} />

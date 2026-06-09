@@ -191,7 +191,7 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
                       to={boxScoresAvailable ? `/matchups/${g.matchup_id}` : `/matchups?week=${g.week}`}
                       className="text-text hover:text-accent"
                     >
-                      vs {g.opponent_owner_name ?? g.opponent_team_name ?? "Bye"}
+                      vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                     </Link>
                     <div className="text-[var(--fs-xs)] text-faint">
                       wk {g.week}

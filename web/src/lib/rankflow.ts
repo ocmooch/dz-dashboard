@@ -18,12 +18,12 @@ export type RankFlowData = {
   teamCount: number;
 };
 
-/** Reshape `{ teams: [{ team_id, owner_name, points: [{week, rank}] }] }` into
+/** Reshape `{ teams: [{ team_id, team_name, points: [{week, rank}] }] }` into
  *  RankFlow's `{ data, series, teamCount }`. */
 export function toRankFlow(teams: TimelineTeam[]): RankFlowData {
   const series: SeriesDef[] = teams.map((t) => ({
     key: String(t.team_id),
-    label: t.owner_name ?? t.team_name ?? `Team ${t.team_id}`,
+    label: t.team_name ?? t.owner_name ?? `Team ${t.team_id}`,
   }));
 
   const byWeek = new Map<number, ChartRow>();
