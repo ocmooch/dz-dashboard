@@ -26,6 +26,7 @@ from ff_pipeline.repository.models import Owner, Season, Team
 from ff_pipeline.repository.queries import search_players
 from sqlalchemy import select
 
+from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.nfl_teams import resolve_nfl_teams
 
 if TYPE_CHECKING:
@@ -98,7 +99,7 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
     # per distinct name, keyed by casefolded name.
     team_matches: dict[str, tuple[int, int, dict[str, Any]]] = {}  # name -> (year, rank, hit)
     for team in session.execute(select(Team)).scalars():
-        team_name = team.team_name or ""
+        team_name = period_team_name(team) or ""
         rank = _match_rank(team_name, query)
         if rank is None:
             continue

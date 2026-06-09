@@ -18,6 +18,7 @@ from sqlalchemy import distinct, select
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.head_to_head import closest_rivalry
+from ff_dashboard.analytics.historical_team_names import period_team_name_by_slot
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -55,17 +56,18 @@ def team_record_window(session: Session) -> set[int]:
 def _team_context(session: Session) -> dict[int, dict[str, Any]]:
     owners = owner_name_map(session)
     rows = session.execute(
-        select(Team.team_id, Team.team_name, Team.owner_id, Team.season_id)
+        select(Team.team_id, Team.team_name, Team.team_abbrev, Team.owner_id, Team.season_id)
     ).all()
     return {
         int(tid): {
             "team_id": int(tid),
             "team_name": tname,
+            "team_abbrev": tabbrev,
             "owner_id": int(oid),
             "owner_name": owners.get(int(oid)),
             "season_id": int(sid),
         }
-        for tid, tname, oid, sid in rows
+        for tid, tname, tabbrev, oid, sid in rows
     }
 
 
@@ -86,7 +88,10 @@ def records_book(session: Session) -> dict[str, Any]:
     def ctx(team_id: int, week: int) -> dict[str, Any]:
         c = dict(teams.get(team_id, {"team_id": team_id}))
         sid = c.get("season_id")
-        c["season_year"] = season_year.get(sid) if isinstance(sid, int) else None
+        year = season_year.get(sid) if isinstance(sid, int) else None
+        c["season_year"] = year
+        c["team_name"] = period_team_name_by_slot(year, c.get("team_abbrev"), c.get("team_name"))
+        c.pop("team_abbrev", None)
         c["week"] = week
         return c
 

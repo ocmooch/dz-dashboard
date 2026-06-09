@@ -31,6 +31,10 @@ from ff_dashboard.analytics.common import (
     played_season_ids,
     require_league,
 )
+from ff_dashboard.analytics.historical_team_names import (
+    period_team_name,
+    period_team_name_by_slot,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -41,7 +45,7 @@ def _team_ref(team: Team | None, owners: dict[int, str | None]) -> dict[str, Any
         return None
     return {
         "team_id": int(team.team_id),
-        "team_name": team.team_name,
+        "team_name": period_team_name(team),
         "owner_id": int(team.owner_id),
         "owner_name": owners.get(int(team.owner_id)),
     }
@@ -838,16 +842,20 @@ def league_stories(session: Session) -> dict[str, Any]:
         }
     )
 
-    team_names = session.execute(
-        select(Team.team_name, func.count(distinct(Team.season_id)))
-        .where(Team.team_name.is_not(None))
-        .group_by(Team.team_name)
-        .order_by(func.count(distinct(Team.season_id)).desc(), Team.team_name)
-    ).all()
+    # Count period-correct names: the DB's team_name carries the latest canonical
+    # label on every past season, so a raw GROUP BY would over-count one name per
+    # owner. Resolve each team-season to its season-correct slot name first.
+    name_seasons: dict[str, set[int]] = defaultdict(set)
+    for t in teams.values():
+        name = period_team_name_by_slot(
+            season_year.get(int(t.season_id)), t.team_abbrev, t.team_name
+        )
+        if name is not None:
+            name_seasons[name].add(int(t.season_id))
     hall = [
-        {"team_name": name, "seasons": int(count)}
-        for name, count in team_names
-        if name is not None and int(count) > 1
+        {"team_name": name, "seasons": len(sids)}
+        for name, sids in sorted(name_seasons.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        if len(sids) > 1
     ][:5]
     story_cards.append(
         {
@@ -891,7 +899,17 @@ def manager_directory(session: Session) -> dict[str, Any]:
             for year in (seasons.get(int(t.season_id)) for t in owner_teams)
             if year is not None
         )
-        team_names = sorted({t.team_name for t in owner_teams if t.team_name})
+        team_names = sorted(
+            {
+                name
+                for t in owner_teams
+                if (
+                    name := period_team_name_by_slot(
+                        seasons.get(int(t.season_id)), t.team_abbrev, t.team_name
+                    )
+                )
+            }
+        )
         managers.append(
             {
                 "manager_id": int(owner.owner_id),

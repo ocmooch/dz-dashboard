@@ -216,8 +216,28 @@ for _line in _RAW_NAMES.strip().splitlines():
     HISTORICAL_TEAM_NAMES[(int(_year), _slot)] = _name
 
 
-def period_team_name(team: Team, season_year: int) -> str | None:
-    """Return a period-correct fantasy team name when the slot/year is known."""
-    if team.team_abbrev is None:
-        return team.team_name
-    return HISTORICAL_TEAM_NAMES.get((season_year, str(team.team_abbrev)), team.team_name)
+def period_team_name_by_slot(
+    season_year: int | None, team_abbrev: str | None, fallback: str | None
+) -> str | None:
+    """Period-correct fantasy team name for a ``(year, slot)``, else ``fallback``.
+
+    The slot is the NFL.com team-slot number carried in ``team_abbrev``. Use this
+    overload when only loose columns are in hand (e.g. a ``select(...)`` of
+    specific fields) rather than a full ``Team`` ORM object.
+    """
+    if team_abbrev is None or season_year is None:
+        return fallback
+    return HISTORICAL_TEAM_NAMES.get((season_year, str(team_abbrev)), fallback)
+
+
+def period_team_name(team: Team, season_year: int | None = None) -> str | None:
+    """Return a period-correct fantasy team name for the team's season.
+
+    The live DB's ``teams.team_name`` carries the current/canonical label after
+    owner-identity repair, so a past team-season renders the latest name. This
+    restores the season-correct NFL.com slot name. ``season_year`` defaults to
+    the team's own ``season.year`` when not supplied.
+    """
+    if season_year is None:
+        season_year = team.season.year
+    return period_team_name_by_slot(season_year, team.team_abbrev, team.team_name)

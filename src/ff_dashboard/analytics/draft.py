@@ -40,6 +40,7 @@ from ff_pipeline.repository.queries import get_season
 from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
+from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -111,7 +112,7 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
                 "round": (overall - 1) // num_teams + 1,
                 "pick_in_round": (overall - 1) % num_teams + 1,
                 "team_id": team.team_id,
-                "team_name": team.team_name,
+                "team_name": period_team_name(team, season.year),
                 "owner_id": team.owner_id,
                 "owner_name": owners.get(team.owner_id),
                 "player_id": player.player_id,

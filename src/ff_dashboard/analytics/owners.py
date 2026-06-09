@@ -15,6 +15,7 @@ from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import played_season_ids
+from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -123,7 +124,7 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
                 "season_id": team.season_id,
                 "season_year": season_year.get(team.season_id),
                 "team_id": team.team_id,
-                "team_name": team.team_name,
+                "team_name": period_team_name(team, season_year.get(team.season_id)),
                 "wins": srow.get("wins", 0),
                 "losses": srow.get("losses", 0),
                 "ties": srow.get("ties", 0),
