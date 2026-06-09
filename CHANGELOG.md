@@ -1,7 +1,17 @@
 # CHANGELOG.md — dz-dashboard
 
 Reverse-chronological history for completed passes, audits, and notable data-regeneration events.
-Keep `PROGRESS.md` focused on current state.
+Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
+`docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
+
+## 2026-06-08 — Tracking reorganization (archive vs active aggregates)
+
+- Split development tracking into two aggregate documents: `docs/archive/COMPLETED_WORK.md`
+  (shipped milestones P0–P11, merged fix-passes P1–P6, audits, regen events, and resolved
+  findings/questions) and `docs/ACTIVE_WORK.md` (current feature-branch packaging, the UP
+  upstream program, league-history expansion, deferred product decisions, and housekeeping).
+- Moved the merged fix-pass plans P4–P6 from `docs/plans/` into `docs/archive/` (P1–P3 already
+  there) and updated the plan-doc references in `docs/plans/REVIEW_FIXES_ROADMAP.md`.
 
 ## 2026-06-06 — Documentation refresh and consolidation
 

@@ -9,6 +9,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   (`docs/plans/P{N}-*.md`) if one exists. Stop there — don't browse the tree.
 - At session end / checkpoint, update **Current state**, **Next**, and **Files that matter now**.
 - Historical fix-pass and audit narrative lives in `CHANGELOG.md`.
+- **Aggregated records:** all finished work → `docs/archive/COMPLETED_WORK.md`; all remaining /
+  in-progress work, blockers, and open decisions → `docs/ACTIVE_WORK.md`.
 
 ---
 
