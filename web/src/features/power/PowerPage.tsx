@@ -4,7 +4,7 @@ import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
 import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num, pct } from "@/lib/format";
+import { num, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -103,7 +103,7 @@ export function PowerPage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
                     </td>
                     <td className="dz-num font-semibold text-accent">{num(r.power_score)}</td>
                     <td className="dz-num">

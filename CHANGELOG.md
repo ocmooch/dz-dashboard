@@ -4,6 +4,22 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-08 — Deferred product decisions (Q10–Q13) resolved; team avatars built (Q11)
+
+- Settled the four genuinely-open deferred product decisions from `docs/10_OPEN_QUESTIONS.md`:
+  **Q10 keep dark-only**, **Q12 keep laptop-first**, **Q13 no exports** (all reversible, doc-only),
+  and **Q11 pull team logos from the DB**. Decision plan: `docs/plans/deferred-product-decisions.md`.
+- **Q11 team avatars.** New read-only binary route `GET /v1/teams/{team_id}/avatar` streams a team's
+  season logo from Phase 1's on-disk content-addressed asset store (new `ASSETS_ROOT` setting, default
+  `<db_dir>/assets`; `assets_root` injected on `app.state` like the engine/cache). 404s cleanly on
+  unknown/no-avatar/missing-file/unconfigured and rejects path traversal. The SPA's `Chip` gained an
+  `avatarUrl` prop (img + monogram fallback on null/404/load-error); team chips across standings,
+  power, bracket, matchups, stories, league-history, and home now pass `teamAvatarUrl(team_id)`.
+  **Owner/manager photos stay a true source gap** (0 source rows; relate F-06). Endpoint is binary and
+  excluded from the OpenAPI schema, so there is **no contract change / no `gen:api` drift**.
+- Real-DB check: team 1 streams its exact JPEG bytes with an immutable cache header; unknown teams 404.
+  Full gate green (backend pytest 235 + ruff + mypy; frontend gen:api no-drift + typecheck + Vitest).
+
 ## 2026-06-08 — Tracking reorganization (archive vs active aggregates)
 
 - Split development tracking into two aggregate documents: `docs/archive/COMPLETED_WORK.md`

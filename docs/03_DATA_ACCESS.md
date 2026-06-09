@@ -126,6 +126,20 @@ Every BFF response carries the Phase 1 `meta` envelope (`last_updated`, `source`
 of …" indicator in the app shell so the user always knows how fresh the picture is and which
 pipeline run produced it.
 
+## Avatars: an on-disk asset store, read-only (Q11)
+
+Team logos are the one binary the BFF serves. Phase 1 stores avatar **bytes on disk**, not in
+SQLite: `teams.team_avatar_asset_id` → `assets.storage_path` is a content-addressed relative
+path (e.g. `aa/aa…png`); the row holds only metadata (`sha256`, `content_type`, `byte_size`).
+The store root is the `ASSETS_ROOT` setting, defaulting to `<db_dir>/assets` (Phase 1's layout).
+`GET /v1/teams/{team_id}/avatar` resolves the path under that root, guards against escaping it,
+and streams the file — still read-only, still no third-party calls. A missing file 404s so the
+UI falls back to a monogram.
+
+**Owner/manager photos are a true source gap.** `owner_avatar_asset_id` is populated on 0 rows,
+so no owner avatar is exposed; manager chips stay monograms until an upstream backfill lands
+(relate F-06). Team logos are populated on ~190 per-season rows.
+
 ## What Phase 2 explicitly does NOT read or do
 
 - Does not read crawler caches, raw HTML fixtures, or `.env`.

@@ -124,10 +124,10 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 |---|----------|------------------|-------|
 | Q8 | Keep-alive / run model | one-command (`make serve`); auto-start options provided but not installed | settled at default |
 | Q9 | Caching aggressiveness | in-process only, keyed on `latest_pipeline_run_id`; no materialized table | open only if first-hit latency bites |
-| Q10 | Theme toggle | dark-only; `tokens.css` ready for a light set but no `[data-theme="light"]` / UI toggle | **open** if a visible switch is wanted |
-| Q11 | Avatars / logos / photos | monogram chips from names; no avatar config | **open** as an enhancement |
-| Q12 | Mobile priority | laptop-first responsive | open if phone-first becomes primary |
-| Q13 | Exports / sharing | none | **open** as a cheap later add (copy chart as image / CSV) |
+| Q10 | Theme toggle | dark-only; `tokens.css` ready for a light set but no `[data-theme="light"]` / UI toggle | **settled 2026-06-08: keep dark-only** |
+| Q11 | Avatars / logos / photos | team logos streamed from the DB asset store (`GET /v1/teams/{id}/avatar`), monogram fallback; owner photos a true source gap | **done 2026-06-08** (`docs/plans/deferred-product-decisions.md`) |
+| Q12 | Mobile priority | laptop-first responsive | **settled 2026-06-08: keep laptop-first** |
+| Q13 | Exports / sharing | none | **settled 2026-06-08: no exports** |
 
 ---
 

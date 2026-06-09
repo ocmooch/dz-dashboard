@@ -14,7 +14,7 @@ import {
   Trophy,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { deriveSeasonPhase } from "@/lib/seasonPhase";
 
@@ -98,7 +98,7 @@ export function HomePage() {
           <Stat label="Seasons" value={overview.data?.season_count ?? seasons.length} />
           <Stat
             label={`${standings.data?.season_year ?? current?.season_year ?? ""} leader`}
-            value={leader ? <Chip name={leader.team_name ?? leader.owner_name} sub={leader.owner_name ?? undefined} /> : "—"}
+            value={leader ? <Chip name={leader.team_name ?? leader.owner_name} sub={leader.owner_name ?? undefined} avatarUrl={teamAvatarUrl(leader.team_id)} /> : "—"}
             tone="accent"
           />
           <Stat
@@ -222,7 +222,7 @@ export function HomePage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
                     </td>
                     <td className="dz-num">
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />

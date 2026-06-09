@@ -23,6 +23,7 @@ import pytest
 from fastapi.testclient import TestClient
 from ff_pipeline.repository.database import Base
 from ff_pipeline.repository.models import (
+    Asset,
     League,
     Matchup,
     Owner,
@@ -52,6 +53,20 @@ if TYPE_CHECKING:
 
 LEAGUE_ID = "DZTEST"
 NOW = datetime(2018, 1, 2, 12, 0, 0, tzinfo=UTC)
+
+# Q11 team-avatar fixtures. A 1x1 PNG stands in for a real team logo; its
+# content-addressed-style relative path is written to disk by ``_build_database``
+# under ``<db_dir>/assets``. The other two asset rows are deliberately broken (no
+# file on disk; a path that escapes the store) so the avatar route's 404 branches
+# are exercised. ``AVATAR_*`` are imported by ``tests/test_team_avatar.py``.
+AVATAR_PNG = bytes.fromhex(
+    "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+    "0000000d49444154789c6200010000050001"
+    "0d0a2db40000000049454e44ae426082"
+)
+AVATAR_REAL_PATH = "aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
+AVATAR_MISSING_PATH = "bb/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png"
+AVATAR_TRAVERSAL_PATH = "../escape.png"
 
 
 # ---------------------------------------------------------------------------
@@ -788,6 +803,45 @@ def _populate(session: Session) -> None:
         breakdown={"receiving": 8.0},
     )
 
+    # --- Avatars (Q11). One real team logo (Maverick 2017) the route streams,
+    #     plus two broken assets that must 404 cleanly: a dangling row whose
+    #     bytes were never written (Iceman 2017) and a malformed escaping path
+    #     (Goose 2017). Viper 2017 keeps a null avatar (the monogram-fallback
+    #     case). No JSON schema surfaces the column, so no KNOWN answer moves.
+    avatars = {
+        "real": Asset(
+            league_id=LEAGUE_ID,
+            kind="team_avatar",
+            source_url="https://example.test/logo-a.png",
+            sha256="a" * 64,
+            content_type="image/png",
+            byte_size=len(AVATAR_PNG),
+            storage_path=AVATAR_REAL_PATH,
+        ),
+        "missing": Asset(
+            league_id=LEAGUE_ID,
+            kind="team_avatar",
+            source_url="https://example.test/logo-b.png",
+            sha256="b" * 64,
+            content_type="image/png",
+            storage_path=AVATAR_MISSING_PATH,
+        ),
+        "traversal": Asset(
+            league_id=LEAGUE_ID,
+            kind="team_avatar",
+            source_url="https://example.test/logo-c.png",
+            sha256="c" * 64,
+            content_type="image/png",
+            storage_path=AVATAR_TRAVERSAL_PATH,
+        ),
+    }
+    session.add_all(avatars.values())
+    session.flush()
+    for team_key, asset_key in (("mav", "real"), ("ice", "missing"), ("goose", "traversal")):
+        avatar_team = session.get(Team, team_id[(2017, team_key)])
+        if avatar_team is not None:
+            avatar_team.team_avatar_asset_id = avatars[asset_key].asset_id
+
     # --- A successful pipeline run so /v1/meta + records reflect a real run id.
     run = PipelineRun(status="success", mode="reconstruct", started_at=NOW, finished_at=NOW)
     session.add(run)
@@ -837,6 +891,12 @@ def _build_database(db_path: Path) -> None:
     with Session(engine) as session:
         _populate(session)
     engine.dispose()
+    # Lay the one real avatar's bytes on disk under the asset store
+    # (``<db_dir>/assets``), matching Phase 1's content-addressed layout. The
+    # other two asset rows are intentionally left without files.
+    real_avatar = db_path.parent / "assets" / AVATAR_REAL_PATH
+    real_avatar.parent.mkdir(parents=True, exist_ok=True)
+    real_avatar.write_bytes(AVATAR_PNG)
 
 
 # ---------------------------------------------------------------------------
@@ -849,6 +909,12 @@ def fixture_db_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     path = tmp_path_factory.mktemp("dzdb") / "fantasy.db"
     _build_database(path)
     return path
+
+
+@pytest.fixture
+def fixture_assets_root(fixture_db_path: Path) -> Path:
+    """The on-disk avatar store laid down beside the fixture DB (Q11)."""
+    return fixture_db_path.parent / "assets"
 
 
 @pytest.fixture

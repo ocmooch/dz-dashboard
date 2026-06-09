@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
+import { teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type LeagueTimeline = components["schemas"]["LeagueTimeline"];
@@ -130,6 +131,7 @@ export function LeagueHistoryPage() {
                   <Chip
                     name={season.champion.team_name ?? season.champion.owner_name}
                     sub={`Champion${season.champion.owner_name ? ` - ${season.champion.owner_name}` : ""}`}
+                    avatarUrl={teamAvatarUrl(season.champion.team_id)}
                   />
                 ) : (
                   <DataGap reason="champion_unavailable" />

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useState } from "react";
 
 import { initials, record } from "@/lib/format";
 
@@ -164,10 +165,35 @@ export function RecordLine({ wins, losses, ties }: { wins: number; losses: numbe
   );
 }
 
-export function Chip({ name, sub, size = "md" }: { name: string | null | undefined; sub?: string; size?: "md" | "lg" }) {
+export function Chip({
+  name,
+  sub,
+  size = "md",
+  avatarUrl,
+}: {
+  name: string | null | undefined;
+  sub?: string;
+  size?: "md" | "lg";
+  /** Team-logo URL (e.g. `/v1/teams/{id}/avatar`). Falls back to the name
+   *  monogram when absent or when the image fails to load / 404s (Q11). */
+  avatarUrl?: string | null;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const avatarClass = `dz-avatar ${size === "lg" ? "dz-avatar--lg" : ""}`.trim();
+  const showImg = Boolean(avatarUrl) && !imgFailed;
   return (
     <span className="inline-flex items-center gap-3">
-      <span className={`dz-avatar ${size === "lg" ? "dz-avatar--lg" : ""}`.trim()}>{initials(name)}</span>
+      {showImg ? (
+        <img
+          className={`${avatarClass} dz-avatar--img`}
+          src={avatarUrl as string}
+          alt=""
+          loading="lazy"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <span className={avatarClass}>{initials(name)}</span>
+      )}
       <span className="flex flex-col leading-tight">
         <span className="font-semibold text-text">{name ?? "—"}</span>
         {sub && <span className="text-[var(--fs-xs)] text-faint">{sub}</span>}

@@ -46,11 +46,14 @@ def create_app(
     cache: AnalyticsCache | None = None,
     cors_origins: list[str] | None = None,
     static_dir: Path | None = None,
+    assets_root: Path | None = None,
 ) -> FastAPI:
     """Build the FastAPI app, optionally bound to a custom engine/cache.
 
     ``static_dir`` (or the ``DASHBOARD_STATIC_DIR`` setting in the CLI path) makes
     the app also serve a built SPA single-origin; left ``None`` it is API-only.
+    ``assets_root`` is the on-disk avatar store the team-avatar route streams from;
+    in the CLI path it is derived from ``Settings`` when not given.
     """
     if engine is None:
         from ff_dashboard.settings import get_settings
@@ -61,10 +64,13 @@ def create_app(
             cors_origins = settings.cors_origins
         if static_dir is None:
             static_dir = settings.resolved_static_dir()
+        if assets_root is None:
+            assets_root = settings.resolved_assets_root()
 
     app = FastAPI(title=API_TITLE, version=API_VERSION)
     app.state.engine = engine
     app.state.cache = cache if cache is not None else AnalyticsCache()
+    app.state.assets_root = assets_root
 
     install_error_handlers(app)
 

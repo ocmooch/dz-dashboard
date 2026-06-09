@@ -340,6 +340,12 @@
     height: 56px;
     font-size: 18px;
   }
+  /* Team-logo variant: same circle/size as the monogram so layout is
+   * unchanged whether a logo exists or we fall back to initials (Q11). */
+  .dz-avatar--img {
+    object-fit: cover;
+    background: var(--chip-bg);
+  }
 
   /* ===================== TABLE ===================== */
   .dz-table {
