@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import {
+  Badge,
   Card,
   CardHeader,
   Chip,
@@ -16,6 +17,12 @@ import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { deriveSeasonPhase } from "@/lib/seasonPhase";
+
+async function fetchOverview() {
+  const { data, error } = await api.GET("/v1/league/overview");
+  if (error || !data) throw new Error("league overview");
+  return data.data;
+}
 
 async function fetchStandings(seasonId: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/standings", {
@@ -34,6 +41,7 @@ async function fetchRecords() {
       available?: boolean;
       value?: number;
       owner_name?: string | null;
+      team_name?: string | null;
       player_name?: string | null;
       season_year?: number | null;
       reason?: string;
@@ -59,6 +67,7 @@ export function HomePage() {
     queryFn: () => fetchStandings(seasonId as number),
     enabled: seasonId != null,
   });
+  const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
   const records = useQuery({ queryKey: qk.records, queryFn: fetchRecords });
   const scorers = useQuery({
     queryKey: scorerSeason
@@ -79,26 +88,63 @@ export function HomePage() {
           The Danger Zone
         </h1>
         <p className="mt-2 max-w-xl text-[var(--fs-sm)] text-muted">
-          Season-aware league context from backend metrics. Gaps are shown honestly, never faked.
+          League archive, stats lab, and argument starter. Historical context and story logic come
+          from backend metrics; gaps are shown honestly, never faked.
         </p>
       </div>
 
       <Card className="p-5">
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <Stat label="Seasons" value={seasons.length} />
+          <Stat label="Seasons" value={overview.data?.season_count ?? seasons.length} />
           <Stat
             label={`${standings.data?.season_year ?? current?.season_year ?? ""} leader`}
-            value={leader ? <Chip name={leader.owner_name} /> : "—"}
+            value={leader ? <Chip name={leader.team_name ?? leader.owner_name} sub={leader.owner_name ?? undefined} /> : "—"}
             tone="accent"
           />
           <Stat
             label={`${phase.lastCompletedSeason?.season_year ?? ""} champion`}
-            value={champion?.owner_name ?? "—"}
+            value={champion?.team_name ?? champion?.owner_name ?? "—"}
             tone="win"
           />
           <Stat label="Phase" value={phase.phase === "offseason" ? "Off-season" : "In season"} />
         </div>
       </Card>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Link to="/seasons">
+          <Card hover className="h-full p-5">
+            <Badge variant="accent">League History</Badge>
+            <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
+              Browse the archive by season
+            </h2>
+            <p className="mt-2 text-[var(--fs-sm)] text-muted">
+              Champions, league size, schedule shape, and scoring provenance by year.
+            </p>
+          </Card>
+        </Link>
+        <Link to="/rules">
+          <Card hover className="h-full p-5">
+            <Badge variant="accent">Rules &amp; Eras</Badge>
+            <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
+              Compare seasons in context
+            </h2>
+            <p className="mt-2 text-[var(--fs-sm)] text-muted">
+              Era labels explain when league size, schedule, or scoring provenance changed.
+            </p>
+          </Card>
+        </Link>
+        <Link to="/stories">
+          <Card hover className="h-full p-5">
+            <Badge variant="accent">Stories</Badge>
+            <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
+              Find the weird stuff
+            </h2>
+            <p className="mt-2 text-[var(--fs-sm)] text-muted">
+              Backend-computed blowouts, worst beats, close losses, and team-name artifacts.
+            </p>
+          </Card>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -107,7 +153,7 @@ export function HomePage() {
             {champion ? (
               <div className="flex items-center gap-3">
                 <Trophy label="Champion" />
-                <Chip name={champion.owner_name ?? champion.team_name} />
+                <Chip name={champion.team_name ?? champion.owner_name} sub={champion.owner_name ?? undefined} />
               </div>
             ) : (
               <DataGap reason="bracket_unavailable" />
@@ -166,7 +212,7 @@ export function HomePage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Manager</th>
+                  <th>Team</th>
                   <th className="dz-num">Record</th>
                   <th className="dz-num">PF</th>
                 </tr>
@@ -176,7 +222,7 @@ export function HomePage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.owner_name} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
                     </td>
                     <td className="dz-num">
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
@@ -222,7 +268,7 @@ export function HomePage() {
                           {num(rec.value, Number.isInteger(rec.value) ? 0 : 2)}
                         </div>
                         <div className="text-[var(--fs-xs)] text-faint">
-                          {rec.player_name ?? rec.owner_name ?? "—"}
+                          {rec.player_name ?? rec.team_name ?? rec.owner_name ?? "—"}
                           {rec.season_year ? ` · ${rec.season_year}` : ""}
                         </div>
                       </>

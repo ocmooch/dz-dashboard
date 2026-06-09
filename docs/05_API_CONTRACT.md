@@ -224,6 +224,18 @@ genuinely missing for that team/week still returns `"league_points": null,
 }
 ```
 
+### League history endpoints
+
+- `GET /v1/league/overview` — league span, counts, current era, and data caveats.
+- `GET /v1/league/timeline` — season-by-season context. `league_size` is the active
+  standings-backed team count, so inactive/artifact team rows are caveated in
+  `changes.details` instead of shown as a league-size change.
+- `GET /v1/league/eras` — derived era groups plus a material change log. Each change keeps
+  compatibility booleans and a `details[]` list with `category`, `title`, `summary`,
+  optional `before`/`after`, source, and certainty.
+- `GET /v1/league/stories` and `GET /v1/league/managers` — backend-computed story cards and
+  manager identity/team-name history.
+
 ## Error format (identical to Phase 1)
 
 ```json

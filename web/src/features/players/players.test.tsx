@@ -76,6 +76,8 @@ const OWNERSHIP = {
     {
       team_id: 10,
       team_name: "Iceman 2017",
+      owner_id: 1,
+      owner_name: "Iceman",
       season_year: 2017,
       week_start: 1,
       week_end: 14,
@@ -199,6 +201,29 @@ describe("PlayerDetailPage", () => {
     expect(await screen.findByText(/Availability — current season only/i)).toBeInTheDocument();
   });
 
+  it("labels authoritative zero-point DNP weeks in the scoring chart", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/players/{player_id}/scoring") {
+        return Promise.resolve(
+          envelope({
+            ...SCORING,
+            total_points: 35.5,
+            weeks: [
+              { week: 1, points: 35.5, breakdown: {} },
+              { week: 2, points: 0, breakdown: {}, zero_reason: "did_not_play" },
+              { week: 3, points: 0, breakdown: {}, zero_reason: "bye" },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<PlayerDetailPage />, "/players/1");
+    await screen.findByRole("heading", { name: "Lamar Jackson" });
+    expect(await screen.findByText(/wk2 † Did not play \(inactive \/ injury\)/i)).toBeInTheDocument();
+    expect(await screen.findByText(/wk3 † Bye — did not play/i)).toBeInTheDocument();
+  });
+
   it("presents a player with no scored seasons honestly, not as empty (F-26/F-51)", async () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/players/{player_id}")
@@ -225,8 +250,26 @@ describe("PlayerDetailPage", () => {
 
   it("links ownership events to the owning team's page", async () => {
     renderWithProviders(<PlayerDetailPage />, "/players/1");
-    await screen.findByText("Iceman 2017");
+    await screen.findByText("Iceman");
+    expect(screen.getByText("Iceman 2017")).toBeInTheDocument();
     const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/teams/10");
     expect(link).toBeDefined();
+  });
+
+  it("does not duplicate the team name when older ownership payloads lack owner fields", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/players/{player_id}/ownership") {
+        return Promise.resolve(
+          envelope({
+            ...OWNERSHIP,
+            events: OWNERSHIP.events.map(({ owner_id: _ownerId, owner_name: _ownerName, ...event }) => event),
+          }),
+        );
+      }
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<PlayerDetailPage />, "/players/1");
+    await screen.findByText("Iceman 2017");
+    expect(screen.getAllByText("Iceman 2017")).toHaveLength(1);
   });
 });

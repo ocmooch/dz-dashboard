@@ -114,8 +114,8 @@ describe("DraftPage", () => {
   it("renders the draft board with picks deep-linking to players", async () => {
     renderPage();
     await screen.findByText("Round 1");
-    expect(screen.getAllByText("Christian McCaffrey").length).toBeGreaterThan(0);
-    expect(screen.getByText("Lamar Jackson")).toBeInTheDocument();
+    expect(screen.getByTitle("Christian McCaffrey")).toBeInTheDocument();
+    expect(screen.getByTitle("Lamar Jackson")).toBeInTheDocument();
     // Each pick card links to the drafted player.
     const links = screen.getAllByRole("link");
     expect(links.some((a) => a.getAttribute("href") === "/players/40")).toBe(true);
@@ -124,12 +124,12 @@ describe("DraftPage", () => {
   it("renders rounds as a 12-column snake board", async () => {
     renderPage();
     const roundOne = await screen.findByLabelText("Round 1 snake picks");
-    expect(roundOne).toHaveStyle({ gridTemplateColumns: "repeat(12, minmax(8.5rem, 1fr))" });
+    expect(roundOne).toHaveStyle({ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" });
 
     const roundTwo = screen.getByLabelText("Round 2 snake picks");
-    const names = within(roundTwo).getAllByRole("link").map((a) => a.textContent ?? "");
-    expect(names[0]).toContain("Amon-Ra St. Brown");
-    expect(names[names.length - 1]).toContain("Saquon Barkley");
+    const picks = within(roundTwo).getAllByRole("link");
+    expect(picks[0]).toHaveAttribute("title", "Amon-Ra St. Brown");
+    expect(picks[picks.length - 1]).toHaveAttribute("title", "Saquon Barkley");
   });
 
   it("identifies steals and busts with signed value", async () => {

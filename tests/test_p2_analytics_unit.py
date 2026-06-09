@@ -203,6 +203,29 @@ def test_player_scoring_scored_season(session: Session) -> None:
     assert data["total_points"] == KNOWN["top_scorer_2017_season_total"]  # 58.0
 
 
+def test_player_scoring_includes_authoritative_zero_weeks(session: Session) -> None:
+    data = player_scoring(session, KNOWN["player_id"]["dnp"], 2017)
+    assert data is not None
+    assert data["available"] is True
+    assert data["total_points"] == 0.0
+    assert data["weeks"] == [
+        {
+            "week": 1,
+            "points": 0.0,
+            "breakdown": {},
+            "zero_reason": "did_not_play",
+            "zero_detail": None,
+        },
+        {
+            "week": 2,
+            "points": 0.0,
+            "breakdown": {},
+            "zero_reason": "bye",
+            "zero_detail": None,
+        },
+    ]
+
+
 def test_availability_non_current_season_is_a_gap(session: Session) -> None:
     # Fixture current season is 2017; 2016 availability is not reconstructable.
     data = availability(session, KNOWN["player_id"]["jjet"], 2016)
@@ -244,3 +267,5 @@ def test_ownership_timeline_collapses_into_spans(session: Session) -> None:
         (2016, 1, 2),
         (2017, 1, 1),
     ]
+    assert data["events"][0]["owner_name"] == "Maverick"
+    assert data["events"][0]["team_name"] == "Maverick 2016"

@@ -16,8 +16,10 @@ from ff_pipeline.repository.queries import (
 )
 from sqlalchemy import func, select
 
-from ff_dashboard.analytics.common import require_league
+from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.historical_team_names import period_team_name
+from ff_dashboard.analytics.matchups import classify_zero
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -92,7 +94,7 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
             "weeks": [],
         }
 
-    rows = session.execute(
+    scored_rows = session.execute(
         select(
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
@@ -102,15 +104,55 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
         .where(PlayerStatsScored.player_id == player_id, Season.year == season_year)
         .order_by(PlayerStatsScored.week)
     ).all()
-    weeks: list[dict[str, Any]] = [
-        {
-            "week": int(w),
-            "points": round(float(pts), 2) if pts is not None else None,
-            "breakdown": breakdown or {},
-        }
-        for w, pts, breakdown in rows
-    ]
-    total = round(sum(float(pts) for _, pts, _ in rows if pts is not None), 2)
+    scored_points_by_week: dict[int, float | None] = {}
+    breakdown_by_week: dict[int, dict[str, Any]] = {}
+    for w, pts, breakdown in scored_rows:
+        week = int(w)
+        scored_points_by_week[week] = float(pts) if pts is not None else None
+        breakdown_by_week[week] = breakdown or {}
+
+    roster_rows = session.execute(
+        select(TeamRoster.week, TeamRoster.extra_data)
+        .where(
+            TeamRoster.player_id == player_id,
+            TeamRoster.season_year == season_year,
+            TeamRoster.week > 0,
+        )
+        .order_by(TeamRoster.week)
+    ).all()
+    roster_points_by_week: dict[int, float] = {}
+    opponent_by_week: dict[int, str | None] = {}
+    for week, extra in roster_rows:
+        if not isinstance(extra, dict):
+            continue
+        value = extra.get("nfl_com_points")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        week_num = int(week)
+        opponent = extra.get("opponent")
+        roster_points_by_week[week_num] = float(value)
+        opponent_by_week[week_num] = opponent if isinstance(opponent, str) else None
+
+    weeks: list[dict[str, Any]] = []
+    for week in sorted(set(scored_points_by_week) | set(roster_points_by_week)):
+        scored_points = scored_points_by_week.get(week)
+        points = roster_points_by_week.get(week, scored_points)
+        zero_reason, zero_detail = classify_zero(
+            points,
+            opponent_by_week.get(week),
+            scored_points,
+        )
+        weeks.append(
+            {
+                "week": week,
+                "points": round(points, 2) if points is not None else None,
+                "breakdown": breakdown_by_week.get(week, {}),
+                "zero_reason": zero_reason,
+                "zero_detail": zero_detail,
+            }
+        )
+
+    total = round(sum(float(w["points"]) for w in weeks if w["points"] is not None), 2)
     return {
         "player_id": player_id,
         "season_year": season_year,
@@ -132,6 +174,7 @@ def ownership_timeline(session: Session, player_id: int) -> dict[str, Any] | Non
     """
     if get_player(session, player_id) is None:
         return None
+    owners = owner_name_map(session)
     spans: list[dict[str, Any]] = []
     for roster, team in player_ownership(session, player_id):
         last = spans[-1] if spans else None
@@ -144,7 +187,9 @@ def ownership_timeline(session: Session, player_id: int) -> dict[str, Any] | Non
             spans.append(
                 {
                     "team_id": roster.team_id,
-                    "team_name": team.team_name,
+                    "team_name": period_team_name(team, roster.season_year),
+                    "owner_id": team.owner_id,
+                    "owner_name": owners.get(team.owner_id),
                     "season_year": roster.season_year,
                     "week_start": roster.week,
                     "week_end": roster.week,

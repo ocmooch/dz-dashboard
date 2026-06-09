@@ -1,6 +1,11 @@
 // TanStack Query key factory — one place so caches dedupe and invalidate cleanly.
 export const qk = {
   meta: ["meta"] as const,
+  leagueOverview: ["league", "overview"] as const,
+  leagueTimeline: ["league", "timeline"] as const,
+  leagueEras: ["league", "eras"] as const,
+  leagueStories: ["league", "stories"] as const,
+  leagueManagers: ["league", "managers"] as const,
   seasons: ["seasons"] as const,
   standings: (seasonId: number) => ["standings", seasonId] as const,
   standingsInsights: (seasonId: number) => ["standings", seasonId, "insights"] as const,

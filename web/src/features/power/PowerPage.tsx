@@ -88,7 +88,7 @@ export function PowerPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Manager</th>
+                  <th>Team</th>
                   <th className="dz-num">Power</th>
                   <th className="dz-num">Record</th>
                   <th className="dz-num">PF/g</th>
@@ -103,7 +103,7 @@ export function PowerPage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} />
                     </td>
                     <td className="dz-num font-semibold text-accent">{num(r.power_score)}</td>
                     <td className="dz-num">

@@ -224,6 +224,152 @@ class SeasonBracket(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# League history, rules/eras, and stories
+# ---------------------------------------------------------------------------
+
+
+class DataCaveat(BaseModel):
+    code: str
+    label: str
+    scope: str
+
+
+class LeagueInfo(BaseModel):
+    league_id: str
+    name: str
+    platform: str | None = None
+    start_year: int | None = None
+    current_year: int | None = None
+    season_count: int
+
+
+class LeagueChangeDetail(BaseModel):
+    category: str
+    title: str
+    summary: str
+    before: str | None = None
+    after: str | None = None
+    source: str
+    certainty: str
+
+
+class SeasonChangeFlags(BaseModel):
+    league_size_changed: bool = False
+    schedule_changed: bool = False
+    scoring_availability_changed: bool = False
+    details: list[LeagueChangeDetail] = []
+
+
+class LeagueTimelineSeason(BaseModel):
+    season_id: int
+    season_year: int
+    status: str | None = None
+    league_size: int
+    regular_season_weeks: int | None = None
+    playoff_weeks: int | None = None
+    championship_week: int | None = None
+    champion: TeamRef | None = None
+    runner_up: TeamRef | None = None
+    last_place: TeamRef | None = None
+    is_scored: bool
+    schedule_source: str
+    scoring_provenance: str
+    verification_status: str
+    source: str
+    changes: SeasonChangeFlags
+
+
+class LeagueOverview(BaseModel):
+    league_id: str
+    name: str
+    platform: str | None = None
+    start_year: int | None = None
+    current_year: int | None = None
+    season_count: int
+    league_size_min: int | None = None
+    league_size_max: int | None = None
+    completed_seasons: int
+    scored_seasons: int
+    champions_recorded: int
+    current_era: dict[str, Any] | None = None
+    data_caveats: list[DataCaveat]
+
+
+class LeagueTimeline(BaseModel):
+    league: LeagueInfo
+    seasons: list[LeagueTimelineSeason]
+
+
+class LeagueEra(BaseModel):
+    era_id: str
+    label: str
+    start_year: int
+    end_year: int
+    season_years: list[int]
+    league_size: int
+    regular_season_weeks: int | None = None
+    playoff_weeks: int | None = None
+    scoring_provenance: str
+    verification_status: str
+    certainty: str
+
+
+class LeagueEraChange(BaseModel):
+    season_year: int
+    league_size_changed: bool = False
+    schedule_changed: bool = False
+    scoring_availability_changed: bool = False
+    details: list[LeagueChangeDetail] = []
+
+
+class LeagueEras(BaseModel):
+    league: LeagueInfo
+    eras: list[LeagueEra]
+    changes: list[LeagueEraChange]
+
+
+class ManagerIdentity(BaseModel):
+    manager_id: int
+    display_name: str | None = None
+    human_name: str | None = None
+    aliases: list[str] = []
+    nfl_user_id: str | None = None
+    active_years: list[int]
+    joined_year: int | None = None
+    left_year: int | None = None
+    is_active: bool
+    team_names: list[str]
+    seasons_managed: int
+    identity_source: str
+
+
+class ManagerDirectory(BaseModel):
+    managers: list[ManagerIdentity]
+
+
+class StoryCard(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    story_id: str
+    title: str
+    available: bool
+    reason: str | None = None
+    season_year: int | None = None
+    week: int | None = None
+    matchup_id: int | None = None
+    metric_label: str
+    metric_value: float | int | None = None
+    primary_team: TeamRef | None = None
+    secondary_team: TeamRef | None = None
+    primary_owner: OwnerRef | None = None
+    caveat: str | None = None
+
+
+class LeagueStories(BaseModel):
+    stories: list[StoryCard]
+
+
+# ---------------------------------------------------------------------------
 # Owners
 # ---------------------------------------------------------------------------
 
@@ -513,6 +659,8 @@ class ScoringWeek(BaseModel):
     week: int
     points: float | None = None
     breakdown: dict[str, Any] = {}
+    zero_reason: str | None = None
+    zero_detail: str | None = None
 
 
 class PlayerScoring(BaseModel):
@@ -530,6 +678,8 @@ class OwnershipSpan(BaseModel):
 
     team_id: int
     team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
     season_year: int
     week_start: int
     week_end: int

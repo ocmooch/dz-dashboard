@@ -83,6 +83,13 @@ post-regen verification sweep before trusting standings/matchup/box-score views.
   regular-season aggregates unless a view explicitly wants playoffs.
 - **Owner identity is persistent; team identity is per-season.** Career/rivalry metrics key
   on `owner_id`, joining through `teams.owner_id`. Team names change across seasons.
+- **Period-correct team names may differ from the stored `team_name`.** After owner-identity
+  repair, some past team-season rows carry a current/canonical label rather than the name the
+  manager actually used that year. For season-scoped surfaces (e.g. player ownership
+  timelines), resolve the label through
+  `analytics/historical_team_names.period_team_name(team, season_year)`, which overrides from
+  a recovered `(season_year, team_abbrev) → name` table sourced from pre-merge NFL.com rows,
+  falling back to the stored `team_name` when the slot/year is unknown.
 - **Two matchup rows per game.** `matchups` has one row per (season, week, team). A
   head-to-head game is two rows; dedupe by pairing `team_id`/`opponent_team_id` when counting
   games so you don't double-count.

@@ -38,6 +38,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/league/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Overview */
+        get: operations["get_league_overview_v1_league_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/league/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Timeline */
+        get: operations["get_league_timeline_v1_league_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/league/eras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Eras */
+        get: operations["get_league_eras_v1_league_eras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/league/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Stories */
+        get: operations["get_league_stories_v1_league_stories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/league/managers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Manager Directory */
+        get: operations["get_manager_directory_v1_league_managers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons": {
         parameters: {
             query?: never;
@@ -834,6 +919,15 @@ export interface components {
              */
             dst_scoring_complete: boolean;
         };
+        /** DataCaveat */
+        DataCaveat: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Scope */
+            scope: string;
+        };
         /** DraftBoard */
         DraftBoard: {
             /** Season Id */
@@ -975,6 +1069,31 @@ export interface components {
         /** Envelope[HeadToHead] */
         Envelope_HeadToHead_: {
             data: components["schemas"]["HeadToHead"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[LeagueEras] */
+        Envelope_LeagueEras_: {
+            data: components["schemas"]["LeagueEras"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[LeagueOverview] */
+        Envelope_LeagueOverview_: {
+            data: components["schemas"]["LeagueOverview"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[LeagueStories] */
+        Envelope_LeagueStories_: {
+            data: components["schemas"]["LeagueStories"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[LeagueTimeline] */
+        Envelope_LeagueTimeline_: {
+            data: components["schemas"]["LeagueTimeline"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[ManagerDirectory] */
+        Envelope_ManagerDirectory_: {
+            data: components["schemas"]["ManagerDirectory"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[MetaResponse] */
@@ -1237,6 +1356,204 @@ export interface components {
             /** Finished At */
             finished_at?: string | null;
         };
+        /** LeagueChangeDetail */
+        LeagueChangeDetail: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Before */
+            before?: string | null;
+            /** After */
+            after?: string | null;
+            /** Source */
+            source: string;
+            /** Certainty */
+            certainty: string;
+        };
+        /** LeagueEra */
+        LeagueEra: {
+            /** Era Id */
+            era_id: string;
+            /** Label */
+            label: string;
+            /** Start Year */
+            start_year: number;
+            /** End Year */
+            end_year: number;
+            /** Season Years */
+            season_years: number[];
+            /** League Size */
+            league_size: number;
+            /** Regular Season Weeks */
+            regular_season_weeks?: number | null;
+            /** Playoff Weeks */
+            playoff_weeks?: number | null;
+            /** Scoring Provenance */
+            scoring_provenance: string;
+            /** Verification Status */
+            verification_status: string;
+            /** Certainty */
+            certainty: string;
+        };
+        /** LeagueEraChange */
+        LeagueEraChange: {
+            /** Season Year */
+            season_year: number;
+            /**
+             * League Size Changed
+             * @default false
+             */
+            league_size_changed: boolean;
+            /**
+             * Schedule Changed
+             * @default false
+             */
+            schedule_changed: boolean;
+            /**
+             * Scoring Availability Changed
+             * @default false
+             */
+            scoring_availability_changed: boolean;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LeagueChangeDetail"][];
+        };
+        /** LeagueEras */
+        LeagueEras: {
+            league: components["schemas"]["LeagueInfo"];
+            /** Eras */
+            eras: components["schemas"]["LeagueEra"][];
+            /** Changes */
+            changes: components["schemas"]["LeagueEraChange"][];
+        };
+        /** LeagueInfo */
+        LeagueInfo: {
+            /** League Id */
+            league_id: string;
+            /** Name */
+            name: string;
+            /** Platform */
+            platform?: string | null;
+            /** Start Year */
+            start_year?: number | null;
+            /** Current Year */
+            current_year?: number | null;
+            /** Season Count */
+            season_count: number;
+        };
+        /** LeagueOverview */
+        LeagueOverview: {
+            /** League Id */
+            league_id: string;
+            /** Name */
+            name: string;
+            /** Platform */
+            platform?: string | null;
+            /** Start Year */
+            start_year?: number | null;
+            /** Current Year */
+            current_year?: number | null;
+            /** Season Count */
+            season_count: number;
+            /** League Size Min */
+            league_size_min?: number | null;
+            /** League Size Max */
+            league_size_max?: number | null;
+            /** Completed Seasons */
+            completed_seasons: number;
+            /** Scored Seasons */
+            scored_seasons: number;
+            /** Champions Recorded */
+            champions_recorded: number;
+            /** Current Era */
+            current_era?: {
+                [key: string]: unknown;
+            } | null;
+            /** Data Caveats */
+            data_caveats: components["schemas"]["DataCaveat"][];
+        };
+        /** LeagueStories */
+        LeagueStories: {
+            /** Stories */
+            stories: components["schemas"]["StoryCard"][];
+        };
+        /** LeagueTimeline */
+        LeagueTimeline: {
+            league: components["schemas"]["LeagueInfo"];
+            /** Seasons */
+            seasons: components["schemas"]["LeagueTimelineSeason"][];
+        };
+        /** LeagueTimelineSeason */
+        LeagueTimelineSeason: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Status */
+            status?: string | null;
+            /** League Size */
+            league_size: number;
+            /** Regular Season Weeks */
+            regular_season_weeks?: number | null;
+            /** Playoff Weeks */
+            playoff_weeks?: number | null;
+            /** Championship Week */
+            championship_week?: number | null;
+            champion?: components["schemas"]["TeamRef"] | null;
+            runner_up?: components["schemas"]["TeamRef"] | null;
+            last_place?: components["schemas"]["TeamRef"] | null;
+            /** Is Scored */
+            is_scored: boolean;
+            /** Schedule Source */
+            schedule_source: string;
+            /** Scoring Provenance */
+            scoring_provenance: string;
+            /** Verification Status */
+            verification_status: string;
+            /** Source */
+            source: string;
+            changes: components["schemas"]["SeasonChangeFlags"];
+        };
+        /** ManagerDirectory */
+        ManagerDirectory: {
+            /** Managers */
+            managers: components["schemas"]["ManagerIdentity"][];
+        };
+        /** ManagerIdentity */
+        ManagerIdentity: {
+            /** Manager Id */
+            manager_id: number;
+            /** Display Name */
+            display_name?: string | null;
+            /** Human Name */
+            human_name?: string | null;
+            /**
+             * Aliases
+             * @default []
+             */
+            aliases: string[];
+            /** Nfl User Id */
+            nfl_user_id?: string | null;
+            /** Active Years */
+            active_years: number[];
+            /** Joined Year */
+            joined_year?: number | null;
+            /** Left Year */
+            left_year?: number | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Team Names */
+            team_names: string[];
+            /** Seasons Managed */
+            seasons_managed: number;
+            /** Identity Source */
+            identity_source: string;
+        };
         /**
          * Meta
          * @description Audit metadata attached to every API response.
@@ -1377,6 +1694,10 @@ export interface components {
             team_id: number;
             /** Team Name */
             team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
             /** Season Year */
             season_year: number;
             /** Week Start */
@@ -1731,6 +2052,10 @@ export interface components {
             breakdown: {
                 [key: string]: unknown;
             };
+            /** Zero Reason */
+            zero_reason?: string | null;
+            /** Zero Detail */
+            zero_detail?: string | null;
         };
         /** SearchHit */
         SearchHit: {
@@ -1768,6 +2093,29 @@ export interface components {
             caveat: string;
             /** Weeks */
             weeks: components["schemas"]["BracketWeek"][];
+        };
+        /** SeasonChangeFlags */
+        SeasonChangeFlags: {
+            /**
+             * League Size Changed
+             * @default false
+             */
+            league_size_changed: boolean;
+            /**
+             * Schedule Changed
+             * @default false
+             */
+            schedule_changed: boolean;
+            /**
+             * Scoring Availability Changed
+             * @default false
+             */
+            scoring_availability_changed: boolean;
+            /**
+             * Details
+             * @default []
+             */
+            details: components["schemas"]["LeagueChangeDetail"][];
         };
         /** SeasonList */
         SeasonList: {
@@ -1919,6 +2267,34 @@ export interface components {
             regular_season_weeks: number;
             /** Teams */
             teams: components["schemas"]["TimelineTeam"][];
+        };
+        /** StoryCard */
+        StoryCard: {
+            /** Story Id */
+            story_id: string;
+            /** Title */
+            title: string;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Season Year */
+            season_year?: number | null;
+            /** Week */
+            week?: number | null;
+            /** Matchup Id */
+            matchup_id?: number | null;
+            /** Metric Label */
+            metric_label: string;
+            /** Metric Value */
+            metric_value?: number | null;
+            primary_team?: components["schemas"]["TeamRef"] | null;
+            secondary_team?: components["schemas"]["TeamRef"] | null;
+            primary_owner?: components["schemas"]["OwnerRef"] | null;
+            /** Caveat */
+            caveat?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** Streak */
         Streak: {
@@ -2230,6 +2606,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_MetaResponse_"];
+                };
+            };
+        };
+    };
+    get_league_overview_v1_league_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LeagueOverview_"];
+                };
+            };
+        };
+    };
+    get_league_timeline_v1_league_timeline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LeagueTimeline_"];
+                };
+            };
+        };
+    };
+    get_league_eras_v1_league_eras_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LeagueEras_"];
+                };
+            };
+        };
+    };
+    get_league_stories_v1_league_stories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LeagueStories_"];
+                };
+            };
+        };
+    };
+    get_manager_directory_v1_league_managers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_ManagerDirectory_"];
                 };
             };
         };

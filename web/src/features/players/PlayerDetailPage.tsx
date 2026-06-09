@@ -77,6 +77,13 @@ const ID_LABELS: { key: string; label: string }[] = [
   { key: "yahoo_id", label: "Yahoo" },
 ];
 
+function zeroReasonLabel(reason?: string | null): string | null {
+  if (reason === "bye") return "Bye — did not play";
+  if (reason === "did_not_play") return "Did not play (inactive / injury)";
+  if (reason === "unexpected") return "League scored 0 with a scoring discrepancy";
+  return null;
+}
+
 function ScoringChart({ playerId, season }: { playerId: number; season: number }) {
   const { data, isLoading } = useQuery({
     queryKey: qk.playerScoring(playerId, season),
@@ -94,7 +101,14 @@ function ScoringChart({ playerId, season }: { playerId: number; season: number }
   if (data.weeks.length === 0) {
     return <EmptyState title="No scored weeks" hint="This player has no games this season." />;
   }
-  const rows = data.weeks.map((w) => ({ week: `Wk ${w.week}`, points: w.points ?? null }));
+  const explainedZeroWeeks = data.weeks
+    .map((w) => ({ week: w.week, label: zeroReasonLabel(w.zero_reason), detail: w.zero_detail }))
+    .filter((w) => w.label != null);
+  const rows = data.weeks.map((w) => ({
+    week: `Wk ${w.week}${zeroReasonLabel(w.zero_reason) ? " †" : ""}`,
+    points: w.points ?? null,
+    __note: zeroReasonLabel(w.zero_reason),
+  }));
   return (
     <div className="p-5">
       <BarCompare
@@ -104,10 +118,21 @@ function ScoringChart({ playerId, season }: { playerId: number; season: number }
         xLabel="Week"
         series={[{ key: "points", label: "League points" }]}
         height={240}
+        minPointSize={4}
       />
       <div className="mt-3 border-t border-[var(--hairline)] pt-3 text-[var(--fs-sm)] text-muted">
         Season total: <span className="num text-text">{num(data.total_points)}</span>
       </div>
+      {explainedZeroWeeks.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2 text-[var(--fs-xs)] text-muted">
+          {explainedZeroWeeks.map((w) => (
+            <Pill key={w.week} tone={w.label?.startsWith("Bye") ? "default" : "loss"}>
+              wk{w.week} † {w.label}
+              {w.detail ? ` — ${w.detail}` : ""}
+            </Pill>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -124,24 +149,31 @@ function OwnershipTimeline({ playerId }: { playerId: number }) {
   }
   return (
     <ol className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
-      {data.events.map((e, i) => (
-        <li key={i}>
-          <Link
-            to={`/teams/${e.team_id}`}
-            className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <span className="font-semibold text-text">
-              {e.team_name ?? `Team ${e.team_id}`}
-              </span>
-              {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
-            </div>
-            <div className="mt-1 text-[var(--fs-xs)] text-faint">
-              {e.season_year} · {weekRange(e.week_start, e.week_end)}
-            </div>
-          </Link>
-        </li>
-      ))}
+      {data.events.map((e, i) => {
+        const primary = e.owner_name ?? e.team_name ?? `Team ${e.team_id}`;
+        const showTeamName = e.team_name != null && e.team_name !== primary;
+        return (
+          <li key={i}>
+            <Link
+              to={`/teams/${e.team_id}`}
+              className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex flex-col leading-tight">
+                  <span className="font-semibold text-text">{primary}</span>
+                  {showTeamName && (
+                    <span className="text-[var(--fs-xs)] text-faint">{e.team_name}</span>
+                  )}
+                </span>
+                {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
+              </div>
+              <div className="mt-1 text-[var(--fs-xs)] text-faint">
+                {e.season_year} · {weekRange(e.week_start, e.week_end)}
+              </div>
+            </Link>
+          </li>
+        );
+      })}
     </ol>
   );
 }
