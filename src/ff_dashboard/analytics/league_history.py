@@ -23,10 +23,14 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
-from ff_pipeline.repository.queries import list_seasons_for_league
 from sqlalchemy import distinct, func, select
 
-from ff_dashboard.analytics.common import owner_name_map, require_league
+from ff_dashboard.analytics.common import (
+    displayed_seasons,
+    owner_name_map,
+    played_season_ids,
+    require_league,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -444,7 +448,7 @@ def _owner_aliases(raw: Any) -> list[str]:
 def league_timeline(session: Session) -> dict[str, Any]:
     """Season-by-season context for the league museum timeline."""
     league = require_league(session)
-    seasons = list(list_seasons_for_league(session, league.league_id))
+    seasons = list(displayed_seasons(session, league.league_id))
     owners = owner_name_map(session)
     teams = _teams_by_id(session)
     sizes = _league_sizes(session)
@@ -868,9 +872,12 @@ def manager_directory(session: Session) -> dict[str, Any]:
         int(sid): int(year)
         for sid, year in session.execute(select(Season.season_id, Season.year)).all()
     }
+    played = played_season_ids(session)
     teams = session.execute(select(Team).order_by(Team.owner_id, Team.team_id)).scalars().all()
     by_owner: dict[int, list[Team]] = defaultdict(list)
     for team in teams:
+        if int(team.season_id) not in played:
+            continue
         by_owner[int(team.owner_id)].append(team)
 
     owners_rows = session.execute(

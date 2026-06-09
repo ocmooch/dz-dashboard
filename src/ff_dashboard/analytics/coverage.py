@@ -25,8 +25,18 @@ AVAILABILITY_CURRENT_SEASON_ONLY = True
 
 
 def seasons_present(session: Session) -> list[int]:
-    """All season years known to the database, ascending."""
-    rows = session.execute(select(Season.year).order_by(Season.year)).scalars().all()
+    """Season years with results on record (≥1 played game), ascending.
+
+    Excludes a season created for an upcoming year that has been seeded with
+    teams/rosters but has played no games yet — the coverage view must not claim
+    a resultless future season. Data-driven on played matchups, never on a year
+    (see ``ff_dashboard.analytics.common.played_season_ids``)."""
+    stmt = (
+        select(distinct(Season.year))
+        .join(Matchup, Matchup.season_id == Season.season_id)
+        .order_by(Season.year)
+    )
+    rows = session.execute(stmt).scalars().all()
     return [int(y) for y in rows]
 
 

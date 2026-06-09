@@ -14,6 +14,7 @@ from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
+from ff_dashboard.analytics.common import played_season_ids
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -73,10 +74,13 @@ def _playoff_participation(session: Session) -> tuple[dict[int, set[int]], set[i
 
 
 def _standings_index(session: Session) -> dict[int, dict[str, Any]]:
-    """team_id -> its regular-season standings row, across every season."""
+    """team_id -> its regular-season standings row, across every played season."""
     index: dict[int, dict[str, Any]] = {}
+    played = played_season_ids(session)
     seasons = session.execute(select(Season)).scalars().all()
     for season in seasons:
+        if int(season.season_id) not in played:
+            continue
         snap = compute_standings(session, season.season_id)
         if snap is None:  # pragma: no cover
             continue
@@ -91,7 +95,12 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
         return None
     index = _standings_index(session)
     champions = {s.champion_team_id for s in session.execute(select(Season)).scalars().all()}
-    teams = list(session.execute(select(Team).where(Team.owner_id == owner_id)).scalars().all())
+    played = played_season_ids(session)
+    teams = [
+        t
+        for t in session.execute(select(Team).where(Team.owner_id == owner_id)).scalars().all()
+        if int(t.season_id) in played
+    ]
     season_year: dict[int, int] = {
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()

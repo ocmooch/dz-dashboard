@@ -55,6 +55,14 @@ def test_pre_2016_result_is_populated(session: Session) -> None:
     assert _row(session, "slider", 2015)["result"] is not None
 
 
+def test_owner_seasons_excludes_unplayed_season(session: Session) -> None:
+    # Maverick has a seeded team in the upcoming 2018 season, but it has played
+    # no games — it must not appear as a resultless row in his season table.
+    rows = owner_seasons(session, KNOWN["owner_id"]["mav"])
+    assert rows is not None
+    assert 2018 not in {r["season_year"] for r in rows}
+
+
 def test_undiscriminating_bracket_yields_none(tmp_path: Path) -> None:
     # Mirrors the real-data shape: is_consolation is unpopulated and *every* team
     # carries an is_playoff game, so the bracket can't be told apart → made_playoffs
