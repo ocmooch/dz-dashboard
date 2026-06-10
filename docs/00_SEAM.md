@@ -25,7 +25,7 @@ diving in.
 
 `dz-dashboard` depends on `ff-pipeline` as an **editable path dependency** (`../danger-zone`)
 in `pyproject.toml` `[tool.uv.sources]`; the reproducible / CI fallback is a pinned git tag
-example (`v1.0.0` in the current snippet), but any pinned release must match the live DB schema
+example (`v1.2.0` in the current snippet), but any pinned release must match the live DB schema
 the dashboard reads. The live DB now requires the ≥1.2.0 schema with team/owner avatar columns.
 `ff_pipeline` ships no `py.typed`, so the dashboard sets `follow_untyped_imports` for
 `ff_pipeline.*` — we consume its real types without editing Phase 1. The BFF imports a deliberately

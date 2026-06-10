@@ -110,13 +110,14 @@ match the new schema; never edit `schema.d.ts` by hand.
 
   ```toml
   [tool.uv.sources]
-  ff-pipeline = { git = "ssh://git@github.com/ocmooch/danger-zone.git", tag = "v1.0.0" }
+  ff-pipeline = { git = "ssh://git@github.com/ocmooch/danger-zone.git", tag = "v1.2.0" }
   ```
 
   After swapping, run `uv lock && uv sync --extra dev`. The DB schema the tag produces must match
   the `DATABASE_URL` you point at, or you'll see the schema-mismatch symptoms below. The current
-  live DB requires the ≥1.2.0 schema with team/owner avatar columns; treat `v1.0.0` as the literal
-  fallback example in `pyproject.toml`, not as proof it matches today's DB.
+  live DB requires the ≥1.2.0 schema with team/owner avatar columns, so the fallback example is
+  pinned to `v1.2.0` (the earliest tag that carries those columns); bump it whenever the live DB is
+  regenerated from a newer pipeline release.
 
 ---
 

@@ -17,35 +17,27 @@ this repo, in `../danger-zone` / ff-pipeline).
 The dashboard application is functionally complete (all P0–P11 milestones and all P1–P6 review
 fix-passes are merged — see the archive). The remaining work is, in priority order:
 
-1. **Packaging the current feature branch** for review/PR (`feature/season-aware-team-names`). ◐
-2. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
-3. **League-history expansion** once upstream identity/rules data exists. ☐
-4. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
-5. **Housekeeping** (the `pyproject.toml` fallback-tag bump). ☐
+1. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
+   (Now includes **F-54** season-correct player NFL team.)
+2. **League-history expansion** once upstream identity/rules data exists. ☐
+3. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
+4. **Housekeeping** (`pyproject.toml` fallback-tag bump). ☑ done — see §6.
 
 ---
 
-## 1. In-progress / immediate — current feature branch ◐
+## 1. In-progress / immediate — feature branches ☑/◐
 
-**Branch:** `feature/season-aware-team-names` (latest commit `67acb5b` — league-history slice,
-season-aware names, zero-week player fix; all landed locally, see archive §3).
+The league-history slice, season-aware **fantasy** team names, the player zero-week fix, the
+records season-correct champion name, and the team-avatar refresh are all **merged to `dev`**
+(PRs #47/#48/#49/#50; the old `feature/season-aware-team-names` line). The most recent branch,
+`feature/season-correct-nfl-team`, is the season-correct **NFL** team investigation — it found no
+per-season NFL-team source in the DB and is scoped to upstream as **F-54** (PR #51, docs-only;
+see §2). No dashboard app feature is currently mid-implementation.
 
-- ◐ **Review / PR packaging.** The league-history slice, season-aware team names, and the
-  player zero-week fix are implemented and locally verified but not yet packaged into a reviewed
-  PR to `dev`. Next dashboard step is the review/PR for this branch.
-- ☐ **Run the full green gate** before PR (backend pytest + ruff + mypy; frontend gen:api
-  no-drift + typecheck + Vitest; e2e where relevant) and complete a real-DB click-through of the
-  new league/Seasons/Stories/About-Data surfaces.
-- **Files that matter for this branch:**
-  - F2.3 bracket: `src/ff_dashboard/analytics/bracket.py`,
-    `src/ff_dashboard/api/routes/seasons.py`, `web/src/features/bracket/BracketPage.tsx`
-  - League-history: `src/ff_dashboard/analytics/league_history.py`,
-    `src/ff_dashboard/api/routes/league.py`, `web/src/features/league/`
-  - Player zero-week: `src/ff_dashboard/analytics/players.py`,
-    `src/ff_dashboard/api/schemas.py`, `web/src/features/players/PlayerDetailPage.tsx`
-  - Docs touched for packaging: `docs/03_DATA_ACCESS.md`, `docs/04_ANALYTICS_MODEL.md`,
-    `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`, `docs/09_ROADMAP.md`,
-    `docs/10_OPEN_QUESTIONS.md`, `PROGRESS.md`
+- **Next dashboard work is gated on the UP program** (§2): each upstream data fix retires a
+  finding behind the read-only boundary, then the dashboard consumes it. Nothing else is open and
+  buildable dashboard-side except league-history expansion (§3), which also waits on upstream
+  identity/rules data.
 
 ---
 
@@ -164,11 +156,14 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 
 ---
 
-## 6. Housekeeping ☐
+## 6. Housekeeping ☑
 
-- **`pyproject.toml` git-fallback tag.** Still pinned to `v1.0.0`; a future non-docs pass should
-  bump the fallback to a release matching the live ≥1.2.0 avatar-column schema. (Deferred from the
-  2026-06-06 docs refresh.)
+- **`pyproject.toml` git-fallback tag.** ☑ Bumped the documented git-source fallback example from
+  `v1.0.0` to `v1.2.0` (the earliest danger-zone tag carrying the team/owner avatar columns the
+  live DB needs; danger-zone is now at `v1.2.0` / `1.2.1` working tree). Updated the matching
+  prose in `docs/PHASE2_RUNBOOK.md` and `docs/00_SEAM.md`. The active source stays the editable
+  path to `../danger-zone`; this only touches the commented CI/reproducible fallback. Bump again
+  whenever the live DB is regenerated from a newer pipeline release.
 
 ---
 
