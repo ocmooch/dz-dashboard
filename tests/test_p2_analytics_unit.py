@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
+from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
 from ff_dashboard.analytics.players import (
     availability,
@@ -13,11 +14,12 @@ from ff_dashboard.analytics.players import (
     ownership_timeline,
     player_scoring,
 )
-from ff_dashboard.analytics.records import records_book
+from ff_dashboard.analytics.records import championships, records_book
 from ff_dashboard.analytics.standings import compute_standings
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.orm import Session
 
 
@@ -183,6 +185,20 @@ def test_records_only_use_scored_era(session: Session) -> None:
     # The best player week must come from a scored season, never a generic
     # present-but-unscored gap season.
     assert book["best_player_week"]["season_year"] in set(KNOWN["seasons_scored"])
+
+
+def test_championships_use_season_correct_team_name(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Championship history must render the period-correct slot name, not the
+    DB's latest canonical team_name (regression for the 2024 champion showing
+    its current name instead of the name it won under)."""
+    # The fixture's 2016 champion (Maverick, slot abbrev "MAV") carries the
+    # canonical alias "Maverick 2016". Inject a divergent historical slot name
+    # so we can prove championships() resolves it rather than the raw column.
+    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Putting the CAP in CHAMP")
+    by_year = {e["season_year"]: e for e in championships(session)["seasons"]}
+    assert by_year[2016]["champion"]["team_name"] == "Putting the CAP in CHAMP"
 
 
 # --- Players + gap behavior ------------------------------------------------
