@@ -335,26 +335,28 @@ def championships(session: Session) -> dict[str, Any]:
     """Championship history / dynasty timeline, one entry per season."""
     teams = _team_context(session)
     owners = owner_name_map(session)
+
+    def label(team_id: int | None, year: int) -> dict[str, Any] | None:
+        if team_id is None:
+            return None
+        t = teams.get(team_id, {})
+        return {
+            "team_id": team_id,
+            # The DB's team_name carries the latest canonical label after
+            # owner-identity repair; render the season-correct slot name.
+            "team_name": period_team_name_by_slot(year, t.get("team_abbrev"), t.get("team_name")),
+            "owner_id": t.get("owner_id"),
+            "owner_name": owners.get(t.get("owner_id", -1)),
+        }
+
     entries: list[dict[str, Any]] = []
     for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
-
-        def label(team_id: int | None) -> dict[str, Any] | None:
-            if team_id is None:
-                return None
-            t = teams.get(team_id, {})
-            return {
-                "team_id": team_id,
-                "team_name": t.get("team_name"),
-                "owner_id": t.get("owner_id"),
-                "owner_name": owners.get(t.get("owner_id", -1)),
-            }
-
         entries.append(
             {
                 "season_year": season.year,
-                "champion": label(season.champion_team_id),
-                "runner_up": label(season.runner_up_team_id),
-                "last_place": label(season.last_place_team_id),
+                "champion": label(season.champion_team_id, season.year),
+                "runner_up": label(season.runner_up_team_id, season.year),
+                "last_place": label(season.last_place_team_id, season.year),
             }
         )
     return {"seasons": entries}
