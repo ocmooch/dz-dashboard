@@ -28,6 +28,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     matchups_for_team,
+    player_season_teams,
     roster_for_team_week,
     transactions_for_team,
 )
@@ -120,6 +121,10 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         )
 
     player_ids = [r.player_id for r, _ in pairs]
+    # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
+    # the current snapshot on players.nfl_team when no per-week team is stored —
+    # mirrors period_team_name()'s fallback for fantasy names.
+    season_teams = player_season_teams(session, player_ids, season.year)
     scored: dict[int, float] = {}
     if player_ids:
         rows = session.execute(
@@ -144,7 +149,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "player_id": player.player_id,
                 "player_name": player.name_full,
                 "position": player.position,
-                "nfl_team": player.nfl_team,
+                "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
                 "roster_slot": roster_row.roster_slot,
                 "is_starter": bool(roster_row.is_starter),
                 "league_points": round(points, 2) if points is not None else None,

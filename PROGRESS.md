@@ -81,6 +81,15 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 - Next league-history expansion should consume upstream/manual identity and rules data when
   available: durable human manager overrides, roster-slot settings, full scoring-rule tables,
   playoff format metadata, and verified scoring mismatch classification.
+- **F-54 — season-correct player NFL team — LANDED 2026-06-10 (dashboard + upstream).** Upstream
+  persisted the per-week NFL team (`player_stats_raw.nfl_team`) and shipped batched read helpers
+  `queries.player_season_teams` / `player_nfl_team`, which fold nflverse's current code to the
+  season-era one (`historical_team_code`; a 2015 Raider reads "OAK"). The dashboard now routes its
+  two season-scoped reads — `stats.py:season_totals` (batched per leaderboard page) and
+  `teams.py:team_roster` — through `player_season_teams`, with a `players.nfl_team`-snapshot
+  fallback mirroring `period_team_name()`. No API shape change. Known-answer test in
+  `tests/test_fixp1_stats.py`; real-DB spot check confirms 2015 renders SD/OAK/STL. Branch
+  `feature/season-correct-nfl-team` (PR pending to `dev`). Handoff closed.
 - Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
   succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
   F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now

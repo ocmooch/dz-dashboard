@@ -17,35 +17,28 @@ this repo, in `../danger-zone` / ff-pipeline).
 The dashboard application is functionally complete (all P0–P11 milestones and all P1–P6 review
 fix-passes are merged — see the archive). The remaining work is, in priority order:
 
-1. **Packaging the current feature branch** for review/PR (`feature/season-aware-team-names`). ◐
-2. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
-3. **League-history expansion** once upstream identity/rules data exists. ☐
-4. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
-5. **Housekeeping** (the `pyproject.toml` fallback-tag bump). ☐
+1. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
+   (**F-54** season-correct player NFL team is now ☑ — persisted upstream and consumed; see §2.)
+2. **League-history expansion** once upstream identity/rules data exists. ☐
+3. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
+4. **Housekeeping** (`pyproject.toml` fallback-tag bump). ☑ done — see §6.
 
 ---
 
-## 1. In-progress / immediate — current feature branch ◐
+## 1. In-progress / immediate — feature branches ☑/◐
 
-**Branch:** `feature/season-aware-team-names` (latest commit `67acb5b` — league-history slice,
-season-aware names, zero-week player fix; all landed locally, see archive §3).
+The league-history slice, season-aware **fantasy** team names, the player zero-week fix, the
+records season-correct champion name, and the team-avatar refresh are all **merged to `dev`**
+(PRs #47/#48/#49/#50; the old `feature/season-aware-team-names` line). The most recent branch,
+`feature/season-correct-nfl-team`, scoped the season-correct **NFL** team to upstream as **F-54**
+and — now that upstream persisted the per-week team and read helpers — routes the two
+season-scoped reads through them (see §2, F-54 ☑). No dashboard app feature is currently
+mid-implementation.
 
-- ◐ **Review / PR packaging.** The league-history slice, season-aware team names, and the
-  player zero-week fix are implemented and locally verified but not yet packaged into a reviewed
-  PR to `dev`. Next dashboard step is the review/PR for this branch.
-- ☐ **Run the full green gate** before PR (backend pytest + ruff + mypy; frontend gen:api
-  no-drift + typecheck + Vitest; e2e where relevant) and complete a real-DB click-through of the
-  new league/Seasons/Stories/About-Data surfaces.
-- **Files that matter for this branch:**
-  - F2.3 bracket: `src/ff_dashboard/analytics/bracket.py`,
-    `src/ff_dashboard/api/routes/seasons.py`, `web/src/features/bracket/BracketPage.tsx`
-  - League-history: `src/ff_dashboard/analytics/league_history.py`,
-    `src/ff_dashboard/api/routes/league.py`, `web/src/features/league/`
-  - Player zero-week: `src/ff_dashboard/analytics/players.py`,
-    `src/ff_dashboard/api/schemas.py`, `web/src/features/players/PlayerDetailPage.tsx`
-  - Docs touched for packaging: `docs/03_DATA_ACCESS.md`, `docs/04_ANALYTICS_MODEL.md`,
-    `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`, `docs/09_ROADMAP.md`,
-    `docs/10_OPEN_QUESTIONS.md`, `PROGRESS.md`
+- **Next dashboard work is gated on the UP program** (§2): each upstream data fix retires a
+  finding behind the read-only boundary, then the dashboard consumes it. Nothing else is open and
+  buildable dashboard-side except league-history expansion (§3), which also waits on upstream
+  identity/rules data.
 
 ---
 
@@ -97,8 +90,24 @@ returns `made_playoffs = None` unless a season's bracket is a proper subset of t
 `is_consolation` / playoff-team metadata in ff-pipeline** (prefer fixing source flags over
 dashboard inference); `made_playoffs` then resolves with no contract change.
 
+### F-54 — Season-correct player NFL team ☑ (landed, dashboard + upstream)
+Upstream persisted the per-week NFL team (`player_stats_raw.nfl_team`, nflverse's current
+franchise code) and shipped the season-correct read helpers
+`queries.player_season_teams(session, player_ids, season_year)` (batched) and
+`queries.player_nfl_team(...)`, which fold the stored code to the season-era one via
+`historical_team_code` (a 2015 Raider reads "OAK", not "LV"). The dashboard now routes its two
+season-scoped reads — `analytics/stats.py:season_totals` (batched, one query per leaderboard
+page) and `analytics/teams.py:team_roster` — through `player_season_teams`, falling back to the
+`players.nfl_team` snapshot when no per-week team is stored (mirrors `period_team_name()`). No
+API response **shape** change; only the value becomes season-correct. Known-answer test:
+`tests/test_fixp1_stats.py::test_season_correct_nfl_team_overrides_current_snapshot`. Real-DB
+spot check (2026-06-10): 2015 leaderboard renders SD/OAK/STL (Rivers, Carr, Gurley) instead of
+their current snapshots. Handoff (now closed):
+`docs/handoffs/season-correct-nfl-team-danger-zone.md`.
+
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are all ☑ via the regen — see `docs/archive/COMPLETED_WORK.md` §5.
+F-54 ☑ (see above) — upstream persisted the per-week team and the dashboard consumes it.
 
 ---
 
@@ -145,11 +154,14 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 
 ---
 
-## 6. Housekeeping ☐
+## 6. Housekeeping ☑
 
-- **`pyproject.toml` git-fallback tag.** Still pinned to `v1.0.0`; a future non-docs pass should
-  bump the fallback to a release matching the live ≥1.2.0 avatar-column schema. (Deferred from the
-  2026-06-06 docs refresh.)
+- **`pyproject.toml` git-fallback tag.** ☑ Bumped the documented git-source fallback example from
+  `v1.0.0` to `v1.2.0` (the earliest danger-zone tag carrying the team/owner avatar columns the
+  live DB needs; danger-zone is now at `v1.2.0` / `1.2.1` working tree). Updated the matching
+  prose in `docs/PHASE2_RUNBOOK.md` and `docs/00_SEAM.md`. The active source stays the editable
+  path to `../danger-zone`; this only touches the commented CI/reproducible fallback. Bump again
+  whenever the live DB is regenerated from a newer pipeline release.
 
 ---
 

@@ -57,7 +57,7 @@ dz-dashboard = "ff_dashboard.server:main"
 #   REDUNDANCY (reproducible / CI builds): a pinned git source. Swap the block
 #   below to build against a tagged release instead of the working tree. See
 #   docs/PHASE2_RUNBOOK.md.
-#       ff-pipeline = { git = "ssh://git@github.com/ocmooch/danger-zone.git", tag = "v1.0.0" }
+#       ff-pipeline = { git = "ssh://git@github.com/ocmooch/danger-zone.git", tag = "v1.2.0" }
 [tool.uv.sources]
 ff-pipeline = { path = "../danger-zone", editable = true }
 

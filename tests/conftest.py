@@ -83,8 +83,15 @@ def _add_raw_and_scored(
     week: int,
     points: float,
     breakdown: dict[str, float],
+    nfl_team: str | None = None,
 ) -> None:
-    """Insert a raw stat row (REG) and its scored counterpart."""
+    """Insert a raw stat row (REG) and its scored counterpart.
+
+    ``nfl_team`` carries the per-week NFL team nflverse shipped for that player
+    (its current franchise code), which ``queries.player_season_teams`` reads to
+    render the season-correct team. Left ``None`` by default so existing rows
+    exercise the dashboard's fall-back to the ``players.nfl_team`` snapshot.
+    """
     raw = PlayerStatsRaw(
         player_id=player_id,
         season_year=season_year,
@@ -93,6 +100,7 @@ def _add_raw_and_scored(
         source="nflverse",
         stats={"_synthetic": True},
         is_primary=True,
+        nfl_team=nfl_team,
     )
     session.add(raw)
     session.flush()
@@ -326,6 +334,13 @@ def _populate(session: Session) -> None:
         # exercises player charts that must show proven 0-point DNP weeks rather
         # than dropping them as missing scored rows.
         "dnp": Player(name_full="DNP Dana", position="RB", nfl_team="TB", gsis_id="G9"),
+        # A long-tenured Raider whose *current* snapshot is the relocated "LV"
+        # but who was on "OAK" in 2017. Exercises the season-correct NFL-team
+        # read (F-54): season_totals must fold his stored per-week team to the
+        # season-era code rather than echo the current snapshot.
+        "raider": Player(
+            name_full="Relocation Reggie", position="WR", nfl_team="LV", gsis_id="G10"
+        ),
     }
     session.add_all(players.values())
     session.flush()
@@ -485,6 +500,29 @@ def _populate(session: Session) -> None:
         week=2,
         points=30.0,
         breakdown={"receiving": 30.0},
+    )
+    # Relocation Reggie's 2017 weeks carry nflverse's current franchise code "LV";
+    # the season-correct read must fold it to the 2017-era "OAK". Kept low-scoring
+    # so he never displaces the leaderboard's top rows (Jefferson 58.0 / cmc 42.0).
+    _add_raw_and_scored(
+        session,
+        player_id=pid["raider"],
+        season_id=sid[2017],
+        season_year=2017,
+        week=1,
+        points=6.0,
+        breakdown={"receiving": 6.0},
+        nfl_team="LV",
+    )
+    _add_raw_and_scored(
+        session,
+        player_id=pid["raider"],
+        season_id=sid[2017],
+        season_year=2017,
+        week=2,
+        points=5.0,
+        breakdown={"receiving": 5.0},
+        nfl_team="LV",
     )
 
     # --- Rosters (minimal): McCaffrey owned by Maverick across 2016-17; the Ravens

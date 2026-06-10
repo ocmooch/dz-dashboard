@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Player, PlayerStatsScored
+from ff_pipeline.repository.queries import player_season_teams
 from sqlalchemy import func, select
 
 from ff_dashboard.analytics.season_schedule import season_schedule
@@ -54,12 +55,16 @@ def season_totals(
     if position is not None:
         stmt = stmt.where(Player.position == position)
     rows = session.execute(stmt).all()
+    # Season-correct NFL team (a 2015 Raider reads "OAK", not "LV"), batched to
+    # resolve the whole leaderboard page in one query. Falls back to the current
+    # snapshot on players.nfl_team when no per-week team is stored that season.
+    season_teams = player_season_teams(session, [r.player_id for r in rows], season.year)
     return [
         {
             "player_id": r.player_id,
             "name_full": r.name_full,
             "position": r.position,
-            "nfl_team": r.nfl_team,
+            "nfl_team": season_teams.get(r.player_id) or r.nfl_team,
             "total_points": float(r.total or 0.0),
             "weeks_played": int(r.weeks or 0),
         }
