@@ -81,9 +81,18 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 - Next league-history expansion should consume upstream/manual identity and rules data when
   available: durable human manager overrides, roster-slot settings, full scoring-rule tables,
   playoff format metadata, and verified scoring mismatch classification.
+- **F-54 — season-correct player NFL team — scoped to UP (upstream), no dashboard code.** Branch
+  `feature/season-correct-nfl-team` investigated the NFL-team analog of the fantasy-name fix
+  (PRs #47/#49/#50): season-scoped surfaces (`stats.py:season_totals`, `teams.py:team_season_roster`)
+  render the current `players.nfl_team` as if season-correct. There is **no per-season NFL-team
+  source in the DB** (audited 2026-06-10), so this cannot be fixed dashboard-side. The per-season
+  team is already loaded by the pipeline (`client.py:210`) but dropped before persistence —
+  low-cost upstream fix. Handoff written: `docs/handoffs/season-correct-nfl-team-danger-zone.md`;
+  tracked as F-54 in `docs/ACTIVE_WORK.md` §2. Dashboard waits on the persisted column + read
+  helper, then routes the two reads through it with a stored-value fallback (no API shape change).
 - Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
-  succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
-  F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
+  succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, the
+  F-27 trustworthiness sanity-check, and F-54 season-correct player NFL team (above). Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
   partly landed upstream (dated transaction rows with add/drop/waiver/trade/draft/lineup types);
   dashboard still renders the derived roster-diff tier and has not consumed exact transaction
   dates/FAAB details.

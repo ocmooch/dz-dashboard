@@ -97,6 +97,25 @@ returns `made_playoffs = None` unless a season's bracket is a proper subset of t
 `is_consolation` / playoff-team metadata in ff-pipeline** (prefer fixing source flags over
 dashboard inference); `made_playoffs` then resolves with no contract change.
 
+### F-54 — Season-correct player NFL team ☐ ⤴ (needs a persisted per-season team)
+The dashboard renders a player's **NFL team** on season-scoped surfaces (historical stats
+leaderboards `analytics/stats.py:season_totals`, historical rosters
+`analytics/teams.py:team_season_roster`) but the only readable value, `players.nfl_team`, is a
+single **current** snapshot (nflverse `latest_team`, `crawlers/nflverse/client.py:272`). A 2015
+leaderboard therefore shows 2026 teams. This is the NFL-team analog of the fantasy-name fix
+(PRs #47/#49/#50) — but unlike that one there is **no per-season source in the DB**: no
+player→NFL-team column exists on `players` / `player_stats_scored` / `team_rosters` /
+`player_availability` (audited read-only 2026-06-10). **Low-cost upstream fix:** the per-season
+team is already loaded — `player_stats(seasons)` reads `nfl_team=row.get("team")`
+(`client.py:210`) on the same `NflversePlayerStat` that feeds `player_stats_scored` — it is just
+dropped before persistence. Persist it (per-week column on `player_stats_scored`, or a derived
+`player_season_team` map), season-correct (apply the existing `franchises.py` relocation logic),
+and expose a read-only repository lookup. The dashboard then routes the two season-scoped reads
+through it with a stored-value fallback — no API response **shape** change. Full handoff:
+`docs/handoffs/season-correct-nfl-team-danger-zone.md`. Related: D3 in
+`docs/handoffs/players-audit-danger-zone.md` (stale `nfl_team`); memory
+`season-correct-team-name-convention` (the fantasy-name sibling).
+
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are all ☑ via the regen — see `docs/archive/COMPLETED_WORK.md` §5.
 
