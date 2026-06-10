@@ -1,5 +1,13 @@
 # Handoff → danger-zone (ff-pipeline): season-correct player NFL team (F-54)
 
+> **✅ RESOLVED 2026-06-10 — handoff closed.** Upstream chose shape (a): persist the per-week
+> NFL team on `player_stats_raw.nfl_team` (nflverse's current franchise code) and added the
+> batched read helper `repository.queries.player_season_teams(session, player_ids, season_year)`
+> (plus single-player `player_nfl_team`), which folds the stored code to the season-era one via
+> `historical_team_code`. The dashboard now routes `analytics/stats.py:season_totals` and
+> `analytics/teams.py:team_roster` through it with a `players.nfl_team`-snapshot fallback. The
+> rest of this doc is the original request, kept for context.
+
 **Repo:** `/home/mainuser/danger-zone`  ·  **DB:** `data/fantasy.db` (SQLite)
 **Dashboard branch that surfaced it:** `feature/season-correct-nfl-team` (dz-dashboard).
 

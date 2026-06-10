@@ -18,7 +18,7 @@ The dashboard application is functionally complete (all P0–P11 milestones and 
 fix-passes are merged — see the archive). The remaining work is, in priority order:
 
 1. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
-   (Now includes **F-54** season-correct player NFL team.)
+   (**F-54** season-correct player NFL team is now ☑ — persisted upstream and consumed; see §2.)
 2. **League-history expansion** once upstream identity/rules data exists. ☐
 3. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
 4. **Housekeeping** (`pyproject.toml` fallback-tag bump). ☑ done — see §6.
@@ -30,9 +30,10 @@ fix-passes are merged — see the archive). The remaining work is, in priority o
 The league-history slice, season-aware **fantasy** team names, the player zero-week fix, the
 records season-correct champion name, and the team-avatar refresh are all **merged to `dev`**
 (PRs #47/#48/#49/#50; the old `feature/season-aware-team-names` line). The most recent branch,
-`feature/season-correct-nfl-team`, is the season-correct **NFL** team investigation — it found no
-per-season NFL-team source in the DB and is scoped to upstream as **F-54** (PR #51, docs-only;
-see §2). No dashboard app feature is currently mid-implementation.
+`feature/season-correct-nfl-team`, scoped the season-correct **NFL** team to upstream as **F-54**
+and — now that upstream persisted the per-week team and read helpers — routes the two
+season-scoped reads through them (see §2, F-54 ☑). No dashboard app feature is currently
+mid-implementation.
 
 - **Next dashboard work is gated on the UP program** (§2): each upstream data fix retires a
   finding behind the read-only boundary, then the dashboard consumes it. Nothing else is open and
@@ -89,27 +90,24 @@ returns `made_playoffs = None` unless a season's bracket is a proper subset of t
 `is_consolation` / playoff-team metadata in ff-pipeline** (prefer fixing source flags over
 dashboard inference); `made_playoffs` then resolves with no contract change.
 
-### F-54 — Season-correct player NFL team ☐ ⤴ (needs a persisted per-season team)
-The dashboard renders a player's **NFL team** on season-scoped surfaces (historical stats
-leaderboards `analytics/stats.py:season_totals`, historical rosters
-`analytics/teams.py:team_season_roster`) but the only readable value, `players.nfl_team`, is a
-single **current** snapshot (nflverse `latest_team`, `crawlers/nflverse/client.py:272`). A 2015
-leaderboard therefore shows 2026 teams. This is the NFL-team analog of the fantasy-name fix
-(PRs #47/#49/#50) — but unlike that one there is **no per-season source in the DB**: no
-player→NFL-team column exists on `players` / `player_stats_scored` / `team_rosters` /
-`player_availability` (audited read-only 2026-06-10). **Low-cost upstream fix:** the per-season
-team is already loaded — `player_stats(seasons)` reads `nfl_team=row.get("team")`
-(`client.py:210`) on the same `NflversePlayerStat` that feeds `player_stats_scored` — it is just
-dropped before persistence. Persist it (per-week column on `player_stats_scored`, or a derived
-`player_season_team` map), season-correct (apply the existing `franchises.py` relocation logic),
-and expose a read-only repository lookup. The dashboard then routes the two season-scoped reads
-through it with a stored-value fallback — no API response **shape** change. Full handoff:
-`docs/handoffs/season-correct-nfl-team-danger-zone.md`. Related: D3 in
-`docs/handoffs/players-audit-danger-zone.md` (stale `nfl_team`); memory
-`season-correct-team-name-convention` (the fantasy-name sibling).
+### F-54 — Season-correct player NFL team ☑ (landed, dashboard + upstream)
+Upstream persisted the per-week NFL team (`player_stats_raw.nfl_team`, nflverse's current
+franchise code) and shipped the season-correct read helpers
+`queries.player_season_teams(session, player_ids, season_year)` (batched) and
+`queries.player_nfl_team(...)`, which fold the stored code to the season-era one via
+`historical_team_code` (a 2015 Raider reads "OAK", not "LV"). The dashboard now routes its two
+season-scoped reads — `analytics/stats.py:season_totals` (batched, one query per leaderboard
+page) and `analytics/teams.py:team_roster` — through `player_season_teams`, falling back to the
+`players.nfl_team` snapshot when no per-week team is stored (mirrors `period_team_name()`). No
+API response **shape** change; only the value becomes season-correct. Known-answer test:
+`tests/test_fixp1_stats.py::test_season_correct_nfl_team_overrides_current_snapshot`. Real-DB
+spot check (2026-06-10): 2015 leaderboard renders SD/OAK/STL (Rivers, Carr, Gurley) instead of
+their current snapshots. Handoff (now closed):
+`docs/handoffs/season-correct-nfl-team-danger-zone.md`.
 
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are all ☑ via the regen — see `docs/archive/COMPLETED_WORK.md` §5.
+F-54 ☑ (see above) — upstream persisted the per-week team and the dashboard consumes it.
 
 ---
 
