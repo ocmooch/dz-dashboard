@@ -64,10 +64,10 @@ function LineupTable({ team }: { team: BoxTeam }) {
         <tr>
           <th>Slot</th>
           <th>Player</th>
-          <th className="dz-num">Proj</th>
-          <th className="dz-num">Share</th>
-          <th className="dz-num">Value</th>
-          <th className="dz-num">Pts</th>
+          <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
+          <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
+          <th className="dz-num" title="Actual vs projected (+/− delta). Bench pop = bench player outscored the weakest starter.">Value</th>
+          <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
         </tr>
       </thead>
       <tbody>
@@ -157,6 +157,11 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
               : p.projection_delta >= 0
                 ? "text-win"
                 : "text-loss"
+          }
+          title={
+            p.projection != null && p.league_points != null && p.projection_delta != null
+              ? `Proj ${num(p.projection)} → Actual ${num(p.league_points)} (${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)})`
+              : undefined
           }
         >
           {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
