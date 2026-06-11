@@ -16,6 +16,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+- **P12 Phase 2 (injury reports BFF + UI) landed locally.** `analytics/matchups.py` calls `injury_reports_for_week(session, season_year, week)` (Phase 1 helper) and adds `injury_status` / `injury_body_part` per player. `api/schemas.py` `BoxPlayer` has both fields. Generated client regenerated. `BoxScorePage.tsx` shows an inline `InjuryBadge` (e.g. "Out · Knee", "Q") after the position tag for any player with a non-null injury status; the "Out" Pts-cell tooltip now appends the body part when available. Pre-existing test label mismatches (BYE→Bye, DNP→Out, IR→—) fixed. Full gate green: backend 237 pytest + ruff + mypy; frontend 152 Vitest + typecheck + gen:api drift.
+
 - **Phase 2 implemented app features are functionally complete.** Roadmap milestones P0–P11 are
   shipped. P11 now includes committed Chromium/Linux visual-regression baselines, and CI runs the
   full Playwright suite (journeys plus visual snapshots). The Playoffs/Bracket view from F2.3
@@ -125,7 +127,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ---
 
-## Milestone tracker (P0–P11, from docs/09_ROADMAP.md)
+## Milestone tracker (P0–P12, from docs/09_ROADMAP.md)
 
 | # | Milestone | Status | Plan | Notes |
 |---|-----------|--------|------|-------|
@@ -141,6 +143,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 | P9 | Power ranking + timelines | ☑ | — | shared chart wrappers |
 | P10 | Global search + coverage/about + gap polish | ☑ | — | no fake zeros anywhere |
 | P11 | Operations + docs + e2e/visual-regression | ☑ | — | Makefile/RUNBOOK/e2e + visual baselines in CI |
+| P12 | Player injury reports (Phase 1 + BFF + UI) | ◐ | — | Phase 1 merged upstream; Phase 2 (BFF + UI) landed locally |
 
 Status key: ☐ todo · ◐ in progress · ☑ done. Put the plan path in **Plan** once a PLAN
 session writes `docs/plans/P{N}-{name}.md`.

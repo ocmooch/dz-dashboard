@@ -34,6 +34,7 @@ About Data nav relabel (see `07_PAGES_AND_VIEWS.md`). Still local on the feature
 | P9 | Power ranking + standings/power timelines | 2 hr | the chart-heavy comparative views |
 | P10 | Global search + coverage/about + gap polish | 2 hr | cross-cutting UX; honesty affordances everywhere |
 | P11 | Operations + docs + e2e/visual-regression pass | 2–3 hr | one-command run, RUNBOOK, full test gate |
+| P12 | Player injury reports (Phase 1 + BFF + UI) | 2–3 hr | weekly injury designation + body part on box score; Phase 1 new table + backfill + BFF endpoint change + frontend badge |
 
 **Total:** ~30–35 hours of focused work with Claude Code; expect 2–3 weeks part-time. Heavier
 than Phase 1's backend-only effort because there are two domains plus a contract seam.
@@ -213,6 +214,53 @@ dashboard against the Phase 1 DB, with all tests green; PR `feature/* → dev`.
 > **Build outcome:** the run/ops pieces shipped (`make dev`, `make serve`, runbook/README,
 > CI, generated-client drift check, Playwright journeys, and visual-regression snapshots). The
 > CI e2e job runs the full Playwright suite, including `web/e2e/visual.spec.ts`.
+
+---
+
+## P12 — Player injury reports (Phase 1 + BFF + UI)
+
+**Goal:** Surface per-player, per-week injury designation and body part on the box score so
+"Out" becomes "Out · Knee" and "Questionable" is visible at a glance.
+
+**Motivation:** The current box score only distinguishes "Bye" vs "Out" for zero-point players.
+No finer-grained status (Questionable / Doubtful / Out / Suspended) or reason (body part) is
+stored. `nflreadpy.load_injuries()` provides this data back to ~2009 via the weekly NFL injury
+report, keyed by `gsis_id`.
+
+**Tasks:**
+
+Phase 1 — danger-zone repo (must land first):
+- Add `player_injury_reports` table:
+  `(report_id PK, player_id FK, season_year, week, game_type, report_status, report_primary_injury,
+   report_secondary_injury, practice_status, date_modified, created_at, updated_at)`.
+  Unique constraint on `(player_id, season_year, week, game_type)`.
+- Add `nflverse_injury_runner.py` (mirrors `runner.py`) using `NflverseSource.load_injuries()`.
+  Extend `NflverseSource` protocol with `load_injuries(seasons)`. Add `LiveNflverseSource`
+  implementation calling `nflreadpy.load_injuries(seasons)`.
+- Backfill all seasons in `ff_pipeline` DB (2009–present) via CLI command or a one-time script.
+- Add `ff_pipeline.repository.queries.injury_report_for_week(session, season_year, week)` →
+  `dict[(player_id, week), InjuryReportRow]` for the BFF to consume.
+- Gate test: fixture with 2–3 known injury rows; assert the query returns them correctly.
+
+Phase 2 — dz-dashboard repo (after Phase 1 lands):
+- Extend `analytics/matchups.py` box score player assembly to join the new injury report:
+  add `injury_status: str | None` and `injury_body_part: str | None` to the per-player dict.
+- Extend `api/schemas.py` `BoxScorePlayer` with `injury_status` and `injury_body_part`.
+- Run `npm run gen:api` to regenerate the client.
+- In `BoxScorePage.tsx` `PlayerRow`, show a small status badge next to the player name:
+  - "Out · Knee", "Doubtful · Hamstring", "Q" for Questionable — inline after position tag.
+  - Only shown when `injury_status` is not null.
+  - Update the "Pts" column tooltip for `did_not_play` players to include the injury reason if
+    available.
+
+**Done when:**
+- `player_injury_reports` table exists and is populated for 2009–2025.
+- `/v1/matchups/{id}/box-score` returns `injury_status` + `injury_body_part` per player.
+- Box score shows "Out · Knee" (or similar) for injured players; Questionable/Doubtful badges
+  for players who played; plain blank for no injury report entry.
+- Backend pytest + ruff + mypy green; frontend gen:api drift + typecheck + lint + test green.
+- Manual click-through on matchup 73 confirms players formerly labeled bare "Out" now show the
+  injury designation.
 
 ---
 

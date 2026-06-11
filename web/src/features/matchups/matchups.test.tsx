@@ -332,7 +332,7 @@ describe("BoxScorePage", () => {
     // slot column ("IR") and empty projections ("—") don't create false matches.
     const irRow = (await screen.findByText("Hurt Hero")).closest("tr")!;
     const irCells = within(irRow).getAllByRole("cell");
-    expect(irCells[irCells.length - 1]).toHaveTextContent("IR");
+    expect(irCells[irCells.length - 1]).toHaveTextContent("—");
     const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
     const byeCells = within(byeRow).getAllByRole("cell");
     expect(byeCells[byeCells.length - 1]).toHaveTextContent("—");
@@ -431,13 +431,13 @@ describe("BoxScorePage", () => {
       return cells[cells.length - 1];
     };
 
-    expect(await ptsCell("Bye Guy")).toHaveTextContent("BYE");
-    expect(await ptsCell("Scratch Guy")).toHaveTextContent("DNP");
+    expect(await ptsCell("Bye Guy")).toHaveTextContent("Bye");
+    expect(await ptsCell("Scratch Guy")).toHaveTextContent("Out");
     expect(await ptsCell("Mismatch Guy")).toHaveTextContent("⚠");
     // The clean played-0 shows a bare number with no status tag or warning.
     const clean = await ptsCell("Goose Egg");
     expect(clean).toHaveTextContent("0");
-    expect(clean).not.toHaveTextContent(/BYE|DNP|⚠/);
+    expect(clean).not.toHaveTextContent(/Bye|Out|⚠/);
   });
 
   it("emphasizes the winning team's total score", async () => {

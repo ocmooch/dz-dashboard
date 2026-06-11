@@ -826,6 +826,8 @@ class BoxPlayer(BaseModel):
     # attempted explanation in ``zero_detail``.
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
+    injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
+    injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
 
 
 class BoxTeam(BaseModel):

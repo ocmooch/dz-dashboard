@@ -23,13 +23,18 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from ff_pipeline.repository.models import Matchup, PlayerStatsScored
+from ff_pipeline.repository.models import Projection as ProjectionModel
+from ff_pipeline.repository.models import ScoringRule as ScoringRuleModel
 from ff_pipeline.repository.queries import (
     get_matchup,
     get_season,
     get_team,
-    player_projections,
+    injury_reports_for_week,
     roster_for_team_week,
 )
+from ff_pipeline.scoring.engine import apply_rules
+from ff_pipeline.scoring.rules import ScoringRule as ScoringRuleDataclass
+from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
@@ -96,6 +101,83 @@ def _authoritative_points(roster_row: Any) -> float | None:
     extra = roster_row.extra_data or {}
     value = extra.get("nfl_com_points")
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _season_scoring_rules(session: Any, season_id: int) -> ScoringRules:
+    """Load scoring rules for a season as a ScoringRules dataclass (read-only)."""
+    rows = session.execute(
+        select(
+            ScoringRuleModel.category,
+            ScoringRuleModel.stat_key,
+            ScoringRuleModel.points_per_unit,
+            ScoringRuleModel.unit_size,
+            ScoringRuleModel.threshold_min,
+            ScoringRuleModel.threshold_max,
+            ScoringRuleModel.flat_points,
+        ).where(ScoringRuleModel.season_id == season_id)
+    ).all()
+    rules = tuple(
+        ScoringRuleDataclass(
+            category=str(r.category),
+            stat_key=str(r.stat_key),
+            points_per_unit=float(r.points_per_unit or 0.0),
+            unit_size=float(r.unit_size or 1.0),
+            threshold_min=float(r.threshold_min) if r.threshold_min is not None else None,
+            threshold_max=float(r.threshold_max) if r.threshold_max is not None else None,
+            flat_points=float(r.flat_points) if r.flat_points is not None else None,
+        )
+        for r in rows
+    )
+    return ScoringRules(season_id=season_id, rules=rules)
+
+
+def _projected_points_from_stats(
+    stats: dict[str, Any] | None, scoring_rules: ScoringRules
+) -> float | None:
+    """Compute projected fantasy points by applying the season's scoring rules to
+    the raw projected-stats dict.  Returns None when stats are absent."""
+    if not stats:
+        return None
+    numeric = {k: float(v) for k, v in stats.items() if isinstance(v, (int, float))}
+    if not numeric:
+        return None
+    return apply_rules(numeric, scoring_rules).total_points
+
+
+def _batch_projections(
+    session: Any, player_ids: list[int], season_year: int, week: int
+) -> dict[int, ProjectionModel]:
+    """Latest projection row per player for a given season/week, in one query."""
+    if not player_ids:
+        return {}
+    from sqlalchemy import func
+
+    # Subquery: max fetched_at per player for this season/week.
+    sub = (
+        select(
+            ProjectionModel.player_id,
+            func.max(ProjectionModel.fetched_at).label("latest"),
+        )
+        .where(
+            ProjectionModel.player_id.in_(player_ids),
+            ProjectionModel.season_year == season_year,
+            ProjectionModel.week == week,
+        )
+        .group_by(ProjectionModel.player_id)
+        .subquery()
+    )
+    rows = (
+        session.execute(
+            select(ProjectionModel).join(
+                sub,
+                (ProjectionModel.player_id == sub.c.player_id)
+                & (ProjectionModel.fetched_at == sub.c.latest),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {r.player_id: r for r in rows}
 
 
 # How much nflverse-credited production, while the league scored 0, counts as a
@@ -279,6 +361,9 @@ def _team_box(
     roster = scoped
     player_ids = [r.player_id for r, _ in roster]
     scored = _scored_points(session, season.season_id, week, player_ids)
+    projections = _batch_projections(session, player_ids, season.year, week)
+    scoring_rules = _season_scoring_rules(session, season.season_id)
+    injuries = injury_reports_for_week(session, season.year, week)
 
     lineup: list[dict[str, Any]] = []
     starter_points = 0.0
@@ -319,11 +404,18 @@ def _team_box(
         opponent = (roster_row.extra_data or {}).get("opponent")
         zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
 
-        # Projection vs actual (per starter where a projection exists).
+        # Projection vs actual. Use the authoritative projected_points when stored;
+        # fall back to scoring projected_stats with the season's rules when the
+        # pipeline loaded raw stat projections but didn't apply scoring yet.
         projection: float | None = None
-        projrows = player_projections(session, player.player_id, season.year, week)
-        if projrows and projrows[0].projected_points is not None:
-            projection = round(float(projrows[0].projected_points), 2)
+        proj_row = projections.get(player.player_id)
+        if proj_row is not None:
+            if proj_row.projected_points is not None:
+                projection = round(float(proj_row.projected_points), 2)
+            else:
+                computed = _projected_points_from_stats(proj_row.projected_stats, scoring_rules)
+                if computed is not None:
+                    projection = round(computed, 2)
         projection_delta = (
             round(league_points - projection, 2)
             if league_points is not None and projection is not None
@@ -335,6 +427,7 @@ def _team_box(
             else None
         )
 
+        injury = injuries.get(player.player_id)
         entry = {
             "roster_slot": slot,
             "player_id": player.player_id,
@@ -351,6 +444,8 @@ def _team_box(
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
             "lineup_value": None,
+            "injury_status": injury.report_status if injury else None,
+            "injury_body_part": injury.report_primary_injury if injury else None,
         }
         lineup.append(entry)
 

@@ -24,11 +24,10 @@ async function fetchBoxScore(matchupId: number) {
  *  frontend cannot import backend constants. */
 const IR_SLOT_NAMES = new Set(["IR", "IR2", "RES", "TAXI", "NA"]);
 
-/** Injured-reserve slots carry an explicit "IR" label; everything else with no
- *  stat line (BYE / inactive / scratch) is shown as a neutral em dash. */
 function isIR(slot: string | null | undefined): boolean {
   return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
 }
+
 
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
@@ -65,10 +64,10 @@ function LineupTable({ team }: { team: BoxTeam }) {
         <tr>
           <th>Slot</th>
           <th>Player</th>
-          <th className="dz-num">Proj</th>
-          <th className="dz-num">Share</th>
-          <th className="dz-num">Value</th>
-          <th className="dz-num">Pts</th>
+          <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
+          <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
+          <th className="dz-num" title="Actual vs projected (+/− delta). hit = beat projection; miss = fell short.">Value</th>
+          <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
         </tr>
       </thead>
       <tbody>
@@ -100,19 +99,31 @@ function LineupTable({ team }: { team: BoxTeam }) {
   );
 }
 
-/** Render a league-points value, explaining a 0 when there's context:
- *  a bye / did-not-play status reason, a flagged "unexpectedly 0", or — for an
- *  organic 0 (played, scored nothing) — just the bare number with no fuss. */
+function InjuryBadge({ status, bodyPart }: { status: string; bodyPart?: string | null }) {
+  const short = status === "Questionable" ? "Q" : status;
+  const label = bodyPart ? `${short} · ${bodyPart}` : short;
+  const color = status === "Out" || status === "Doubtful" ? "var(--loss)" : "var(--warn)";
+  return (
+    <span className="ml-1 text-[var(--fs-xs)]" style={{ color }}>
+      {label}
+    </span>
+  );
+}
+
 function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
   const value = num(p.league_points);
+  // For a known absence (bye or inactive) replace the bare "0.0 BYE"/"0.0 DNP"
+  // with a cleaner status label — the 0 is implied.
   if (p.zero_reason === "bye" || p.zero_reason === "did_not_play") {
-    const tag = p.zero_reason === "bye" ? "BYE" : "DNP";
+    const label = p.zero_reason === "bye" ? "Bye" : "Out";
+    const injuryDetail = p.injury_body_part ? ` · ${p.injury_body_part}` : "";
     const title =
-      p.zero_reason === "bye" ? "On bye — did not play" : "Did not play (inactive / injury)";
+      p.zero_reason === "bye"
+        ? "On bye — did not play"
+        : `Did not play (inactive / injury)${injuryDetail}`;
     return (
-      <span className="inline-flex items-center justify-end gap-1.5" title={title}>
-        <span className="text-faint">{value}</span>
-        <span className="dz-eyebrow text-faint">{tag}</span>
+      <span className="dz-eyebrow text-faint" title={title}>
+        {label}
       </span>
     );
   }
@@ -135,19 +146,20 @@ function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
 
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   const valueLabel =
-    p.lineup_value === "bench_pop"
-      ? "bench pop"
-      : p.lineup_value === "starter_hit"
-        ? "hit"
-        : p.lineup_value === "starter_miss"
-          ? "miss"
-          : null;
+    p.lineup_value === "starter_hit"
+      ? "hit"
+      : p.lineup_value === "starter_miss"
+        ? "miss"
+        : null;
   return (
     <tr>
       <td className="num text-faint">{p.roster_slot ?? "—"}</td>
       <td className={muted ? "text-muted" : undefined}>
         {p.player_name ?? "—"}
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
+        {p.injury_status != null && (
+          <InjuryBadge status={p.injury_status} bodyPart={p.injury_body_part} />
+        )}
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
       <td className="dz-num text-faint">
@@ -162,6 +174,11 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
                 ? "text-win"
                 : "text-loss"
           }
+          title={
+            p.projection != null && p.league_points != null && p.projection_delta != null
+              ? `Proj ${num(p.projection)} → Actual ${num(p.league_points)} (${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)})`
+              : undefined
+          }
         >
           {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
         </span>
@@ -174,8 +191,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         ) : p.league_points != null ? (
           <ScoreCell p={p} muted={muted} />
         ) : (
-          // No stat line: a legitimate absence (IR / BYE / inactive), not a data gap.
-          <span className="text-faint">{isIR(p.roster_slot) ? "IR" : "—"}</span>
+          <span className="text-faint">—</span>
         )}
       </td>
     </tr>
