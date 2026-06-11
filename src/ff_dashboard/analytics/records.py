@@ -12,10 +12,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, Season, Team
+from ff_pipeline.repository.models import (
+    Matchup,
+    Player,
+    PlayerStatsRaw,
+    PlayerStatsScored,
+    Season,
+    Team,
+)
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
+from ff_dashboard.analytics.common import (
+    has_long_td_score_gap,
+    long_td_bonus_rules,
+    owner_name_map,
+    regular_season_weeks,
+)
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.head_to_head import closest_rivalry
 
@@ -148,14 +160,19 @@ def records_book(session: Session) -> dict[str, Any]:
             Season.year,
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
+            PlayerStatsRaw.stats,
+            PlayerStatsScored.season_id,
         )
         .join(Player, Player.player_id == PlayerStatsScored.player_id)
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .join(PlayerStatsRaw, PlayerStatsRaw.stat_id == PlayerStatsScored.stat_id)
         .where(PlayerStatsScored.total_points.is_not(None))
         .order_by(PlayerStatsScored.total_points.desc())
         .limit(1)
     ).first()
     if best_player is not None:
+        raw: dict[str, Any] = best_player.stats if isinstance(best_player.stats, dict) else {}
+        bonus_keys = long_td_bonus_rules(session, int(best_player.season_id))
         book["best_player_week"] = {
             "available": True,
             "value": round(float(best_player.total_points), 2),
@@ -164,6 +181,7 @@ def records_book(session: Session) -> dict[str, Any]:
             "position": best_player.position,
             "season_year": int(best_player.year),
             "week": int(best_player.week),
+            "score_gap": has_long_td_score_gap(raw, bonus_keys),
         }
 
     book.update(_record_only(session, teams, season_year))

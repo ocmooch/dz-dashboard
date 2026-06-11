@@ -35,6 +35,7 @@ type RecordValue = {
   games_played?: number;
   owner_a?: OwnerLite;
   owner_b?: OwnerLite;
+  score_gap?: boolean;
 };
 
 const RECORDS: { key: string; label: string; suffix?: string }[] = [
@@ -81,6 +82,7 @@ function RecordBody({
   detail,
   available,
   reason,
+  scoreGap,
 }: {
   label: string;
   suffix?: string;
@@ -88,6 +90,7 @@ function RecordBody({
   detail: string;
   available: boolean;
   reason?: string;
+  scoreGap?: boolean;
 }) {
   return (
     <Card hover className="h-full p-5">
@@ -98,6 +101,11 @@ function RecordBody({
             {num(value, Number.isInteger(value) ? 0 : 2)}
             {suffix && <span className="text-[var(--fs-sm)] text-faint">{suffix}</span>}
           </div>
+          {scoreGap && (
+            <div className="mt-1">
+              <DataGap reason="long_td_bonuses_not_computed" size="sm" />
+            </div>
+          )}
           <div className="mt-2 text-[var(--fs-sm)] text-muted">{detail}</div>
         </>
       ) : (
@@ -132,6 +140,7 @@ function RecordCard({
       detail={detail ?? who(rec ?? {})}
       available={available}
       reason={rec?.reason}
+      scoreGap={rec?.score_gap}
     />
   );
   if (href) {

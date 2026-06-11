@@ -86,8 +86,19 @@ function ScoringChart({ playerId, season }: { playerId: number; season: number }
         height={240}
       />
       <div className="mt-3 border-t border-[var(--hairline)] pt-3 text-[var(--fs-sm)] text-muted">
-        Season total: <span className="num text-text">{num(data.total_points)}</span>
+        Season total:{" "}
+        <span className="num text-text">{num(data.total_points)}</span>
+        {data.score_incomplete && (
+          <span className="ml-2 text-[var(--fs-xs)] text-faint" title="Score may be understated — long TD bonus points (40+/50+ yd TDs) require play-by-play data not yet computed">
+            *incomplete
+          </span>
+        )}
       </div>
+      {data.score_incomplete && (
+        <div className="mt-2">
+          <DataGap reason="long_td_bonuses_not_computed" />
+        </div>
+      )}
     </div>
   );
 }

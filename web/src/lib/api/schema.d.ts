@@ -565,6 +565,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -610,6 +627,11 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            /**
+             * Score Gap
+             * @default false
+             */
+            score_gap: boolean;
         };
         /** BoxScore */
         BoxScore: {
@@ -888,6 +910,11 @@ export interface components {
         /** Envelope[RivalryMatrix] */
         Envelope_RivalryMatrix_: {
             data: components["schemas"]["RivalryMatrix"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SearchResults] */
+        Envelope_SearchResults_: {
+            data: components["schemas"]["SearchResults"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[SeasonList] */
@@ -1201,8 +1228,14 @@ export interface components {
             birth_date?: string | null;
             /** Rookie Year */
             rookie_year?: number | null;
+            /** Last Season */
+            last_season?: number | null;
             /** Is Active */
             is_active: boolean;
+            /** First Rostered Season */
+            first_rostered_season?: number | null;
+            /** Last Rostered Season */
+            last_rostered_season?: number | null;
             /** Nfl Com Player Id */
             nfl_com_player_id?: string | null;
             /** Gsis Id */
@@ -1233,6 +1266,11 @@ export interface components {
             total_points?: number | null;
             /** Reason */
             reason?: string | null;
+            /**
+             * Score Incomplete
+             * @default false
+             */
+            score_incomplete: boolean;
             /** Weeks */
             weeks: components["schemas"]["ScoringWeek"][];
         };
@@ -1412,6 +1450,31 @@ export interface components {
             breakdown: {
                 [key: string]: unknown;
             };
+            /**
+             * Score Gap
+             * @default false
+             */
+            score_gap: boolean;
+        };
+        /** SearchHit */
+        SearchHit: {
+            /** Type */
+            type: string;
+            /** Id */
+            id: number;
+            /** Label */
+            label: string;
+            /** Sublabel */
+            sublabel?: string | null;
+            /** Href */
+            href: string;
+        };
+        /** SearchResults */
+        SearchResults: {
+            /** Query */
+            query: string;
+            /** Hits */
+            hits: components["schemas"]["SearchHit"][];
         };
         /** SeasonList */
         SeasonList: {
@@ -2720,6 +2783,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_TeamTransactions_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_v1_search_get: {
+        parameters: {
+            query: {
+                /** @description Search text */
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SearchResults_"];
                 };
             };
             /** @description Validation Error */

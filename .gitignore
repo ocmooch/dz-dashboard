@@ -20,6 +20,7 @@ coverage.xml
 # Environment / secrets (dashboard needs none, but never commit local config)
 .env
 .env.local
+.zip
 
 # uv
 # (uv.lock IS committed for reproducibility)

@@ -87,7 +87,17 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
       <td className="dz-num">
         {p.available && p.league_points != null ? (
-          <span className={muted ? "text-muted" : "text-text"}>{num(p.league_points)}</span>
+          <span className={muted ? "text-muted" : "text-text"}>
+            {num(p.league_points)}
+            {p.score_gap && (
+              <span
+                className="ml-1 cursor-help text-[var(--fs-xs)] text-faint"
+                title="Score may be understated — 40+/50+ yd TD bonuses need play-by-play (known gap)"
+              >
+                *
+              </span>
+            )}
+          </span>
         ) : (
           <DataGap reason={p.reason ?? undefined} size="sm" />
         )}

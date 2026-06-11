@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup, PlayerStatsScored
+from ff_pipeline.repository.models import Matchup, PlayerStatsRaw, PlayerStatsScored
 from ff_pipeline.repository.queries import (
     get_matchup,
     get_season,
@@ -30,7 +30,12 @@ from ff_pipeline.repository.queries import (
 )
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import owner_name_map, require_league
+from ff_dashboard.analytics.common import (
+    has_long_td_score_gap,
+    long_td_bonus_rules,
+    owner_name_map,
+    require_league,
+)
 from ff_dashboard.analytics.coverage import seasons_scored
 
 if TYPE_CHECKING:
@@ -123,8 +128,12 @@ def solve_optimal(players: list[dict[str, Any]], slots: list[str]) -> float:
 
 def _scored_points(
     session: Session, season_id: int, week: int, player_ids: list[int]
-) -> dict[int, tuple[float, dict[str, Any]]]:
-    """``player_id -> (total_points, breakdown)`` for one (season, week)."""
+) -> dict[int, tuple[float, dict[str, Any], dict[str, Any]]]:
+    """``player_id -> (total_points, breakdown, raw_stats)`` for one (season, week).
+
+    ``raw_stats`` is the original nflverse stat dict; callers use it to detect
+    whether long-TD bonus stats were absent from the source (score gap).
+    """
     if not player_ids:
         return {}
     rows = session.execute(
@@ -132,13 +141,19 @@ def _scored_points(
             PlayerStatsScored.player_id,
             PlayerStatsScored.total_points,
             PlayerStatsScored.points_breakdown,
-        ).where(
+            PlayerStatsRaw.stats,
+        )
+        .join(PlayerStatsRaw, PlayerStatsRaw.stat_id == PlayerStatsScored.stat_id)
+        .where(
             PlayerStatsScored.season_id == season_id,
             PlayerStatsScored.week == week,
             PlayerStatsScored.player_id.in_(player_ids),
         )
     ).all()
-    return {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    return {
+        int(pid): (float(pts), bd or {}, rs if isinstance(rs, dict) else {})
+        for pid, pts, bd, rs in rows
+    }
 
 
 def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict[str, Any]:
@@ -148,6 +163,7 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
     roster = roster_for_team_week(session, team_id, week)
     player_ids = [r.player_id for r, _ in roster]
     scored = _scored_points(session, season.season_id, week, player_ids)
+    bonus_keys = long_td_bonus_rules(session, season.season_id)
 
     lineup: list[dict[str, Any]] = []
     starter_points = 0.0
@@ -172,6 +188,8 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
         scored_row = scored.get(player.player_id)
         points = scored_row[0] if scored_row is not None else None
         breakdown = scored_row[1] if scored_row is not None else {}
+        raw_stats = scored_row[2] if scored_row is not None else {}
+        score_gap = has_long_td_score_gap(raw_stats, bonus_keys)
 
         available = points is not None
         reason: str | None = None
@@ -195,6 +213,7 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
             "projection": projection,
             "available": available,
             "reason": reason,
+            "score_gap": score_gap,
         }
         lineup.append(entry)
 
@@ -213,6 +232,7 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
 
     optimal_total = solve_optimal(optimal_candidates, starting_slots)
     starter_points = round(starter_points, 2)
+    lineup_score_gap = any(p["score_gap"] for p in lineup if p["is_starter"])
 
     return {
         "team_id": team_id,
@@ -226,6 +246,8 @@ def _team_box(session: Session, team_id: int, season: Season, week: int) -> dict
         "beat_projection_by": round(beat_projection_by, 2)
         if beat_projection_by is not None
         else None,
+        "lineup_score_gap": lineup_score_gap,
+        "score_gap_delta": None,  # filled by box_score once total_score is known
         "lineup": lineup,
     }
 
@@ -256,12 +278,16 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
 
     home = _team_box(session, m.team_id, season, m.week)
     home["total_score"] = round(m.team_score, 2) if m.team_score is not None else None
+    if home["total_score"] is not None:
+        home["score_gap_delta"] = round(home["total_score"] - home["starter_points"], 2)
 
     away: dict[str, Any] | None = None
     winner_team_id: int | None = None
     if m.opponent_team_id is not None:
         away = _team_box(session, m.opponent_team_id, season, m.week)
         away["total_score"] = round(m.opponent_score, 2) if m.opponent_score is not None else None
+        if away["total_score"] is not None:
+            away["score_gap_delta"] = round(away["total_score"] - away["starter_points"], 2)
         # Winner from the authoritative team scores (the real game result).
         if m.team_score is not None and m.opponent_score is not None:
             if m.team_score > m.opponent_score:

@@ -109,7 +109,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     pairs = roster_for_team_week(session, team_id, week)
     effective_week = week
     if effective_week is None:
-        effective_week = pairs[0][0].week if pairs else (weeks_available[-1] if weeks_available else 0)
+        effective_week = (
+            pairs[0][0].week if pairs else (weeks_available[-1] if weeks_available else 0)
+        )
 
     player_ids = [r.player_id for r, _ in pairs]
     scored: dict[int, float] = {}
@@ -259,9 +261,7 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
     for t in transactions_for_team(session, team_id):
         player = get_player(session, t.player_id) if t.player_id is not None else None
         counterpart = (
-            get_team(session, t.counterpart_team_id)
-            if t.counterpart_team_id is not None
-            else None
+            get_team(session, t.counterpart_team_id) if t.counterpart_team_id is not None else None
         )
         items.append(
             {

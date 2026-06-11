@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import PlayerStatsScored, Season
+from ff_pipeline.repository.models import PlayerStatsRaw, PlayerStatsScored, Season
 from ff_pipeline.repository.queries import (
     availability_timeline,
     get_player,
@@ -16,7 +16,11 @@ from ff_pipeline.repository.queries import (
 )
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import require_league
+from ff_dashboard.analytics.common import (
+    has_long_td_score_gap,
+    long_td_bonus_rules,
+    require_league,
+)
 from ff_dashboard.analytics.coverage import seasons_scored
 
 if TYPE_CHECKING:
@@ -46,25 +50,43 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
             PlayerStatsScored.points_breakdown,
+            PlayerStatsRaw.stats,
+            PlayerStatsScored.season_id,
         )
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .join(PlayerStatsRaw, PlayerStatsRaw.stat_id == PlayerStatsScored.stat_id)
         .where(PlayerStatsScored.player_id == player_id, Season.year == season_year)
         .order_by(PlayerStatsScored.week)
     ).all()
-    weeks: list[dict[str, Any]] = [
-        {
-            "week": int(w),
-            "points": round(float(pts), 2) if pts is not None else None,
-            "breakdown": breakdown or {},
-        }
-        for w, pts, breakdown in rows
-    ]
-    total = round(sum(float(pts) for _, pts, _ in rows if pts is not None), 2)
+
+    # Determine which long-TD bonus rules are active for this season so we can
+    # flag weeks where the nflverse source didn't provide the bonus stats.
+    season_id = int(rows[0].season_id) if rows else None
+    bonus_keys = long_td_bonus_rules(session, season_id) if season_id is not None else frozenset()
+
+    score_incomplete = False
+    weeks: list[dict[str, Any]] = []
+    for w, pts, breakdown, raw_stats, _ in rows:
+        raw: dict[str, Any] = raw_stats if isinstance(raw_stats, dict) else {}
+        gap = has_long_td_score_gap(raw, bonus_keys)
+        if gap:
+            score_incomplete = True
+        weeks.append(
+            {
+                "week": int(w),
+                "points": round(float(pts), 2) if pts is not None else None,
+                "breakdown": breakdown or {},
+                "score_gap": gap,
+            }
+        )
+
+    total = round(sum(float(pts) for _, pts, _, _, _ in rows if pts is not None), 2)
     return {
         "player_id": player_id,
         "season_year": season_year,
         "available": True,
         "total_points": total,
+        "score_incomplete": score_incomplete,
         "weeks": weeks,
     }
 

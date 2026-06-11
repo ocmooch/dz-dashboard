@@ -415,6 +415,7 @@ class ScoringWeek(BaseModel):
     week: int
     points: float | None = None
     breakdown: dict[str, Any] = {}
+    score_gap: bool = False
 
 
 class PlayerScoring(BaseModel):
@@ -423,6 +424,7 @@ class PlayerScoring(BaseModel):
     available: bool
     total_points: float | None = None
     reason: str | None = None
+    score_incomplete: bool = False
     weeks: list[ScoringWeek]
 
 
@@ -512,6 +514,7 @@ class BoxPlayer(BaseModel):
     projection: float | None = None
     available: bool = True
     reason: str | None = None
+    score_gap: bool = False
 
 
 class BoxTeam(BaseModel):
@@ -524,6 +527,8 @@ class BoxTeam(BaseModel):
     optimal_total: float
     points_left_on_bench: float
     beat_projection_by: float | None = None
+    lineup_score_gap: bool = False  # any starter has a potential long-TD understatement
+    score_gap_delta: float | None = None  # total_score - starter_points; non-zero = unexplained pts
     lineup: list[BoxPlayer]
 
 

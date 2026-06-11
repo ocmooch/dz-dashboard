@@ -171,6 +171,7 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     draft_not_captured: "Draft not captured for this season",
     player_unscored: "Player not scored — value unavailable",
     insufficient_history: "Not enough draft history to value this slot",
+    long_td_bonuses_not_computed: "Score may be understated — 40+/50+ yd TD bonuses need play-by-play (known gap)",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">
