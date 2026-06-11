@@ -19,10 +19,15 @@ async function fetchBoxScore(matchupId: number) {
   return data.data;
 }
 
+/** Slot names the backend treats as injured-reserve / unavailable. Mirrors
+ *  ``analytics/matchups.py::IR_SLOTS`` — kept in sync manually since the
+ *  frontend cannot import backend constants. */
+const IR_SLOT_NAMES = new Set(["IR", "IR2", "RES", "TAXI", "NA"]);
+
 /** Injured-reserve slots carry an explicit "IR" label; everything else with no
  *  stat line (BYE / inactive / scratch) is shown as a neutral em dash. */
 function isIR(slot: string | null | undefined): boolean {
-  return !!slot && slot.toUpperCase().startsWith("IR");
+  return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
 }
 
 function shortName(name: string | null | undefined): string {
@@ -52,7 +57,8 @@ function breakdownChart(starters: BoxPlayer[]): { rows: ChartRow[]; series: Seri
 
 function LineupTable({ team }: { team: BoxTeam }) {
   const starters = team.lineup.filter((p) => p.is_starter);
-  const bench = team.lineup.filter((p) => !p.is_starter);
+  const bench = team.lineup.filter((p) => !p.is_starter && !isIR(p.roster_slot));
+  const ir = team.lineup.filter((p) => !p.is_starter && isIR(p.roster_slot));
   return (
     <table className="dz-table">
       <thead>
@@ -77,6 +83,16 @@ function LineupTable({ team }: { team: BoxTeam }) {
           </tr>
         )}
         {bench.map((p) => (
+          <PlayerRow key={p.player_id} p={p} muted />
+        ))}
+        {ir.length > 0 && (
+          <tr>
+            <td colSpan={6} className="dz-eyebrow pt-3 text-faint">
+              IR / RES
+            </td>
+          </tr>
+        )}
+        {ir.map((p) => (
           <PlayerRow key={p.player_id} p={p} muted />
         ))}
       </tbody>
