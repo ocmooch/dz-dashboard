@@ -24,11 +24,10 @@ async function fetchBoxScore(matchupId: number) {
  *  frontend cannot import backend constants. */
 const IR_SLOT_NAMES = new Set(["IR", "IR2", "RES", "TAXI", "NA"]);
 
-/** Injured-reserve slots carry an explicit "IR" label; everything else with no
- *  stat line (BYE / inactive / scratch) is shown as a neutral em dash. */
 function isIR(slot: string | null | undefined): boolean {
   return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
 }
+
 
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
@@ -100,19 +99,16 @@ function LineupTable({ team }: { team: BoxTeam }) {
   );
 }
 
-/** Render a league-points value, explaining a 0 when there's context:
- *  a bye / did-not-play status reason, a flagged "unexpectedly 0", or — for an
- *  organic 0 (played, scored nothing) — just the bare number with no fuss. */
 function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
   const value = num(p.league_points);
+  // For a known absence (bye or inactive) replace the bare "0.0 BYE"/"0.0 DNP"
+  // with a cleaner status label — the 0 is implied.
   if (p.zero_reason === "bye" || p.zero_reason === "did_not_play") {
-    const tag = p.zero_reason === "bye" ? "BYE" : "DNP";
-    const title =
-      p.zero_reason === "bye" ? "On bye — did not play" : "Did not play (inactive / injury)";
+    const label = p.zero_reason === "bye" ? "Bye" : "Out";
+    const title = p.zero_reason === "bye" ? "On bye — did not play" : "Did not play (inactive / injury)";
     return (
-      <span className="inline-flex items-center justify-end gap-1.5" title={title}>
-        <span className="text-faint">{value}</span>
-        <span className="dz-eyebrow text-faint">{tag}</span>
+      <span className="dz-eyebrow text-faint" title={title}>
+        {label}
       </span>
     );
   }
@@ -174,8 +170,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         ) : p.league_points != null ? (
           <ScoreCell p={p} muted={muted} />
         ) : (
-          // No stat line: a legitimate absence (IR / BYE / inactive), not a data gap.
-          <span className="text-faint">{isIR(p.roster_slot) ? "IR" : "—"}</span>
+          <span className="text-faint">—</span>
         )}
       </td>
     </tr>
