@@ -790,6 +790,10 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Injury Status */
+            injury_status?: string | null;
+            /** Injury Body Part */
+            injury_body_part?: string | null;
         };
         /** BoxScore */
         BoxScore: {

@@ -29,6 +29,7 @@ from ff_pipeline.repository.queries import (
     get_matchup,
     get_season,
     get_team,
+    injury_reports_for_week,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -165,13 +166,17 @@ def _batch_projections(
         .group_by(ProjectionModel.player_id)
         .subquery()
     )
-    rows = session.execute(
-        select(ProjectionModel).join(
-            sub,
-            (ProjectionModel.player_id == sub.c.player_id)
-            & (ProjectionModel.fetched_at == sub.c.latest),
+    rows = (
+        session.execute(
+            select(ProjectionModel).join(
+                sub,
+                (ProjectionModel.player_id == sub.c.player_id)
+                & (ProjectionModel.fetched_at == sub.c.latest),
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {r.player_id: r for r in rows}
 
 
@@ -358,6 +363,7 @@ def _team_box(
     scored = _scored_points(session, season.season_id, week, player_ids)
     projections = _batch_projections(session, player_ids, season.year, week)
     scoring_rules = _season_scoring_rules(session, season.season_id)
+    injuries = injury_reports_for_week(session, season.year, week)
 
     lineup: list[dict[str, Any]] = []
     starter_points = 0.0
@@ -421,6 +427,7 @@ def _team_box(
             else None
         )
 
+        injury = injuries.get(player.player_id)
         entry = {
             "roster_slot": slot,
             "player_id": player.player_id,
@@ -437,6 +444,8 @@ def _team_box(
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
             "lineup_value": None,
+            "injury_status": injury.report_status if injury else None,
+            "injury_body_part": injury.report_primary_injury if injury else None,
         }
         lineup.append(entry)
 
