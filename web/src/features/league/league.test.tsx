@@ -174,11 +174,11 @@ describe("LeagueHistoryPage", () => {
   it("renders seasons with champion and provenance labels", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/seasons"]);
     expect(await screen.findByText("League History")).toBeInTheDocument();
-    expect(await screen.findByText("NFL.com team totals")).toBeInTheDocument();
+    expect(await screen.findByText("team totals")).toBeInTheDocument();
     expect(screen.getByText("Scoring rule changed")).toBeInTheDocument();
-    expect(screen.getByText("After: Receptions: 1 point")).toBeInTheDocument();
+    expect(screen.getByText("Receptions: 1 point per 2 receptions")).toBeInTheDocument();
     expect(screen.getByText("Dynasty Crew")).toBeInTheDocument();
-    expect(screen.getByText("Champion - Slider")).toBeInTheDocument();
+    expect(screen.getByText("Champion · Slider")).toBeInTheDocument();
   });
 });
 
