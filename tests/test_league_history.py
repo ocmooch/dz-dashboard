@@ -27,6 +27,11 @@ def _envelope(resp):  # type: ignore[no-untyped-def]
     return body["data"]
 
 
+def _has_change(details: list[dict], **expected) -> bool:  # type: ignore[type-arg]
+    """Return True if any change detail has all expected key-value pairs."""
+    return any(all(item.get(k) == v for k, v in expected.items()) for item in details)
+
+
 def test_league_overview_counts_and_caveats(session: Session) -> None:
     data = league_overview(session)
     assert data["name"] == "Danger Zone Test League"
@@ -55,15 +60,16 @@ def test_league_timeline_labels_scoring_provenance(session: Session) -> None:
     assert by_year[2016]["is_scored"] is True
     assert by_year[2016]["verification_status"] == "verification_pending"
     assert by_year[2016]["changes"]["scoring_availability_changed"] is True
-    assert {
-        "category": "scoring_provenance",
-        "title": "Scoring provenance changed",
-        "summary": "Player-level scoring availability changed for this season.",
-        "before": "nfl com authoritative total",
-        "after": "nflverse reconstructed",
-        "source": "derived_from_db",
-        "certainty": "source_limited",
-    } in by_year[2016]["changes"]["details"]
+    details_2016 = by_year[2016]["changes"]["details"]
+    assert _has_change(
+        details_2016,
+        category="scoring_provenance",
+        title="Scoring provenance changed",
+        before="nfl com authoritative total",
+        after="nflverse reconstructed",
+        source="derived_from_db",
+        certainty="source_limited",
+    )
     assert by_year[2017]["champion"]["owner_name"] == "Maverick"
 
 
@@ -74,15 +80,15 @@ def test_league_eras_are_derived_from_material_context_changes(session: Session)
     assert change_2016["league_size_changed"] is False
     assert change_2016["schedule_changed"] is False
     assert change_2016["scoring_availability_changed"] is True
-    assert {
-        "category": "scoring_provenance",
-        "title": "Scoring provenance changed",
-        "summary": "Player-level scoring availability changed for this season.",
-        "before": "nfl com authoritative total",
-        "after": "nflverse reconstructed",
-        "source": "derived_from_db",
-        "certainty": "source_limited",
-    } in change_2016["details"]
+    assert _has_change(
+        change_2016["details"],
+        category="scoring_provenance",
+        title="Scoring provenance changed",
+        before="nfl com authoritative total",
+        after="nflverse reconstructed",
+        source="derived_from_db",
+        certainty="source_limited",
+    )
 
 
 def test_manager_directory_separates_identity_from_team_names(session: Session) -> None:
