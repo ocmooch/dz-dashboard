@@ -7,31 +7,80 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import PlayerStatsRaw, PlayerStatsScored, Season
+from ff_pipeline.repository.models import Owner, Player, PlayerStatsScored, Season, Team, TeamRoster
 from ff_pipeline.repository.queries import (
     availability_timeline,
     get_player,
     player_availability_for_season,
     player_ownership,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from ff_dashboard.analytics.common import (
-    has_long_td_score_gap,
-    long_td_bonus_rules,
-    require_league,
-)
+from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.historical_team_names import period_team_name
+from ff_dashboard.analytics.matchups import classify_zero
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 
+def list_player_index(
+    session: Session,
+    *,
+    name: str | None = None,
+    position: str | None = None,
+    nfl_team: str | None = None,
+    scope: str = "league",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    """Paginated player index, scoped to league relevance by default.
+
+    A player is *league-relevant* when ``last_rostered_season`` is non-null —
+    i.e. someone in the league owned them at some point. That column is the
+    pipeline's materialized rostered-span (derived from ``team_rosters``); we
+    read it directly rather than re-deriving the span with a GROUP BY join. The
+    Phase 1 DB also carries the broader nflverse universe (players the pipeline
+    scored but nobody ever rostered, plus stub/metadata rows); those are noise
+    for a league players view, so ``scope="league"`` (the default) excludes
+    them. ``scope="all"`` opts back into the full universe.
+
+    Each row carries the player's rostered-season span (straight from the
+    columns), so the caller can render relevance at a glance without the SPA
+    doing any joins. Relevance is filtered *before* paging, so page sizes stay
+    correct.
+    """
+    stmt = select(Player)
+    if name is not None:
+        stmt = stmt.where(Player.name_full.ilike(f"%{name}%"))
+    if position is not None:
+        stmt = stmt.where(Player.position == position)
+    if nfl_team is not None:
+        stmt = stmt.where(Player.nfl_team == nfl_team)
+    if scope != "all":
+        stmt = stmt.where(Player.last_rostered_season.isnot(None))
+    stmt = stmt.order_by(Player.name_full).offset(offset).limit(limit)
+    players = list(session.execute(stmt).scalars().all())
+
+    return [
+        {
+            "player_id": p.player_id,
+            "name_full": p.name_full,
+            "position": p.position,
+            "nfl_team": p.nfl_team,
+            "first_rostered_season": p.first_rostered_season,
+            "last_rostered_season": p.last_rostered_season,
+        }
+        for p in players
+    ]
+
+
 def player_scoring(session: Session, player_id: int, season_year: int) -> dict[str, Any] | None:
     """Weekly league points (+ breakdown) for a (player, season).
 
-    Returns ``available: false`` for unscored seasons (e.g. 2010-2015) rather
-    than an empty/zero series.
+    Returns ``available: false`` for seasons with no scored rows rather than an
+    empty/zero series.
     """
     if get_player(session, player_id) is None:
         return None
@@ -45,70 +94,115 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
             "weeks": [],
         }
 
-    rows = session.execute(
+    scored_rows = session.execute(
         select(
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
             PlayerStatsScored.points_breakdown,
-            PlayerStatsRaw.stats,
-            PlayerStatsScored.season_id,
         )
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
-        .join(PlayerStatsRaw, PlayerStatsRaw.stat_id == PlayerStatsScored.stat_id)
         .where(PlayerStatsScored.player_id == player_id, Season.year == season_year)
         .order_by(PlayerStatsScored.week)
     ).all()
+    scored_points_by_week: dict[int, float | None] = {}
+    breakdown_by_week: dict[int, dict[str, Any]] = {}
+    for w, pts, breakdown in scored_rows:
+        week = int(w)
+        scored_points_by_week[week] = float(pts) if pts is not None else None
+        breakdown_by_week[week] = breakdown or {}
 
-    # Determine which long-TD bonus rules are active for this season so we can
-    # flag weeks where the nflverse source didn't provide the bonus stats.
-    season_id = int(rows[0].season_id) if rows else None
-    bonus_keys = long_td_bonus_rules(session, season_id) if season_id is not None else frozenset()
+    roster_rows = session.execute(
+        select(TeamRoster.week, TeamRoster.extra_data)
+        .where(
+            TeamRoster.player_id == player_id,
+            TeamRoster.season_year == season_year,
+            TeamRoster.week > 0,
+        )
+        .order_by(TeamRoster.week)
+    ).all()
+    roster_points_by_week: dict[int, float] = {}
+    opponent_by_week: dict[int, str | None] = {}
+    for week, extra in roster_rows:
+        if not isinstance(extra, dict):
+            continue
+        value = extra.get("nfl_com_points")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        week_num = int(week)
+        opponent = extra.get("opponent")
+        roster_points_by_week[week_num] = float(value)
+        opponent_by_week[week_num] = opponent if isinstance(opponent, str) else None
 
-    score_incomplete = False
     weeks: list[dict[str, Any]] = []
-    for w, pts, breakdown, raw_stats, _ in rows:
-        raw: dict[str, Any] = raw_stats if isinstance(raw_stats, dict) else {}
-        gap = has_long_td_score_gap(raw, bonus_keys)
-        if gap:
-            score_incomplete = True
+    for week in sorted(set(scored_points_by_week) | set(roster_points_by_week)):
+        scored_points = scored_points_by_week.get(week)
+        points = roster_points_by_week.get(week, scored_points)
+        zero_reason, zero_detail = classify_zero(
+            points,
+            opponent_by_week.get(week),
+            scored_points,
+        )
         weeks.append(
             {
-                "week": int(w),
-                "points": round(float(pts), 2) if pts is not None else None,
-                "breakdown": breakdown or {},
-                "score_gap": gap,
+                "week": week,
+                "points": round(points, 2) if points is not None else None,
+                "breakdown": breakdown_by_week.get(week, {}),
+                "zero_reason": zero_reason,
+                "zero_detail": zero_detail,
             }
         )
 
-    total = round(sum(float(pts) for _, pts, _, _, _ in rows if pts is not None), 2)
+    total = round(sum(float(w["points"]) for w in weeks if w["points"] is not None), 2)
     return {
         "player_id": player_id,
         "season_year": season_year,
         "available": True,
         "total_points": total,
-        "score_incomplete": score_incomplete,
         "weeks": weeks,
     }
 
 
 def ownership_timeline(session: Session, player_id: int) -> dict[str, Any] | None:
-    """Which league teams owned the player and when (None if no such player)."""
+    """Which league teams owned the player and when (None if no such player).
+
+    Phase 1 stores one roster row per (season, week), so a season-long hold is
+    ~17 near-identical rows — rendered raw, that *looks* like the player bounced
+    between owners. Collapse consecutive weeks on the same team within a season
+    into a single tenure span (``week_start``..``week_end``); a mid-season trade
+    or a new season starts a fresh span, so a genuine owner change stays legible
+    instead of buried. Rows arrive ordered by (season_year, week).
+    """
     if get_player(session, player_id) is None:
         return None
-    events = player_ownership(session, player_id)
+    owners = owner_name_map(session)
+    spans: list[dict[str, Any]] = []
+    for roster, team in player_ownership(session, player_id):
+        last = spans[-1] if spans else None
+        if last is not None and (
+            last["team_id"] == roster.team_id and last["season_year"] == roster.season_year
+        ):
+            last["week_end"] = roster.week
+            last["weeks"] += 1
+        else:
+            spans.append(
+                {
+                    "team_id": roster.team_id,
+                    "team_name": period_team_name(team, roster.season_year),
+                    "owner_id": team.owner_id,
+                    "owner_name": owners.get(team.owner_id),
+                    "season_year": roster.season_year,
+                    "week_start": roster.week,
+                    "week_end": roster.week,
+                    "weeks": 1,
+                    "acquisition_type": roster.acquisition_type,
+                }
+            )
+    seasons = [s["season_year"] for s in spans]
     return {
         "player_id": player_id,
-        "events": [
-            {
-                "team_id": roster.team_id,
-                "team_name": team.team_name,
-                "season_year": roster.season_year,
-                "week": roster.week,
-                "roster_slot": roster.roster_slot,
-                "acquisition_type": roster.acquisition_type,
-            }
-            for roster, team in events
-        ],
+        "first_rostered_season": min(seasons) if seasons else None,
+        "last_rostered_season": max(seasons) if seasons else None,
+        "events": spans,
     }
 
 
@@ -159,3 +253,71 @@ def availability(session: Session, player_id: int, season_year: int) -> dict[str
 def has_any_availability(session: Session, player_id: int) -> bool:
     """Whether the player has any availability rows at all (any season)."""
     return bool(availability_timeline(session, player_id))
+
+
+def player_insights(session: Session, player_id: int) -> dict[str, Any] | None:
+    """Best scoring and league ownership summary for a player."""
+    if get_player(session, player_id) is None:
+        return None
+
+    ownership = ownership_timeline(session, player_id)
+    best_week_row = session.execute(
+        select(Season.year, PlayerStatsScored.week, PlayerStatsScored.total_points)
+        .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .where(PlayerStatsScored.player_id == player_id)
+        .order_by(PlayerStatsScored.total_points.desc())
+        .limit(1)
+    ).first()
+    season_rows = session.execute(
+        select(Season.year, func.sum(PlayerStatsScored.total_points))
+        .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .where(
+            PlayerStatsScored.player_id == player_id,
+            PlayerStatsScored.week <= Season.regular_season_weeks,
+        )
+        .group_by(Season.year)
+        .order_by(func.sum(PlayerStatsScored.total_points).desc())
+    ).all()
+    owner_rows = session.execute(
+        select(Owner.owner_id, Owner.display_name, func.count())
+        .join(Team, Team.owner_id == Owner.owner_id)
+        .join(TeamRoster, TeamRoster.team_id == Team.team_id)
+        .where(TeamRoster.player_id == player_id)
+        .group_by(Owner.owner_id, Owner.display_name)
+        .order_by(func.count().desc(), Owner.display_name)
+    ).all()
+
+    best_week = None
+    if best_week_row is not None:
+        year, week, points = best_week_row
+        best_week = {
+            "season_year": int(year),
+            "week": int(week),
+            "points": round(float(points), 2),
+        }
+    best_season = None
+    if season_rows:
+        year, points = season_rows[0]
+        best_season = {"season_year": int(year), "points": round(float(points or 0.0), 2)}
+    most_rostered_by = None
+    if owner_rows:
+        owner_id, display_name, weeks = owner_rows[0]
+        most_rostered_by = {
+            "owner_id": int(owner_id),
+            "display_name": display_name,
+            "weeks": int(weeks),
+        }
+
+    has_any = bool(best_week or best_season or most_rostered_by or ownership)
+    return {
+        "player_id": player_id,
+        "available": has_any,
+        "reason": None if has_any else "no_scored_data",
+        "best_week": best_week,
+        "best_season": best_season,
+        "league_roster_span": {
+            "first_rostered_season": ownership["first_rostered_season"] if ownership else None,
+            "last_rostered_season": ownership["last_rostered_season"] if ownership else None,
+        },
+        "most_rostered_by": most_rostered_by,
+    }

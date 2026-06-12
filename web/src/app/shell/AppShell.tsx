@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import { GlobalSearch } from "@/features/search/GlobalSearch";
+
 import { DataAsOf } from "./DataAsOf";
 import { useSeasons } from "./SeasonContext";
 
@@ -7,15 +9,20 @@ import { useSeasons } from "./SeasonContext";
 // honest placeholders and carry a "soon" tag until their milestone lands.
 const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/", label: "Home", ready: true },
+  { to: "/seasons", label: "Seasons", ready: true },
+  { to: "/managers", label: "Managers", ready: true },
   { to: "/standings", label: "Standings", ready: true },
   { to: "/power", label: "Power", ready: true },
+  { to: "/playoffs", label: "Playoffs", ready: true },
   { to: "/matchups", label: "Matchups", ready: true },
-  { to: "/managers", label: "Managers" },
   { to: "/rivalries", label: "Rivalries" },
   { to: "/records", label: "Records", ready: true },
+  { to: "/rules", label: "Rules & Eras", ready: true },
+  { to: "/stories", label: "Stories", ready: true },
   { to: "/players", label: "Players", ready: true },
   { to: "/stats", label: "Stats", ready: true },
   { to: "/draft", label: "Draft", ready: true },
+  { to: "/about", label: "About Data", ready: true },
 ];
 
 function SeasonSwitcher() {
@@ -32,29 +39,11 @@ function SeasonSwitcher() {
         {seasons.map((s) => (
           <option key={s.season_id} value={s.season_id}>
             {s.season_year}
-            {s.is_scored ? "" : " · not scored"}
+            {s.is_scored ? "" : " · no player scoring"}
           </option>
         ))}
       </select>
     </label>
-  );
-}
-
-/** Global-search placeholder. The typeahead is wired in P10; until then this is a
- *  visible, honestly-disabled affordance so the IA reads correctly. */
-function SearchPlaceholder() {
-  return (
-    <button
-      type="button"
-      className="dz-search"
-      disabled
-      title="Global search — lands in a later milestone"
-      aria-label="Global search (coming soon)"
-    >
-      <span aria-hidden>⌕</span>
-      <span>Search managers, players, seasons…</span>
-      <kbd>/</kbd>
-    </button>
   );
 }
 
@@ -70,7 +59,7 @@ export function AppShell() {
           </div>
         </div>
 
-        <SearchPlaceholder />
+        <GlobalSearch />
 
         <div className="dz-topbar-right">
           <SeasonSwitcher />

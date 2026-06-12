@@ -7,6 +7,7 @@ import {
   Badge,
   Card,
   CardHeader,
+  Chip,
   DataGap,
   EmptyState,
   ErrorState,
@@ -14,8 +15,9 @@ import {
   Skeleton,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
+import { deriveSeasonPhase } from "@/lib/seasonPhase";
 
 async function fetchPlayer(id: number) {
   const { data, error } = await api.GET("/v1/players/{player_id}", {
@@ -49,6 +51,25 @@ async function fetchAvailability(id: number, season: number) {
   return data.data;
 }
 
+async function fetchInsights(id: number) {
+  const { data, error } = await api.GET("/v1/players/{player_id}/insights", {
+    params: { path: { player_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load player insights");
+  return data.data;
+}
+
+/** "wk 3–17" for a multi-week tenure, "wk 5" for a single week. */
+function weekRange(start: number, end: number): string {
+  return start === end ? `wk ${start}` : `wk ${start}–${end}`;
+}
+
+/** "2016–2018", "2017", or null when the player was never on a league roster. */
+function rosteredSpan(first?: number | null, last?: number | null): string | null {
+  if (first == null || last == null) return null;
+  return first === last ? String(first) : `${first}–${last}`;
+}
+
 const ID_LABELS: { key: string; label: string }[] = [
   { key: "nfl_com_player_id", label: "NFL.com" },
   { key: "gsis_id", label: "GSIS" },
@@ -56,6 +77,13 @@ const ID_LABELS: { key: string; label: string }[] = [
   { key: "espn_id", label: "ESPN" },
   { key: "yahoo_id", label: "Yahoo" },
 ];
+
+function zeroReasonLabel(reason?: string | null): string | null {
+  if (reason === "bye") return "Bye — did not play";
+  if (reason === "did_not_play") return "Did not play (inactive / injury)";
+  if (reason === "unexpected") return "League scored 0 with a scoring discrepancy";
+  return null;
+}
 
 function ScoringChart({ playerId, season }: { playerId: number; season: number }) {
   const { data, isLoading } = useQuery({
@@ -74,7 +102,14 @@ function ScoringChart({ playerId, season }: { playerId: number; season: number }
   if (data.weeks.length === 0) {
     return <EmptyState title="No scored weeks" hint="This player has no games this season." />;
   }
-  const rows = data.weeks.map((w) => ({ week: `Wk ${w.week}`, points: w.points ?? null }));
+  const explainedZeroWeeks = data.weeks
+    .map((w) => ({ week: w.week, label: zeroReasonLabel(w.zero_reason), detail: w.zero_detail }))
+    .filter((w) => w.label != null);
+  const rows = data.weeks.map((w) => ({
+    week: `Wk ${w.week}${zeroReasonLabel(w.zero_reason) ? " †" : ""}`,
+    points: w.points ?? null,
+    __note: zeroReasonLabel(w.zero_reason),
+  }));
   return (
     <div className="p-5">
       <BarCompare
@@ -84,19 +119,19 @@ function ScoringChart({ playerId, season }: { playerId: number; season: number }
         xLabel="Week"
         series={[{ key: "points", label: "League points" }]}
         height={240}
+        minPointSize={4}
       />
       <div className="mt-3 border-t border-[var(--hairline)] pt-3 text-[var(--fs-sm)] text-muted">
-        Season total:{" "}
-        <span className="num text-text">{num(data.total_points)}</span>
-        {data.score_incomplete && (
-          <span className="ml-2 text-[var(--fs-xs)] text-faint" title="Score may be understated — long TD bonus points (40+/50+ yd TDs) require play-by-play data not yet computed">
-            *incomplete
-          </span>
-        )}
+        Season total: <span className="num text-text">{num(data.total_points)}</span>
       </div>
-      {data.score_incomplete && (
-        <div className="mt-2">
-          <DataGap reason="long_td_bonuses_not_computed" />
+      {explainedZeroWeeks.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2 text-[var(--fs-xs)] text-muted">
+          {explainedZeroWeeks.map((w) => (
+            <Pill key={w.week} tone={w.label?.startsWith("Bye") ? "default" : "loss"}>
+              wk{w.week} † {w.label}
+              {w.detail ? ` — ${w.detail}` : ""}
+            </Pill>
+          ))}
         </div>
       )}
     </div>
@@ -114,21 +149,31 @@ function OwnershipTimeline({ playerId }: { playerId: number }) {
     return <EmptyState title="Never rostered" hint="No league team has owned this player." />;
   }
   return (
-    <ol className="divide-y divide-[var(--hairline)]">
-      {data.events.map((e, i) => (
-        <li key={i} className="flex items-center justify-between gap-3 px-5 py-3">
-          <div>
-            <Link to={`/teams/${e.team_id}`} className="font-semibold text-text hover:text-accent">
-              {e.team_name ?? `Team ${e.team_id}`}
+    <ol className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
+      {data.events.map((e, i) => {
+        const primary = e.owner_name ?? e.team_name ?? `Team ${e.team_id}`;
+        const showTeamName = e.team_name != null && e.team_name !== primary;
+        return (
+          <li key={i}>
+            <Link
+              to={`/teams/${e.team_id}`}
+              className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <Chip
+                  name={primary}
+                  sub={showTeamName ? (e.team_name ?? undefined) : undefined}
+                  avatarUrl={teamAvatarUrl(e.team_id)}
+                />
+                {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
+              </div>
+              <div className="mt-1 text-[var(--fs-xs)] text-faint">
+                {e.season_year} · {weekRange(e.week_start, e.week_end)}
+              </div>
             </Link>
-            <div className="text-[var(--fs-xs)] text-faint">
-              {e.season_year} · wk {e.week}
-              {e.roster_slot ? ` · ${e.roster_slot}` : ""}
-            </div>
-          </div>
-          {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -161,10 +206,68 @@ function AvailabilityStrip({ playerId, season }: { playerId: number; season: num
   );
 }
 
+function PlayerInsightsCard({ playerId }: { playerId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.playerInsights(playerId),
+    queryFn: () => fetchInsights(playerId),
+  });
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!data || !data.available) {
+    return (
+      <div className="p-5">
+        <DataGap reason={data?.reason ?? "no_scored_data"} />
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+      <div>
+        <div className="dz-eyebrow mb-1">Best week</div>
+        {data.best_week ? (
+          <div className="text-[var(--fs-sm)] text-muted">
+            <span className="num text-accent">{num(data.best_week.points)}</span> pts ·{" "}
+            {data.best_week.season_year} wk {data.best_week.week}
+          </div>
+        ) : (
+          <DataGap reason="no_scored_data" size="sm" />
+        )}
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">Best season</div>
+        {data.best_season ? (
+          <div className="text-[var(--fs-sm)] text-muted">
+            <span className="num text-accent">{num(data.best_season.points)}</span> pts ·{" "}
+            {data.best_season.season_year}
+          </div>
+        ) : (
+          <DataGap reason="no_scored_data" size="sm" />
+        )}
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">League span</div>
+        <div className="text-[var(--fs-sm)] text-muted">
+          {rosteredSpan(
+            data.league_roster_span.first_rostered_season,
+            data.league_roster_span.last_rostered_season,
+          ) ?? "Never rostered"}
+        </div>
+      </div>
+      <div>
+        <div className="dz-eyebrow mb-1">Most rostered by</div>
+        <div className="text-[var(--fs-sm)] text-muted">
+          {data.most_rostered_by?.display_name ?? "—"}
+          {data.most_rostered_by ? ` · ${data.most_rostered_by.weeks} weeks` : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PlayerDetailPage() {
   const params = useParams();
   const playerId = Number(params.playerId);
-  const { current } = useSeasons();
+  const { current, seasons } = useSeasons();
+  const phase = deriveSeasonPhase({ current, seasons });
   const season = current?.season_year;
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -172,6 +275,25 @@ export function PlayerDetailPage() {
     queryFn: () => fetchPlayer(playerId),
     enabled: Number.isFinite(playerId),
   });
+
+  // Rostered span — the honest replacement for the unreliable nflverse
+  // active/retired flag — reads straight off the player's materialized
+  // first/last_rostered_season columns, so no extra ownership round-trip.
+  const span = data ? rosteredSpan(data.first_rostered_season, data.last_rostered_season) : null;
+
+  // Season years that have reconstructed per-player scoring, straight off the
+  // backend's per-season is_scored flag (data-driven, no hardcoded era).
+  const scoredYears = seasons.filter((s) => s.is_scored).map((s) => s.season_year);
+  // A real league player none of whose rostered seasons has per-player scoring
+  // (e.g. rostered only in a current, not-yet-scored season — the pre-2016
+  // reconstruction has since landed, F-51) has no points to chart. Present that
+  // honestly (F-26/F-51) rather than as an empty/error scoring chart.
+  const firstRostered = data?.first_rostered_season;
+  const lastRostered = data?.last_rostered_season;
+  const noScoredInTenure =
+    firstRostered != null &&
+    lastRostered != null &&
+    !scoredYears.some((y) => y >= firstRostered && y <= lastRostered);
 
   return (
     <div className="dz-rise space-y-4">
@@ -185,11 +307,12 @@ export function PlayerDetailPage() {
           </h1>
           {data?.position && <Badge variant="accent">{data.position}</Badge>}
           {data?.nfl_team && <Badge>{data.nfl_team}</Badge>}
-          {data && (
-            <Badge variant={data.is_active ? "win" : "default"}>
-              {data.is_active ? "active" : "retired"}
-            </Badge>
-          )}
+          {data &&
+            (span ? (
+              <Badge variant="win">rostered {span}</Badge>
+            ) : (
+              <Badge variant="default">never rostered</Badge>
+            ))}
         </div>
       </div>
 
@@ -204,14 +327,30 @@ export function PlayerDetailPage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <div className="dz-eyebrow mb-1">Rookie year</div>
-                <div className="num text-text">{data.rookie_year ?? "—"}</div>
+                {data.rookie_year != null ? (
+                  <div className="num text-text">{data.rookie_year}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
+              </div>
+              <div>
+                <div className="dz-eyebrow mb-1">Last year played</div>
+                {data.last_season != null ? (
+                  <div className="num text-text">{data.last_season}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
               </div>
               <div>
                 <div className="dz-eyebrow mb-1">Born</div>
-                <div className="num text-text">{data.birth_date ?? "—"}</div>
+                {data.birth_date != null ? (
+                  <div className="num text-text">{data.birth_date}</div>
+                ) : (
+                  <DataGap reason="player_bio_unavailable" size="sm" />
+                )}
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--hairline)] pt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--hairline)] pt-4">
               {ID_LABELS.map(({ key, label }) => {
                 const v = (data as Record<string, unknown>)[key];
                 if (!v) return null;
@@ -226,7 +365,11 @@ export function PlayerDetailPage() {
 
           <Card>
             <CardHeader eyebrow={`season ${season ?? ""}`} title="Weekly Scoring" />
-            {season != null ? (
+            {noScoredInTenure ? (
+              <div className="p-5">
+                <DataGap reason="unscored_tenure" />
+              </div>
+            ) : season != null ? (
               <ScoringChart playerId={playerId} season={season} />
             ) : (
               <EmptyState title="Pick a season" hint="Use the season switcher above." />
@@ -235,11 +378,20 @@ export function PlayerDetailPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
+              <CardHeader eyebrow="league signal" title="Player Insights" />
+              <PlayerInsightsCard playerId={playerId} />
+            </Card>
+            <Card>
               <CardHeader eyebrow="within the league" title="Ownership" />
               <OwnershipTimeline playerId={playerId} />
             </Card>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
-              <CardHeader eyebrow={`season ${season ?? ""}`} title="Availability" />
+              <CardHeader
+                eyebrow={phase.phase === "offseason" ? "current season only" : `season ${season ?? ""}`}
+                title="Availability"
+              />
               {season != null ? (
                 <AvailabilityStrip playerId={playerId} season={season} />
               ) : (

@@ -12,24 +12,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import (
-    Matchup,
-    Player,
-    PlayerStatsRaw,
-    PlayerStatsScored,
-    Season,
-    Team,
-)
-from sqlalchemy import select
+from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, Season, Team
+from sqlalchemy import distinct, select
 
-from ff_dashboard.analytics.common import (
-    has_long_td_score_gap,
-    long_td_bonus_rules,
-    owner_name_map,
-    regular_season_weeks,
-)
+from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.head_to_head import closest_rivalry
+from ff_dashboard.analytics.historical_team_names import period_team_name_by_slot
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -39,20 +28,46 @@ def _unavailable(reason: str) -> dict[str, Any]:
     return {"available": False, "reason": reason}
 
 
+def scored_window(session: Session) -> set[int]:
+    """Season ids in the player-scored era (``player_stats_scored`` present)."""
+    scored_years = set(seasons_scored(session))
+    return {
+        int(sid)
+        for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
+        if int(yr) in scored_years
+    }
+
+
+def team_record_window(session: Session) -> set[int]:
+    """Season ids that have team totals — any matchup with a non-null team score.
+
+    Historically wider than :func:`scored_window` when team scores existed for
+    seasons before player scoring had been reconstructed. With the reconstruction
+    landed (F-51) the real-DB windows now coincide for completed seasons, but the
+    split is kept data-driven so the records book stays correct if coverage ever
+    diverges again (e.g. a current season with team totals but no scoring yet).
+    """
+    rows = session.execute(
+        select(distinct(Matchup.season_id)).where(Matchup.team_score.is_not(None))
+    ).scalars()
+    return {int(sid) for sid in rows}
+
+
 def _team_context(session: Session) -> dict[int, dict[str, Any]]:
     owners = owner_name_map(session)
     rows = session.execute(
-        select(Team.team_id, Team.team_name, Team.owner_id, Team.season_id)
+        select(Team.team_id, Team.team_name, Team.team_abbrev, Team.owner_id, Team.season_id)
     ).all()
     return {
         int(tid): {
             "team_id": int(tid),
             "team_name": tname,
+            "team_abbrev": tabbrev,
             "owner_id": int(oid),
             "owner_name": owners.get(int(oid)),
             "season_id": int(sid),
         }
-        for tid, tname, oid, sid in rows
+        for tid, tname, tabbrev, oid, sid in rows
     }
 
 
@@ -63,29 +78,37 @@ def records_book(session: Session) -> dict[str, Any]:
         int(sid): int(yr)
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
-    scored_season_ids = {sid for sid, yr in season_year.items() if yr in scored}
+    # Team/score/margin records span every season with team totals; player-level
+    # records stay scoped to the scored era. Both windows are data-driven; with
+    # F-51 they coincide on the real DB for completed seasons, but the split
+    # holds if a season ever has team totals without per-player scoring.
+    team_season_ids = team_record_window(session)
     teams = _team_context(session)
 
     def ctx(team_id: int, week: int) -> dict[str, Any]:
         c = dict(teams.get(team_id, {"team_id": team_id}))
         sid = c.get("season_id")
-        c["season_year"] = season_year.get(sid) if isinstance(sid, int) else None
+        year = season_year.get(sid) if isinstance(sid, int) else None
+        c["season_year"] = year
+        c["team_name"] = period_team_name_by_slot(year, c.get("team_abbrev"), c.get("team_name"))
+        c.pop("team_abbrev", None)
         c["week"] = week
         return c
 
     matchups = list(
-        session.execute(select(Matchup).where(Matchup.season_id.in_(scored_season_ids)))
+        session.execute(select(Matchup).where(Matchup.season_id.in_(team_season_ids)))
         .scalars()
         .all()
     )
 
     book: dict[str, Any] = {
         "scored_era": sorted(scored),
-        "highest_team_score": _unavailable("no_scored_data"),
-        "lowest_team_score": _unavailable("no_scored_data"),
-        "biggest_blowout": _unavailable("no_scored_data"),
-        "narrowest_win": _unavailable("no_scored_data"),
-        "highest_scoring_matchup": _unavailable("no_scored_data"),
+        "team_record_era": sorted({season_year[sid] for sid in team_season_ids}),
+        "highest_team_score": _unavailable("no_team_data"),
+        "lowest_team_score": _unavailable("no_team_data"),
+        "biggest_blowout": _unavailable("no_team_data"),
+        "narrowest_win": _unavailable("no_team_data"),
+        "highest_scoring_matchup": _unavailable("no_team_data"),
         "best_player_week": _unavailable("no_scored_data"),
     }
 
@@ -160,19 +183,14 @@ def records_book(session: Session) -> dict[str, Any]:
             Season.year,
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
-            PlayerStatsRaw.stats,
-            PlayerStatsScored.season_id,
         )
         .join(Player, Player.player_id == PlayerStatsScored.player_id)
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
-        .join(PlayerStatsRaw, PlayerStatsRaw.stat_id == PlayerStatsScored.stat_id)
         .where(PlayerStatsScored.total_points.is_not(None))
         .order_by(PlayerStatsScored.total_points.desc())
         .limit(1)
     ).first()
     if best_player is not None:
-        raw: dict[str, Any] = best_player.stats if isinstance(best_player.stats, dict) else {}
-        bonus_keys = long_td_bonus_rules(session, int(best_player.season_id))
         book["best_player_week"] = {
             "available": True,
             "value": round(float(best_player.total_points), 2),
@@ -181,7 +199,6 @@ def records_book(session: Session) -> dict[str, Any]:
             "position": best_player.position,
             "season_year": int(best_player.year),
             "week": int(best_player.week),
-            "score_gap": has_long_td_score_gap(raw, bonus_keys),
         }
 
     book.update(_record_only(session, teams, season_year))
@@ -318,26 +335,28 @@ def championships(session: Session) -> dict[str, Any]:
     """Championship history / dynasty timeline, one entry per season."""
     teams = _team_context(session)
     owners = owner_name_map(session)
+
+    def label(team_id: int | None, year: int) -> dict[str, Any] | None:
+        if team_id is None:
+            return None
+        t = teams.get(team_id, {})
+        return {
+            "team_id": team_id,
+            # The DB's team_name carries the latest canonical label after
+            # owner-identity repair; render the season-correct slot name.
+            "team_name": period_team_name_by_slot(year, t.get("team_abbrev"), t.get("team_name")),
+            "owner_id": t.get("owner_id"),
+            "owner_name": owners.get(t.get("owner_id", -1)),
+        }
+
     entries: list[dict[str, Any]] = []
     for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
-
-        def label(team_id: int | None) -> dict[str, Any] | None:
-            if team_id is None:
-                return None
-            t = teams.get(team_id, {})
-            return {
-                "team_id": team_id,
-                "team_name": t.get("team_name"),
-                "owner_id": t.get("owner_id"),
-                "owner_name": owners.get(t.get("owner_id", -1)),
-            }
-
         entries.append(
             {
                 "season_year": season.year,
-                "champion": label(season.champion_team_id),
-                "runner_up": label(season.runner_up_team_id),
-                "last_place": label(season.last_place_team_id),
+                "champion": label(season.champion_team_id, season.year),
+                "runner_up": label(season.runner_up_team_id, season.year),
+                "last_place": label(season.last_place_team_id, season.year),
             }
         )
     return {"seasons": entries}

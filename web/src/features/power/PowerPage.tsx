@@ -4,7 +4,7 @@ import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
 import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num, pct } from "@/lib/format";
+import { num, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -74,7 +74,7 @@ export function PowerPage() {
       )}
 
       <Card>
-        <CardHeader eyebrow="model · scoring over luck" title="This week" />
+        <CardHeader eyebrow="model · all-play adjusted" title="This week" />
         {power.isLoading && (
           <div className="space-y-2 p-5">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -88,10 +88,11 @@ export function PowerPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Manager</th>
+                  <th>Team</th>
                   <th className="dz-num">Power</th>
                   <th className="dz-num">Record</th>
                   <th className="dz-num">PF/g</th>
+                  <th className="dz-num">All-play</th>
                   <th className="dz-num">Win%</th>
                   <th className="dz-num">Last 3 PF/g</th>
                   <th className="dz-num">vs standings</th>
@@ -102,13 +103,14 @@ export function PowerPage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.owner_name} sub={r.team_name ?? undefined} />
+                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
                     </td>
                     <td className="dz-num font-semibold text-accent">{num(r.power_score)}</td>
                     <td className="dz-num">
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
                     </td>
                     <td className="dz-num">{num(r.points_for_per_game)}</td>
+                    <td className="dz-num text-muted">{pct(r.all_play_win_pct)}</td>
                     <td className="dz-num text-muted">{pct(r.win_pct)}</td>
                     <td className="dz-num text-muted">{num(r.recent_points_for_per_game)}</td>
                     <td className="dz-num">

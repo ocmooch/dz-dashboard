@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -131,6 +131,22 @@ describe("Chip", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("··")).toBeInTheDocument();
   });
+
+  it("renders a team logo when an avatarUrl is given, not the monogram", () => {
+    const { container } = render(<Chip name="Joe Cool" avatarUrl="/v1/teams/7/avatar" />);
+    const img = container.querySelector("img.dz-avatar");
+    expect(img).toHaveAttribute("src", "/v1/teams/7/avatar");
+    expect(screen.queryByText("JC")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the monogram when the avatar image fails to load (404)", () => {
+    const { container } = render(<Chip name="Joe Cool" avatarUrl="/v1/teams/7/avatar" />);
+    const img = container.querySelector("img.dz-avatar");
+    expect(img).toBeInTheDocument();
+    fireEvent.error(img as Element);
+    expect(screen.getByText("JC")).toBeInTheDocument();
+    expect(container.querySelector("img.dz-avatar")).not.toBeInTheDocument();
+  });
 });
 
 describe("DataGap (the honesty component)", () => {
@@ -148,7 +164,7 @@ describe("DataGap (the honesty component)", () => {
 
   it("maps a known reason code to a human label", () => {
     render(<DataGap reason="season_unscored" />);
-    expect(screen.getByRole("note")).toHaveTextContent("Not scored — pre-2016 season");
+    expect(screen.getByRole("note")).toHaveTextContent("Per-player scoring not available for this season");
   });
 
   it("passes an unknown reason through verbatim", () => {
@@ -286,6 +302,13 @@ describe("WeekStepper", () => {
     expect(onChange).toHaveBeenCalledWith(6);
     await userEvent.click(screen.getByRole("button", { name: "Previous week" }));
     expect(onChange).toHaveBeenCalledWith(4);
+  });
+
+  it("allows direct week selection", async () => {
+    const onChange = vi.fn();
+    render(<WeekStepper week={5} max={14} onChange={onChange} />);
+    await userEvent.selectOptions(screen.getByLabelText("Select week"), "12");
+    expect(onChange).toHaveBeenCalledWith(12);
   });
 });
 

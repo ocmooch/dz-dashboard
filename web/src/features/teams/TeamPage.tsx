@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
 import {
@@ -10,6 +10,7 @@ import {
   DataGap,
   EmptyState,
   ErrorState,
+  UNSCORED_SEASON_NOTE,
   Pill,
   RecordLine,
   Skeleton,
@@ -18,8 +19,12 @@ import {
   WeekStepper,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
+
+type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
+type TeamTransaction = components["schemas"]["TeamTransaction"];
 
 async function fetchOverview(id: number) {
   const { data, error } = await api.GET("/v1/teams/{team_id}", {
@@ -59,6 +64,22 @@ async function fetchTransactions(id: number) {
   });
   if (error || !data) throw new Error("Failed to load transactions");
   return data.data;
+}
+
+async function fetchRosterMoves(id: number) {
+  const { data, error } = await api.GET("/v1/teams/{team_id}/roster-moves", {
+    params: { path: { team_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load roster moves");
+  return data.data;
+}
+
+async function fetchOwnerSeasons(ownerId: number): Promise<OwnerSeasonRow[]> {
+  const { data, error } = await api.GET("/v1/owners/{owner_id}/seasons", {
+    params: { path: { owner_id: ownerId } },
+  });
+  if (error || !data) throw new Error("Failed to load owner seasons");
+  return data.data.seasons;
 }
 
 function RosterCard({ teamId }: { teamId: number }) {
@@ -146,7 +167,7 @@ function RosterCard({ teamId }: { teamId: number }) {
   );
 }
 
-function ScheduleCard({ teamId }: { teamId: number }) {
+function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScoresAvailable: boolean }) {
   const { data, isLoading } = useQuery({
     queryKey: qk.teamSchedule(teamId),
     queryFn: () => fetchSchedule(teamId),
@@ -166,8 +187,11 @@ function ScheduleCard({ teamId }: { teamId: number }) {
                 <div className="flex items-center gap-3">
                   <span className={`num w-6 font-bold ${tone}`}>{g.result ?? "—"}</span>
                   <div>
-                    <Link to={`/matchups/${g.matchup_id}`} className="text-text hover:text-accent">
-                      vs {g.opponent_owner_name ?? g.opponent_team_name ?? "Bye"}
+                    <Link
+                      to={boxScoresAvailable ? `/matchups/${g.matchup_id}` : `/matchups?week=${g.week}`}
+                      className="text-text hover:text-accent"
+                    >
+                      vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                     </Link>
                     <div className="text-[var(--fs-xs)] text-faint">
                       wk {g.week}
@@ -229,28 +253,156 @@ function TransactionsCard({ teamId }: { teamId: number }) {
   });
   return (
     <Card>
-      <CardHeader eyebrow="moves" title="Transactions" />
+      <CardHeader eyebrow="recorded exact log" title="Transactions" />
       {isLoading && <Skeleton className="m-5 h-32" />}
       {data && data.transactions.length === 0 && (
-        <EmptyState title="No transactions" hint="No moves recorded for this team's season." />
+        <EmptyState title="No transactions recorded" hint="No exact transaction rows for this team's season." />
       )}
       {data && data.transactions.length > 0 && (
         <ol className="divide-y divide-[var(--hairline)]">
           {data.transactions.map((t) => (
             <li key={t.transaction_id} className="flex items-center justify-between gap-3 px-5 py-3">
               <div>
-                <span className="text-text">{t.player_name ?? "—"}</span>
+                <span className="text-text">{transactionTitle(t)}</span>
                 <div className="text-[var(--fs-xs)] text-faint">
-                  {t.effective_week != null ? `wk ${t.effective_week}` : ""}
-                  {t.direction ? ` · ${t.direction}` : ""}
+                  {transactionDetail(t)}
                 </div>
               </div>
-              <Pill>{t.transaction_type}</Pill>
+              <Pill tone={transactionTone(t)}>{transactionLabel(t.transaction_type)}</Pill>
             </li>
           ))}
         </ol>
       )}
     </Card>
+  );
+}
+
+function RosterMovesCard({ teamId }: { teamId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.teamRosterMoves(teamId),
+    queryFn: () => fetchRosterMoves(teamId),
+  });
+
+  const adds = data?.moves.filter((m) => m.action === "add") ?? [];
+  const drops = data?.moves.filter((m) => m.action === "drop") ?? [];
+  const churn = [...adds, ...drops].sort((a, b) => a.week - b.week);
+  const retained = data?.moves.filter((m) => m.action === "retain") ?? [];
+
+  return (
+    <Card>
+      <CardHeader eyebrow="estimated from rosters" title="Roster-diff fallback" />
+      {isLoading && <Skeleton className="m-5 h-32" />}
+      {data && data.available === false && (
+        <div className="p-5">
+          <DataGap reason="roster_history_unavailable" size="sm" />
+        </div>
+      )}
+      {data && data.available && churn.length === 0 && (
+        <EmptyState title="No roster churn detected" hint="Roster snapshots show no adds or drops." />
+      )}
+      {data && data.available && churn.length > 0 && (
+        <>
+          <ol className="divide-y divide-[var(--hairline)]">
+            {churn.map((m) => (
+              <li
+                key={`${m.action}-${m.player_id}-${m.week}`}
+                className="flex items-center justify-between gap-3 px-5 py-3"
+              >
+                <div>
+                  <span className="text-text">{m.player_name ?? "—"}</span>
+                  <div className="text-[var(--fs-xs)] text-faint">
+                    wk {m.week}
+                    {m.position ? ` · ${m.position}` : ""}
+                  </div>
+                </div>
+                <Pill tone={m.action === "add" ? "win" : "loss"}>{m.action}</Pill>
+              </li>
+            ))}
+          </ol>
+          {retained.length > 0 && (
+            <div className="border-t border-[var(--hairline)] px-5 py-3 text-[var(--fs-xs)] text-faint">
+              {retained.length} player{retained.length === 1 ? "" : "s"} retained all season
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+function transactionLabel(type: string) {
+  return type.replaceAll("_", " ");
+}
+
+function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
+  if (t.direction === "in" || t.transaction_type.includes("add")) return "win";
+  if (t.direction === "out" || t.transaction_type === "drop") return "loss";
+  return undefined;
+}
+
+function transactionTitle(t: TeamTransaction) {
+  if (t.player_name) return t.player_name;
+  if (t.transaction_type === "setting_change") return "League setting";
+  return "Transaction";
+}
+
+function transactionDetail(t: TeamTransaction) {
+  const parts = [
+    formatTransactionDate(t.executed_at),
+    t.effective_week != null ? `wk ${t.effective_week}` : null,
+    t.direction,
+    t.waiver_priority_used != null ? `waiver priority ${t.waiver_priority_used}` : null,
+    t.faab_bid != null ? `FAAB $${t.faab_bid}` : null,
+    slotMove(t.extra_data),
+    t.counterpart_team_name ? `with ${t.counterpart_team_name}` : null,
+    t.notes,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function formatTransactionDate(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function slotMove(extra: TeamTransaction["extra_data"]) {
+  if (!extra || typeof extra !== "object") return null;
+  const fromSlot = "from_slot" in extra ? extra.from_slot : null;
+  const toSlot = "to_slot" in extra ? extra.to_slot : null;
+  if (typeof fromSlot === "string" && typeof toSlot === "string") return `${fromSlot} to ${toSlot}`;
+  return null;
+}
+
+function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number }) {
+  const navigate = useNavigate();
+  const { data } = useQuery({
+    queryKey: qk.ownerSeasons(ownerId),
+    queryFn: () => fetchOwnerSeasons(ownerId),
+  });
+  const seasons = [...(data ?? [])]
+    .filter((s) => s.team_id != null && s.season_year != null)
+    .sort((a, b) => Number(b.season_year) - Number(a.season_year));
+
+  if (seasons.length <= 1) return null;
+
+  return (
+    <label className="inline-flex items-center gap-2 text-[var(--fs-sm)] text-muted">
+      Season
+      <select
+        className="dz-select py-1"
+        aria-label="Team season"
+        value={teamId}
+        onChange={(e) => navigate(`/teams/${e.target.value}`)}
+      >
+        {seasons.map((s) => (
+          <option key={s.team_id} value={s.team_id}>
+            {s.season_year}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -279,6 +431,7 @@ export function TeamPage() {
               {data.owner_name ?? "—"}
             </Link>
           )}
+          {data && <TeamSeasonSelect ownerId={data.owner_id} teamId={teamId} />}
         </div>
       </div>
 
@@ -308,18 +461,21 @@ export function TeamPage() {
             </div>
             {!data.is_scored && (
               <div className="mt-4 border-t border-[var(--hairline)] pt-4">
-                <Badge variant="gap">player-level scoring not available for this season</Badge>
+                <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
               </div>
             )}
           </Card>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RosterCard teamId={teamId} />
-            <ScheduleCard teamId={teamId} />
+            <ScheduleCard teamId={teamId} boxScoresAvailable={data.is_scored} />
           </div>
 
           <ScoringTrendCard teamId={teamId} />
-          <TransactionsCard teamId={teamId} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <RosterMovesCard teamId={teamId} />
+            <TransactionsCard teamId={teamId} />
+          </div>
         </>
       )}
     </div>

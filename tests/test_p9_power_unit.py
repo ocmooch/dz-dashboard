@@ -58,6 +58,8 @@ def test_power_ranking_2016_known_scores(session: Session) -> None:
     assert mav["rank"] == 1
     assert mav["power_score"] == exp["mav"]["power_score"]
     assert mav["points_for_per_game"] == exp["mav"]["pf_per_game"]
+    assert mav["all_play_win_pct"] == 1.0
+    assert mav["z_all_play_win_pct"] == 1.3416
     assert mav["z_win_pct"] == exp["mav"]["z_win"]
     # Only 2 weeks played → recent window == whole season.
     assert mav["recent_points_for_per_game"] == mav["points_for_per_game"]

@@ -15,10 +15,12 @@ seasons of league history plus the live current season. Treat dz-dashboard as
 
 - **Repos:**
   - Dashboard: `github.com/ocmooch/dz-dashboard` (React + TS SPA in `web/`; read-only FastAPI BFF)
-  - Data pipeline: `github.com/ocmooch/danger-zone` (`v1.0.0`)
-- **Starting point:** the dashboard *as currently built* is a first-look scaffold
-  (App shell + Home / Standings / Records wired). It is a point to iterate on,
-  **not a constraint to preserve**.
+  - Data pipeline: `github.com/ocmooch/danger-zone` (active source is the editable sibling checkout;
+    the live DB schema is ≥1.2.0 with team/owner avatar columns)
+- **Starting point:** the dashboard is built end-to-end (Home, Standings, Power,
+  Matchups + Box score, Rivalries, Records, Players + detail, Stats, Draft,
+  Coverage/About, Managers index + profiles). It is a point to
+  iterate on, **not a constraint to preserve**.
 
 ## What's wanted
 
@@ -45,7 +47,8 @@ fantasy** (dated but clean hierarchy, legible tables). Discipline: **refined, no
 maximalist** — dense where data demands it, calm everywhere else. Avoid the
 "default AI dashboard" look, Inter/Roboto, and purple-gradient-on-white.
 
-**Tokens** (dark is default; design a light theme as a second token set behind `[data-theme]`):
+**Tokens** (dark is default; the app does **not** ship a light token set today. Design a light
+theme behind `[data-theme]` only if the theme-toggle enhancement is in scope):
 
 - Surfaces: `--bg #0b0e13`, `--surface-1 #12161d`, `--surface-2 #1a2029`, `--border #262d38`
 - Text: `--text #e7ecf3`, `--text-muted #9aa7b8`, `--text-faint #5f6b7c`
@@ -97,13 +100,15 @@ win/loss-colored) · `OwnerChip`/`PlayerChip`/`TeamChip` (avatar + name) ·
 
 ## Non-negotiables (these shape the UI, not just the backend)
 
-- **Honesty about data gaps.** Unscored pre-2016 seasons, current-season-only
-  availability, un-scored team defense, and never-met rivalries must render a
-  dedicated **`DataGap`** affordance (a labeled badge, e.g. "Not scored — pre-2016
-  season") — **never a fake `0`**. Design what this looks like; it appears throughout.
+- **Honesty about data gaps.** An unscored current/in-progress season, current-season-only
+  availability, a genuinely missing team-defense row, and never-met rivalries must render a
+  dedicated **`DataGap`** affordance (a labeled badge, e.g. "Current season not scored yet" or
+  "No meetings on record") — **never a fake `0`**. Per-player fantasy scoring now spans
+  2010–2025 since F-51; gap affordances are data-driven on `is_scored`, never hardcoded years.
+  Design what this looks like; it appears throughout.
 - **Every score/record/stat is monospaced + tabular** so numeric columns align.
 - **Accessibility is baseline:** WCAG AA contrast (verify orange-on-dark and muted
   text), visible focus rings, non-color encodings on charts (direct labels),
   data-table fallbacks, semantic landmarks.
-- **Token-driven and re-skinnable** — commit to one direction per option, but make
-  the theme fully swappable via CSS variables.
+- **Token-driven and re-skinnable** — commit to one direction per option, but keep
+  the theme swappable via CSS variables. The shipped app currently has dark tokens only.

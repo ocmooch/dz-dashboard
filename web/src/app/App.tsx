@@ -1,9 +1,16 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import { HomePage } from "@/features/home/HomePage";
+import { AboutPage } from "@/features/about/AboutPage";
+import { PlayoffsPage } from "@/features/playoffs/PlayoffsPage";
 import { DraftPage } from "@/features/draft/DraftPage";
+import { HomePage } from "@/features/home/HomePage";
+import { LeagueHistoryPage } from "@/features/league/LeagueHistoryPage";
+import { RulesErasPage } from "@/features/league/RulesErasPage";
+import { StoriesPage } from "@/features/league/StoriesPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
+import { ManagersPage } from "@/features/managers/ManagersPage";
+import { ManagerProfilePage } from "@/features/managers/ManagerProfilePage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
 import { PowerPage } from "@/features/power/PowerPage";
 import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
@@ -25,21 +32,26 @@ export function App() {
         <Routes>
           <Route element={<AppShell />}>
             <Route index element={<HomePage />} />
+            <Route path="seasons" element={<LeagueHistoryPage />} />
             <Route path="standings" element={<StandingsPage />} />
             <Route path="power" element={<PowerPage />} />
+            <Route path="playoffs" element={<PlayoffsPage />} />
+            <Route path="bracket" element={<Navigate to="/playoffs" replace />} />
             <Route path="records" element={<RecordsPage />} />
+            <Route path="rules" element={<RulesErasPage />} />
+            <Route path="stories" element={<StoriesPage />} />
             <Route path="rivalries" element={<RivalriesPage />} />
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />
             <Route path="matchups" element={<MatchupsPage />} />
             <Route path="matchups/:matchupId" element={<BoxScorePage />} />
-            <Route path="managers" element={<PlaceholderPage title="Managers" />} />
-            {/* Deep-link target whose full page lands later (P4). */}
-            <Route path="managers/:ownerId" element={<PlaceholderPage title="Manager profile" />} />
+            <Route path="managers" element={<ManagersPage />} />
+            <Route path="managers/:ownerId" element={<ManagerProfilePage />} />
             <Route path="players" element={<PlayersPage />} />
             <Route path="players/:playerId" element={<PlayerDetailPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<DraftPage />} />
+            <Route path="about" element={<AboutPage />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>
         </Routes>

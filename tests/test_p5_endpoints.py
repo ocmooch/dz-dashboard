@@ -46,20 +46,20 @@ def test_box_score_endpoint_envelope_and_values(client: TestClient) -> None:
     data = _envelope(client.get(f"/v1/matchups/{mid}/box-score"))
     assert data["available"] is True
     home = data["home"]
-    assert home["starter_points"] == 104.0
-    assert home["optimal_total"] == 117.0
+    assert home["starter_points"] == 113.0  # includes the 9.0 DST
+    assert home["optimal_total"] == 126.0
     assert home["points_left_on_bench"] == 13.0
     assert home["bench_points"] == 51.0
     assert data["winner_team_id"] == KNOWN["team_id"][(2017, "ice")]
 
 
-def test_box_score_dst_gap_flagged(client: TestClient) -> None:
+def test_box_score_dst_is_scored(client: TestClient) -> None:
     mid = KNOWN["matchup_id"][(2017, 1, "ice")]
     data = _envelope(client.get(f"/v1/matchups/{mid}/box-score"))
     dst = next(p for p in data["home"]["lineup"] if p["position"] == "DEF")
-    assert dst["league_points"] is None  # never a fake 0
-    assert dst["available"] is False
-    assert dst["reason"] == "team_defense_not_scored"
+    assert dst["league_points"] == 9.0  # DST scored end-to-end, not a gap
+    assert dst["available"] is True
+    assert dst["reason"] is None
 
 
 def test_box_score_pre_2016_gap(client: TestClient) -> None:

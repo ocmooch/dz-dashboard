@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
     "gen:api": "openapi-typescript http://127.0.0.1:8800/openapi.json -o src/lib/api/schema.d.ts",
     "gen:api:check": "openapi-typescript http://127.0.0.1:8800/openapi.json | diff -u src/lib/api/schema.d.ts - && echo 'API client in sync with live BFF schema'"
   },
@@ -23,6 +25,7 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

@@ -4,14 +4,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
+from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
-from ff_dashboard.analytics.players import availability, player_scoring
-from ff_dashboard.analytics.records import records_book
+from ff_dashboard.analytics.players import (
+    availability,
+    list_player_index,
+    ownership_timeline,
+    player_scoring,
+)
+from ff_dashboard.analytics.records import championships, records_book
 from ff_dashboard.analytics.standings import compute_standings
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.orm import Session
 
 
@@ -56,6 +64,40 @@ def test_standings_through_week_one(session: Session) -> None:
     assert data["through_week"] == 1
     mav = next(r for r in data["rows"] if r["owner_name"] == "Maverick")
     assert (mav["wins"], mav["points_for"]) == (1, 150.0)  # blowout week only
+
+
+def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session) -> None:
+    data = season_bracket(session, KNOWN["season_id"][2015])
+    assert data is not None
+    assert data["available"] is True
+    assert data["regular_season_weeks"] == 2
+    assert "Post-regular-season matchups" in data["caveat"]
+    assert data["consolation_distinguished"] is True
+    # Playoff bracket has rounds; single post-season week → 1 round
+    pb = data["playoff_bracket"]
+    assert pb is not None
+    assert len(pb["rounds"]) == 1
+    games = pb["rounds"][0]["games"]
+    assert len(games) == 1  # one non-consolation game deduped
+    champ = games[0]
+    assert champ["is_consolation"] is False
+    assert champ["team_a"]["owner_name"] == "Slider"
+    assert champ["team_a"]["score"] == 120.0
+    assert champ["winner_team_id"] == champ["team_a"]["team_id"]
+    # Consolation bracket also has one round / one game
+    cb = data["consolation_bracket"]
+    assert cb is not None
+    consol_game = cb["rounds"][0]["games"][0]
+    assert consol_game["team_b"]["owner_name"] == "Iceman"
+
+
+def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
+    data = season_bracket(session, KNOWN["season_id"][2016])
+    assert data is not None
+    assert data["available"] is False
+    assert data["reason"] == "bracket_unavailable"
+    assert data["playoff_bracket"] is None
+    assert data["consolation_bracket"] is None
 
 
 # --- Owners ----------------------------------------------------------------
@@ -148,9 +190,24 @@ def test_records_closest_rivalry(session: Session) -> None:
 
 def test_records_only_use_scored_era(session: Session) -> None:
     book = records_book(session)
-    assert book["scored_era"] == KNOWN["seasons_scored"]  # [2016, 2017]
-    # The best player week must come from a scored season, never 2015.
-    assert book["best_player_week"]["season_year"] in {2016, 2017}
+    assert book["scored_era"] == KNOWN["seasons_scored"]
+    # The best player week must come from a scored season, never a generic
+    # present-but-unscored gap season.
+    assert book["best_player_week"]["season_year"] in set(KNOWN["seasons_scored"])
+
+
+def test_championships_use_season_correct_team_name(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Championship history must render the period-correct slot name, not the
+    DB's latest canonical team_name (regression for the 2024 champion showing
+    its current name instead of the name it won under)."""
+    # The fixture's 2016 champion (Maverick, slot abbrev "MAV") carries the
+    # canonical alias "Maverick 2016". Inject a divergent historical slot name
+    # so we can prove championships() resolves it rather than the raw column.
+    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Putting the CAP in CHAMP")
+    by_year = {e["season_year"]: e for e in championships(session)["seasons"]}
+    assert by_year[2016]["champion"]["team_name"] == "Putting the CAP in CHAMP"
 
 
 # --- Players + gap behavior ------------------------------------------------
@@ -171,6 +228,29 @@ def test_player_scoring_scored_season(session: Session) -> None:
     assert data["total_points"] == KNOWN["top_scorer_2017_season_total"]  # 58.0
 
 
+def test_player_scoring_includes_authoritative_zero_weeks(session: Session) -> None:
+    data = player_scoring(session, KNOWN["player_id"]["dnp"], 2017)
+    assert data is not None
+    assert data["available"] is True
+    assert data["total_points"] == 0.0
+    assert data["weeks"] == [
+        {
+            "week": 1,
+            "points": 0.0,
+            "breakdown": {},
+            "zero_reason": "did_not_play",
+            "zero_detail": None,
+        },
+        {
+            "week": 2,
+            "points": 0.0,
+            "breakdown": {},
+            "zero_reason": "bye",
+            "zero_detail": None,
+        },
+    ]
+
+
 def test_availability_non_current_season_is_a_gap(session: Session) -> None:
     # Fixture current season is 2017; 2016 availability is not reconstructable.
     data = availability(session, KNOWN["player_id"]["jjet"], 2016)
@@ -184,3 +264,33 @@ def test_availability_current_season_present(session: Session) -> None:
     assert data is not None
     assert data["available"] is True
     assert data["weeks"][0]["status"] == "owned"
+
+
+def test_player_index_scopes_to_league_relevance(session: Session) -> None:
+    # cmc is rostered → in the league index; jjet is scored-but-never-rostered →
+    # excluded by default, present only under scope=all.
+    league = {r["player_id"] for r in list_player_index(session, scope="league")}
+    assert KNOWN["player_id"]["cmc"] in league
+    assert KNOWN["player_id"]["jjet"] not in league
+    everyone = {r["player_id"] for r in list_player_index(session, scope="all")}
+    assert KNOWN["player_id"]["jjet"] in everyone
+
+
+def test_player_index_row_enrichment(session: Session) -> None:
+    (row,) = list_player_index(session, name="McCaffrey")
+    assert (row["first_rostered_season"], row["last_rostered_season"]) == (2016, 2017)
+    assert "has_scored" not in row
+
+
+def test_ownership_timeline_collapses_into_spans(session: Session) -> None:
+    # cmc is rostered weeks 1-2 of 2016 (contiguous → one collapsed span) and week 1
+    # of 2017 → two spans, one per season, never one row per week.
+    data = ownership_timeline(session, KNOWN["player_id"]["cmc"])
+    assert data is not None
+    assert (data["first_rostered_season"], data["last_rostered_season"]) == (2016, 2017)
+    assert [(s["season_year"], s["week_start"], s["week_end"]) for s in data["events"]] == [
+        (2016, 1, 2),
+        (2017, 1, 1),
+    ]
+    assert data["events"][0]["owner_name"] == "Maverick"
+    assert data["events"][0]["team_name"] == "Maverick 2016"

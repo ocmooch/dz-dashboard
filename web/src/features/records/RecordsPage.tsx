@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchRecords() {
@@ -54,8 +55,8 @@ const RECORDS: { key: string; label: string; suffix?: string }[] = [
 function who(rec: RecordValue): string {
   const parts: string[] = [];
   if (rec.player_name) parts.push(rec.player_name);
-  if (rec.owner_name) parts.push(rec.owner_name);
-  else if (rec.team_name) parts.push(rec.team_name);
+  if (rec.team_name) parts.push(rec.team_name);
+  else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year)
     parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
   return parts.join(" — ") || "—";
@@ -153,29 +154,46 @@ function RecordCard({
   return body;
 }
 
-function ChampionshipTimeline() {
+function ChampionshipTimeline({ query }: { query: string }) {
   const { data, isLoading } = useQuery({ queryKey: qk.championships, queryFn: fetchChampionships });
   if (isLoading) return <Skeleton className="h-24 w-full" />;
   if (!data) return null;
   const decided = data.seasons.filter((s) => s.champion);
+  const filtered = decided.filter((s) => {
+    const haystack = [
+      s.season_year,
+      s.champion?.owner_name,
+      s.champion?.team_name,
+      s.runner_up?.team_name,
+      s.runner_up?.owner_name,
+      s.last_place?.team_name,
+      s.last_place?.owner_name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query.trim().toLowerCase());
+  });
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
-      {decided.map((s) => {
-        const ownerId = s.champion?.owner_id;
+      {filtered.map((s) => {
+        const teamId = s.champion?.team_id;
         const inner = (
           <>
             <div className="num text-[var(--fs-sm)] text-faint">{s.season_year}</div>
             <div className="mt-1 flex items-center gap-1.5">
               <Trophy />
-              <span className="truncate font-semibold text-text">
-                {s.champion?.owner_name ?? s.champion?.team_name ?? "—"}
-              </span>
+              <Chip
+                name={s.champion?.team_name ?? s.champion?.owner_name}
+                sub={s.champion?.team_name && s.champion?.owner_name ? s.champion.owner_name : undefined}
+                avatarUrl={teamId != null ? teamAvatarUrl(teamId) : undefined}
+              />
             </div>
           </>
         );
         const cls = "dz-card dz-card--hover min-w-[140px] shrink-0 p-3";
-        return ownerId != null ? (
-          <Link key={s.season_year} to={`/managers/${ownerId}`} className={`${cls} block`}>
+        return teamId != null ? (
+          <Link key={s.season_year} to={`/teams/${teamId}`} className={`${cls} block`}>
             {inner}
           </Link>
         ) : (
@@ -184,6 +202,7 @@ function ChampionshipTimeline() {
           </div>
         );
       })}
+      {filtered.length === 0 && <DataGap reason="no_matching_records" />}
     </div>
   );
 }
@@ -202,6 +221,14 @@ export function RecordsPage() {
     rivalry?.owner_a?.display_name && rivalry?.owner_b?.display_name
       ? `${rivalry.owner_a.display_name} vs ${rivalry.owner_b.display_name}`
       : "—";
+  const [trophyQuery, setTrophyQuery] = useState("");
+  const visibleRecords = useMemo(
+    () =>
+      RECORDS.filter((r) =>
+        r.label.toLowerCase().includes(trophyQuery.trim().toLowerCase()),
+      ),
+    [trophyQuery],
+  );
 
   return (
     <div className="dz-rise space-y-6">
@@ -230,7 +257,7 @@ export function RecordsPage() {
       {data && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {RECORDS.map((r) => (
+            {visibleRecords.map((r) => (
               <RecordCard key={r.key} recordKey={r.key} label={r.label} suffix={r.suffix} rec={data[r.key]} />
             ))}
             <RecordCard
@@ -244,9 +271,15 @@ export function RecordsPage() {
           </div>
 
           <Card>
-            <CardHeader eyebrow="dynasty timeline" title="Championship History" />
+            <CardHeader eyebrow="league trophy case" title="Championship History" />
             <div className="p-5">
-              <ChampionshipTimeline />
+              <input
+                className="dz-input mb-4 max-w-sm"
+                value={trophyQuery}
+                onChange={(e) => setTrophyQuery(e.target.value)}
+                placeholder="Filter by manager, year, or record"
+              />
+              <ChampionshipTimeline query={trophyQuery} />
             </div>
           </Card>
         </>

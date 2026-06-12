@@ -72,6 +72,20 @@ class MetaResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Commissioner history
+# ---------------------------------------------------------------------------
+
+
+class CommissionerTerm(BaseModel):
+    owner_id: int
+    owner_name: str
+    from_year: int
+    to_year: int | None = None
+    seasons: int
+    notes: str | None = None
+
+
+# ---------------------------------------------------------------------------
 # Shared references
 # ---------------------------------------------------------------------------
 
@@ -135,6 +149,8 @@ class StandingRow(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    conference_id: int | None = None
+    conference_name: str | None = None
 
 
 class Standings(BaseModel):
@@ -168,6 +184,265 @@ class StandingsTimeline(BaseModel):
     teams: list[TimelineTeam]
 
 
+class StandingsInsightTeam(BaseModel):
+    team_id: int
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    actual_wins: float
+    all_play_win_pct: float
+    expected_wins: float
+    luck_delta: float
+    points_for_rank: int
+    standings_rank: int
+
+
+class StandingsInsights(BaseModel):
+    season_id: int
+    season_year: int
+    through_week: int
+    available: bool
+    reason: str | None = None
+    teams: list[StandingsInsightTeam]
+
+
+class BracketTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+    score: float | None = None
+    is_winner: bool = False
+    conference_name: str | None = None
+
+
+class ByeTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+    conference_name: str | None = None
+
+
+class BracketGame(BaseModel):
+    matchup_id: int
+    is_playoff: bool = False
+    is_consolation: bool | None = None
+    game_label: str | None = None  # "Championship", "3rd Place", "7th Place", etc.
+    team_a: BracketTeam | None = None
+    team_b: BracketTeam | None = None
+    winner_team_id: int | None = None
+
+
+class BracketRound(BaseModel):
+    round_num: int
+    round_label: str  # "First Round", "Semifinals", "Finals"
+    bye_teams: list[ByeTeam] = []
+    games: list[BracketGame]
+
+
+class BracketSection(BaseModel):
+    size: int
+    rounds: list[BracketRound]
+    bye_teams: list[ByeTeam] = []
+
+
+class SeasonBracket(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    available: bool
+    reason: str | None = None
+    caveat: str
+    consolation_distinguished: bool = False
+    playoff_bracket: BracketSection | None = None
+    consolation_bracket: BracketSection | None = None
+
+
+# ---------------------------------------------------------------------------
+# Season conferences
+# ---------------------------------------------------------------------------
+
+
+class ConferenceTeam(BaseModel):
+    rank: int
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    wins: int
+    losses: int
+    ties: int
+    points_for: float
+    points_against: float
+    win_pct: float
+    streak: Streak
+    final_rank: int | None = None
+    conference_rank: int
+
+
+class ConferenceSection(BaseModel):
+    conference_id: int
+    division_number: int
+    name: str | None = None  # null for 2010's unnamed divisions
+    teams: list[ConferenceTeam]
+
+
+class SeasonConferences(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    conferences: list[ConferenceSection]
+
+
+# ---------------------------------------------------------------------------
+# League history, rules/eras, and stories
+# ---------------------------------------------------------------------------
+
+
+class DataCaveat(BaseModel):
+    code: str
+    label: str
+    scope: str
+
+
+class LeagueInfo(BaseModel):
+    league_id: str
+    name: str
+    platform: str | None = None
+    start_year: int | None = None
+    current_year: int | None = None
+    season_count: int
+
+
+class LeagueChangeDetail(BaseModel):
+    category: str
+    title: str
+    summary: str
+    before: str | None = None
+    after: str | None = None
+    source: str
+    certainty: str
+
+
+class SeasonChangeFlags(BaseModel):
+    league_size_changed: bool = False
+    schedule_changed: bool = False
+    scoring_availability_changed: bool = False
+    details: list[LeagueChangeDetail] = []
+
+
+class LeagueTimelineSeason(BaseModel):
+    season_id: int
+    season_year: int
+    status: str | None = None
+    league_size: int
+    regular_season_weeks: int | None = None
+    playoff_weeks: int | None = None
+    championship_week: int | None = None
+    champion: TeamRef | None = None
+    runner_up: TeamRef | None = None
+    last_place: TeamRef | None = None
+    is_scored: bool
+    schedule_source: str
+    scoring_provenance: str
+    verification_status: str
+    source: str
+    changes: SeasonChangeFlags
+
+
+class LeagueOverview(BaseModel):
+    league_id: str
+    name: str
+    platform: str | None = None
+    start_year: int | None = None
+    current_year: int | None = None
+    season_count: int
+    league_size_min: int | None = None
+    league_size_max: int | None = None
+    completed_seasons: int
+    scored_seasons: int
+    champions_recorded: int
+    current_era: dict[str, Any] | None = None
+    data_caveats: list[DataCaveat]
+    commissioners: list[CommissionerTerm] = []
+
+
+class LeagueTimeline(BaseModel):
+    league: LeagueInfo
+    seasons: list[LeagueTimelineSeason]
+
+
+class LeagueEra(BaseModel):
+    era_id: str
+    label: str
+    start_year: int
+    end_year: int
+    season_years: list[int]
+    league_size: int
+    regular_season_weeks: int | None = None
+    playoff_weeks: int | None = None
+    scoring_provenance: str
+    verification_status: str
+    certainty: str
+
+
+class LeagueEraChange(BaseModel):
+    season_year: int
+    league_size_changed: bool = False
+    schedule_changed: bool = False
+    scoring_availability_changed: bool = False
+    details: list[LeagueChangeDetail] = []
+
+
+class LeagueEras(BaseModel):
+    league: LeagueInfo
+    eras: list[LeagueEra]
+    changes: list[LeagueEraChange]
+
+
+class ManagerIdentity(BaseModel):
+    manager_id: int
+    display_name: str | None = None
+    human_name: str | None = None
+    aliases: list[str] = []
+    nfl_user_id: str | None = None
+    active_years: list[int]
+    joined_year: int | None = None
+    left_year: int | None = None
+    is_active: bool
+    team_names: list[str]
+    seasons_managed: int
+    identity_source: str
+
+
+class ManagerDirectory(BaseModel):
+    managers: list[ManagerIdentity]
+
+
+class StoryCard(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    story_id: str
+    title: str
+    available: bool
+    reason: str | None = None
+    season_year: int | None = None
+    week: int | None = None
+    matchup_id: int | None = None
+    metric_label: str
+    metric_value: float | int | None = None
+    primary_team: TeamRef | None = None
+    secondary_team: TeamRef | None = None
+    primary_owner: OwnerRef | None = None
+    caveat: str | None = None
+
+
+class LeagueStories(BaseModel):
+    stories: list[StoryCard]
+
+
 # ---------------------------------------------------------------------------
 # Owners
 # ---------------------------------------------------------------------------
@@ -178,6 +453,16 @@ class TrophyEntry(BaseModel):
     team_name: str | None = None
     finish: int | None = None
     is_champion: bool
+
+
+class OwnerConsistency(BaseModel):
+    available: bool
+    reason: str | None = None
+    weekly_points_stdev: float | None = None
+    rank_among_owners: int | None = None
+    best_season_year: int | None = None
+    best_season_points_for: float | None = None
+    signature: str | None = None
 
 
 class OwnerCareer(BaseModel):
@@ -191,7 +476,10 @@ class OwnerCareer(BaseModel):
     championships: int
     best_finish: int | None = None
     avg_finish: float | None = None
+    latest_team_id: int | None = None
     trophy_case: list[TrophyEntry] = []
+    consistency: OwnerConsistency | None = None
+    commissioner_terms: list[CommissionerTerm] = []
 
 
 class OwnersList(BaseModel):
@@ -209,6 +497,9 @@ class OwnerSeasonRow(BaseModel):
     points_for: float
     final_rank: int | None = None
     made_playoffs: bool | None = None
+    # Derived finish label: "Champion" / "Runner-up" / "3rd place" / "Nth".
+    # null (a gap, never 0) for an in-progress or rank-less season.
+    result: str | None = None
     is_champion: bool
 
 
@@ -247,9 +538,11 @@ class PowerRow(BaseModel):
     points_for: float
     power_score: float
     points_for_per_game: float
+    all_play_win_pct: float
     win_pct: float
     recent_points_for_per_game: float
     z_points_for: float
+    z_all_play_win_pct: float
     z_win_pct: float
     z_recent: float
     standings_rank: int
@@ -292,6 +585,15 @@ class PowerTimeline(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class H2HMeeting(BaseModel):
+    """A single oriented meeting reference (deep-linkable via ``matchup_id``)."""
+
+    season_year: int | None = None
+    week: int | None = None
+    matchup_id: int | None = None
+    margin_for_a: float | None = None
+
+
 class HeadToHead(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -300,6 +602,11 @@ class HeadToHead(BaseModel):
     available: bool
     games_played: int
     reason: str | None = None
+    # Signed aggregate margin across all meetings (null on the no-meetings gap).
+    cumulative_margin_for_a: float | None = None
+    # The nearest meeting (smallest |margin|), oriented to A. The lopsided and
+    # highest-scoring meetings remain extra fields on the payload.
+    closest_meeting: H2HMeeting | None = None
 
 
 class RivalryCell(BaseModel):
@@ -309,8 +616,14 @@ class RivalryCell(BaseModel):
     a_win_pct: float | None = None
 
 
+class RivalryOwner(OwnerRef):
+    # Drives the "show inactive managers" toggle on the rivalry grid: managers
+    # who have left the league default to hidden so the matrix stays readable.
+    is_active: bool = True
+
+
 class RivalryMatrix(BaseModel):
-    owners: list[OwnerRef]
+    owners: list[RivalryOwner]
     cells: list[RivalryCell]
 
 
@@ -405,8 +718,21 @@ class DraftRecords(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class PlayerIndexRow(BaseModel):
+    """One row of the player index, enriched so relevance is legible without the
+    SPA doing any joins. Public index rows are always league-relevant, so
+    ``first/last_rostered_season`` should be present for normal data."""
+
+    player_id: int
+    name_full: str
+    position: str | None = None
+    nfl_team: str | None = None
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+
+
 class PlayerIndex(BaseModel):
-    players: list[PlayerLite]
+    players: list[PlayerIndexRow]
     limit: int
     offset: int
 
@@ -415,7 +741,8 @@ class ScoringWeek(BaseModel):
     week: int
     points: float | None = None
     breakdown: dict[str, Any] = {}
-    score_gap: bool = False
+    zero_reason: str | None = None
+    zero_detail: str | None = None
 
 
 class PlayerScoring(BaseModel):
@@ -424,22 +751,29 @@ class PlayerScoring(BaseModel):
     available: bool
     total_points: float | None = None
     reason: str | None = None
-    score_incomplete: bool = False
     weeks: list[ScoringWeek]
 
 
-class OwnershipEvent(BaseModel):
+class OwnershipSpan(BaseModel):
+    """A contiguous tenure on one team within a season — consecutive weekly
+    roster rows collapsed so a season-long hold reads as one span, not ~17."""
+
     team_id: int
     team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
     season_year: int
-    week: int
-    roster_slot: str | None = None
+    week_start: int
+    week_end: int
+    weeks: int
     acquisition_type: str | None = None
 
 
 class PlayerOwnership(BaseModel):
     player_id: int
-    events: list[OwnershipEvent]
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+    events: list[OwnershipSpan]
 
 
 class AvailabilityWeek(BaseModel):
@@ -455,6 +789,38 @@ class PlayerAvailability(BaseModel):
     available: bool
     reason: str | None = None
     weeks: list[AvailabilityWeek]
+
+
+class PlayerInsightWeek(BaseModel):
+    season_year: int
+    week: int
+    points: float
+
+
+class PlayerInsightSeason(BaseModel):
+    season_year: int
+    points: float
+
+
+class PlayerRosterSpan(BaseModel):
+    first_rostered_season: int | None = None
+    last_rostered_season: int | None = None
+
+
+class PlayerInsightOwner(BaseModel):
+    owner_id: int
+    display_name: str | None = None
+    weeks: int
+
+
+class PlayerInsights(BaseModel):
+    player_id: int
+    available: bool
+    reason: str | None = None
+    best_week: PlayerInsightWeek | None = None
+    best_season: PlayerInsightSeason | None = None
+    league_roster_span: PlayerRosterSpan
+    most_rostered_by: PlayerInsightOwner | None = None
 
 
 class TopScorers(BaseModel):
@@ -475,23 +841,36 @@ class SeasonTotals(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class EnteringRecord(BaseModel):
+    """A team's regular-season W-L-T entering a given week of the season."""
+
+    wins: int = 0
+    losses: int = 0
+    ties: int = 0
+
+
 class GameTeam(BaseModel):
     team_id: int
     team_name: str | None = None
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    entering_record: EnteringRecord | None = None
 
 
 class GameCard(BaseModel):
     """One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-    deep-links to the box score."""
+    deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
+    margin flags (thresholds in ``analytics/matchups.py``); both False when the
+    game has no scores yet."""
 
     matchup_id: int
     is_playoff: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
+    is_close: bool = False
+    is_blowout: bool = False
     winner_team_id: int | None = None
 
 
@@ -512,9 +891,19 @@ class BoxPlayer(BaseModel):
     is_starter: bool
     breakdown: dict[str, Any] = {}
     projection: float | None = None
+    projection_delta: float | None = None
+    team_point_share: float | None = None
+    lineup_value: str | None = None
     available: bool = True
     reason: str | None = None
-    score_gap: bool = False
+    # Context for a *0.0* league result (null otherwise). "bye" / "did_not_play"
+    # are status reasons (the player did not play); a plain played-and-scored-0
+    # carries no reason; "unexpected" flags a 0 that does not cleanly fit, with an
+    # attempted explanation in ``zero_detail``.
+    zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
+    zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
+    injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
+    injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
 
 
 class BoxTeam(BaseModel):
@@ -527,8 +916,6 @@ class BoxTeam(BaseModel):
     optimal_total: float
     points_left_on_bench: float
     beat_projection_by: float | None = None
-    lineup_score_gap: bool = False  # any starter has a potential long-TD understatement
-    score_gap_delta: float | None = None  # total_score - starter_points; non-zero = unexplained pts
     lineup: list[BoxPlayer]
 
 
@@ -631,15 +1018,35 @@ class TeamTransaction(BaseModel):
     player_id: int | None = None
     player_name: str | None = None
     direction: str | None = None
+    waiver_priority_used: int | None = None
+    faab_bid: float | None = None
     counterpart_team_id: int | None = None
     counterpart_team_name: str | None = None
     notes: str | None = None
+    extra_data: dict[str, Any] | None = None
 
 
 class TeamTransactions(BaseModel):
     team_id: int
     season_year: int
     transactions: list[TeamTransaction]
+
+
+class RosterMove(BaseModel):
+    week: int
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+    action: str  # "add" | "drop" | "retain"
+
+
+class TeamRosterMoves(BaseModel):
+    team_id: int
+    season_year: int
+    is_scored: bool  # informational; moves are NOT gated on it
+    available: bool  # False when <2 distinct roster snapshot weeks
+    roster_weeks: list[int]
+    moves: list[RosterMove]
 
 
 # ---------------------------------------------------------------------------

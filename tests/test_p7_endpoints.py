@@ -48,7 +48,7 @@ def test_team_roster_endpoint(client: TestClient) -> None:
     assert len(data["players"]) == 13
     assert 1 in data["weeks_available"]
     dst = next(p for p in data["players"] if p["position"] == "DEF")
-    assert dst["league_points"] is None
+    assert dst["league_points"] == 9.0  # DST scored end-to-end
 
 
 def test_team_roster_not_found(client: TestClient) -> None:
@@ -84,7 +84,13 @@ def test_team_scoring_trend_endpoint(client: TestClient) -> None:
 def test_team_transactions_endpoint(client: TestClient) -> None:
     tid = KNOWN["team_id"][(2017, "ice")]
     data = _envelope(client.get(f"/v1/teams/{tid}/transactions"))
-    assert data["transactions"] == []
+    assert [t["transaction_type"] for t in data["transactions"]] == [
+        "waiver_add",
+        "lineup_change",
+    ]
+    assert data["transactions"][0]["waiver_priority_used"] == 4
+    assert data["transactions"][0]["faab_bid"] is None
+    assert data["transactions"][1]["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}
 
 
 # --- 503 when the pipeline never ran (empty DB) ----------------------------

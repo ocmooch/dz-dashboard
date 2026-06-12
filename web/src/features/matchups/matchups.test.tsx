@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,6 +38,8 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
+      is_close: false,
+      is_blowout: false,
       winner_team_id: 10,
     },
     {
@@ -46,6 +48,8 @@ const WEEK_GAMES = {
       team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
       margin: 40.4,
+      is_close: false,
+      is_blowout: true,
       winner_team_id: 12,
     },
   ],
@@ -180,6 +184,13 @@ describe("MatchupsPage", () => {
     expect(screen.getByText(/blowout/i)).toBeInTheDocument();
   });
 
+  it("colors each side's margin with a signed winner and loser value", async () => {
+    renderWithProviders(<MatchupsPage />);
+    await screen.findByText("Iceman 2017");
+    expect(screen.getByText("+5.00")).toHaveClass("text-win");
+    expect(screen.getByText("-5.00")).toHaveClass("text-loss");
+  });
+
   it("deep-links each card to its box score", async () => {
     renderWithProviders(<MatchupsPage />);
     await screen.findByText("Iceman 2017");
@@ -206,7 +217,11 @@ describe("MatchupsPage", () => {
       return Promise.resolve(routeByPath(path));
     });
     renderWithProviders(<MatchupsPage />);
-    expect(await screen.findByText(/player-level scoring not available/i)).toBeInTheDocument();
+    // The affordance scopes the gap to per-player scoring for the season, and is
+    // year-agnostic (the pre-2016 reconstruction has landed; F-51) — it never
+    // labels the team-level grid incomplete.
+    const banner = await screen.findByText(/per-player fantasy scoring isn't available for this season/i);
+    expect(banner).toBeInTheDocument();
   });
 });
 
@@ -240,7 +255,7 @@ describe("BoxScorePage", () => {
       Promise.resolve(
         envelope({
           matchup_id: 99,
-          season_year: 2015,
+          season_year: 2026,
           week: 1,
           available: false,
           reason: "season_unscored",
@@ -252,7 +267,177 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
-    expect(await screen.findByText(/Not scored — pre-2016 season/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Per-player scoring not available for this season/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View week 1 matchups/i })).toHaveAttribute(
+      "href",
+      "/matchups?week=1",
+    );
+  });
+
+  it("labels a no-stat IR player 'IR' and other absences '—', not a data gap", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 77,
+          season_year: 2017,
+          week: 5,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 20,
+          home: {
+            team_id: 20,
+            team_name: "Maverick 2017",
+            owner_name: "Maverick",
+            total_score: 100,
+            starter_points: 100,
+            bench_points: 0,
+            optimal_total: 100,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "IR",
+                player_id: 30,
+                player_name: "Hurt Hero",
+                position: "WR",
+                league_points: null,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+              },
+              {
+                roster_slot: "BN",
+                player_id: 31,
+                player_name: "Bye Week Body",
+                position: "RB",
+                league_points: null,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/77");
+    // The points cell (last column) carries the label; scope to each row so the
+    // slot column ("IR") and empty projections ("—") don't create false matches.
+    const irRow = (await screen.findByText("Hurt Hero")).closest("tr")!;
+    const irCells = within(irRow).getAllByRole("cell");
+    expect(irCells[irCells.length - 1]).toHaveTextContent("—");
+    const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
+    const byeCells = within(byeRow).getAllByRole("cell");
+    expect(byeCells[byeCells.length - 1]).toHaveTextContent("—");
+    // Neither is the amber honesty/data-gap affordance.
+    expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
+  });
+
+  it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 88,
+          season_year: 2022,
+          week: 14,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 40,
+          home: {
+            team_id: 40,
+            team_name: "Zeroes 2022",
+            owner_name: "Zed",
+            total_score: 0,
+            starter_points: 0,
+            bench_points: 0,
+            optimal_total: 0,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "WR",
+                player_id: 50,
+                player_name: "Bye Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "bye",
+                zero_detail: null,
+              },
+              {
+                roster_slot: "WR",
+                player_id: 51,
+                player_name: "Scratch Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "did_not_play",
+                zero_detail: null,
+              },
+              {
+                roster_slot: "WR",
+                player_id: 52,
+                player_name: "Mismatch Guy",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: "unexpected",
+                zero_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
+              },
+              {
+                roster_slot: "WR",
+                player_id: 53,
+                player_name: "Goose Egg",
+                position: "WR",
+                league_points: 0,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/88");
+
+    const ptsCell = async (name: string) => {
+      const row = (await screen.findByText(name)).closest("tr")!;
+      const cells = within(row).getAllByRole("cell");
+      return cells[cells.length - 1];
+    };
+
+    expect(await ptsCell("Bye Guy")).toHaveTextContent("Bye");
+    expect(await ptsCell("Scratch Guy")).toHaveTextContent("Out");
+    expect(await ptsCell("Mismatch Guy")).toHaveTextContent("⚠");
+    // The clean played-0 shows a bare number with no status tag or warning.
+    const clean = await ptsCell("Goose Egg");
+    expect(clean).toHaveTextContent("0");
+    expect(clean).not.toHaveTextContent(/Bye|Out|⚠/);
   });
 
   it("emphasizes the winning team's total score", async () => {

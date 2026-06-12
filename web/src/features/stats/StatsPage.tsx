@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, Skeleton, Tabs } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, Tabs } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -45,7 +45,7 @@ function PlayerCell({ id, name, sub }: { id: number; name: string; sub?: string 
 export function StatsPage() {
   const { current } = useSeasons();
   const season = current?.season_year;
-  const [view, setView] = useState<View>("top-scorers");
+  const [view, setView] = useState<View>("season-totals");
   const [position, setPosition] = useState("");
   const [week, setWeek] = useState<number | null>(null);
 
@@ -80,7 +80,7 @@ export function StatsPage() {
       </div>
 
       {current && !current.is_scored && (
-        <Badge variant="gap">player-level scoring not available for {season} — pre-2016 gap</Badge>
+        <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
       )}
 
       <Card className="p-4">

@@ -1,9 +1,18 @@
 // TanStack Query key factory — one place so caches dedupe and invalidate cleanly.
 export const qk = {
   meta: ["meta"] as const,
+  leagueOverview: ["league", "overview"] as const,
+  leagueTimeline: ["league", "timeline"] as const,
+  leagueEras: ["league", "eras"] as const,
+  leagueStories: ["league", "stories"] as const,
+  leagueManagers: ["league", "managers"] as const,
   seasons: ["seasons"] as const,
   standings: (seasonId: number) => ["standings", seasonId] as const,
+  standingsInsights: (seasonId: number) => ["standings", seasonId, "insights"] as const,
   owners: ["owners"] as const,
+  owner: (ownerId: number) => ["owners", ownerId] as const,
+  ownerSeasons: (ownerId: number) => ["owners", ownerId, "seasons"] as const,
+  ownerTrajectory: (ownerId: number) => ["owners", ownerId, "trajectory"] as const,
   rivalryMatrix: ["owners", "rivalry-matrix"] as const,
   headToHead: (a: number, b: number) => ["owners", "head-to-head", a, b] as const,
   records: ["records"] as const,
@@ -12,6 +21,8 @@ export const qk = {
   boxScore: (matchupId: number) => ["box-score", matchupId] as const,
   draftBoard: (seasonId: number) => ["draft", seasonId] as const,
   draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
+  bracket: (seasonId: number) => ["bracket", seasonId] as const,
+  conferences: (seasonId: number) => ["conferences", seasonId] as const,
   power: (seasonId: number) => ["power", seasonId] as const,
   powerTimeline: (seasonId: number) => ["power", seasonId, "timeline"] as const,
   standingsTimeline: (seasonId: number) => ["standings", seasonId, "timeline"] as const,
@@ -20,6 +31,7 @@ export const qk = {
   playerScoring: (playerId: number, season: number) =>
     ["player", playerId, "scoring", season] as const,
   playerOwnership: (playerId: number) => ["player", playerId, "ownership"] as const,
+  playerInsights: (playerId: number) => ["player", playerId, "insights"] as const,
   playerAvailability: (playerId: number, season: number) =>
     ["player", playerId, "availability", season] as const,
   topScorers: (filters: Record<string, unknown>) => ["stats", "top-scorers", filters] as const,
@@ -30,4 +42,6 @@ export const qk = {
   teamSchedule: (teamId: number) => ["team", teamId, "schedule"] as const,
   teamScoringTrend: (teamId: number) => ["team", teamId, "scoring-trend"] as const,
   teamTransactions: (teamId: number) => ["team", teamId, "transactions"] as const,
+  teamRosterMoves: (teamId: number) => ["team", teamId, "roster-moves"] as const,
+  search: (q: string) => ["search", q] as const,
 };

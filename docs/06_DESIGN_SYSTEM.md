@@ -57,7 +57,7 @@ light theme is a second token set behind a `[data-theme]` attribute (dark is def
   --fs-h3: 1.125rem; --fs-body: 0.9375rem; --fs-sm: 0.8125rem; --fs-xs: 0.6875rem;
 
   /* Numbers want tabular alignment */
-  --font-display: "Space Grotesk Alt", "Archivo Expanded", system-ui; /* pick a CHARACTERFUL display face, not Inter */
+  --font-display: "Saira Condensed", "Arial Narrow", system-ui; /* as built — engineered display face, not Inter */
   --font-body:    "IBM Plex Sans", system-ui;
   --font-mono:    "IBM Plex Mono", ui-monospace;   /* all stats/scores use mono, tabular-nums */
 
@@ -71,10 +71,12 @@ light theme is a second token set behind a `[data-theme]` attribute (dark is def
 }
 ```
 
-> Font note: the variables above name placeholders. During M1 pick **one** distinctive
-> display face (something with engineered/technical character suits the HUD theme) and a
-> highly legible body face; do **not** default to Inter. All numeric data renders in a
-> monospaced face with `font-variant-numeric: tabular-nums` so columns of scores align.
+> Font note (as built): the display face is **Saira Condensed** (engineered/technical character
+> for the HUD theme), the body face is **IBM Plex Sans**, and all numeric data renders in **IBM
+> Plex Mono** with `font-variant-numeric: tabular-nums` so columns of scores align — never Inter.
+> The token block above is illustrative; the **source of truth is `web/src/styles/tokens.css`**
+> (which also adds `--accent-soft`/`--accent-line` helpers), so treat exact values there as
+> canonical if they diverge from this snapshot.
 
 ## Typography rules
 
@@ -130,9 +132,9 @@ Build these first; everything else composes from them.
 | `Skeleton` | loading placeholders matching final layout (prevents layout shift) |
 | `EmptyState` | "nothing here yet" with optional action |
 | `ErrorState` | error + retry (wired to TanStack Query retry) |
-| `DataGap` | **the honesty component** — a labeled affordance ("not scored — 2010–2015", "team defense not scored", "availability current-season only") used wherever a metric is absent. Never render 0 in place of missing data. |
+| `DataGap` | **the honesty component** — a labeled affordance ("per-player scoring not available for this season", "team defense not scored", "availability current-season only") used wherever a metric is absent. Never render 0 in place of missing data. The unscored-season copy is year-agnostic and data-driven on `is_scored` (F-51). |
 | `Trophy` | championship/podium marker for trophy cases |
-| `WeekStepper` | prev/next week control bound to the URL |
+| `WeekStepper` | prev/next plus direct week select, bound to the URL |
 
 ## Charts (`charts/`)
 
@@ -145,11 +147,11 @@ charts match the theme and re-skin for free. Standard chart types:
 | `BarCompare` | matchup team comparison, season totals, projection vs actual |
 | `StackedBreakdown` | per-player point breakdown (passing/rushing/receiving/bonus) |
 | `Heatmap` | rivalry matrix |
-| `RankFlow` | standings-over-time as a bump/rank chart (one line per team) |
+| `RankFlow` | standings/power over time as a bump/rank chart with Week N, rank-ordered tooltips |
 
 Chart rules:
 - Always provide a non-color encoding too (labels, direct labeling) so meaning survives
-  color-blindness; use the categorical ramp above.
+  color-blindness; use the 12-team categorical ramp above.
 - Tooltips show exact mono numbers; axes use abbreviated formats.
 - Charts have accessible titles and a data-table fallback (a `<details>` with the raw
   numbers) for screen readers.

@@ -1,112 +1,125 @@
-# CLAUDE.md
+# CLAUDE.md — dz-dashboard
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Read this fully. It is the only doc loaded every session, so it stays short.
+Everything else is read **on demand, by section**, never wholesale.
 
-## What this repo is
+## What this is
 
-A Phase 2 analytics dashboard for the Danger Zone fantasy football league. It has two pieces and a hard contract between them:
+`dz-dashboard` (Phase 2) = a read-only analytics BFF + a presentation-only SPA over the
+Phase 1 `ff-pipeline` SQLite DB.
 
-1. **`ff_dashboard`** — a read-only Python/FastAPI backend-for-frontend (BFF). All derived-metric math lives here. Lives in `src/ff_dashboard/`.
-2. **`web/`** — a React + TypeScript SPA. Pure presentation. Holds no business logic — every number comes from the BFF.
+- `src/ff_dashboard/` — Python/FastAPI. `analytics/` = pure `rows → metrics` functions
+  (no FastAPI). `api/` = routes + pydantic schemas + OpenAPI. Reads the DB **read-only**
+  via `ff_pipeline.repository`. Port 8800.
+- `web/` — React+TS+Vite SPA. **Pure presentation, zero business logic.** Talks only to
+  the BFF through a client **generated** from `/openapi.json`.
 
-The BFF depends on the Phase 1 sibling package `ff-pipeline` (checkout at `../danger-zone`), reusing its SQLAlchemy models and repository queries to read `../danger-zone/data/fantasy.db` read-only. The database is never written by this package.
+The boundary is the product. All math lives in `analytics/`, tested. The frontend cannot
+disagree with the backend because the frontend does no math.
+
+## Hard rules (never violate)
+
+- **Never write to the DB.** No INSERT/UPDATE/DELETE; no import of Phase 1
+  write/crawler/normalizer/scoring-write code. Only `ff_pipeline.repository` (+ pure
+  `scoring` helpers for display). Open read-only / WAL.
+- **No metric math in `web/`.** It belongs in `ff_dashboard/analytics/`.
+- **Never hand-edit the generated API client** (`web/src/lib/api/`). Change the BFF
+  schema and run `npm run gen:api`.
+- **Never render 0 for missing data.** Use `available:false` / the `DataGap` affordance.
+  Gaps that exist: an unscored current/in-progress season (the pre-2016 per-player
+  reconstruction has landed — `player_stats_scored` now spans 2010–2025; F-51),
+  current-season-only availability, partial DST. The unscored gap is **data-driven on the
+  per-season `is_scored` flag** — never hardcode a year.
+- **Don't modify Phase 1** except additive read-only helpers in
+  `ff_pipeline/repository/queries.py`.
+- **Don't merge milestones.** Finish one cleanly before the next.
+- Commit trailers: `AI-Model` / `Prompted-By` / `Reviewed-By`. **Never** `Co-Authored-By: Claude`.
+  Git model: `feature/*` → `dev` → `main`.
+
+## Token budget — the operating discipline
+
+This project's bottleneck is context, not capability. A session that reads every doc and
+dumps every test log hits the limit mid-milestone and stalls. Default to **less in context**:
+
+1. **Never open generated / lock / vendor files.** They are huge and add nothing:
+   `web/package-lock.json`, `uv.lock`, `web/src/lib/api/schema.d.ts` and anything under
+   `node_modules/`, `.venv/`, `web/dist/`, `web/playwright-report/`, `htmlcov/`.
+   For the API surface, run `npm run gen:api` + the drift check — do not read the schema.
+2. **Read docs by section, not whole.** Use the doc map below. Most milestones touch 1–2
+   doc sections. Don't re-read a doc you read earlier in the same session.
+3. **Re-establish state from `PROGRESS.md`, not by re-exploring.** It records what's done,
+   what's next, and the few files that matter right now. Reading it is ~1 grep's cost vs.
+   re-reading `analytics/` and `web/`.
+4. **Quiet, scoped tooling.** During iteration run the *one* test file you're touching.
+   Run the full gate **once**, at the end. Use quiet flags and read only failures
+   (see `.claude/skills/green-gate/`). Don't paste passing output back.
+5. **Split the work across threads** (see Session model). A written plan/handoff on disk is
+   cheaper than carrying the whole milestone in one context window.
+6. When unsure whether to read something large, **grep for the symbol first**, then open
+   only the matching span with a line range.
+
+## Doc map — read the section, not the file
+
+`PHASE2_KICKOFF.md` is the human kickoff; you don't need to re-read it each session.
+
+| Doc | Read it when… | Usually need |
+|-----|---------------|--------------|
+| `docs/00_SEAM.md` | orienting on repo boundaries / Phase 1 seam | skim |
+| `docs/01_SPEC.md` | scope is unclear | a paragraph |
+| `docs/02_ARCHITECTURE.md` | adding a module/route | the layout block |
+| `docs/03_DATA_ACCESS.md` | touching DB reads / gaps | the gap table |
+| `docs/04_ANALYTICS_MODEL.md` | writing an `analytics/` metric | that metric's § only |
+| `docs/05_API_CONTRACT.md` | adding/changing an endpoint | that endpoint's shape |
+| `docs/06_DESIGN_SYSTEM.md` | building primitives/tokens (P3) | tokens + the primitive |
+| `docs/07_PAGES_AND_VIEWS.md` | building a page | that page's § only |
+| `docs/08_TESTING_STRATEGY.md` | deciding what to test | the relevant test kind |
+| `docs/09_ROADMAP.md` | every milestone — confirm scope + "Done when" | the one P# row |
+| `docs/10_OPEN_QUESTIONS.md` | a decision is ambiguous | the one Q |
+
+Use `CHANGELOG.md` for pass/PR history; keep `PROGRESS.md` for current state only.
+
+Per-milestone deep-doc hints (from the roadmap): P3→06; P5→04 §3 + 05/07; P6→04 §4–7.
+
+## Session model — plan / build / verify
+
+A milestone is **not** one thread. Split it; hand off via files on disk:
+
+- **PLAN session** — read only the doc sections for this P#, write
+  `docs/plans/P{N}-{name}.md` (scope, files to touch, metric/endpoint signatures, test list,
+  "Done when"), commit it. No implementation. Cheap, ends well under the limit.
+- **BUILD session(s)** — read the plan + `PROGRESS.md` + only the doc sections the plan
+  cites. Implement against the plan. Update `PROGRESS.md` as you go. If context gets tight,
+  commit a checkpoint, write the next step into `PROGRESS.md`, and stop — resume in a fresh
+  thread. A clean checkpoint beats a truncated session.
+- **VERIFY session** — run the green gate, fix failures, do the manual click-through, commit
+  with trailers. Keep the gate output out of context except failures.
+
+Use the `milestone-session` and `green-gate` skills under `.claude/skills/`.
 
 ## Commands
 
-### Backend (run from repo root)
-
-```bash
-uv sync --extra dev          # install deps (first time or after pyproject.toml change)
-uv run dz-dashboard info     # show resolved config
-uv run dz-dashboard serve    # API on http://127.0.0.1:8800
-uv run dz-dashboard serve --reload   # dev: auto-reload on code changes
-
-uv run pytest                # all tests
-uv run pytest tests/test_p2_analytics_unit.py   # single file
-uv run pytest -k "test_standings"               # single test by name
-
-uv run ruff check            # lint
-uv run ruff format           # format
-uv run mypy src/             # type check (strict)
+Backend (repo root):
+```
+uv run pytest tests/dashboard -q        # scope to a file while iterating: ... tests/dashboard/test_power.py
+uv run ruff check -q && uv run ruff format --check
+uv run mypy src/ff_dashboard
+```
+Frontend (in `web/`):
+```
+npm run gen:api && git diff --exit-code web/src/lib/api   # contract drift check
+npm run typecheck && npm run lint
+npm run test
+npm run test:e2e          # slow + noisy; VERIFY session only, redirect output to a file
+```
+Forbidden-import / write check:
+```
+git grep -nE "INSERT|UPDATE |DELETE |upsert|crawler|normalizer" src/ff_dashboard
 ```
 
-All four (pytest, ruff check, ruff format, mypy) must pass before committing.
+## Done when (every milestone)
 
-### Frontend (run from `web/`)
-
-```bash
-npm install                  # first time only
-npm run dev                  # SPA on http://127.0.0.1:5173
-npm run typecheck            # tsc --noEmit
-npm run build                # full build (typecheck + vite)
-npm run test                 # vitest (unit)
-npm run gen:api              # regenerate src/lib/api/schema.d.ts from live BFF at :8800
-npm run gen:api:check        # diff schema.d.ts vs live BFF (CI check)
-```
-
-To see the app, both processes must run: the BFF on `:8800` and the Vite dev server on `:5173`. Vite proxies `/v1`, `/health`, and `/openapi.json` to the BFF.
-
-## Architecture
-
-```
-Phase 1 SQLite (../danger-zone/data/fantasy.db)
-        │ read-only, in-process via ff_pipeline.repository
-        ▼
-src/ff_dashboard/
-  settings.py          # pydantic-settings: DB path, host/port, cache TTL, CORS
-  engine.py            # create_readonly_engine() — opens SQLite with WAL + query_only
-  cache.py             # AnalyticsCache: process-local dict keyed by (pipeline_run_id, name)
-  server.py            # typer CLI: `serve` + `info` commands
-  analytics/           # PURE functions: Session → metrics. No FastAPI imports here.
-    common.py          # require_league(), regular_season_weeks(), owner/team name maps
-    standings.py       # standings, week-by-week, streaks
-    power.py           # power ranking model
-    matchups.py        # box-score enrichment, optimal lineup, bench points
-    head_to_head.py    # all-time owner-vs-owner records, rivalry matrix
-    records.py         # records book / hall of fame rollups
-    teams.py / owners.py / draft.py / players.py / search.py / coverage.py
-  api/
-    main.py            # FastAPI app factory — engine and cache stored on app.state
-    deps.py            # SessionDep, CacheDep (pulled from app.state, not module globals)
-    schemas.py         # Pydantic response models for all analytics shapes
-    routes/            # One file per domain: seasons, matchups, players, power, draft, records
-        
-web/src/
-  app/                 # router, layout shell, QueryClient + Router providers
-  design-system/       # Button, Card, Stat, Badge, Table, Tabs, DataGap, Skeleton, etc.
-  charts/              # Recharts wrappers (LineTrend, BarCompare, Heatmap, StackedBreakdown)
-  features/            # pages = composition only; no math, no direct fetch
-  lib/
-    api/               # GENERATED typed client (schema.d.ts + thin openapi-fetch wrapper)
-    queryKeys.ts       # TanStack Query key factory
-    format.ts          # display-only: numbers, W-L-T records, dates
-```
-
-## Key patterns
-
-**Analytics layer:** Every analytics module exports pure functions taking `Session` (and optionally `AnalyticsCache`) and returning plain Python objects. Route handlers call `cache.get_or_compute(session, "name", lambda: analytics_fn(session))`. Cache invalidates automatically when the pipeline run id changes.
-
-**SessionDep / CacheDep:** Routes get their session and cache from FastAPI DI via `deps.py`. Both live on `app.state` (not module-level singletons), so tests can bind a temp-file engine and fresh cache without monkey-patching.
-
-**Test fixtures:** `tests/conftest.py` builds a hand-authored SQLite fixture ("Danger Zone Test League", 2015–2017) with known-answer constants in `KNOWN`. The fixture deliberately encodes every data-gap case: an unscored 2015 season, a DST starter with no scored rows, current-season-only availability. Unit tests assert against `KNOWN` values to the decimal; endpoint tests (`test_p*_endpoints.py`) use the `client` fixture.
-
-**API contract:** `web/src/lib/api/schema.d.ts` is generated from the live BFF's `/openapi.json`. Never hand-edit it. After any BFF response shape change, run `npm run gen:api` from `web/` while the BFF is running. The TypeScript build flags every stale call site.
-
-**Two matchup rows per game:** `matchups` has one row per team perspective. When counting games between two owners, always dedupe by pairing `team_id`/`opponent_team_id` to avoid double-counting.
-
-**Owner vs team identity:** Career and rivalry metrics key on `owner_id`. Team names change per season. Join through `teams.owner_id`. Use `analytics/common.py:team_owner_map()`.
-
-**Regular-season weeks:** Never hardcode 14 or 17. Always use `analytics/common.py:regular_season_weeks(session, season)`, which reads `seasons.regular_season_weeks` and falls back to `max(matchup.week)`.
-
-**Data gaps (non-negotiable):** Scored fantasy points only exist 2016+. Player availability only exists for the current season. DST scoring is incomplete. These must be surfaced as `available: false` or explicit gap markers — never faked as zeros. The `DataGap` component on the frontend renders these affordances.
-
-## Non-negotiable boundaries
-
-- No `INSERT/UPDATE/DELETE`. The BFF opens read-only sessions (`create_readonly_engine` in `engine.py`).
-- Only import `ff_pipeline.repository` (models + queries). Never import Phase 1 crawler, normalizer, or scoring write code.
-- All derived-metric formulas stay in `ff_dashboard/analytics/`. Never compute metrics in `web/`.
-- The frontend's typed client must be regenerated (never hand-edited) after BFF schema changes.
-
-## Environment
-
-Copy `.env.example` to `.env` if `../danger-zone/data/fantasy.db` is not at the default location. The dashboard has no secrets. The BFF binds to `:8800`; the Vite dev server expects this and proxies to it.
+- The P# "Done when" in `docs/09_ROADMAP.md` is satisfied.
+- Full gate green (backend pytest+ruff+mypy; frontend gen:api drift + typecheck+lint+test;
+  e2e where the milestone calls for it).
+- You opened the new view(s) and clicked through.
+- `PROGRESS.md` updated; committed with the trailer format.

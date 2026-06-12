@@ -30,3 +30,10 @@ export function initials(name: string | null | undefined): string {
   const parts = name.trim().split(/\s+/);
   return (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? parts[0]?.[1] ?? "");
 }
+
+/** URL for a team's season logo, streamed by the BFF from Phase 1's asset
+ *  store. `<Chip avatarUrl=…>` renders it and falls back to the name monogram
+ *  on a missing avatar / 404 (Q11). Returns undefined when there's no team id. */
+export function teamAvatarUrl(teamId: number | null | undefined): string | undefined {
+  return teamId == null ? undefined : `/v1/teams/${teamId}/avatar`;
+}

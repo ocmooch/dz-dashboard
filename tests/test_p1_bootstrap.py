@@ -37,9 +37,10 @@ def test_meta_reports_real_coverage(client: TestClient) -> None:
     assert cov["scored_year_min"] == 2016
     assert cov["scored_year_max"] == 2017
     assert cov["reconstruction_complete"] is True
-    # Documented, non-negotiable gaps from docs/03_DATA_ACCESS.md.
+    # Availability is still a documented gap (docs/03_DATA_ACCESS.md). DST is now
+    # scored: every scored season has scored DEF rows, so it reports complete.
     assert cov["availability_current_season_only"] is True
-    assert cov["dst_scoring_complete"] is False
+    assert cov["dst_scoring_complete"] is True
 
     assert body["data"]["latest_run"]["status"] == "success"
 
@@ -71,7 +72,7 @@ def test_reads_during_a_writer_lock_do_not_error(fixture_db_path, engine: Engine
     try:
         with Session(engine) as reader:
             count = reader.execute(text("SELECT COUNT(*) FROM seasons")).scalar_one()
-            assert count == 3
+            assert count == 4  # 2015-2017 played + one upcoming unplayed season
     finally:
         write_conn.exec_driver_sql("ROLLBACK")
         write_conn.close()

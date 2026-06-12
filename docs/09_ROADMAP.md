@@ -10,6 +10,16 @@ on earlier milestones. Two ordering rules are deliberate:
 
 ## Milestone summary
 
+**As-built status (2026-06-07):** P0-P11 are complete. P11 includes Makefile/runbook,
+`make dev`/`make serve`, CI jobs, e2e journeys, a visual-regression spec, committed
+Chromium/Linux screenshot baselines, and the visual spec in CI.
+
+**Post-roadmap slice — League history (2026-06-08, `feature/season-aware-team-names`):** a
+read-only league-archive product beyond P0–P11. Adds `analytics/league_history.py` (+
+`historical_team_names.py`), the `/v1/league/*` endpoints (overview/timeline/eras/stories/
+managers — see `05_API_CONTRACT.md`), and the Seasons / Rules & Eras / Stories pages plus the
+About Data nav relabel (see `07_PAGES_AND_VIEWS.md`). Still local on the feature branch.
+
 | # | Milestone | Est. | Deliverable |
 |---|-----------|------|-------------|
 | P0 | Prereqs & data-readiness gate | 0.5–1 hr | Phase 1 reconstruction complete & verified; data coverage confirmed |
@@ -24,6 +34,7 @@ on earlier milestones. Two ordering rules are deliberate:
 | P9 | Power ranking + standings/power timelines | 2 hr | the chart-heavy comparative views |
 | P10 | Global search + coverage/about + gap polish | 2 hr | cross-cutting UX; honesty affordances everywhere |
 | P11 | Operations + docs + e2e/visual-regression pass | 2–3 hr | one-command run, RUNBOOK, full test gate |
+| P12 | Player injury reports (Phase 1 + BFF + UI) | 2–3 hr | weekly injury designation + body part on box score; Phase 1 new table + backfill + BFF endpoint change + frontend badge |
 
 **Total:** ~30–35 hours of focused work with Claude Code; expect 2–3 weeks part-time. Heavier
 than Phase 1's backend-only effort because there are two domains plus a contract seam.
@@ -53,7 +64,9 @@ data: players, stats, owner records) can still proceed; P5 waits.
   (new optional deps minimal — FastAPI/uvicorn already present from Phase 1).
 - `settings.py` (DB path, host/port, cache TTL); `api/main.py` app factory; `deps.py`
   reusing `ff_pipeline.repository` sessions in **read-only / WAL** mode.
-- `api/_meta.py`, `api/errors.py` — copy Phase 1's envelope + error handlers.
+- Reuse Phase 1's envelope + error handlers by importing them (`build_meta` from
+  `ff_pipeline.api._meta`, `install_error_handlers` from `ff_pipeline.api.errors`) — no local
+  copies, so the shapes stay identical to Phase 1.
 - Implement `GET /health` and `GET /v1/meta` (coverage from `pipeline_runs` + table probes).
 - `cache.py` keyed on latest `pipeline_run_id`.
 - CLI/entrypoint: `dz-dashboard serve` (or a `[project.scripts]` entry).
@@ -100,12 +113,18 @@ tested; the generated client typechecks against the live BFF schema.
 **Goal:** prove the whole pipe end-to-end on three real pages.
 
 **Tasks:**
-- Home (`/v1/home`), Standings (+timeline chart + week-stepper), Manager profile
+- Home (composed client-side from standings/records/power — no `/v1/home` endpoint),
+  Standings (+timeline chart + week-stepper), Manager profile
   (career header, trophy case, season table, trajectory chart).
 - Feature tests with MSW; one e2e (land → standings).
 
 **Done when:** the three pages render real data from the BFF; deep links work; loading/empty/
 error states present; e2e green.
+
+> **Build outcome:** Home + Standings shipped first; the **Managers index** and **Manager
+> profile** were composed later on `feature/managers-page` (career leaderboard + per-owner
+> dossier: header, trophy case, trajectory chart, season table, rivalry snapshot), closing the
+> last outstanding P4 view. The owner endpoints were already built and tested.
 
 ## P5 — Matchups + Box score
 
@@ -117,7 +136,7 @@ error states present; e2e green.
 - Endpoints: week matchups, box-score.
 - Views: week matchups grid (+week-stepper), box score (two-column lineups, expandable
   `StackedBreakdown` per player, totals/bench/left-on-bench `Stat`s).
-- DST and pre-2016 gap handling via `DataGap`.
+- DST gaps and current/in-progress unscored-season handling via `DataGap`.
 
 **Done when:** box score matches a hand-checked matchup to the decimal; gaps render honestly;
 e2e (home → matchup → box score) green.
@@ -191,6 +210,57 @@ renders a 0 where data is absent.
 
 **Done when:** a fresh checkout + `uv sync` + `npm ci` + one command brings up a working
 dashboard against the Phase 1 DB, with all tests green; PR `feature/* → dev`.
+
+> **Build outcome:** the run/ops pieces shipped (`make dev`, `make serve`, runbook/README,
+> CI, generated-client drift check, Playwright journeys, and visual-regression snapshots). The
+> CI e2e job runs the full Playwright suite, including `web/e2e/visual.spec.ts`.
+
+---
+
+## P12 — Player injury reports (Phase 1 + BFF + UI)
+
+**Goal:** Surface per-player, per-week injury designation and body part on the box score so
+"Out" becomes "Out · Knee" and "Questionable" is visible at a glance.
+
+**Motivation:** The current box score only distinguishes "Bye" vs "Out" for zero-point players.
+No finer-grained status (Questionable / Doubtful / Out / Suspended) or reason (body part) is
+stored. `nflreadpy.load_injuries()` provides this data back to ~2009 via the weekly NFL injury
+report, keyed by `gsis_id`.
+
+**Tasks:**
+
+Phase 1 — danger-zone repo (must land first):
+- Add `player_injury_reports` table:
+  `(report_id PK, player_id FK, season_year, week, game_type, report_status, report_primary_injury,
+   report_secondary_injury, practice_status, date_modified, created_at, updated_at)`.
+  Unique constraint on `(player_id, season_year, week, game_type)`.
+- Add `nflverse_injury_runner.py` (mirrors `runner.py`) using `NflverseSource.load_injuries()`.
+  Extend `NflverseSource` protocol with `load_injuries(seasons)`. Add `LiveNflverseSource`
+  implementation calling `nflreadpy.load_injuries(seasons)`.
+- Backfill all seasons in `ff_pipeline` DB (2009–present) via CLI command or a one-time script.
+- Add `ff_pipeline.repository.queries.injury_report_for_week(session, season_year, week)` →
+  `dict[(player_id, week), InjuryReportRow]` for the BFF to consume.
+- Gate test: fixture with 2–3 known injury rows; assert the query returns them correctly.
+
+Phase 2 — dz-dashboard repo (after Phase 1 lands):
+- Extend `analytics/matchups.py` box score player assembly to join the new injury report:
+  add `injury_status: str | None` and `injury_body_part: str | None` to the per-player dict.
+- Extend `api/schemas.py` `BoxScorePlayer` with `injury_status` and `injury_body_part`.
+- Run `npm run gen:api` to regenerate the client.
+- In `BoxScorePage.tsx` `PlayerRow`, show a small status badge next to the player name:
+  - "Out · Knee", "Doubtful · Hamstring", "Q" for Questionable — inline after position tag.
+  - Only shown when `injury_status` is not null.
+  - Update the "Pts" column tooltip for `did_not_play` players to include the injury reason if
+    available.
+
+**Done when:**
+- `player_injury_reports` table exists and is populated for 2009–2025.
+- `/v1/matchups/{id}/box-score` returns `injury_status` + `injury_body_part` per player.
+- Box score shows "Out · Knee" (or similar) for injured players; Questionable/Doubtful badges
+  for players who played; plain blank for no injury report entry.
+- Backend pytest + ruff + mypy green; frontend gen:api drift + typecheck + lint + test green.
+- Manual click-through on matchup 73 confirms players formerly labeled bare "Out" now show the
+  injury designation.
 
 ---
 

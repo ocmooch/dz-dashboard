@@ -7,8 +7,9 @@ import { qk } from "@/lib/queryKeys";
 export type SeasonInfo = {
   season_id: number;
   season_year: number;
+  status?: string | null;
   is_scored: boolean;
-  champion?: { owner_name?: string | null } | null;
+  champion?: { owner_name?: string | null; team_name?: string | null } | null;
 };
 
 type SeasonCtx = {

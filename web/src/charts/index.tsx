@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  type TooltipProps,
   Bar,
   BarChart,
   CartesianGrid,
@@ -21,6 +22,39 @@ import { chartTheme, heatColor, seriesColor, tooltipProps } from "./chartTheme";
 export type ChartRow = Record<string, number | string | null>;
 export type SeriesDef = { key: string; label: string; color?: string };
 
+function rankTooltip({
+  active,
+  label,
+  payload,
+}: TooltipProps<number | string, string>): React.ReactElement | null {
+  if (!active || !payload?.length) return null;
+  const t = chartTheme();
+  const ranked = [...payload]
+    .filter((p) => p.value != null)
+    .sort((a, b) => Number(a.value) - Number(b.value));
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.borderStrong}`,
+        borderRadius: 10,
+        fontFamily: t.fontMono,
+        fontSize: 12,
+        padding: "8px 10px",
+      }}
+    >
+      <div style={{ color: t.text, marginBottom: 6 }}>Week {String(label)}</div>
+      <div className="space-y-1">
+        {ranked.map((p) => (
+          <div key={p.dataKey} style={{ color: p.color ?? t.text }}>
+            #{p.value} {p.name}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DataTable({
   data,
   series,
@@ -32,6 +66,7 @@ function DataTable({
   xKey: string;
   xLabel: string;
 }) {
+  const hasNotes = data.some((row) => typeof row.__note === "string" && row.__note.length > 0);
   return (
     <table className="dz-table mt-1">
       <thead>
@@ -42,6 +77,7 @@ function DataTable({
               {s.label}
             </th>
           ))}
+          {hasNotes && <th>Note</th>}
         </tr>
       </thead>
       <tbody>
@@ -53,6 +89,7 @@ function DataTable({
                 {row[s.key] ?? "—"}
               </td>
             ))}
+            {hasNotes && <td>{typeof row.__note === "string" ? row.__note : ""}</td>}
           </tr>
         ))}
       </tbody>
@@ -96,6 +133,7 @@ type CartesianProps = {
   xLabel?: string;
   title: string;
   height?: number;
+  minPointSize?: number;
 };
 
 const axisTick = () => {
@@ -112,7 +150,7 @@ export function LineTrend({ data, series, xKey, xLabel = xKey, title, height }: 
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
-        <Tooltip {...tooltipProps()} />
+        <Tooltip content={rankTooltip} />
         {series.map((s, i) => (
           <Line
             key={s.key}
@@ -131,7 +169,42 @@ export function LineTrend({ data, series, xKey, xLabel = xKey, title, height }: 
 }
 
 /** matchup team comparison, season totals, projection vs actual. */
-export function BarCompare({ data, series, xKey, xLabel = xKey, title, height }: CartesianProps) {
+function barTooltip({
+  active,
+  label,
+  payload,
+}: TooltipProps<number | string, string>): React.ReactElement | null {
+  if (!active || !payload?.length) return null;
+  const t = chartTheme();
+  const note = payload.find((p) => typeof p.payload?.__note === "string")?.payload
+    ?.__note as string | undefined;
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.borderStrong}`,
+        borderRadius: 10,
+        fontFamily: t.fontMono,
+        fontSize: 12,
+        padding: "8px 10px",
+      }}
+    >
+      <div style={{ color: t.text, marginBottom: 6 }}>{String(label)}</div>
+      <div className="space-y-1">
+        {payload
+          .filter((p) => p.value != null)
+          .map((p) => (
+            <div key={p.dataKey} style={{ color: p.color ?? t.text }}>
+              {p.name}: {p.value}
+            </div>
+          ))}
+      </div>
+      {note && <div style={{ color: t.text, marginTop: 6 }}>{note}</div>}
+    </div>
+  );
+}
+
+export function BarCompare({ data, series, xKey, xLabel = xKey, title, height, minPointSize }: CartesianProps) {
   const t = chartTheme();
   return (
     <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
@@ -139,9 +212,9 @@ export function BarCompare({ data, series, xKey, xLabel = xKey, title, height }:
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
-        <Tooltip {...tooltipProps()} cursor={{ fill: t.grid, opacity: 0.4 }} />
+        <Tooltip content={barTooltip} cursor={{ fill: t.grid, opacity: 0.4 }} />
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? seriesColor(i)} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? seriesColor(i)} radius={[3, 3, 0, 0]} minPointSize={minPointSize} isAnimationActive={false} />
         ))}
       </BarChart>
     </ChartFrame>
@@ -213,7 +286,8 @@ export function RankFlow({
 
 /** rivalry win-pct matrix. Plain CSS grid (per the handoff), not Recharts.
  *  values[r][c] = row owner's win-pct vs col owner (0–100); null = never met /
- *  pre-coverage → a hatched DataGap cell showing "—", never 0. */
+ *  pre-coverage → a quiet "no history" cell (faint hatch + dash), never 0.
+ *  rowInactive/colInactive dim departed managers when they're toggled on. */
 export function Heatmap({
   rows,
   cols,
@@ -221,6 +295,8 @@ export function Heatmap({
   title,
   selected,
   onSelect,
+  rowInactive,
+  colInactive,
 }: {
   rows: string[];
   cols: string[];
@@ -228,6 +304,8 @@ export function Heatmap({
   title: string;
   selected?: { r: number; c: number } | null;
   onSelect?: (r: number, c: number) => void;
+  rowInactive?: boolean[];
+  colInactive?: boolean[];
 }) {
   const template = `minmax(64px, 1fr) repeat(${cols.length}, minmax(28px, 1fr))`;
   return (
@@ -235,14 +313,23 @@ export function Heatmap({
       <figcaption className="sr-only">{title}</figcaption>
       <div role="grid" className="grid gap-px" style={{ gridTemplateColumns: template, minWidth: cols.length * 32 + 64 }}>
         <div role="columnheader" aria-hidden />
-        {cols.map((c) => (
-          <div key={c} role="columnheader" className="truncate p-1 text-center font-mono text-[10px] uppercase text-faint">
+        {cols.map((c, ci) => (
+          <div
+            key={c}
+            role="columnheader"
+            title={colInactive?.[ci] ? `${c} (inactive manager)` : undefined}
+            className={`truncate p-1 text-center font-mono text-[10px] uppercase text-faint${colInactive?.[ci] ? " dz-heat-dim" : ""}`}
+          >
             {c}
           </div>
         ))}
         {rows.map((rowName, r) => (
           <div key={rowName} role="row" className="contents">
-            <div role="rowheader" className="truncate p-1 text-right font-mono text-[11px] text-muted">
+            <div
+              role="rowheader"
+              title={rowInactive?.[r] ? `${rowName} (inactive manager)` : undefined}
+              className={`truncate p-1 text-right font-mono text-[11px] text-muted${rowInactive?.[r] ? " dz-heat-dim" : ""}`}
+            >
               {rowName}
             </div>
             {cols.map((_, c) => {
@@ -256,10 +343,11 @@ export function Heatmap({
                     key={c}
                     role="gridcell"
                     title="never met / not in coverage"
-                    className="dz-datagap grid place-items-center rounded-none border-0 p-0 text-[10px]"
+                    aria-label={`${rowName} vs ${cols[c]}: no recorded history`}
+                    className="dz-heat-empty grid place-items-center"
                     style={{ minHeight: 28 }}
                   >
-                    —
+                    <span aria-hidden>·</span>
                   </div>
                 );
               }

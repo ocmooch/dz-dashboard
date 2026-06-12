@@ -6,12 +6,15 @@ solver and end-to-end through the hand-authored Iceman 2017 wk1 box score.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import pytest
 
 from ff_dashboard.analytics.matchups import (
     box_score,
+    classify_zero,
+    roster_sort_key,
     slot_accepts,
     solve_optimal,
     week_matchups,
@@ -19,6 +22,7 @@ from ff_dashboard.analytics.matchups import (
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.orm import Session
 
 
@@ -108,17 +112,131 @@ def test_box_bench_points_excludes_ir(session: Session) -> None:
 
 def test_box_ir_never_enters_optimal(session: Session) -> None:
     # The IR player scores 30 (more than any bench RB) but is ineligible; if it
-    # leaked into the optimal, the total would exceed 117.
-    assert _ice_box(session)["optimal_total"] == 117.0
+    # leaked into the optimal, the total would exceed 126.
+    assert _ice_box(session)["optimal_total"] == 126.0
 
 
-def test_box_dst_starter_is_a_gap_not_a_zero(session: Session) -> None:
+def test_box_dst_starter_is_scored(session: Session) -> None:
+    # DST is scored end-to-end: the DEF starter carries real points, is available,
+    # and is counted in the starter total (113.0 includes the 9.0 DST).
     home = _ice_box(session)
     dst = next(p for p in home["lineup"] if p["position"] == "DEF")
     assert dst["is_starter"] is True
+    assert dst["league_points"] == KNOWN["box_dst_points"]  # 9.0, never a None gap
+    assert dst["available"] is True
+    assert dst["reason"] is None
+    assert home["starter_points"] == KNOWN["box_starter_total"]  # 113.0, DST included
+
+
+def test_box_def_starter_with_missing_row_is_flagged(session: Session) -> None:
+    # A DEF starter whose scored row is genuinely absent still surfaces as a gap,
+    # never a fake 0 — the per-row honesty survives DST being scored at large.
+    # Goose is the away side of the Iceman 2017 wk1 matchup; its lone DST is unscored.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    dst = next(p for p in data["away"]["lineup"] if p["position"] == "DEF" and p["is_starter"])
     assert dst["league_points"] is None  # never 0
     assert dst["available"] is False
     assert dst["reason"] == "team_defense_not_scored"
+
+
+def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
+    # A player nflverse never scored (no scored row) but with an authoritative
+    # nfl_com_points shows that real value, available — never a "no scored data"
+    # gap. This is the inactive / DNP / bye case that scores a legitimate value.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    viper = next(p for p in data["away"]["lineup"] if p["player_name"] == "Viper D/ST")
+    assert viper["available"] is True
+    assert viper["league_points"] == 7.0  # from extra_data.nfl_com_points, not nflverse
+    assert viper["reason"] is None
+
+
+# --- Zero-point context classification --------------------------------------
+
+
+def test_classify_zero_only_fires_on_an_authoritative_zero() -> None:
+    # A non-zero (or missing) score is never annotated.
+    assert classify_zero(12.0, "@KC", 12.0) == (None, None)
+    assert classify_zero(None, "Bye", None) == (None, None)
+
+
+def test_classify_zero_bye() -> None:
+    # The per-week opponent "Bye" means the player's NFL team did not play.
+    assert classify_zero(0.0, "Bye", None) == ("bye", None)
+    assert classify_zero(0.0, "bye", 0.0) == ("bye", None)  # case-insensitive, bye wins
+
+
+def test_classify_zero_did_not_play() -> None:
+    # Team played (a real opponent) but the player has no stat line at all.
+    assert classify_zero(0.0, "@KC", None) == ("did_not_play", None)
+
+
+def test_classify_zero_played_and_scored_nothing() -> None:
+    # A real stat line that nets ~0: played, scored nothing → no annotation.
+    assert classify_zero(0.0, "@KC", 0.0) == (None, None)
+    assert classify_zero(0.0, "@KC", 0.4) == (None, None)  # sub-threshold, still a clean 0
+
+
+def test_classify_zero_unexpected_carries_a_reason() -> None:
+    # League scored 0 but nflverse credits material points → flagged, with a note.
+    reason, detail = classify_zero(0.0, "@KC", 8.0)
+    assert reason == "unexpected"
+    assert detail is not None and "8" in detail
+
+
+def test_box_zero_context_is_wired_end_to_end(session: Session) -> None:
+    # The box score surfaces a bye 0 and an "unexpected" 0 (league 0 vs nflverse 8)
+    # on the away lineup, where no KNOWN total is asserted.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    away = data["away"]["lineup"]
+
+    bye = next(p for p in away if p["player_name"] == "Bye Week Guy")
+    assert bye["available"] is True
+    assert bye["league_points"] == 0.0
+    assert bye["zero_reason"] == "bye"
+
+    mismatch = next(p for p in away if p["player_name"] == "Mismatch Guy")
+    assert mismatch["league_points"] == 0.0  # authoritative league value, not nflverse 8.0
+    assert mismatch["zero_reason"] == "unexpected"
+    assert mismatch["zero_detail"] is not None
+
+
+def test_box_lineup_is_in_canonical_display_order(session: Session) -> None:
+    # Starters read QB, RB, RB, WR, WR, TE, FLEX, K, DST; then bench (by
+    # position); then IR last — regardless of the order rows came out of the DB.
+    home = _ice_box(session)
+    order = [(p["roster_slot"], p["position"]) for p in home["lineup"]]
+    assert order == [
+        ("QB", "QB"),
+        ("RB", "RB"),
+        ("RB", "RB"),
+        ("WR", "WR"),
+        ("WR", "WR"),
+        ("TE", "TE"),
+        ("FLEX", "WR"),
+        ("K", "K"),
+        ("DEF", "DEF"),
+        ("BN", "QB"),  # bench, ordered by position
+        ("BN", "RB"),
+        ("BN", "WR"),
+        ("IR", "RB"),  # IR always last
+    ]
+
+
+def test_roster_sort_key_groups_and_orders() -> None:
+    # The FLEX sorts just after TE no matter who fills it.
+    assert roster_sort_key("R/W/T", "WR") == (0, 4)
+    assert roster_sort_key("TE", "TE") < roster_sort_key("R/W/T", "RB")
+    # Bench after every starter; IR after every bench player.
+    assert roster_sort_key("QB", "QB") < roster_sort_key("BN", "QB")
+    assert roster_sort_key("BN", "WR") < roster_sort_key("IR", "RB")
+    # Within the bench, position drives the order.
+    assert roster_sort_key("BN", "QB") < roster_sort_key("BN", "DEF")
 
 
 def test_box_authoritative_total_and_winner(session: Session) -> None:
@@ -155,6 +273,17 @@ def test_box_pre_2016_season_is_unscored_gap(session: Session) -> None:
 
 def test_box_unknown_matchup_returns_none(session: Session) -> None:
     assert box_score(session, 999999) is None
+
+
+def test_box_clean_data_emits_no_integrity_warning(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    # The cross-team / cross-season integrity alarms must not false-positive on a
+    # clean matchup: a healthy box score logs nothing at WARNING.
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    with caplog.at_level(logging.WARNING, logger="ff_dashboard.analytics.matchups"):
+        box_score(session, mid)
+    assert caplog.records == []
 
 
 # --- Week matchups (deduped cards) -----------------------------------------

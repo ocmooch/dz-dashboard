@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type BoxScore = Awaited<ReturnType<typeof fetchBoxScore>>;
@@ -18,6 +18,16 @@ async function fetchBoxScore(matchupId: number) {
   if (error || !data) throw new Error("Failed to load box score");
   return data.data;
 }
+
+/** Slot names the backend treats as injured-reserve / unavailable. Mirrors
+ *  ``analytics/matchups.py::IR_SLOTS`` — kept in sync manually since the
+ *  frontend cannot import backend constants. */
+const IR_SLOT_NAMES = new Set(["IR", "IR2", "RES", "TAXI", "NA"]);
+
+function isIR(slot: string | null | undefined): boolean {
+  return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
+}
+
 
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
@@ -46,15 +56,18 @@ function breakdownChart(starters: BoxPlayer[]): { rows: ChartRow[]; series: Seri
 
 function LineupTable({ team }: { team: BoxTeam }) {
   const starters = team.lineup.filter((p) => p.is_starter);
-  const bench = team.lineup.filter((p) => !p.is_starter);
+  const bench = team.lineup.filter((p) => !p.is_starter && !isIR(p.roster_slot));
+  const ir = team.lineup.filter((p) => !p.is_starter && isIR(p.roster_slot));
   return (
     <table className="dz-table">
       <thead>
         <tr>
           <th>Slot</th>
           <th>Player</th>
-          <th className="dz-num">Proj</th>
-          <th className="dz-num">Pts</th>
+          <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
+          <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
+          <th className="dz-num" title="Actual vs projected (+/− delta). hit = beat projection; miss = fell short.">Value</th>
+          <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
         </tr>
       </thead>
       <tbody>
@@ -63,7 +76,7 @@ function LineupTable({ team }: { team: BoxTeam }) {
         ))}
         {bench.length > 0 && (
           <tr>
-            <td colSpan={4} className="dz-eyebrow pt-3 text-faint">
+            <td colSpan={6} className="dz-eyebrow pt-3 text-faint">
               bench
             </td>
           </tr>
@@ -71,35 +84,114 @@ function LineupTable({ team }: { team: BoxTeam }) {
         {bench.map((p) => (
           <PlayerRow key={p.player_id} p={p} muted />
         ))}
+        {ir.length > 0 && (
+          <tr>
+            <td colSpan={6} className="dz-eyebrow pt-3 text-faint">
+              IR / RES
+            </td>
+          </tr>
+        )}
+        {ir.map((p) => (
+          <PlayerRow key={p.player_id} p={p} muted />
+        ))}
       </tbody>
     </table>
   );
 }
 
+function InjuryBadge({ status, bodyPart }: { status: string; bodyPart?: string | null }) {
+  const short = status === "Questionable" ? "Q" : status;
+  const label = bodyPart ? `${short} · ${bodyPart}` : short;
+  const color = status === "Out" || status === "Doubtful" ? "var(--loss)" : "var(--warn)";
+  return (
+    <span className="ml-1 text-[var(--fs-xs)]" style={{ color }}>
+      {label}
+    </span>
+  );
+}
+
+function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
+  const value = num(p.league_points);
+  // For a known absence (bye or inactive) replace the bare "0.0 BYE"/"0.0 DNP"
+  // with a cleaner status label — the 0 is implied.
+  if (p.zero_reason === "bye" || p.zero_reason === "did_not_play") {
+    const label = p.zero_reason === "bye" ? "Bye" : "Out";
+    const injuryDetail = p.injury_body_part ? ` · ${p.injury_body_part}` : "";
+    const title =
+      p.zero_reason === "bye"
+        ? "On bye — did not play"
+        : `Did not play (inactive / injury)${injuryDetail}`;
+    return (
+      <span className="dz-eyebrow text-faint" title={title}>
+        {label}
+      </span>
+    );
+  }
+  if (p.zero_reason === "unexpected") {
+    return (
+      <span
+        className="inline-flex items-center justify-end gap-1 text-loss"
+        title={p.zero_detail ?? "Unexpectedly 0 — reason unclear"}
+      >
+        {value}
+        <span aria-label="unexpectedly zero" className="dz-eyebrow">
+          ⚠
+        </span>
+      </span>
+    );
+  }
+  // Normal points — includes an organic 0.0 (played, scored nothing). Never a fake blank.
+  return <span className={muted ? "text-muted" : "text-text"}>{value}</span>;
+}
+
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
+  const valueLabel =
+    p.lineup_value === "starter_hit"
+      ? "hit"
+      : p.lineup_value === "starter_miss"
+        ? "miss"
+        : null;
   return (
     <tr>
       <td className="num text-faint">{p.roster_slot ?? "—"}</td>
       <td className={muted ? "text-muted" : undefined}>
         {p.player_name ?? "—"}
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
+        {p.injury_status != null && (
+          <InjuryBadge status={p.injury_status} bodyPart={p.injury_body_part} />
+        )}
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
+      <td className="dz-num text-faint">
+        {p.team_point_share != null ? pct(p.team_point_share) : "—"}
+      </td>
       <td className="dz-num">
-        {p.available && p.league_points != null ? (
-          <span className={muted ? "text-muted" : "text-text"}>
-            {num(p.league_points)}
-            {p.score_gap && (
-              <span
-                className="ml-1 cursor-help text-[var(--fs-xs)] text-faint"
-                title="Score may be understated — 40+/50+ yd TD bonuses need play-by-play (known gap)"
-              >
-                *
-              </span>
-            )}
-          </span>
-        ) : (
+        <span
+          className={
+            p.projection_delta == null
+              ? "text-faint"
+              : p.projection_delta >= 0
+                ? "text-win"
+                : "text-loss"
+          }
+          title={
+            p.projection != null && p.league_points != null && p.projection_delta != null
+              ? `Proj ${num(p.projection)} → Actual ${num(p.league_points)} (${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)})`
+              : undefined
+          }
+        >
+          {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
+        </span>
+        {valueLabel && <span className="ml-1 text-[var(--fs-xs)] text-faint">{valueLabel}</span>}
+      </td>
+      <td className="dz-num">
+        {!p.available ? (
+          // Pipeline explicitly flagged this entry as a gap (e.g. a known scoring hole).
           <DataGap reason={p.reason ?? undefined} size="sm" />
+        ) : p.league_points != null ? (
+          <ScoreCell p={p} muted={muted} />
+        ) : (
+          <span className="text-faint">—</span>
         )}
       </td>
     </tr>
@@ -187,8 +279,16 @@ export function BoxScorePage() {
       {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
-        <Card className="p-8">
+        <Card className="space-y-4 p-8">
           <DataGap reason={data.reason ?? undefined} />
+          <p className="text-[var(--fs-sm)] text-muted">
+            Team totals can still be reviewed from the weekly matchups view.
+          </p>
+          {data.week != null && (
+            <Link to={`/matchups?week=${data.week}`} className="text-accent hover:underline">
+              View week {data.week} matchups
+            </Link>
+          )}
         </Card>
       )}
 

@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 import { chartTheme, heatColor, seriesColor } from "./chartTheme";
 
 describe("chartTheme", () => {
-  it("returns the six-color series ramp with token fallbacks", () => {
+  it("returns the 12-color series ramp with token fallbacks", () => {
     const t = chartTheme();
-    expect(t.series).toHaveLength(6);
+    expect(t.series).toHaveLength(12);
     expect(t.series[0]).toBe("#ff6a1a");
   });
 
   it("wraps the series ramp by index", () => {
-    expect(seriesColor(0)).toBe(seriesColor(6));
+    expect(seriesColor(0)).not.toBe(seriesColor(6));
+    expect(seriesColor(0)).toBe(seriesColor(12));
     expect(seriesColor(1)).toBe("#5aa9ff");
   });
 });

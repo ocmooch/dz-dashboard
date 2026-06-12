@@ -1,0 +1,54 @@
+# dz-dashboard — systemd *user* service for the Phase 2 dashboard
+# -----------------------------------------------------------------
+# Keeps the analytics dashboard (BFF + built SPA, single-origin) running and
+# restarts it on crash or reboot — the durable alternative to a bare
+# `nohup dz-dashboard serve &`, which dies with its parent shell. Mirrors
+# Phase 1's scripts/ff-pipeline-api.service.
+#
+# This serves the *built* SPA single-origin, so it is the production-ish run
+# (`make serve`), not the dev one. Build the SPA first: `make build-web`.
+#
+# Install (user service — no root needed):
+#   1. Build the SPA once and edit the two placeholders below:
+#        make build-web
+#        <PROJECT_ROOT>   absolute path to this checkout (e.g. /home/you/dz-dashboard)
+#        <DZ_DASHBOARD>   absolute path to the entrypoint
+#                         (`command -v dz-dashboard`, or
+#                          <PROJECT_ROOT>/.venv/bin/dz-dashboard for a uv venv)
+#   2. Copy into place and enable:
+#        mkdir -p ~/.config/systemd/user
+#        cp scripts/dz-dashboard.service ~/.config/systemd/user/
+#        systemctl --user daemon-reload
+#        systemctl --user enable --now dz-dashboard.service
+#   3. Survive logout / persist across reboots (WSL2 & headless boxes,
+#      where the user has no lingering login session):
+#        sudo loginctl enable-linger "$USER"
+#   4. Verify:
+#        systemctl --user status dz-dashboard.service
+#        curl -s http://127.0.0.1:8800/health
+#
+# Logs: `journalctl --user -u dz-dashboard.service -f`.
+# Host/port/DB come from DASHBOARD_* / DATABASE_URL in .env (the dashboard
+# needs no secrets). The SPA is served from web/dist via DASHBOARD_STATIC_DIR.
+# -----------------------------------------------------------------
+
+[Unit]
+Description=dz-dashboard analytics dashboard (Phase 2 BFF + SPA)
+# The dashboard reads the Phase 1 SQLite file directly; it does not need the
+# Phase 1 read API. It tolerates the DB not yet existing (returns 503), so no
+# hard ordering dependency is required.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=<PROJECT_ROOT>
+Environment=DASHBOARD_STATIC_DIR=<PROJECT_ROOT>/web/dist
+ExecStart=<DZ_DASHBOARD> serve
+Restart=on-failure
+RestartSec=5
+# Load .env so DATABASE_URL / DASHBOARD_HOST / DASHBOARD_PORT are picked up.
+EnvironmentFile=-<PROJECT_ROOT>/.env
+
+[Install]
+WantedBy=default.target

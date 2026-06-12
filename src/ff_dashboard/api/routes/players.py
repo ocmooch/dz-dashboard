@@ -7,22 +7,26 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import (
     get_player,
-    search_players,
-    season_totals,
+    get_season_by_year,
     top_scorers,
 )
 
+from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.players import (
     availability,
+    list_player_index,
     ownership_timeline,
+    player_insights,
     player_scoring,
 )
+from ff_dashboard.analytics.stats import season_totals
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
     PlayerAvailability,
     PlayerIndex,
-    PlayerLite,
+    PlayerIndexRow,
+    PlayerInsights,
     PlayerOut,
     PlayerOwnership,
     PlayerScoring,
@@ -41,22 +45,24 @@ def list_players(
     name: str | None = None,
     position: str | None = None,
     nfl_team: str | None = None,
-    active: bool | None = None,
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> Envelope[PlayerIndex]:
-    rows = search_players(
+    rows = list_player_index(
         session,
         name=name,
         position=position,
         nfl_team=nfl_team,
-        active=active,
+        scope="league",
         limit=limit,
         offset=offset,
     )
-    players = [PlayerLite.model_validate(p) for p in rows]
     return Envelope(
-        data=PlayerIndex(players=players, limit=limit, offset=offset),
+        data=PlayerIndex(
+            players=[PlayerIndexRow(**r) for r in rows],
+            limit=limit,
+            offset=offset,
+        ),
         meta=build_meta(session),
     )
 
@@ -85,6 +91,14 @@ def get_player_ownership(player_id: int, session: SessionDep) -> Envelope[Player
     if data is None:
         raise not_found(f"No player with id {player_id}")
     return Envelope(data=PlayerOwnership(**data), meta=build_meta(session))
+
+
+@router.get("/v1/players/{player_id}/insights", response_model=Envelope[PlayerInsights])
+def get_player_insights(player_id: int, session: SessionDep) -> Envelope[PlayerInsights]:
+    data = player_insights(session, player_id)
+    if data is None:
+        raise not_found(f"No player with id {player_id}")
+    return Envelope(data=PlayerInsights(**data), meta=build_meta(session))
 
 
 @router.get("/v1/players/{player_id}/availability", response_model=Envelope[PlayerAvailability])
@@ -123,9 +137,9 @@ def get_season_totals(
     season: int = Query(..., ge=1999),
     position: str | None = None,
 ) -> Envelope[SeasonTotals]:
-    rows = season_totals(session, season)
-    if position is not None:
-        rows = [r for r in rows if r["position"] == position]
+    league = require_league(session)
+    season_obj = get_season_by_year(session, league.league_id, season)
+    rows = season_totals(session, season_obj, position=position) if season_obj is not None else []
     return Envelope(
         data=SeasonTotals(
             season_year=season,

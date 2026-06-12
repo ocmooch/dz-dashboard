@@ -65,37 +65,41 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe("StatsPage", () => {
-  it("renders top scorers with deep links to player detail", async () => {
+  it("defaults to season totals with deep links to player detail", async () => {
     renderPage();
     await screen.findByText("Justin Jefferson");
+    expect(await screen.findByText("Season Totals")).toBeInTheDocument();
     expect(screen.getByText("58.00")).toBeInTheDocument();
     const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/players/3");
     expect(link).toBeDefined();
+    expect(get.mock.calls.some((c) => c[0] === "/v1/stats/season-totals")).toBe(true);
   });
 
-  it("switches to season totals and shows weeks-played", async () => {
+  it("keeps weekly leaders reachable from the tabs", async () => {
     renderPage();
     await screen.findByText("Justin Jefferson");
-    await userEvent.click(screen.getByRole("tab", { name: "Season totals" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Top scorers" }));
     await waitFor(() => {
-      expect(get.mock.calls.some((c) => c[0] === "/v1/stats/season-totals")).toBe(true);
+      expect(get.mock.calls.some((c) => c[0] === "/v1/stats/top-scorers")).toBe(true);
     });
-    expect(await screen.findByText("Total")).toBeInTheDocument();
+    expect(await screen.findByText("Top Scorers")).toBeInTheDocument();
   });
 
-  it("surfaces the pre-2016 gap for an unscored season", async () => {
+  it("surfaces the gap for an unscored season", async () => {
     seasonMock.mockReturnValue({
-      current: { season_id: 9, season_year: 2015, is_scored: false },
-      seasons: [{ season_id: 9, season_year: 2015, is_scored: false }],
+      current: { season_id: 9, season_year: 2026, is_scored: false },
+      seasons: [{ season_id: 9, season_year: 2026, is_scored: false }],
       setSeasonId: vi.fn(),
       isLoading: false,
     });
     get.mockImplementation((path: string) => {
-      if (path === "/v1/stats/top-scorers")
-        return Promise.resolve(envelope({ ...TOP_SCORERS, season_year: 2015, scorers: [] }));
+      if (path === "/v1/stats/season-totals")
+        return Promise.resolve(envelope({ ...SEASON_TOTALS, season_year: 2026, totals: [] }));
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
-    expect(await screen.findByText(/pre-2016 gap/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/per-player fantasy scoring isn't available for this season/i),
+    ).toBeInTheDocument();
   });
 });

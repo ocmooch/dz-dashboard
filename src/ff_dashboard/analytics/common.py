@@ -7,29 +7,14 @@ needs so no view ever hardcodes 14 or 17 weeks.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ff_pipeline.api.errors import service_unavailable
-from ff_pipeline.repository.models import League, Owner, ScoringRule, Season, Team
-from sqlalchemy import func, select
+from ff_pipeline.repository.models import League, Matchup, Owner, Season, Team
+from sqlalchemy import distinct, func, select
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
-
-# Stat keys that require play-by-play analysis (nflverse M7 gap).
-# nflverse load_player_stats() never populates these; they are absent from
-# every player_stats_raw row, so the scoring engine silently scores them as 0.
-# Any player-week where these would be non-zero has an understated total.
-LONG_TD_BONUS_STAT_KEYS: frozenset[str] = frozenset(
-    {
-        "passing_yards_bonus_long_td_40",
-        "passing_yards_bonus_long_td_50",
-        "rushing_yards_bonus_long_td_40",
-        "rushing_yards_bonus_long_td_50",
-        "receiving_yards_bonus_long_td_40",
-        "receiving_yards_bonus_long_td_50",
-    }
-)
 
 # Seasons from this year onward use a consistent, documented tiebreaker; older
 # seasons' NFL.com tiebreak history drifted (wins > head-to-head/conference >
@@ -50,12 +35,34 @@ def regular_season_weeks(session: Session, season: Season) -> int:
     week when the column is unset (never hardcode 14/17)."""
     if season.regular_season_weeks is not None:
         return int(season.regular_season_weeks)
-    from ff_pipeline.repository.models import Matchup
-
     maxweek = session.execute(
         select(func.max(Matchup.week)).where(Matchup.season_id == season.season_id)
     ).scalar_one_or_none()
     return int(maxweek) if maxweek is not None else 0
+
+
+def played_season_ids(session: Session) -> set[int]:
+    """season_ids that have at least one played game (a ``Matchup`` row).
+
+    A season created for an upcoming year — teams and offseason rosters seeded
+    but no games played yet — has no matchups. Every season-enumerating surface
+    (the season selector, the museum timeline, manager trajectories, the
+    coverage view) filters on this set so the dashboard never shows an empty,
+    resultless season; it reappears automatically once its first games land.
+    Data-driven on played games — it never keys on a hardcoded year."""
+    rows = session.execute(select(distinct(Matchup.season_id))).scalars().all()
+    return {int(s) for s in rows}
+
+
+def displayed_seasons(session: Session, league_id: str) -> list[Season]:
+    """``list_seasons_for_league`` minus not-yet-played seasons.
+
+    The single canonical season list for display surfaces — see
+    ``played_season_ids`` for why upcoming-but-unplayed seasons are withheld."""
+    from ff_pipeline.repository.queries import list_seasons_for_league
+
+    played = played_season_ids(session)
+    return [s for s in list_seasons_for_league(session, league_id) if int(s.season_id) in played]
 
 
 def owner_name_map(session: Session) -> dict[int, str | None]:
@@ -64,48 +71,13 @@ def owner_name_map(session: Session) -> dict[int, str | None]:
     return {int(oid): name for oid, name in rows}
 
 
+def owner_active_map(session: Session) -> dict[int, bool]:
+    """owner_id -> is_active for every owner (managers still in the league)."""
+    rows = session.execute(select(Owner.owner_id, Owner.is_active)).all()
+    return {int(oid): bool(active) for oid, active in rows}
+
+
 def team_owner_map(session: Session) -> dict[int, int]:
     """team_id -> owner_id for every team (career/rivalry metrics key on owner)."""
     rows = session.execute(select(Team.team_id, Team.owner_id)).all()
     return {int(tid): int(oid) for tid, oid in rows}
-
-
-def long_td_bonus_rules(session: Session, season_id: int) -> frozenset[str]:
-    """Which long-TD-bonus stat keys have scoring rules for this season.
-
-    Returns the intersection of ``LONG_TD_BONUS_STAT_KEYS`` with the
-    season's actual scoring rules.  An empty set means the league doesn't
-    award long-TD bonuses, and no gap indicator is needed.
-    """
-    present = frozenset(
-        session.execute(
-            select(ScoringRule.stat_key).where(
-                ScoringRule.season_id == season_id,
-                ScoringRule.stat_key.in_(list(LONG_TD_BONUS_STAT_KEYS)),
-            )
-        )
-        .scalars()
-        .all()
-    )
-    return present
-
-
-def has_long_td_score_gap(raw_stats: dict[str, Any], bonus_rule_keys: frozenset[str]) -> bool:
-    """Return True when a player-week score may be understated by long-TD bonuses.
-
-    Requires that:
-    * the season has at least one long-TD bonus scoring rule (``bonus_rule_keys`` non-empty),
-    * the player had at least one TD that week (so a long-TD bonus is plausible), and
-    * at least one long-TD bonus stat key is absent from the raw stats dict
-      (confirming the source never provided it, not that the stat was zero).
-    """
-    if not bonus_rule_keys:
-        return False
-    has_td = (
-        float(raw_stats.get("receiving_tds") or 0) > 0
-        or float(raw_stats.get("rushing_tds") or 0) > 0
-        or float(raw_stats.get("passing_tds") or 0) > 0
-    )
-    if not has_td:
-        return False
-    return any(k not in raw_stats for k in bonus_rule_keys)

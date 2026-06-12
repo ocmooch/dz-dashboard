@@ -102,9 +102,11 @@ writes to NFL.com, and never runs the pipeline. It consumes; it does not mutate.
 
 - **N2.1** Every number the dashboard shows must trace to a Phase 1 fact or a documented
   formula in `04_ANALYTICS_MODEL.md`. No silent fabrication.
-- **N2.2** Known data gaps are surfaced in the UI, not hidden: unscored 2010–2015 seasons,
-  current-season-only availability, and incomplete DST scoring render as explicit
-  "not available" affordances, never as zeros masquerading as data.
+- **N2.2** Known data gaps are surfaced in the UI, not hidden: an unscored current/in-progress
+  season (data-driven on the per-season `is_scored` flag), current-season-only availability, and
+  any genuinely-missing scored row (including a DST team/week) render as explicit "not available"
+  affordances, never as zeros masquerading as data. Per-player fantasy scoring now spans
+  2010–2025 since F-51. DST is now scored end-to-end, so it shows real points where a row exists.
 - **N2.3** Every API response carries provenance (`meta`: data freshness + pipeline run id),
   matching the Phase 1 envelope convention.
 

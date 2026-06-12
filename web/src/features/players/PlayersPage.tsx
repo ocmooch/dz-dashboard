@@ -1,7 +1,15 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, Card, CardHeader, Chip, EmptyState, ErrorState, Skeleton } from "@/design-system";
+import {
+  Button,
+  Card,
+  CardHeader,
+  Chip,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import { qk } from "@/lib/queryKeys";
 
@@ -12,7 +20,6 @@ type Filters = {
   name: string;
   position: string;
   nfl_team: string;
-  active: string; // "", "true", "false"
   offset: number;
 };
 
@@ -23,7 +30,6 @@ async function fetchPlayers(f: Filters) {
         name: f.name || undefined,
         position: f.position || undefined,
         nfl_team: f.nfl_team || undefined,
-        active: f.active === "" ? undefined : f.active === "true",
         limit: PAGE_SIZE,
         offset: f.offset,
       },
@@ -33,13 +39,18 @@ async function fetchPlayers(f: Filters) {
   return data.data;
 }
 
+/** "2016–2018", "2017", or "—" when the player was never on a league roster. */
+function rosteredSpan(first?: number | null, last?: number | null): string {
+  if (first == null || last == null) return "—";
+  return first === last ? String(first) : `${first}–${last}`;
+}
+
 export function PlayersPage() {
   const [params, setParams] = useSearchParams();
   const filters: Filters = {
     name: params.get("name") ?? "",
     position: params.get("position") ?? "",
     nfl_team: params.get("nfl_team") ?? "",
-    active: params.get("active") ?? "",
     offset: Math.max(0, Number(params.get("offset") ?? "0") || 0),
   };
 
@@ -102,16 +113,6 @@ export function PlayersPage() {
             value={filters.nfl_team}
             onChange={(e) => set({ nfl_team: e.target.value.toUpperCase() })}
           />
-          <select
-            className="dz-select"
-            aria-label="Filter by active status"
-            value={filters.active}
-            onChange={(e) => set({ active: e.target.value })}
-          >
-            <option value="">Active &amp; retired</option>
-            <option value="true">Active only</option>
-            <option value="false">Retired only</option>
-          </select>
         </div>
       </Card>
 
@@ -161,6 +162,7 @@ export function PlayersPage() {
                   <th>Player</th>
                   <th>Pos</th>
                   <th>NFL</th>
+                  <th>Rostered</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,6 +175,9 @@ export function PlayersPage() {
                     </td>
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="text-muted">{p.nfl_team ?? "—"}</td>
+                    <td className="num text-muted">
+                      {rosteredSpan(p.first_rostered_season, p.last_rostered_season)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

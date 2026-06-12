@@ -12,8 +12,9 @@ Phase 1 facts:
   ``null`` (never 0) for unscored seasons / unscored slots.
 * :func:`team_schedule` — week-by-week results with the box-score deep-link.
 * :func:`team_scoring_trend` — the team's weekly score against the league average
-  that week (team scores exist even for pre-2016 seasons, so this is not gated).
-* :func:`team_transactions` — the season's moves involving this team.
+  that week (team scores can exist even when player scoring is absent, so this
+  is not gated).
+* :func:`team_transactions` — the season's recorded transaction log involving this team.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     matchups_for_team,
+    player_season_teams,
     roster_for_team_week,
     transactions_for_team,
 )
@@ -34,6 +36,8 @@ from sqlalchemy import func, select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.historical_team_names import period_team_name
+from ff_dashboard.analytics.matchups import _authoritative_points, roster_sort_key
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -63,7 +67,7 @@ def team_overview(session: Session, team_id: int) -> dict[str, Any] | None:
 
     return {
         "team_id": team_id,
-        "team_name": team.team_name,
+        "team_name": period_team_name(team, season.year),
         "season_id": season.season_id,
         "season_year": season.year,
         "owner_id": team.owner_id,
@@ -86,7 +90,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     """The team's roster for a week (latest when ``week`` is ``None``).
 
     Per-player league points are included where the player was scored that week;
-    they are ``null`` (never 0) for unscored slots / pre-2016 seasons.
+    they are ``null`` (never 0) for unscored slots/seasons.
     """
     require_league(session)
     team = get_team(session, team_id)
@@ -107,6 +111,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     )
 
     pairs = roster_for_team_week(session, team_id, week)
+    # Lay the roster out top-to-bottom the way the box score does: starters
+    # (QB, RB, RB, WR, WR, TE, FLEX, K, DST), then bench, then IR.
+    pairs = sorted(pairs, key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position))
     effective_week = week
     if effective_week is None:
         effective_week = (
@@ -114,6 +121,10 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         )
 
     player_ids = [r.player_id for r, _ in pairs]
+    # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
+    # the current snapshot on players.nfl_team when no per-week team is stored —
+    # mirrors period_team_name()'s fallback for fantasy names.
+    season_teams = player_season_teams(session, player_ids, season.year)
     scored: dict[int, float] = {}
     if player_ids:
         rows = session.execute(
@@ -125,22 +136,27 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         ).all()
         scored = {int(pid): float(pts) for pid, pts in rows if pts is not None}
 
-    players = [
-        {
-            "player_id": player.player_id,
-            "player_name": player.name_full,
-            "position": player.position,
-            "nfl_team": player.nfl_team,
-            "roster_slot": roster_row.roster_slot,
-            "is_starter": bool(roster_row.is_starter),
-            "league_points": round(scored[player.player_id], 2)
-            if player.player_id in scored
-            else None,
-            "acquisition_type": roster_row.acquisition_type,
-            "acquisition_week": roster_row.acquisition_week,
-        }
-        for roster_row, player in pairs
-    ]
+    players = []
+    for roster_row, player in pairs:
+        # Prefer NFL.com's authoritative per-player points; fall back to the
+        # nflverse reconstruction only when the field is absent. Keeps the team
+        # page in agreement with the box score (which does the same).
+        points = _authoritative_points(roster_row)
+        if points is None and player.player_id in scored:
+            points = scored[player.player_id]
+        players.append(
+            {
+                "player_id": player.player_id,
+                "player_name": player.name_full,
+                "position": player.position,
+                "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
+                "roster_slot": roster_row.roster_slot,
+                "is_starter": bool(roster_row.is_starter),
+                "league_points": round(points, 2) if points is not None else None,
+                "acquisition_type": roster_row.acquisition_type,
+                "acquisition_week": roster_row.acquisition_week,
+            }
+        )
 
     return {
         "team_id": team_id,
@@ -184,7 +200,9 @@ def team_schedule(session: Session, team_id: int) -> dict[str, Any] | None:
                 "week": m.week,
                 "is_playoff": bool(m.is_playoff),
                 "opponent_team_id": m.opponent_team_id,
-                "opponent_team_name": opp.team_name if opp is not None else None,
+                "opponent_team_name": period_team_name(opp, season.year)
+                if opp is not None
+                else None,
                 "opponent_owner_name": owners.get(opp.owner_id) if opp is not None else None,
                 "team_score": round(m.team_score, 2) if m.team_score is not None else None,
                 "opponent_score": round(m.opponent_score, 2)
@@ -201,8 +219,8 @@ def team_schedule(session: Session, team_id: int) -> dict[str, Any] | None:
 def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
     """The team's weekly score vs the league average for that same week.
 
-    Team scores are authoritative from Phase 1 for every season (including the
-    pre-2016 player-scoring gap), so this view is not gated on ``is_scored``.
+    Team scores are authoritative from Phase 1 for every season that carries
+    matchup totals, so this view is not gated on ``is_scored``.
     """
     require_league(session)
     team = get_team(session, team_id)
@@ -248,7 +266,7 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
 
 
 def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
-    """The season's transactions involving this team (as actor or counterpart)."""
+    """The season's recorded transactions involving this team (as actor or counterpart)."""
     require_league(session)
     team = get_team(session, team_id)
     if team is None:
@@ -272,10 +290,28 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
                 "player_id": t.player_id,
                 "player_name": player.name_full if player is not None else None,
                 "direction": t.direction,
+                "waiver_priority_used": t.waiver_priority_used,
+                "faab_bid": _faab_bid(t.extra_data),
                 "counterpart_team_id": t.counterpart_team_id,
-                "counterpart_team_name": counterpart.team_name if counterpart is not None else None,
+                "counterpart_team_name": period_team_name(counterpart, season.year)
+                if counterpart is not None
+                else None,
                 "notes": t.notes,
+                "extra_data": t.extra_data,
             }
         )
 
     return {"team_id": team_id, "season_year": season.year, "transactions": items}
+
+
+def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
+    """Return a FAAB bid when Phase 1 records one; current DB rows generally do not."""
+    if not extra_data:
+        return None
+    raw = extra_data.get("faab_bid") or extra_data.get("faab") or extra_data.get("bid")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None

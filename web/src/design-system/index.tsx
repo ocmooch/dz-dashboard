@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useState } from "react";
 
 import { initials, record } from "@/lib/format";
 
@@ -92,6 +93,24 @@ export function Button({
   );
 }
 
+export function Checkbox({
+  label,
+  hint,
+  className = "",
+  ...props
+}: {
+  label: ReactNode;
+  hint?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+  return (
+    <label className={`dz-checkbox ${className}`.trim()}>
+      <input type="checkbox" className="dz-checkbox__box" {...props} />
+      <span className="dz-checkbox__label">{label}</span>
+      {hint && <span className="dz-checkbox__hint">{hint}</span>}
+    </label>
+  );
+}
+
 export function Badge({
   children,
   variant = "default",
@@ -146,10 +165,35 @@ export function RecordLine({ wins, losses, ties }: { wins: number; losses: numbe
   );
 }
 
-export function Chip({ name, sub, size = "md" }: { name: string | null | undefined; sub?: string; size?: "md" | "lg" }) {
+export function Chip({
+  name,
+  sub,
+  size = "md",
+  avatarUrl,
+}: {
+  name: string | null | undefined;
+  sub?: string;
+  size?: "md" | "lg";
+  /** Team-logo URL (e.g. `/v1/teams/{id}/avatar`). Falls back to the name
+   *  monogram when absent or when the image fails to load / 404s (Q11). */
+  avatarUrl?: string | null;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const avatarClass = `dz-avatar ${size === "lg" ? "dz-avatar--lg" : ""}`.trim();
+  const showImg = Boolean(avatarUrl) && !imgFailed;
   return (
     <span className="inline-flex items-center gap-3">
-      <span className={`dz-avatar ${size === "lg" ? "dz-avatar--lg" : ""}`.trim()}>{initials(name)}</span>
+      {showImg ? (
+        <img
+          className={`${avatarClass} dz-avatar--img`}
+          src={avatarUrl as string}
+          alt=""
+          loading="lazy"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <span className={avatarClass}>{initials(name)}</span>
+      )}
       <span className="flex flex-col leading-tight">
         <span className="font-semibold text-text">{name ?? "—"}</span>
         {sub && <span className="text-[var(--fs-xs)] text-faint">{sub}</span>}
@@ -158,11 +202,20 @@ export function Chip({ name, sub, size = "md" }: { name: string | null | undefin
   );
 }
 
+/** One warm, consistent sentence for a season whose per-player fantasy scoring
+ *  isn't available, reused across every view so the affordance reads identically
+ *  (F-33). The gap is data-driven on the per-season `is_scored` flag — with the
+ *  pre-2016 reconstruction landed (F-51) the only unscored season is normally the
+ *  current, in-progress one, so the copy is year-agnostic and makes no claim
+ *  about team-data completeness (which is partial while a season is live). */
+export const UNSCORED_SEASON_NOTE =
+  "Per-player fantasy scoring isn't available for this season yet — values that depend on it show a gap marker, never a zero.";
+
 /** The honesty component: shown wherever a metric is absent. Never a fake 0.
  *  Renders the dashed + hatched affordance with an amber diamond (drawn in CSS). */
 export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" | "sm" }) {
   const labels: Record<string, string> = {
-    season_unscored: "Not scored — pre-2016 season",
+    season_unscored: "Per-player scoring not available for this season",
     no_scored_data: "No scored data for this scope",
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",
@@ -171,7 +224,16 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     draft_not_captured: "Draft not captured for this season",
     player_unscored: "Player not scored — value unavailable",
     insufficient_history: "Not enough draft history to value this slot",
-    long_td_bonuses_not_computed: "Score may be understated — 40+/50+ yd TD bonuses need play-by-play (known gap)",
+    player_bio_unavailable: "Biographical data unavailable",
+    unscored_tenure:
+      "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
+    bracket_unavailable: "Bracket data isn't available for this season",
+    consolation_indistinguishable:
+      "Consolation bracket can't be separated from the playoff bracket for this season",
+    conference_membership_unavailable:
+      "Conference membership data for historical seasons is not yet available",
+    roster_history_unavailable:
+      "Week-by-week roster history isn't available for this season, so adds and drops can't be derived",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">
@@ -203,6 +265,7 @@ export function WeekStepper({
   max: number;
   onChange: (week: number) => void;
 }) {
+  const weeks = Array.from({ length: Math.max(0, max - min + 1) }, (_, i) => min + i);
   return (
     <div className="inline-flex items-center gap-2" role="group" aria-label="Week">
       <Button
@@ -213,7 +276,22 @@ export function WeekStepper({
       >
         ‹
       </Button>
-      <span className="num text-[var(--fs-sm)] text-muted">Wk {week}</span>
+      <label className="sr-only" htmlFor="week-stepper-select">
+        Select week
+      </label>
+      <select
+        id="week-stepper-select"
+        className="dz-select num w-[5.75rem] py-1 text-[var(--fs-sm)]"
+        aria-label="Select week"
+        value={week}
+        onChange={(e) => onChange(Number(e.target.value))}
+      >
+        {weeks.map((w) => (
+          <option key={w} value={w}>
+            Wk {w}
+          </option>
+        ))}
+      </select>
       <Button
         variant="ghost"
         aria-label="Next week"

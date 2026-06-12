@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton } from "@/design-system";
+import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton } from "@/design-system";
 import { BarCompare } from "@/charts";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
@@ -39,50 +40,87 @@ function ValueTag({ value }: { value: number | null | undefined }) {
   );
 }
 
-function PickCell({ pick }: { pick: Pick }) {
+function compactPlayerName(name: string | null | undefined) {
+  if (!name) return "—";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
+
+function compactPoints(points: number | null | undefined) {
+  if (points == null) return "—";
+  return `${num(points).replace(/\.00$/, "")} pts`;
+}
+
+function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
+  const ownerLabel = pick.owner_name ?? pick.team_name ?? "—";
+  const teamSub =
+    pick.team_name && pick.owner_name && !pick.team_name.toLowerCase().includes(pick.owner_name.toLowerCase())
+      ? pick.team_name
+      : null;
+
   return (
     <Link
       to={pick.player_id != null ? `/players/${pick.player_id}` : "#"}
-      className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
+      title={pick.player_name ?? undefined}
+      className={`flex min-h-36 min-w-0 flex-col rounded-[var(--radius-sm)] border bg-[var(--surface-1)] p-2.5 transition-colors hover:border-[var(--accent)] ${
+        focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
+      }`}
     >
-      <div className="mb-1 flex items-center justify-between">
-        <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
-        {pick.available ? <ValueTag value={pick.value} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />}
+      <div className="mb-2 space-y-1">
+        <span className="num block text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
+        <div className="min-w-0">
+          {pick.available ? <ValueTag value={pick.value} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />}
+        </div>
       </div>
-      <div className="font-semibold text-text">{pick.player_name ?? "—"}</div>
-      <div className="flex items-center justify-between text-[var(--fs-xs)] text-muted">
-        <span>{pick.position ?? "—"}</span>
-        <span className="num">{pick.season_points != null ? `${num(pick.season_points)} pts` : "—"}</span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-semibold leading-snug text-text">
+          {compactPlayerName(pick.player_name)}
+        </div>
+        <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
+          <span>{pick.position ?? "—"}</span>
+          <span className="num block truncate">{compactPoints(pick.season_points)}</span>
+        </div>
       </div>
-      <div className="mt-2 border-t border-[var(--hairline)] pt-2">
-        <Chip name={pick.owner_name} sub={pick.team_name ?? undefined} />
+      <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
+        <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
+        {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
       </div>
     </Link>
   );
 }
 
+function orderedRoundPicks(round: number, picks: Pick[]) {
+  const ordered = [...picks].sort((a, b) => (a.pick_in_round ?? a.overall) - (b.pick_in_round ?? b.overall));
+  return round % 2 === 0 ? ordered.reverse() : ordered;
+}
+
 /** A steal/bust leaderboard row, deep-linking to the drafted player. */
-function PickLine({ pick, rank }: { pick: Pick; rank: number }) {
+function PickLine({ pick, rank, onFocus }: { pick: Pick; rank: number; onFocus: (overall: number) => void }) {
   return (
-    <Link
-      to={pick.player_id != null ? `/players/${pick.player_id}` : "#"}
-      className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-[var(--surface-1)]"
+    <button
+      type="button"
+      onClick={() => onFocus(pick.overall)}
+      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2 py-1.5 text-left hover:bg-[var(--surface-1)]"
     >
       <span className="flex items-center gap-2 truncate">
         <span className="num w-4 text-[var(--fs-xs)] text-faint">{rank}</span>
         <span className="truncate font-medium text-text">{pick.player_name ?? "—"}</span>
         <span className="text-[var(--fs-xs)] text-faint">
-          #{pick.overall} · {pick.owner_name ?? "—"}
+          #{pick.overall} · {pick.team_name ?? pick.owner_name ?? "—"}
         </span>
       </span>
       <ValueTag value={pick.value} />
-    </Link>
+    </button>
   );
 }
 
 export function DraftPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
+  const [position, setPosition] = useState("");
+  const [round, setRound] = useState("");
+  const [focusedOverall, setFocusedOverall] = useState<number | null>(null);
 
   const board = useQuery({
     queryKey: seasonId ? qk.draftBoard(seasonId) : ["draft", "none"],
@@ -95,9 +133,23 @@ export function DraftPage() {
     enabled: seasonId != null && board.data?.available === true,
   });
 
+  const positions = useMemo(
+    () => Array.from(new Set(value.data?.picks.map((p) => p.position).filter(Boolean))).sort(),
+    [value.data?.picks],
+  );
+  const rounds = useMemo(
+    () => Array.from(new Set(value.data?.picks.map((p) => p.round).filter(Boolean))).sort((a, b) => a - b),
+    [value.data?.picks],
+  );
+  const filteredPicks =
+    value.data?.picks.filter((p) => {
+      if (position && p.position !== position) return false;
+      if (round && p.round !== Number(round)) return false;
+      return true;
+    }) ?? [];
   const chartRows =
-    value.data?.picks
-      ?.filter((p) => p.value != null)
+    filteredPicks
+      .filter((p) => p.value != null)
       .map((p) => ({
         label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
         value: p.value as number,
@@ -147,7 +199,7 @@ export function DraftPage() {
                     <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear steals.</p>
                   )}
                   {value.data.steals.map((p, i) => (
-                    <PickLine key={p.overall} pick={p} rank={i + 1} />
+                    <PickLine key={p.overall} pick={p} rank={i + 1} onFocus={setFocusedOverall} />
                   ))}
                 </div>
               </Card>
@@ -158,7 +210,7 @@ export function DraftPage() {
                     <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear busts.</p>
                   )}
                   {value.data.busts.map((p, i) => (
-                    <PickLine key={p.overall} pick={p} rank={i + 1} />
+                    <PickLine key={p.overall} pick={p} rank={i + 1} onFocus={setFocusedOverall} />
                   ))}
                 </div>
               </Card>
@@ -168,6 +220,24 @@ export function DraftPage() {
           {chartRows.length > 0 && (
             <Card>
               <CardHeader eyebrow="points above / below slot expectation" title="Pick value" />
+              <div className="flex flex-wrap gap-2 px-5 pt-5">
+                <select className="dz-input" value={position} onChange={(e) => setPosition(e.target.value)}>
+                  <option value="">All positions</option>
+                  {positions.map((p) => (
+                    <option key={p} value={p ?? ""}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <select className="dz-input" value={round} onChange={(e) => setRound(e.target.value)}>
+                  <option value="">All rounds</option>
+                  {rounds.map((r) => (
+                    <option key={r} value={r}>
+                      Round {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="p-5">
                 <BarCompare
                   title="Draft pick value by overall pick"
@@ -195,9 +265,13 @@ export function DraftPage() {
               {board.data.rounds.map((rnd) => (
                 <div key={rnd.round}>
                   <div className="dz-eyebrow mb-2">Round {rnd.round}</div>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                    {rnd.picks.map((p) => (
-                      <PickCell key={p.overall} pick={p} />
+                  <div
+                    aria-label={`Round ${rnd.round} snake picks`}
+                    className="grid min-w-0 gap-2"
+                    style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }}
+                  >
+                    {orderedRoundPicks(rnd.round, rnd.picks).map((p) => (
+                      <PickCell key={p.overall} pick={p} focused={p.overall === focusedOverall} />
                     ))}
                   </div>
                 </div>

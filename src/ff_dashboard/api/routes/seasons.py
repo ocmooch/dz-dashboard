@@ -5,22 +5,28 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
-from ff_pipeline.repository.queries import get_season, get_team, list_seasons_for_league
+from ff_pipeline.repository.queries import get_season, get_team
 
-from ff_dashboard.analytics.common import owner_name_map, require_league
+from ff_dashboard.analytics.bracket import season_bracket
+from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
+from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.standings import (
     compute_standings,
     season_summary,
+    standings_insights,
     standings_timeline,
 )
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
+    SeasonBracket,
+    SeasonConferences,
     SeasonList,
     SeasonListItem,
     SeasonSummary,
     Standings,
+    StandingsInsights,
     StandingsTimeline,
     TeamRef,
 )
@@ -34,7 +40,7 @@ def list_seasons(session: SessionDep) -> Envelope[SeasonList]:
     scored = set(seasons_scored(session))
     owners = owner_name_map(session)
     items: list[SeasonListItem] = []
-    for s in list_seasons_for_league(session, league.league_id):
+    for s in displayed_seasons(session, league.league_id):
         champion = None
         if s.champion_team_id is not None:
             team = get_team(session, s.champion_team_id)
@@ -78,6 +84,21 @@ def get_standings(
 
 
 @router.get(
+    "/v1/seasons/{season_id}/standings/insights",
+    response_model=Envelope[StandingsInsights],
+)
+def get_standings_insights(
+    season_id: int,
+    session: SessionDep,
+    through_week: int | None = Query(None, ge=1),
+) -> Envelope[StandingsInsights]:
+    data = standings_insights(session, season_id, through_week)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=StandingsInsights(**data), meta=build_meta(session))
+
+
+@router.get(
     "/v1/seasons/{season_id}/standings/timeline",
     response_model=Envelope[StandingsTimeline],
 )
@@ -86,3 +107,19 @@ def get_standings_timeline(season_id: int, session: SessionDep) -> Envelope[Stan
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=StandingsTimeline(**data), meta=build_meta(session))
+
+
+@router.get("/v1/seasons/{season_id}/bracket", response_model=Envelope[SeasonBracket])
+def get_season_bracket(season_id: int, session: SessionDep) -> Envelope[SeasonBracket]:
+    data = season_bracket(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonBracket(**data), meta=build_meta(session))
+
+
+@router.get("/v1/seasons/{season_id}/conferences", response_model=Envelope[SeasonConferences])
+def get_season_conferences(season_id: int, session: SessionDep) -> Envelope[SeasonConferences]:
+    data = season_conferences(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonConferences(**data), meta=build_meta(session))

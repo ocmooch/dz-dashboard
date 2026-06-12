@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
 
     from sqlalchemy import Engine
 
@@ -34,5 +35,15 @@ def get_cache(request: Request) -> AnalyticsCache:
     return cache
 
 
+def get_assets_root(request: Request) -> Path | None:
+    """Return the on-disk avatar asset-store root bound to the app, if any.
+
+    Lives on ``app.state`` so tests can point it at a temp dir (mirroring the
+    engine/cache pattern). ``None`` when unconfigured → the avatar route 404s."""
+    root: Path | None = request.app.state.assets_root
+    return root
+
+
 SessionDep = Annotated[Session, Depends(get_session)]
 CacheDep = Annotated["AnalyticsCache", Depends(get_cache)]
+AssetsRootDep = Annotated["Path | None", Depends(get_assets_root)]
