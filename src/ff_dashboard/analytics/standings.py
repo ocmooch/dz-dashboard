@@ -12,15 +12,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-try:
-    from ff_pipeline.repository.models import Matchup, SeasonConference, Team  # type: ignore[attr-defined]
-    _SEASON_CONFERENCE_AVAILABLE = True
-except (ImportError, AttributeError):
-    from ff_pipeline.repository.models import Matchup, Team
-    SeasonConference = None  # type: ignore[assignment,misc]
-    _SEASON_CONFERENCE_AVAILABLE = False
+from ff_pipeline.repository.models import Matchup, Team
 from ff_pipeline.repository.queries import get_season
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from ff_dashboard.analytics.common import (
     CONSISTENT_TIEBREAK_SINCE,
@@ -78,15 +72,28 @@ def compute_standings(
     team_by_id = {t.team_id: t for t in teams}
     owners = owner_name_map(session)
 
-    if _SEASON_CONFERENCE_AVAILABLE and SeasonConference is not None:
-        conf_rows = session.execute(
-            select(SeasonConference.conference_id, SeasonConference.name).where(
-                SeasonConference.season_id == season_id
-            )
-        ).all()
-        conf_names: dict[int, str | None] = {int(cid): name for cid, name in conf_rows}
-    else:
-        conf_names = {}
+    # conference_id exists in the DB teams table but may not be mapped in the
+    # current ff_pipeline Team ORM model — read via raw SQL so we degrade
+    # gracefully if the column is absent rather than crashing.
+    team_conf_ids: dict[int, int | None] = {}
+    try:
+        for tid, cid in session.execute(
+            text("SELECT team_id, conference_id FROM teams WHERE season_id = :sid"),
+            {"sid": season_id},
+        ):
+            team_conf_ids[int(tid)] = int(cid) if cid is not None else None
+    except Exception:
+        pass
+
+    conf_names: dict[int, str | None] = {}
+    try:
+        for cid, name in session.execute(
+            text("SELECT conference_id, name FROM season_conferences WHERE season_id = :sid"),
+            {"sid": season_id},
+        ):
+            conf_names[int(cid)] = name
+    except Exception:
+        pass
 
     matchups = list(
         session.execute(
@@ -122,8 +129,7 @@ def compute_standings(
     for team_id, a in agg.items():
         team = team_by_id[team_id]
         games = a["wins"] + a["losses"] + a["ties"]
-        conf_id_raw = team.conference_id
-        conf_id = int(conf_id_raw) if conf_id_raw is not None else None
+        conf_id = team_conf_ids.get(team_id)
         rows.append(
             {
                 "team_id": team_id,
