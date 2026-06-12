@@ -12,7 +12,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup, Team
+try:
+    from ff_pipeline.repository.models import Matchup, SeasonConference, Team  # type: ignore[attr-defined]
+    _SEASON_CONFERENCE_AVAILABLE = True
+except (ImportError, AttributeError):
+    from ff_pipeline.repository.models import Matchup, Team
+    SeasonConference = None  # type: ignore[assignment,misc]
+    _SEASON_CONFERENCE_AVAILABLE = False
 from ff_pipeline.repository.queries import get_season
 from sqlalchemy import select
 
@@ -72,6 +78,16 @@ def compute_standings(
     team_by_id = {t.team_id: t for t in teams}
     owners = owner_name_map(session)
 
+    if _SEASON_CONFERENCE_AVAILABLE and SeasonConference is not None:
+        conf_rows = session.execute(
+            select(SeasonConference.conference_id, SeasonConference.name).where(
+                SeasonConference.season_id == season_id
+            )
+        ).all()
+        conf_names: dict[int, str | None] = {int(cid): name for cid, name in conf_rows}
+    else:
+        conf_names = {}
+
     matchups = list(
         session.execute(
             select(Matchup)
@@ -106,6 +122,8 @@ def compute_standings(
     for team_id, a in agg.items():
         team = team_by_id[team_id]
         games = a["wins"] + a["losses"] + a["ties"]
+        conf_id_raw = team.conference_id
+        conf_id = int(conf_id_raw) if conf_id_raw is not None else None
         rows.append(
             {
                 "team_id": team_id,
@@ -120,6 +138,8 @@ def compute_standings(
                 "win_pct": round((a["wins"] + 0.5 * a["ties"]) / games, 4) if games else 0.0,
                 "streak": _current_streak(a["results"]),
                 "final_rank": team.final_rank,
+                "conference_id": conf_id,
+                "conference_name": conf_names.get(conf_id) if conf_id is not None else None,
             }
         )
 
