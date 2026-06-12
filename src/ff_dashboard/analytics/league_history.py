@@ -117,7 +117,11 @@ def _change(
     after: str | None = None,
     source: str = "derived_from_db",
     certainty: str = "verified",
-) -> dict[str, str | None]:
+    changed_at: str | None = None,
+    participants_joined: list[str] | None = None,
+    participants_left: list[str] | None = None,
+    description_gap: bool = False,
+) -> dict[str, Any]:
     return {
         "category": category,
         "title": title,
@@ -126,6 +130,10 @@ def _change(
         "after": after,
         "source": source,
         "certainty": certainty,
+        "changed_at": changed_at,
+        "participants_joined": participants_joined,
+        "participants_left": participants_left,
+        "description_gap": description_gap,
     }
 
 
@@ -275,24 +283,45 @@ def _roster_signatures(session: Session) -> dict[int, dict[str, Counter[str]]]:
     return by_year
 
 
+def _slot_diff_summary(prior: Counter[str], current: Counter[str]) -> str:
+    """Human-readable diff showing only what changed between two slot counters."""
+    all_slots = sorted(set(prior) | set(current))
+    parts = []
+    for slot in all_slots:
+        p = prior.get(slot, 0)
+        c = current.get(slot, 0)
+        if p == c:
+            continue
+        label = _slot_label(slot)
+        if p == 0:
+            parts.append(f"+{c} {label}")
+        elif c == 0:
+            parts.append(f"−{p} {label}")
+        elif c > p:
+            parts.append(f"{label}: {p}→{c}")
+        else:
+            parts.append(f"{label}: {p}→{c}")
+    return "; ".join(parts) if parts else "lineup reordered"
+
+
 def _roster_changes(
     season: Season,
     previous: Season | None,
     roster_sigs: dict[int, dict[str, Counter[str]]],
-) -> list[dict[str, str | None]]:
+) -> list[dict[str, Any]]:
     if previous is None:
         return []
     current = roster_sigs.get(int(season.year), {})
     prior = roster_sigs.get(int(previous.year), {})
-    changes: list[dict[str, str | None]] = []
+    changes: list[dict[str, Any]] = []
     if current.get("starters") != prior.get("starters") and current.get("starters"):
+        prior_starters = prior.get("starters", Counter())
+        curr_starters = current["starters"]
         changes.append(
             _change(
                 "roster_slots",
                 "Starting lineup changed",
-                "The most common weekly starter-slot shape changed.",
-                before=_slot_signature(prior.get("starters", Counter())),
-                after=_slot_signature(current["starters"]),
+                _slot_diff_summary(prior_starters, curr_starters),
             )
         )
     current_reserve = {
@@ -304,9 +333,7 @@ def _roster_changes(
             _change(
                 "roster_slots",
                 "Reserve/IR slots changed",
-                "The most common non-bench reserve slot mix changed.",
-                before=_slot_signature(Counter(prior_reserve)) or "no reserve slots",
-                after=_slot_signature(Counter(current_reserve)) or "no reserve slots",
+                _slot_diff_summary(Counter(prior_reserve), Counter(current_reserve)),
             )
         )
     return changes
@@ -322,16 +349,16 @@ _SETTING_PATTERNS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-def _setting_changes(session: Session) -> dict[int, list[dict[str, str | None]]]:
+def _setting_changes(session: Session) -> dict[int, list[dict[str, Any]]]:
     rows = session.execute(
-        select(Season.year, Transaction.extra_data)
+        select(Season.year, Transaction.extra_data, Transaction.executed_at)
         .join(Transaction, Transaction.season_id == Season.season_id)
         .where(Transaction.transaction_type == "setting_change")
         .order_by(Season.year, Transaction.transaction_id)
     ).all()
-    by_year: dict[int, list[dict[str, str | None]]] = defaultdict(list)
+    by_year: dict[int, list[dict[str, Any]]] = defaultdict(list)
     seen: set[tuple[int, str, str]] = set()
-    for year, extra in rows:
+    for year, extra, executed_at in rows:
         raw = extra or {}
         description = raw.get("description") if isinstance(raw, Mapping) else None
         if not description:
@@ -346,6 +373,11 @@ def _setting_changes(session: Session) -> dict[int, list[dict[str, str | None]]]
             before_after = re.search(r" from '([^']+)' to '([^']+)'", str(description))
             before = before_after.group(1) if before_after else None
             after = before_after.group(2) if before_after else None
+            changed_at = executed_at.isoformat() if executed_at is not None else None
+            description_gap = before is None and after is None and category in {
+                "roster_slots",
+                "scoring_rules",
+            }
             by_year[int(year)].append(
                 _change(
                     category,
@@ -354,6 +386,8 @@ def _setting_changes(session: Session) -> dict[int, list[dict[str, str | None]]]
                     before=before,
                     after=after,
                     source="nfl_com_transaction_log",
+                    changed_at=changed_at,
+                    description_gap=description_gap,
                 )
             )
             break
@@ -402,7 +436,7 @@ def _participant_changes(
     previous: Season | None,
     owner_sets: dict[int, set[int]],
     owners: dict[int, str | None],
-) -> list[dict[str, str | None]]:
+) -> list[dict[str, Any]]:
     if previous is None:
         return []
     current = owner_sets.get(int(season.year), set())
@@ -411,18 +445,20 @@ def _participant_changes(
         return []
     entered = current - prior
     left = prior - current
-    bits = []
-    if entered:
-        bits.append(f"Entered/returned: {_owner_names(entered, owners)}")
-    if left:
-        bits.append(f"Left/inactive: {_owner_names(left, owners)}")
+    entered_names = sorted({owners.get(oid) or f"Owner {oid}" for oid in entered})
+    left_names = sorted({owners.get(oid) or f"Owner {oid}" for oid in left})
+    summary_bits = []
+    if entered_names:
+        summary_bits.append(f"Joined: {', '.join(entered_names)}")
+    if left_names:
+        summary_bits.append(f"Left: {', '.join(left_names)}")
     return [
         _change(
             "participants",
-            "Manager participation changed",
-            "; ".join(bits),
-            before=_owner_names(prior, owners),
-            after=_owner_names(current, owners),
+            "Manager change",
+            "; ".join(summary_bits),
+            participants_joined=entered_names if entered_names else None,
+            participants_left=left_names if left_names else None,
             certainty="identity_source_limited",
         )
     ]

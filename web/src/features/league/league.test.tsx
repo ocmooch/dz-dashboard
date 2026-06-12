@@ -13,6 +13,13 @@ const mockGet = api.GET as unknown as ReturnType<typeof vi.fn>;
 
 const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefined });
 
+const CHANGE_DEFAULTS = {
+  changed_at: null,
+  participants_joined: null,
+  participants_left: null,
+  description_gap: false,
+};
+
 const TIMELINE = {
   league: {
     league_id: "DZTEST",
@@ -68,6 +75,7 @@ const TIMELINE = {
         scoring_availability_changed: true,
         details: [
           {
+            ...CHANGE_DEFAULTS,
             category: "scoring_rules",
             title: "Scoring rule changed",
             summary: "Receptions: 1 point",
@@ -171,10 +179,12 @@ beforeEach(() => {
 });
 
 describe("LeagueHistoryPage", () => {
-  it("renders seasons with champion and provenance labels", async () => {
+  it("renders seasons with champion and schedule format", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/seasons"]);
     expect(await screen.findByText("League History")).toBeInTheDocument();
-    expect(await screen.findByText("team totals")).toBeInTheDocument();
+    // Schedule format: reg=2, po=1 → "2-wk regular season · playoffs wk 3–3"
+    const schedules = await screen.findAllByText(/2-wk regular season/);
+    expect(schedules.length).toBeGreaterThan(0);
     expect(screen.getByText("Scoring rule changed")).toBeInTheDocument();
     expect(screen.getByText("Receptions: 1 point per 2 receptions")).toBeInTheDocument();
     expect(screen.getByText("Dynasty Crew")).toBeInTheDocument();

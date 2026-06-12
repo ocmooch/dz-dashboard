@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { teamAvatarUrl } from "@/lib/format";
@@ -30,6 +30,13 @@ function commissionerForYear(
   year: number,
 ): CommissionerTerm | undefined {
   return terms.find((t) => t.from_year <= year && (t.to_year === null || t.to_year === undefined || t.to_year >= year));
+}
+
+function formatSchedule(reg?: number | null, po?: number | null): string {
+  if (!reg && !po) return "";
+  if (reg && po) return `${reg}-wk regular season · playoffs wk ${reg + 1}–${reg + po}`;
+  if (reg) return `${reg}-wk regular season`;
+  return `${po} playoff weeks`;
 }
 
 function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
@@ -73,18 +80,10 @@ function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
   );
 }
 
-function sourceLabel(source: string) {
-  const labels: Record<string, string> = {
-    nfl_com_authoritative_total: "team totals",
-    nflverse_reconstructed: "reconstructed",
-  };
-  return labels[source] ?? source.replace(/_/g, " ");
-}
-
 function categoryLabel(category: string) {
   const labels: Record<string, string> = {
     data_quality: "Data quality",
-    league_size: "League size",
+    league_size: "League structure",
     participants: "Managers",
     playoffs: "Playoffs",
     roster_slots: "Roster",
@@ -122,6 +121,26 @@ function categoryColor(category: string): string {
   return CATEGORY_COLOR[category] ?? "var(--text-faint)";
 }
 
+function ChangeTimestamp({ changedAt }: { changedAt?: string | null }) {
+  if (!changedAt) return null;
+  const date = new Date(changedAt);
+  if (isNaN(date.getTime())) return null;
+  const formatted = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return <span className="text-[10px] tabular-nums text-faint">{formatted}</span>;
+}
+
+function DescriptionGapNote() {
+  return (
+    <div className="mt-1 text-[10px] text-faint italic">
+      No detailed description available in transaction log.
+    </div>
+  );
+}
+
 function BeforeAfter({ before, after }: { before?: string | null; after?: string | null }) {
   if (!before && !after) return null;
   return (
@@ -139,8 +158,29 @@ function BeforeAfter({ before, after }: { before?: string | null; after?: string
   );
 }
 
+function ParticipantList({ detail }: { detail: LeagueChangeDetail }) {
+  const joined = detail.participants_joined ?? [];
+  const left = detail.participants_left ?? [];
+  if (!joined.length && !left.length) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[var(--fs-xs)]">
+      {joined.map((name) => (
+        <span key={name} className="flex items-center gap-1" style={{ color: "var(--win)" }}>
+          <span className="font-bold">+</span>{name}
+        </span>
+      ))}
+      {left.map((name) => (
+        <span key={name} className="flex items-center gap-1 text-faint line-through decoration-[var(--text-faint)]">
+          {name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function HighImpactChange({ detail }: { detail: LeagueChangeDetail }) {
   const color = categoryColor(detail.category);
+  const isParticipant = detail.category === "participants";
   return (
     <div
       className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2.5"
@@ -151,17 +191,24 @@ function HighImpactChange({ detail }: { detail: LeagueChangeDetail }) {
           {categoryLabel(detail.category)}
         </span>
         <span className="text-[var(--fs-sm)] font-semibold text-ink">{detail.title}</span>
+        <ChangeTimestamp changedAt={detail.changed_at} />
       </div>
-      {detail.summary && (
+      {!isParticipant && detail.summary && (
         <div className="mt-0.5 text-[var(--fs-xs)] text-muted">{detail.summary}</div>
       )}
-      <BeforeAfter before={detail.before} after={detail.after} />
+      {isParticipant ? (
+        <ParticipantList detail={detail} />
+      ) : (
+        <BeforeAfter before={detail.before} after={detail.after} />
+      )}
+      {detail.description_gap && <DescriptionGapNote />}
     </div>
   );
 }
 
 function MediumChange({ detail }: { detail: LeagueChangeDetail }) {
   const color = categoryColor(detail.category);
+  const isParticipant = detail.category === "participants";
   return (
     <div className="flex items-start gap-2.5 py-2 border-b border-[var(--hairline)] last:border-0">
       <span
@@ -174,11 +221,17 @@ function MediumChange({ detail }: { detail: LeagueChangeDetail }) {
             {categoryLabel(detail.category)}
           </span>
           <span className="text-[var(--fs-sm)] text-ink">{detail.title}</span>
+          <ChangeTimestamp changedAt={detail.changed_at} />
         </div>
-        {detail.summary && detail.summary !== detail.title && (
+        {!isParticipant && detail.summary && detail.summary !== detail.title && (
           <div className="text-[var(--fs-xs)] text-muted">{detail.summary}</div>
         )}
-        <BeforeAfter before={detail.before} after={detail.after} />
+        {isParticipant ? (
+          <ParticipantList detail={detail} />
+        ) : (
+          <BeforeAfter before={detail.before} after={detail.after} />
+        )}
+        {detail.description_gap && <DescriptionGapNote />}
       </div>
     </div>
   );
@@ -202,19 +255,25 @@ function RoutineChanges({ details }: { details: LeagueChangeDetail[] }) {
         </span>
       </button>
       {open && (
-        <div className="mt-2 space-y-1 border-l-2 border-[var(--hairline)] pl-3">
+        <div className="mt-2 space-y-1.5 border-l-2 border-[var(--hairline)] pl-3">
           {details.map((d, i) => (
             <div key={i} className="text-[var(--fs-xs)] text-faint">
-              <span className="font-semibold text-muted">{d.title}</span>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="font-semibold text-muted">{d.title}</span>
+                <ChangeTimestamp changedAt={d.changed_at} />
+              </div>
               {d.summary && d.summary !== d.title && (
-                <span className="ml-1 text-faint">— {d.summary}</span>
+                <div className="mt-0.5 text-faint">{d.summary}</div>
               )}
               {(d.before || d.after) && (
-                <span className="ml-1 font-mono">
+                <span className="font-mono">
                   {d.before && <span className="text-faint line-through">{d.before}</span>}
                   {d.before && d.after && <span className="mx-1 text-faint">→</span>}
                   {d.after && <span className="text-muted">{d.after}</span>}
                 </span>
+              )}
+              {d.description_gap && (
+                <div className="text-[10px] italic">No detailed description available in transaction log.</div>
               )}
             </div>
           ))}
@@ -229,7 +288,7 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
   if (!champion && !runner_up && !last_place) return <DataGap reason="champion_unavailable" />;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-start gap-3">
       {champion && (
         <Chip
           name={champion.team_name ?? champion.owner_name ?? "—"}
@@ -237,20 +296,28 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
           avatarUrl={teamAvatarUrl(champion.team_id)}
         />
       )}
-      {runner_up && (
-        <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--hairline)] px-2 py-1">
-          <span className="text-[var(--fs-xs)] text-faint">Runner-up</span>
-          <span className="text-[var(--fs-xs)] font-semibold text-muted">
-            {runner_up.team_name ?? runner_up.owner_name}
-          </span>
-        </div>
-      )}
-      {last_place && (
-        <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--hairline)] px-2 py-1">
-          <span className="text-[var(--fs-xs)] text-faint">Last</span>
-          <span className="text-[var(--fs-xs)] font-semibold text-muted">
-            {last_place.team_name ?? last_place.owner_name}
-          </span>
+      {(runner_up || last_place) && (
+        <div className="flex flex-col gap-1.5 self-center">
+          {runner_up && (
+            <div className="flex items-center gap-2">
+              <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                Runner-up
+              </span>
+              <span className="text-[var(--fs-xs)] font-medium text-muted">
+                {runner_up.team_name ?? runner_up.owner_name}
+              </span>
+            </div>
+          )}
+          {last_place && (
+            <div className="flex items-center gap-2">
+              <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                Last place
+              </span>
+              <span className="text-[var(--fs-xs)] font-medium text-muted">
+                {last_place.team_name ?? last_place.owner_name}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -278,26 +345,30 @@ function SeasonEntry({
         <div className="font-display text-[var(--fs-h2)] font-bold tabular-nums text-accent">
           {season.season_year}
         </div>
-        <div className="mt-0.5 text-[var(--fs-xs)] text-faint">
-          {season.league_size}T · {season.regular_season_weeks ?? "?"}+{season.playoff_weeks ?? "?"}wk
-        </div>
-        <Badge variant={season.is_scored ? "accent" : "gap"} >
-          {sourceLabel(season.scoring_provenance)}
-        </Badge>
+        {season.regular_season_weeks || season.playoff_weeks ? (
+          <div className="mt-1 text-[var(--fs-xs)] text-faint leading-relaxed">
+            {formatSchedule(season.regular_season_weeks, season.playoff_weeks)}
+          </div>
+        ) : null}
         {commissioner && (
-          <div className="mt-1.5">
+          <div className="mt-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+              Commish
+            </div>
             <Link
               to={`/managers/${commissioner.owner_id}`}
-              className="text-[10px] text-faint hover:text-muted transition-colors"
-              title="Commissioner"
+              className="text-[var(--fs-xs)] font-medium text-muted hover:text-ink transition-colors"
             >
-              ⚖ {commissioner.owner_name}
+              {commissioner.owner_name}
             </Link>
           </div>
         )}
         {totalChanges > 0 && (
-          <div className="mt-1.5 text-[var(--fs-xs)] tabular-nums" style={{ color: totalChanges > 3 ? "var(--warn)" : "var(--text-faint)" }}>
-            {totalChanges} change{totalChanges !== 1 ? "s" : ""}
+          <div
+            className="mt-1.5 text-[var(--fs-xs)] tabular-nums"
+            style={{ color: totalChanges > 3 ? "var(--warn)" : "var(--text-faint)" }}
+          >
+            {totalChanges} {totalChanges === 1 ? "change" : "changes"}
           </div>
         )}
       </div>

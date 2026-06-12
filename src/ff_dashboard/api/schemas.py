@@ -324,6 +324,10 @@ class LeagueChangeDetail(BaseModel):
     after: str | None = None
     source: str
     certainty: str
+    changed_at: str | None = None
+    participants_joined: list[str] | None = None
+    participants_left: list[str] | None = None
+    description_gap: bool = False
 
 
 class SeasonChangeFlags(BaseModel):

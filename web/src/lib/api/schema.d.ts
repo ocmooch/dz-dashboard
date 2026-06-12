@@ -1490,6 +1490,17 @@ export interface components {
             source: string;
             /** Certainty */
             certainty: string;
+            /** Changed At */
+            changed_at?: string | null;
+            /** Participants Joined */
+            participants_joined?: string[] | null;
+            /** Participants Left */
+            participants_left?: string[] | null;
+            /**
+             * Description Gap
+             * @default false
+             */
+            description_gap: boolean;
         };
         /** LeagueEra */
         LeagueEra: {
