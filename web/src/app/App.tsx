@@ -1,7 +1,7 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AboutPage } from "@/features/about/AboutPage";
-import { BracketPage } from "@/features/bracket/BracketPage";
+import { PlayoffsPage } from "@/features/playoffs/PlayoffsPage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { HomePage } from "@/features/home/HomePage";
 import { LeagueHistoryPage } from "@/features/league/LeagueHistoryPage";
@@ -35,7 +35,8 @@ export function App() {
             <Route path="seasons" element={<LeagueHistoryPage />} />
             <Route path="standings" element={<StandingsPage />} />
             <Route path="power" element={<PowerPage />} />
-            <Route path="bracket" element={<BracketPage />} />
+            <Route path="playoffs" element={<PlayoffsPage />} />
+            <Route path="bracket" element={<Navigate to="/playoffs" replace />} />
             <Route path="records" element={<RecordsPage />} />
             <Route path="rules" element={<RulesErasPage />} />
             <Route path="stories" element={<StoriesPage />} />

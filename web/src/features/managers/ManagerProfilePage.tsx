@@ -16,11 +16,12 @@ import {
 } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { num, ordinal, pct } from "@/lib/format";
+import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
 type RivalryMatrix = components["schemas"]["RivalryMatrix"];
+type CommissionerTerm = components["schemas"]["CommissionerTerm"];
 
 async function fetchCareer(id: number) {
   const { data, error } = await api.GET("/v1/owners/{owner_id}", {
@@ -64,7 +65,7 @@ function SeasonRow({ row }: { row: OwnerSeasonRow }) {
       <td className="num text-faint">{row.season_year ?? "—"}</td>
       <td>
         <Link to={`/teams/${row.team_id}`} className="hover:text-accent">
-          {row.team_name ?? "—"}
+          <Chip name={row.team_name} avatarUrl={teamAvatarUrl(row.team_id)} />
         </Link>
       </td>
       <td className="dz-num">
@@ -126,6 +127,46 @@ function RivalrySnapshot({ ownerId, matrix }: { ownerId: number; matrix: Rivalry
         </div>
       )}
     </div>
+  );
+}
+
+function CommissionerCard({ terms }: { terms: CommissionerTerm[] }) {
+  if (terms.length === 0) return null;
+  const totalSeasons = terms.reduce((sum, t) => sum + t.seasons, 0);
+  const isCurrent = terms.some((t) => t.to_year === null || t.to_year === undefined);
+  return (
+    <Card>
+      <CardHeader eyebrow="league service" title="Commissioner" />
+      <div className="p-5 space-y-3">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
+          <Stat label="Terms" value={terms.length} />
+          <Stat label="Seasons served" value={totalSeasons} tone="accent" />
+          {isCurrent && (
+            <div>
+              <div className="dz-eyebrow mb-1">Status</div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[var(--fs-xs)] font-semibold text-accent">
+                Current commissioner
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-1">
+          {terms.map((t) => (
+            <div
+              key={`${t.from_year}`}
+              className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--hairline)] px-3 py-2"
+            >
+              <span className="text-[var(--fs-sm)] tabular-nums text-muted">
+                {t.from_year}–{t.to_year ?? "present"}
+              </span>
+              <span className="text-[var(--fs-xs)] text-faint">
+                {t.seasons} {t.seasons === 1 ? "season" : "seasons"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -301,6 +342,10 @@ export function ManagerProfilePage() {
           )}
         </div>
       </Card>
+
+      {c && (c.commissioner_terms?.length ?? 0) > 0 && (
+        <CommissionerCard terms={c.commissioner_terms!} />
+      )}
 
       <Card>
         <CardHeader eyebrow="head-to-head" title="Rivalries" />

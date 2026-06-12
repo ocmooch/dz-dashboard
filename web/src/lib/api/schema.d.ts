@@ -225,6 +225,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/conferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Season Conferences */
+        get: operations["get_season_conferences_v1_seasons__season_id__conferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/owners": {
         parameters: {
             query?: never;
@@ -851,10 +868,38 @@ export interface components {
             is_playoff: boolean;
             /** Is Consolation */
             is_consolation?: boolean | null;
+            /** Game Label */
+            game_label?: string | null;
             team_a?: components["schemas"]["BracketTeam"] | null;
             team_b?: components["schemas"]["BracketTeam"] | null;
             /** Winner Team Id */
             winner_team_id?: number | null;
+        };
+        /** BracketRound */
+        BracketRound: {
+            /** Round Num */
+            round_num: number;
+            /** Round Label */
+            round_label: string;
+            /**
+             * Bye Teams
+             * @default []
+             */
+            bye_teams: components["schemas"]["ByeTeam"][];
+            /** Games */
+            games: components["schemas"]["BracketGame"][];
+        };
+        /** BracketSection */
+        BracketSection: {
+            /** Size */
+            size: number;
+            /** Rounds */
+            rounds: components["schemas"]["BracketRound"][];
+            /**
+             * Bye Teams
+             * @default []
+             */
+            bye_teams: components["schemas"]["ByeTeam"][];
         };
         /** BracketTeam */
         BracketTeam: {
@@ -873,13 +918,21 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            /** Conference Name */
+            conference_name?: string | null;
         };
-        /** BracketWeek */
-        BracketWeek: {
-            /** Week */
-            week: number;
-            /** Games */
-            games: components["schemas"]["BracketGame"][];
+        /** ByeTeam */
+        ByeTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Conference Name */
+            conference_name?: string | null;
         };
         /** ChampionshipEntry */
         ChampionshipEntry: {
@@ -893,6 +946,62 @@ export interface components {
         ChampionshipHistory: {
             /** Seasons */
             seasons: components["schemas"]["ChampionshipEntry"][];
+        };
+        /** CommissionerTerm */
+        CommissionerTerm: {
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name: string;
+            /** From Year */
+            from_year: number;
+            /** To Year */
+            to_year?: number | null;
+            /** Seasons */
+            seasons: number;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** ConferenceSection */
+        ConferenceSection: {
+            /** Conference Id */
+            conference_id: number;
+            /** Division Number */
+            division_number: number;
+            /** Name */
+            name?: string | null;
+            /** Teams */
+            teams: components["schemas"]["ConferenceTeam"][];
+        };
+        /** ConferenceTeam */
+        ConferenceTeam: {
+            /** Rank */
+            rank: number;
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Wins */
+            wins: number;
+            /** Losses */
+            losses: number;
+            /** Ties */
+            ties: number;
+            /** Points For */
+            points_for: number;
+            /** Points Against */
+            points_against: number;
+            /** Win Pct */
+            win_pct: number;
+            streak: components["schemas"]["Streak"];
+            /** Final Rank */
+            final_rank?: number | null;
+            /** Conference Rank */
+            conference_rank: number;
         };
         /**
          * Coverage
@@ -1183,6 +1292,11 @@ export interface components {
         /** Envelope[SeasonBracket] */
         Envelope_SeasonBracket_: {
             data: components["schemas"]["SeasonBracket"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonConferences] */
+        Envelope_SeasonConferences_: {
+            data: components["schemas"]["SeasonConferences"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[SeasonList] */
@@ -1480,6 +1594,11 @@ export interface components {
             } | null;
             /** Data Caveats */
             data_caveats: components["schemas"]["DataCaveat"][];
+            /**
+             * Commissioners
+             * @default []
+             */
+            commissioners: components["schemas"]["CommissionerTerm"][];
         };
         /** LeagueStories */
         LeagueStories: {
@@ -1607,12 +1726,19 @@ export interface components {
             best_finish?: number | null;
             /** Avg Finish */
             avg_finish?: number | null;
+            /** Latest Team Id */
+            latest_team_id?: number | null;
             /**
              * Trophy Case
              * @default []
              */
             trophy_case: components["schemas"]["TrophyEntry"][];
             consistency?: components["schemas"]["OwnerConsistency"] | null;
+            /**
+             * Commissioner Terms
+             * @default []
+             */
+            commissioner_terms: components["schemas"]["CommissionerTerm"][];
         };
         /** OwnerConsistency */
         OwnerConsistency: {
@@ -2107,8 +2233,13 @@ export interface components {
             reason?: string | null;
             /** Caveat */
             caveat: string;
-            /** Weeks */
-            weeks: components["schemas"]["BracketWeek"][];
+            /**
+             * Consolation Distinguished
+             * @default false
+             */
+            consolation_distinguished: boolean;
+            playoff_bracket?: components["schemas"]["BracketSection"] | null;
+            consolation_bracket?: components["schemas"]["BracketSection"] | null;
         };
         /** SeasonChangeFlags */
         SeasonChangeFlags: {
@@ -2132,6 +2263,19 @@ export interface components {
              * @default []
              */
             details: components["schemas"]["LeagueChangeDetail"][];
+        };
+        /** SeasonConferences */
+        SeasonConferences: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Conferences */
+            conferences: components["schemas"]["ConferenceSection"][];
         };
         /** SeasonList */
         SeasonList: {
@@ -2217,6 +2361,10 @@ export interface components {
             streak: components["schemas"]["Streak"];
             /** Final Rank */
             final_rank?: number | null;
+            /** Conference Id */
+            conference_id?: number | null;
+            /** Conference Name */
+            conference_name?: string | null;
         };
         /** Standings */
         Standings: {
@@ -2892,6 +3040,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SeasonBracket_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_season_conferences_v1_seasons__season_id__conferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonConferences_"];
                 };
             };
             /** @description Validation Error */

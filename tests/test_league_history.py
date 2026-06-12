@@ -123,3 +123,42 @@ def test_league_endpoints(client: TestClient) -> None:
     assert {s["story_id"] for s in stories["stories"]} >= {"biggest-blowout", "worst-beat"}
     managers = _envelope(client.get("/v1/league/managers"))
     assert len(managers["managers"]) == 5
+
+
+def test_commissioner_history(session: Session) -> None:
+    from ff_dashboard.analytics.commissioners import commissioner_for_year, commissioner_history
+
+    terms = commissioner_history(session)
+    assert len(terms) == 2
+    names = [t.owner_name for t in terms]
+    assert "Maverick" in names
+    assert "Viper" in names
+
+    mav = next(t for t in terms if t.owner_name == "Maverick")
+    assert mav.from_year == 2015
+    assert mav.to_year == 2016
+    assert mav.seasons == 2
+
+    viper = next(t for t in terms if t.owner_name == "Viper")
+    assert viper.from_year == 2017
+    assert viper.to_year is None
+    assert viper.seasons >= 1
+
+    # Year lookup helper.
+    assert commissioner_for_year(terms, 2015) == mav
+    assert commissioner_for_year(terms, 2016) == mav
+    assert commissioner_for_year(terms, 2017) == viper
+    assert commissioner_for_year(terms, 2020) == viper
+    assert commissioner_for_year(terms, 2014) is None
+
+
+def test_commissioner_in_league_overview_endpoint(client: TestClient) -> None:
+    overview = _envelope(client.get("/v1/league/overview"))
+    commissioners = overview["commissioners"]
+    assert isinstance(commissioners, list)
+    assert len(commissioners) == 2
+    assert commissioners[0]["owner_name"] == "Maverick"
+    assert commissioners[0]["from_year"] == 2015
+    assert commissioners[0]["to_year"] == 2016
+    assert commissioners[1]["owner_name"] == "Viper"
+    assert commissioners[1]["to_year"] is None

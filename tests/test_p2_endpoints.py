@@ -68,16 +68,24 @@ def test_bracket_endpoint(client: TestClient) -> None:
     data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2015]}/bracket"))
     assert data["available"] is True
     assert data["reason"] is None
-    assert data["weeks"][0]["week"] == 3
-    assert len(data["weeks"][0]["games"]) == 2
-    assert {g["is_consolation"] for g in data["weeks"][0]["games"]} == {False, True}
+    assert data["consolation_distinguished"] is True
+    pb = data["playoff_bracket"]
+    assert pb is not None
+    assert len(pb["rounds"]) == 1
+    assert len(pb["rounds"][0]["games"]) == 1
+    assert pb["rounds"][0]["games"][0]["is_consolation"] is False
+    cb = data["consolation_bracket"]
+    assert cb is not None
+    assert len(cb["rounds"][0]["games"]) == 1
+    assert cb["rounds"][0]["games"][0]["is_consolation"] is True
 
 
 def test_bracket_endpoint_gap(client: TestClient) -> None:
     data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2016]}/bracket"))
     assert data["available"] is False
     assert data["reason"] == "bracket_unavailable"
-    assert data["weeks"] == []
+    assert data["playoff_bracket"] is None
+    assert data["consolation_bracket"] is None
 
 
 def test_season_not_found(client: TestClient) -> None:

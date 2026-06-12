@@ -7,6 +7,7 @@ import {
   Badge,
   Card,
   CardHeader,
+  Chip,
   DataGap,
   EmptyState,
   ErrorState,
@@ -14,7 +15,7 @@ import {
   Skeleton,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { deriveSeasonPhase } from "@/lib/seasonPhase";
 
@@ -159,12 +160,11 @@ function OwnershipTimeline({ playerId }: { playerId: number }) {
               className="block rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-3 transition-colors hover:border-[var(--accent)]"
             >
               <div className="flex items-start justify-between gap-3">
-                <span className="flex flex-col leading-tight">
-                  <span className="font-semibold text-text">{primary}</span>
-                  {showTeamName && (
-                    <span className="text-[var(--fs-xs)] text-faint">{e.team_name}</span>
-                  )}
-                </span>
+                <Chip
+                  name={primary}
+                  sub={showTeamName ? (e.team_name ?? undefined) : undefined}
+                  avatarUrl={teamAvatarUrl(e.team_id)}
+                />
                 {e.acquisition_type && <Pill>{e.acquisition_type}</Pill>}
               </div>
               <div className="mt-1 text-[var(--fs-xs)] text-faint">

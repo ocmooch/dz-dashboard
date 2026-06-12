@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { num, ordinal, pct } from "@/lib/format";
+import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerCareer = components["schemas"]["OwnerCareer"];
@@ -170,7 +170,7 @@ export function ManagersPage() {
                     <tr key={o.owner_id}>
                       <td>
                         <Link to={`/managers/${o.owner_id}`} className="hover:text-accent">
-                          <Chip name={o.display_name} />
+                          <Chip name={o.display_name} avatarUrl={teamAvatarUrl(o.latest_team_id)} />
                         </Link>
                       </td>
                       <td className="dz-num num">{o.seasons_played}</td>

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from fastapi import APIRouter
 from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import get_owner
 
+from ff_dashboard.analytics.commissioners import commissioner_history
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.owners import (
@@ -17,6 +20,7 @@ from ff_dashboard.analytics.owners import (
 )
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
+    CommissionerTerm,
     Envelope,
     HeadToHead,
     OwnerCareer,
@@ -49,7 +53,12 @@ def get_owner_career(owner_id: int, session: SessionDep) -> Envelope[OwnerCareer
     data = owner_career(session, owner_id)
     if data is None:
         raise not_found(f"No owner with id {owner_id}")
-    return Envelope(data=OwnerCareer(**data), meta=build_meta(session))
+    all_terms = commissioner_history(session)
+    owner_terms = [CommissionerTerm(**asdict(t)) for t in all_terms if t.owner_id == owner_id]
+    return Envelope(
+        data=OwnerCareer(**data, commissioner_terms=owner_terms),
+        meta=build_meta(session),
+    )
 
 
 @router.get("/v1/owners/{owner_id}/seasons", response_model=Envelope[OwnerSeasons])

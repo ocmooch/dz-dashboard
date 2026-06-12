@@ -11,11 +11,66 @@ import { qk } from "@/lib/queryKeys";
 type LeagueTimeline = components["schemas"]["LeagueTimeline"];
 type LeagueTimelineSeason = components["schemas"]["LeagueTimelineSeason"];
 type LeagueChangeDetail = components["schemas"]["LeagueChangeDetail"];
+type CommissionerTerm = components["schemas"]["CommissionerTerm"];
 
 async function fetchTimeline(): Promise<LeagueTimeline> {
   const { data, error } = await api.GET("/v1/league/timeline");
   if (error || !data) throw new Error("league timeline");
   return data.data;
+}
+
+async function fetchOverview(): Promise<components["schemas"]["LeagueOverview"]> {
+  const { data, error } = await api.GET("/v1/league/overview");
+  if (error || !data) throw new Error("league overview");
+  return data.data;
+}
+
+function commissionerForYear(
+  terms: CommissionerTerm[],
+  year: number,
+): CommissionerTerm | undefined {
+  return terms.find((t) => t.from_year <= year && (t.to_year === null || t.to_year === undefined || t.to_year >= year));
+}
+
+function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
+  if (terms.length === 0) return null;
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader eyebrow="era by era" title="Commissioner History" />
+      <div className="flex min-w-0 flex-wrap gap-0 divide-x divide-[var(--hairline)]">
+        {terms.map((t) => {
+          const isCurrent = t.to_year === null || t.to_year === undefined;
+          return (
+            <div
+              key={`${t.owner_id}-${t.from_year}`}
+              className="flex-1 min-w-[6rem] px-4 py-3 text-center"
+            >
+              <Link
+                to={`/managers/${t.owner_id}`}
+                className="block text-[var(--fs-sm)] font-semibold text-ink hover:text-accent transition-colors"
+              >
+                {t.owner_name}
+              </Link>
+              <div className="mt-0.5 text-[var(--fs-xs)] tabular-nums text-faint">
+                {t.from_year}–{isCurrent ? "now" : t.to_year}
+              </div>
+              <div className="mt-1">
+                {isCurrent ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                    current
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-faint">
+                    {t.seasons} {t.seasons === 1 ? "season" : "seasons"}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
 }
 
 function sourceLabel(source: string) {
@@ -202,7 +257,13 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
   );
 }
 
-function SeasonEntry({ season }: { season: LeagueTimelineSeason }) {
+function SeasonEntry({
+  season,
+  commissioner,
+}: {
+  season: LeagueTimelineSeason;
+  commissioner?: CommissionerTerm;
+}) {
   const details = season.changes.details;
   const high = details.filter((d) => impactOf(d.category) === "high");
   const medium = details.filter((d) => impactOf(d.category) === "medium");
@@ -223,6 +284,17 @@ function SeasonEntry({ season }: { season: LeagueTimelineSeason }) {
         <Badge variant={season.is_scored ? "accent" : "gap"} >
           {sourceLabel(season.scoring_provenance)}
         </Badge>
+        {commissioner && (
+          <div className="mt-1.5">
+            <Link
+              to={`/managers/${commissioner.owner_id}`}
+              className="text-[10px] text-faint hover:text-muted transition-colors"
+              title="Commissioner"
+            >
+              ⚖ {commissioner.owner_name}
+            </Link>
+          </div>
+        )}
         {totalChanges > 0 && (
           <div className="mt-1.5 text-[var(--fs-xs)] tabular-nums" style={{ color: totalChanges > 3 ? "var(--warn)" : "var(--text-faint)" }}>
             {totalChanges} change{totalChanges !== 1 ? "s" : ""}
@@ -262,6 +334,7 @@ function SeasonEntry({ season }: { season: LeagueTimelineSeason }) {
 
 export function LeagueHistoryPage() {
   const timeline = useQuery({ queryKey: qk.leagueTimeline, queryFn: fetchTimeline });
+  const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
 
   if (timeline.isError) {
     return <ErrorState message="Could not load league history." onRetry={() => timeline.refetch()} />;
@@ -270,6 +343,7 @@ export function LeagueHistoryPage() {
   // newest first for scroll-to-recent UX
   const seasons = [...(timeline.data?.seasons ?? [])].reverse();
   const latest = timeline.data?.seasons.at(-1);
+  const commissioners = overview.data?.commissioners ?? [];
 
   return (
     <div className="dz-rise space-y-6">
@@ -294,6 +368,13 @@ export function LeagueHistoryPage() {
           </div>
         )}
       </Card>
+
+      {/* Commissioner strip */}
+      {overview.isLoading ? (
+        <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
+      ) : (
+        <CommissionerStrip terms={commissioners} />
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[var(--fs-xs)] text-faint">
@@ -334,7 +415,15 @@ export function LeagueHistoryPage() {
           {timeline.isLoading &&
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="m-5 h-20" />)}
           {seasons.map((season) => (
-            <SeasonEntry key={season.season_id} season={season} />
+            <SeasonEntry
+              key={season.season_id}
+              season={season}
+              commissioner={
+                season.season_year
+                  ? commissionerForYear(commissioners, season.season_year)
+                  : undefined
+              }
+            />
           ))}
         </div>
       </Card>

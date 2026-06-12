@@ -144,6 +144,7 @@ def _career_from_seasons(
 ) -> dict[str, Any]:
     finishes = [r["final_rank"] for r in rows if r["final_rank"] is not None]
     championships = [r for r in rows if r["is_champion"]]
+    latest = max(rows, key=lambda r: r.get("season_year") or 0, default=None)
     return {
         "owner_id": owner_id,
         "display_name": display_name,
@@ -155,6 +156,7 @@ def _career_from_seasons(
         "championships": len(championships),
         "best_finish": min(finishes) if finishes else None,
         "avg_finish": round(mean(finishes), 2) if finishes else None,
+        "latest_team_id": latest["team_id"] if latest else None,
     }
 
 

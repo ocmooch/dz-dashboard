@@ -5,9 +5,20 @@ import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema.d.ts";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
+
+type ConferenceSection = components["schemas"]["ConferenceSection"];
+
+async function fetchConferences(seasonId: number) {
+  const { data, error } = await api.GET("/v1/seasons/{season_id}/conferences", {
+    params: { path: { season_id: seasonId } },
+  });
+  if (error || !data) throw new Error("Failed to load conferences");
+  return data.data;
+}
 
 async function fetchStandings(seasonId: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/standings", {
@@ -50,6 +61,39 @@ function PlacementCell({ finalRank }: { finalRank: number | null | undefined }) 
   return <span className="num text-accent">{ordinal(finalRank)}</span>;
 }
 
+function ConferenceTable({ conf }: { conf: ConferenceSection }) {
+  const title = conf.name ?? `Division ${conf.division_number}`;
+  return (
+    <div className="p-4">
+      <div className="mb-3 text-[var(--fs-xs)] font-semibold uppercase tracking-wider text-muted">{title}</div>
+      <table className="dz-table w-full">
+        <thead>
+          <tr>
+            <th className="num text-faint w-6">#</th>
+            <th>Team</th>
+            <th className="dz-num">W-L</th>
+            <th className="dz-num">PF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {conf.teams.map((t) => (
+            <tr key={t.team_id}>
+              <td className="num text-faint">{t.conference_rank}</td>
+              <td>
+                <Chip name={t.team_name ?? t.owner_name} sub={t.owner_name ?? undefined} avatarUrl={teamAvatarUrl(t.team_id)} />
+              </td>
+              <td className="dz-num">
+                <RecordLine wins={t.wins} losses={t.losses} ties={t.ties} />
+              </td>
+              <td className="dz-num text-muted">{num(t.points_for)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function StandingsPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
@@ -66,6 +110,11 @@ export function StandingsPage() {
   const insights = useQuery({
     queryKey: seasonId ? qk.standingsInsights(seasonId) : ["standings", "none", "insights"],
     queryFn: () => fetchInsights(seasonId as number),
+    enabled: seasonId != null,
+  });
+  const conferences = useQuery({
+    queryKey: seasonId ? qk.conferences(seasonId) : ["conferences", "none"],
+    queryFn: () => fetchConferences(seasonId as number),
     enabled: seasonId != null,
   });
 
@@ -186,6 +235,17 @@ export function StandingsPage() {
           </div>
         )}
       </Card>
+
+      {conferences.data?.available && (
+        <Card>
+          <CardHeader eyebrow="legacy feature · 2010–2019" title="Conference Standings" />
+          <div className="grid grid-cols-1 gap-0 divide-y divide-[var(--border)] md:grid-cols-2 md:divide-x md:divide-y-0">
+            {conferences.data.conferences.map((conf) => (
+              <ConferenceTable key={conf.conference_id} conf={conf} />
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <CardHeader eyebrow="rank by week" title="Standings over time" />

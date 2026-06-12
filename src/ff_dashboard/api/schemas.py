@@ -72,6 +72,20 @@ class MetaResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Commissioner history
+# ---------------------------------------------------------------------------
+
+
+class CommissionerTerm(BaseModel):
+    owner_id: int
+    owner_name: str
+    from_year: int
+    to_year: int | None = None
+    seasons: int
+    notes: str | None = None
+
+
+# ---------------------------------------------------------------------------
 # Shared references
 # ---------------------------------------------------------------------------
 
@@ -135,6 +149,8 @@ class StandingRow(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    conference_id: int | None = None
+    conference_name: str | None = None
 
 
 class Standings(BaseModel):
@@ -197,20 +213,38 @@ class BracketTeam(BaseModel):
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    conference_name: str | None = None
+
+
+class ByeTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+    conference_name: str | None = None
 
 
 class BracketGame(BaseModel):
     matchup_id: int
     is_playoff: bool = False
     is_consolation: bool | None = None
+    game_label: str | None = None  # "Championship", "3rd Place", "7th Place", etc.
     team_a: BracketTeam | None = None
     team_b: BracketTeam | None = None
     winner_team_id: int | None = None
 
 
-class BracketWeek(BaseModel):
-    week: int
+class BracketRound(BaseModel):
+    round_num: int
+    round_label: str  # "First Round", "Semifinals", "Finals"
+    bye_teams: list[ByeTeam] = []
     games: list[BracketGame]
+
+
+class BracketSection(BaseModel):
+    size: int
+    rounds: list[BracketRound]
+    bye_teams: list[ByeTeam] = []
 
 
 class SeasonBracket(BaseModel):
@@ -220,7 +254,46 @@ class SeasonBracket(BaseModel):
     available: bool
     reason: str | None = None
     caveat: str
-    weeks: list[BracketWeek]
+    consolation_distinguished: bool = False
+    playoff_bracket: BracketSection | None = None
+    consolation_bracket: BracketSection | None = None
+
+
+# ---------------------------------------------------------------------------
+# Season conferences
+# ---------------------------------------------------------------------------
+
+
+class ConferenceTeam(BaseModel):
+    rank: int
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    wins: int
+    losses: int
+    ties: int
+    points_for: float
+    points_against: float
+    win_pct: float
+    streak: Streak
+    final_rank: int | None = None
+    conference_rank: int
+
+
+class ConferenceSection(BaseModel):
+    conference_id: int
+    division_number: int
+    name: str | None = None  # null for 2010's unnamed divisions
+    teams: list[ConferenceTeam]
+
+
+class SeasonConferences(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    conferences: list[ConferenceSection]
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +366,7 @@ class LeagueOverview(BaseModel):
     champions_recorded: int
     current_era: dict[str, Any] | None = None
     data_caveats: list[DataCaveat]
+    commissioners: list[CommissionerTerm] = []
 
 
 class LeagueTimeline(BaseModel):
@@ -402,8 +476,10 @@ class OwnerCareer(BaseModel):
     championships: int
     best_finish: int | None = None
     avg_finish: float | None = None
+    latest_team_id: int | None = None
     trophy_case: list[TrophyEntry] = []
     consistency: OwnerConsistency | None = None
+    commissioner_terms: list[CommissionerTerm] = []
 
 
 class OwnersList(BaseModel):

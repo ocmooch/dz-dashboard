@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
-import { num } from "@/lib/format";
+import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchRecords() {
@@ -174,9 +174,11 @@ function ChampionshipTimeline({ query }: { query: string }) {
             <div className="num text-[var(--fs-sm)] text-faint">{s.season_year}</div>
             <div className="mt-1 flex items-center gap-1.5">
               <Trophy />
-              <span className="truncate font-semibold text-text">
-                {s.champion?.team_name ?? s.champion?.owner_name ?? "—"}
-              </span>
+              <Chip
+                name={s.champion?.team_name ?? s.champion?.owner_name}
+                sub={s.champion?.team_name && s.champion?.owner_name ? s.champion.owner_name : undefined}
+                avatarUrl={teamId != null ? teamAvatarUrl(teamId) : undefined}
+              />
             </div>
           </>
         );

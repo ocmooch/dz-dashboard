@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from fastapi import APIRouter
 from ff_pipeline.api._meta import build_meta
 
+from ff_dashboard.analytics.commissioners import commissioner_history
 from ff_dashboard.analytics.league_history import (
     league_eras,
     league_overview,
@@ -14,6 +17,7 @@ from ff_dashboard.analytics.league_history import (
 )
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 - runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
+    CommissionerTerm,
     Envelope,
     LeagueEras,
     LeagueOverview,
@@ -27,7 +31,12 @@ router = APIRouter(tags=["league"])
 
 @router.get("/v1/league/overview", response_model=Envelope[LeagueOverview])
 def get_league_overview(session: SessionDep) -> Envelope[LeagueOverview]:
-    return Envelope(data=LeagueOverview(**league_overview(session)), meta=build_meta(session))
+    overview = league_overview(session)
+    terms = [CommissionerTerm(**asdict(t)) for t in commissioner_history(session)]
+    return Envelope(
+        data=LeagueOverview(**overview, commissioners=terms),
+        meta=build_meta(session),
+    )
 
 
 @router.get("/v1/league/timeline", response_model=Envelope[LeagueTimeline])

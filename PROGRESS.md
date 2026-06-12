@@ -16,6 +16,8 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+- **Commissioner history landed locally.** Full stack: danger-zone `commissioners` table (migration `b1d3e4f5a6c7`, seed YAML, loader script), `ff_pipeline.repository.queries.commissioner_terms`, `ff_dashboard.analytics.commissioners.commissioner_history`, `CommissionerTerm` schema on both `LeagueOverview` and `OwnerCareer`, commissioner strip on `/league` history page, per-season commissioner badge on each season entry, and a commissioner card on manager profile pages for owners who served. Commissioner history distilled from NFL.com `lm` transaction records: harry (2010–11) → sully (2012–13) → scott (2014–15) → Dave (2016–17) → Jeff (2018–19) → Chris (2020–21) → DJ (2022–23) → Rob (2024–present). 2 new backend unit tests pass. Frontend: 152 Vitest + typecheck pass.
+
 - **P12 Phase 2 (injury reports BFF + UI) landed locally.** `analytics/matchups.py` calls `injury_reports_for_week(session, season_year, week)` (Phase 1 helper) and adds `injury_status` / `injury_body_part` per player. `api/schemas.py` `BoxPlayer` has both fields. Generated client regenerated. `BoxScorePage.tsx` shows an inline `InjuryBadge` (e.g. "Out · Knee", "Q") after the position tag for any player with a non-null injury status; the "Out" Pts-cell tooltip now appends the body part when available. Pre-existing test label mismatches (BYE→Bye, DNP→Out, IR→—) fixed. Full gate green: backend 237 pytest + ruff + mypy; frontend 152 Vitest + typecheck + gen:api drift.
 
 - **Phase 2 implemented app features are functionally complete.** Roadmap milestones P0–P11 are

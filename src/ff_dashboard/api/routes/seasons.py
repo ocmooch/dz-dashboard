@@ -9,6 +9,7 @@ from ff_pipeline.repository.queries import get_season, get_team
 
 from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
+from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.standings import (
     compute_standings,
@@ -20,6 +21,7 @@ from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for 
 from ff_dashboard.api.schemas import (
     Envelope,
     SeasonBracket,
+    SeasonConferences,
     SeasonList,
     SeasonListItem,
     SeasonSummary,
@@ -113,3 +115,11 @@ def get_season_bracket(season_id: int, session: SessionDep) -> Envelope[SeasonBr
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=SeasonBracket(**data), meta=build_meta(session))
+
+
+@router.get("/v1/seasons/{season_id}/conferences", response_model=Envelope[SeasonConferences])
+def get_season_conferences(season_id: int, session: SessionDep) -> Envelope[SeasonConferences]:
+    data = season_conferences(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonConferences(**data), meta=build_meta(session))

@@ -24,6 +24,7 @@ from fastapi.testclient import TestClient
 from ff_pipeline.repository.database import Base
 from ff_pipeline.repository.models import (
     Asset,
+    Commissioner,
     League,
     Matchup,
     Owner,
@@ -139,6 +140,20 @@ def _populate(session: Session) -> None:
     session.add_all(owners.values())
     session.flush()
     oid = {k: o.owner_id for k, o in owners.items()}
+
+    # --- Commissioner history: Maverick ran 2015-2016, Viper took over 2017.
+    session.add_all([
+        Commissioner(
+            league_id=LEAGUE_ID, owner_id=oid["mav"],
+            from_year=2015, to_year=2016,
+            notes="Fixture commissioner term",
+        ),
+        Commissioner(
+            league_id=LEAGUE_ID, owner_id=oid["viper"],
+            from_year=2017, to_year=None,
+            notes="Fixture current commissioner",
+        ),
+    ])
 
     # --- Seasons. 2015 is a synthetic unscored gap; 2016/2017 are scored.
     seasons: dict[int, Season] = {}

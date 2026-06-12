@@ -72,15 +72,23 @@ def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session)
     assert data["available"] is True
     assert data["regular_season_weeks"] == 2
     assert "Post-regular-season matchups" in data["caveat"]
-    assert [w["week"] for w in data["weeks"]] == [3]
-    games = data["weeks"][0]["games"]
-    assert len(games) == 2  # perspective rows folded into games
-    champ = next(g for g in games if g["is_consolation"] is False)
+    assert data["consolation_distinguished"] is True
+    # Playoff bracket has rounds; single post-season week → 1 round
+    pb = data["playoff_bracket"]
+    assert pb is not None
+    assert len(pb["rounds"]) == 1
+    games = pb["rounds"][0]["games"]
+    assert len(games) == 1  # one non-consolation game deduped
+    champ = games[0]
+    assert champ["is_consolation"] is False
     assert champ["team_a"]["owner_name"] == "Slider"
     assert champ["team_a"]["score"] == 120.0
     assert champ["winner_team_id"] == champ["team_a"]["team_id"]
-    consolation = next(g for g in games if g["is_consolation"] is True)
-    assert consolation["team_b"]["owner_name"] == "Iceman"
+    # Consolation bracket also has one round / one game
+    cb = data["consolation_bracket"]
+    assert cb is not None
+    consol_game = cb["rounds"][0]["games"][0]
+    assert consol_game["team_b"]["owner_name"] == "Iceman"
 
 
 def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
@@ -88,7 +96,8 @@ def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
     assert data is not None
     assert data["available"] is False
     assert data["reason"] == "bracket_unavailable"
-    assert data["weeks"] == []
+    assert data["playoff_bracket"] is None
+    assert data["consolation_bracket"] is None
 
 
 # --- Owners ----------------------------------------------------------------
