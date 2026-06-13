@@ -133,14 +133,6 @@ function ChangeTimestamp({ changedAt }: { changedAt?: string | null }) {
   return <span className="text-[10px] tabular-nums text-faint">{formatted}</span>;
 }
 
-function DescriptionGapNote() {
-  return (
-    <div className="mt-1 text-[10px] text-faint italic">
-      No detailed description available in transaction log.
-    </div>
-  );
-}
-
 function BeforeAfter({ before, after }: { before?: string | null; after?: string | null }) {
   if (!before && !after) return null;
   return (
@@ -201,7 +193,6 @@ function HighImpactChange({ detail }: { detail: LeagueChangeDetail }) {
       ) : (
         <BeforeAfter before={detail.before} after={detail.after} />
       )}
-      {detail.description_gap && <DescriptionGapNote />}
     </div>
   );
 }
@@ -231,7 +222,6 @@ function MediumChange({ detail }: { detail: LeagueChangeDetail }) {
         ) : (
           <BeforeAfter before={detail.before} after={detail.after} />
         )}
-        {detail.description_gap && <DescriptionGapNote />}
       </div>
     </div>
   );
@@ -271,9 +261,6 @@ function RoutineChanges({ details }: { details: LeagueChangeDetail[] }) {
                   {d.before && d.after && <span className="mx-1 text-faint">→</span>}
                   {d.after && <span className="text-muted">{d.after}</span>}
                 </span>
-              )}
-              {d.description_gap && (
-                <div className="text-[10px] italic">No detailed description available in transaction log.</div>
               )}
             </div>
           ))}

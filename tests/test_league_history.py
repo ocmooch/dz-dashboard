@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.league_history import (
+    _change,
     _owner_aliases,
+    _resolve_setting_gaps,
+    _setting_actor,
     league_eras,
     league_overview,
     league_stories,
@@ -156,6 +160,55 @@ def test_commissioner_history(session: Session) -> None:
     assert commissioner_for_year(terms, 2017) == viper
     assert commissioner_for_year(terms, 2020) == viper
     assert commissioner_for_year(terms, 2014) is None
+
+
+def test_setting_actor_extracts_manager_name() -> None:
+    assert _setting_actor("Chris updated roster positions") == "Chris"
+    assert _setting_actor("harry updated scoring settings") == "harry"
+    # Defensive fallback when the headline does not match the known shape.
+    assert _setting_actor("something unexpected") == "A manager"
+
+
+def _gap(category: str, title: str, summary: str) -> dict:  # type: ignore[type-arg]
+    return _change(
+        category,
+        title,
+        summary,
+        source="nfl_com_transaction_log",
+        description_gap=True,
+    )
+
+
+def test_resolve_setting_gaps_drops_redundant_headline() -> None:
+    # A derived structural diff for the same category already explains the change,
+    # so the vague NFL.com headline is dropped as redundant.
+    derived = _change("roster_slots", "Starting lineup changed", "+1 WR/RB flex; WR: 3→2")
+    headline = _gap(
+        "roster_slots", "Roster positions setting updated", "Chris updated roster positions"
+    )
+    resolved = _resolve_setting_gaps([derived, headline], SimpleNamespace(year=2010))
+    assert resolved == [derived]
+
+
+def test_resolve_setting_gaps_rewrites_lone_headline_with_prior_year() -> None:
+    headline = _gap("scoring_rules", "Scoring settings updated", "Dan updated scoring settings")
+    [resolved] = _resolve_setting_gaps([headline], SimpleNamespace(year=2023))
+    assert resolved["description_gap"] is False
+    assert resolved["certainty"] == "source_limited"
+    assert resolved["summary"].startswith("Dan edited scoring settings on NFL.com")
+    assert "unchanged from 2023" in resolved["summary"]
+    assert "scoring rules tracked here are unchanged" in resolved["summary"]
+
+
+def test_resolve_setting_gaps_rewrites_roster_headline_without_prior_season() -> None:
+    headline = _gap(
+        "roster_slots", "Roster positions setting updated", "Chris updated roster positions"
+    )
+    [resolved] = _resolve_setting_gaps([headline], None)
+    assert resolved["description_gap"] is False
+    # No prior season to compare against, so no "unchanged from <year>" claim is made.
+    assert "unchanged from" not in resolved["summary"]
+    assert resolved["summary"].startswith("Chris edited roster settings on NFL.com")
 
 
 def test_commissioner_in_league_overview_endpoint(client: TestClient) -> None:

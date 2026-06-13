@@ -407,6 +407,66 @@ def _setting_changes(session: Session) -> dict[int, list[dict[str, Any]]]:
     return by_year
 
 
+def _setting_actor(summary: str) -> str:
+    """Pull the manager name out of an NFL.com headline edit.
+
+    These descriptions read ``"<name> updated roster positions"`` /
+    ``"<name> updated scoring settings"``; the name may be lower-cased upstream.
+    """
+    match = re.match(r"^(.*?)\s+updated\s+(?:roster positions|scoring settings)\b", summary)
+    return match.group(1).strip() if match and match.group(1).strip() else "A manager"
+
+
+def _resolve_setting_gaps(
+    details: list[dict[str, Any]],
+    previous_season: Season | None,
+) -> list[dict[str, Any]]:
+    """Make headline-only NFL.com setting edits informative instead of bare gaps.
+
+    NFL.com logs roster-position and scoring edits as a bare headline ("X updated
+    roster positions") with no before/after. For each such gap entry we either:
+
+    * **drop it** when the same season already carries a *derived* structural diff
+      of the same category — that concrete diff (e.g. "Starting lineup changed:
+      +1 WR") is the real explanation, so the vague headline is redundant noise; or
+    * **rewrite it** into an honest fallback that names the actor and states that
+      the tracked structure did not move versus the prior season, so the reader
+      knows the edit was reverted, cosmetic, or in a setting we don't capture.
+    """
+    derived_cats = {d["category"] for d in details if d.get("source") == "derived_from_db"}
+    prior_year = int(previous_season.year) if previous_season is not None else None
+    resolved: list[dict[str, Any]] = []
+    for detail in details:
+        if not detail.get("description_gap"):
+            resolved.append(detail)
+            continue
+        category = detail["category"]
+        if category in derived_cats:
+            # A concrete structural diff for this category is already shown this season.
+            continue
+        actor = _setting_actor(str(detail["summary"]))
+        if category == "roster_slots":
+            noun, tracked, verb = "roster settings", "starting-lineup structure", "is"
+        else:
+            noun, tracked, verb = "scoring settings", "scoring rules", "are"
+        if prior_year is not None:
+            detail["summary"] = (
+                f"{actor} edited {noun} on NFL.com, which records only that an edit "
+                f"happened — not the specific values. The {tracked} tracked here {verb} "
+                f"unchanged from {prior_year}, so the edit was reverted, cosmetic, or "
+                f"in a setting the dashboard doesn't capture."
+            )
+        else:
+            detail["summary"] = (
+                f"{actor} edited {noun} on NFL.com, which records only that an edit "
+                f"happened — not the specific values."
+            )
+        detail["description_gap"] = False
+        detail["certainty"] = "source_limited"
+        resolved.append(detail)
+    return resolved
+
+
 def _active_owner_sets(session: Session) -> dict[int, set[int]]:
     rows = session.execute(
         select(Season.year, Team.owner_id)
@@ -563,6 +623,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
                     certainty="source_limited",
                 )
             )
+        details = _resolve_setting_gaps(details, previous_season)
         changes = {
             "league_size_changed": previous is not None and previous["league_size"] != league_size,
             "schedule_changed": previous is not None
