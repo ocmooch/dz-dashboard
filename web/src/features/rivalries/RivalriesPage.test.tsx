@@ -30,9 +30,69 @@ const MATRIX = {
   ],
 };
 
+const INSIGHTS = {
+  records: {
+    available: true,
+    closest_game: {
+      winner: { owner_id: 1, display_name: "Alpha" },
+      loser: { owner_id: 2, display_name: "Bravo" },
+      winner_score: 103.7,
+      loser_score: 103.7,
+      margin: 0.04,
+      combined: 207.4,
+      season_year: 2023,
+      week: 11,
+      matchup_id: 9001,
+    },
+  },
+  streaks: {
+    available: true,
+    longest: {
+      owner: { owner_id: 1, display_name: "Alpha" },
+      opponent: { owner_id: 3, display_name: "Charlie" },
+      length: 9,
+      from_year: 2016,
+      to_year: 2020,
+      last_matchup_id: 9100,
+    },
+    active: [],
+  },
+  intensity: {
+    available: true,
+    leaderboard: [
+      {
+        owner_a: { owner_id: 1, display_name: "Alpha" },
+        owner_b: { owner_id: 2, display_name: "Bravo" },
+        heat: 81.2,
+        games: 27,
+        a_wins: 14,
+        b_wins: 13,
+        ties: 0,
+        playoff_meetings: 2,
+        last_meeting: { season_year: 2024, week: 3, matchup_id: 9200 },
+      },
+    ],
+  },
+  nemeses: {
+    available: true,
+    managers: [
+      {
+        owner: { owner_id: 1, display_name: "Alpha" },
+        nemesis: { opponent: { owner_id: 2, display_name: "Bravo" }, games: 27, wins: 9, losses: 18, ties: 0, win_pct: 0.333 },
+        favorite_victim: null,
+      },
+    ],
+  },
+  playoffs: { available: false, reason: "no_playoff_meetings" },
+};
+
 beforeEach(() => {
   mockGet.mockReset();
-  mockGet.mockResolvedValue({ data: { data: MATRIX, meta: {} } });
+  mockGet.mockImplementation((path: string) =>
+    Promise.resolve({
+      data: { data: path.includes("/rivalries/insights") ? INSIGHTS : MATRIX, meta: {} },
+    }),
+  );
 });
 
 describe("RivalriesPage", () => {
@@ -62,6 +122,16 @@ describe("RivalriesPage", () => {
     const cell = await screen.findByRole("gridcell", { name: "Alpha vs Bravo: 67%" });
     await userEvent.click(cell);
     await waitFor(() => expect(screen.getByTestId("pairwise")).toHaveTextContent("1 vs 2"));
+  });
+
+  it("renders the insight bands below the matrix", async () => {
+    renderWithProviders(<RivalriesPage />, ["/rivalries"]);
+    // Centerpiece leaderboard + a superlative + a streak all hydrate from the bundle.
+    expect(await screen.findByText("Hottest Rivalries")).toBeInTheDocument();
+    expect(screen.getByText("Closest game ever")).toBeInTheDocument();
+    expect(screen.getByText(/Alpha over Charlie/)).toBeInTheDocument();
+    // The empty playoff band shows the honest affordance, not a fabricated row.
+    expect(screen.getByText(/No postseason meetings on record/)).toBeInTheDocument();
   });
 });
 

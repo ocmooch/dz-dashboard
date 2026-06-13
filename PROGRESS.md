@@ -16,6 +16,25 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+- **Rivalries page insight bands landed locally (feature/rivalries-insights).** Filled the empty
+  space below the rivalry matrix with five league-wide bands fed by one bundle endpoint
+  `GET /v1/rivalries/insights` (`api/routes/rivalries.py` → `analytics/rivalries.py`, built on
+  `head_to_head.all_pairwise`): **Hottest Rivalries** (composite heat leaderboard with a
+  justification line), **Rivalry Superlatives** (closest game / biggest beating / highest-scoring
+  duel / most-played / most dead-even — reuses the previously-dead `closest_rivalry()`),
+  **Win Streaks** (longest ever + active dominations), **Nemesis & Favorite Victim** (per active
+  manager, min-sample gated), and **Playoff Rivalries** (postseason-only record + finals badge from
+  `bracket.py`). All math in Python; min-sample gates are documented constants (`MIN_INTENSITY_GAMES=4`,
+  `MIN_NEMESIS_GAMES=3`, `MIN_ACTIVE_STREAK=3`); every row deep-links to its matchup or pairwise page;
+  missing data renders `DataGap`, never 0. Frontend is pure presentation (`RivalryInsights.tsx`).
+  Real-DB spot check (2026-06-12): all 5 bands `available:true` — closest game ever is Rob 103.74–103.70
+  Cheese (0.04 margin, 2023 wk11), biggest beating harry 209–76 Kofi, hottest Dave vs Rob (heat 81.2,
+  27g), longest streak DJ over Chris ×9. New backend test file (7 tests) + extended page test pass;
+  full frontend gate green (153 Vitest + typecheck + gen:api no-drift + build); rivalries visual
+  baseline regenerated. **Pre-existing, unrelated** `dev` baseline breakage left untouched: 2
+  `test_p5_matchups_unit.py` failures (`lineup_score_gap`) and `conferences.py` mypy/ruff debt from
+  upstream Phase 1 model drift. Plan: `docs/plans/rivalries-insights.md`.
+
 - **Commissioner history landed locally.** Full stack: danger-zone `commissioners` table (migration `b1d3e4f5a6c7`, seed YAML, loader script), `ff_pipeline.repository.queries.commissioner_terms`, `ff_dashboard.analytics.commissioners.commissioner_history`, `CommissionerTerm` schema on both `LeagueOverview` and `OwnerCareer`, commissioner strip on `/league` history page, per-season commissioner badge on each season entry, and a commissioner card on manager profile pages for owners who served. Commissioner history distilled from NFL.com `lm` transaction records: harry (2010–11) → sully (2012–13) → scott (2014–15) → Dave (2016–17) → Jeff (2018–19) → Chris (2020–21) → DJ (2022–23) → Rob (2024–present). 2 new backend unit tests pass. Frontend: 152 Vitest + typecheck pass.
 
 - **P12 Phase 2 (injury reports BFF + UI) landed locally.** `analytics/matchups.py` calls `injury_reports_for_week(session, season_year, week)` (Phase 1 helper) and adds `injury_status` / `injury_body_part` per player. `api/schemas.py` `BoxPlayer` has both fields. Generated client regenerated. `BoxScorePage.tsx` shows an inline `InjuryBadge` (e.g. "Out · Knee", "Q") after the position tag for any player with a non-null injury status; the "Out" Pts-cell tooltip now appends the body part when available. Pre-existing test label mismatches (BYE→Bye, DNP→Out, IR→—) fixed. Full gate green: backend 237 pytest + ruff + mypy; frontend 152 Vitest + typecheck + gen:api drift.

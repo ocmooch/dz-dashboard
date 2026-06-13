@@ -395,6 +395,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/rivalries/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rivalry Insights */
+        get: operations["get_rivalry_insights_v1_rivalries_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/players": {
         parameters: {
             query?: never;
@@ -1279,6 +1296,11 @@ export interface components {
             data: components["schemas"]["RecordsBook"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[RivalryInsights] */
+        Envelope_RivalryInsights_: {
+            data: components["schemas"]["RivalryInsights"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[RivalryMatrix] */
         Envelope_RivalryMatrix_: {
             data: components["schemas"]["RivalryMatrix"];
@@ -2119,6 +2141,39 @@ export interface components {
             games: number;
             /** A Win Pct */
             a_win_pct?: number | null;
+        };
+        /**
+         * RivalryInsights
+         * @description Bundle behind the insight bands on ``/rivalries``.
+         *
+         *     Each band is its own availability-tagged object carrying rich, deep-linkable
+         *     context (matchup_id, owner refs, heat components, …), so the model stays
+         *     extra-permissive rather than enumerating a class per band. The frontend reads
+         *     each band's ``available`` first, then its rows.
+         */
+        RivalryInsights: {
+            /** Records */
+            records: {
+                [key: string]: unknown;
+            };
+            /** Streaks */
+            streaks: {
+                [key: string]: unknown;
+            };
+            /** Intensity */
+            intensity: {
+                [key: string]: unknown;
+            };
+            /** Nemeses */
+            nemeses: {
+                [key: string]: unknown;
+            };
+            /** Playoffs */
+            playoffs: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
         };
         /** RivalryMatrix */
         RivalryMatrix: {
@@ -3316,6 +3371,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_DraftRecords_"];
+                };
+            };
+        };
+    };
+    get_rivalry_insights_v1_rivalries_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_RivalryInsights_"];
                 };
             };
         };
