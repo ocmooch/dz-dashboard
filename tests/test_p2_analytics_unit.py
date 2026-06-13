@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ff_dashboard.analytics.bracket import season_bracket
+from ff_dashboard.analytics.bracket import (
+    _connected_components,
+    _order_components,
+    season_bracket,
+)
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
@@ -89,6 +93,23 @@ def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session)
     assert cb is not None
     consol_game = cb["rounds"][0]["games"][0]
     assert consol_game["team_b"]["owner_name"] == "Iceman"
+
+
+def test_bracket_split_by_connectivity_not_source_flag() -> None:
+    # Two placement halves that never play each other across the post-season; the
+    # championship/consolation split must come from connectivity, not is_consolation.
+    def g(a: int, b: int) -> dict[str, object]:
+        return {"team_a": {"team_id": a}, "team_b": {"team_id": b}}
+
+    games = [g(1, 4), g(2, 3), g(7, 10), g(8, 9), g(1, 2), g(7, 8)]
+    comps = _connected_components(games)
+    assert sorted(sorted(c) for c in comps) == [[1, 2, 3, 4], [7, 8, 9, 10]]
+
+    # Championship half (lower final ranks) leads after ordering.
+    ranks: dict[int, int | None] = {1: 1, 2: 2, 3: 3, 4: 4, 7: 7, 8: 8, 9: 9, 10: 10}
+    ordered = _order_components(comps, ranks)
+    assert min(ordered[0]) == 1  # the {1,2,3,4} half is the championship bracket
+    assert 7 in ordered[1]  # the {7..10} half is consolation
 
 
 def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:

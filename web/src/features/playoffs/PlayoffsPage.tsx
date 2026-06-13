@@ -287,7 +287,7 @@ export function PlayoffsPage() {
         <div className="space-y-5">
           {data.playoff_bracket && (
             <BracketSection
-              title="Playoff Bracket"
+              title="Championship Bracket"
               bracket={data.playoff_bracket}
               eyebrow={`${data.playoff_bracket.size} teams`}
             />
