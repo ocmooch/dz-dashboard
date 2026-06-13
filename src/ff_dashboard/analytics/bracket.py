@@ -2,7 +2,11 @@
 
 Phase 1 stores matchup rows, not a fully reliable championship/consolation tree.
 This module exposes proven post-regular-season games structured as bracket rounds
-with derived labels. Consolation is separated when source flags distinguish it.
+with derived labels. The main (championship) and consolation brackets are separated
+by their connected components in the post-season matchup graph: the two halves of a
+placement bracket never play each other, so connectivity partitions them cleanly with
+no hardcoded seed threshold. The component with the better (lower) final ranks is the
+championship bracket; the other is consolation.
 """
 
 from __future__ import annotations
@@ -22,8 +26,8 @@ if TYPE_CHECKING:
 
 
 BRACKET_CAVEAT = (
-    "Post-regular-season matchups from the source data. Championship versus consolation "
-    "structure is shown only when source flags distinguish it."
+    "Post-regular-season matchups from the source data. The championship and consolation "
+    "brackets are separated by who actually played whom, not by source flags."
 )
 
 # Final-round per-game labels for each bracket type
@@ -169,6 +173,60 @@ def _build_bracket_section(
     return {"size": len(all_team_ids), "rounds": rounds, "bye_teams": bye_teams}
 
 
+def _connected_components(game_dicts: list[dict[str, Any]]) -> list[set[int]]:
+    """Partition post-season teams into brackets via matchup connectivity.
+
+    In a placement bracket the championship and consolation halves never play each
+    other across any round, so the connected components of the "played-against"
+    graph are exactly the separate brackets. Returns one ``set`` of team ids per
+    component, deterministically ordered by smallest member id.
+    """
+    adj: dict[int, set[int]] = {}
+    for g in game_dicts:
+        a = g["team_a"]["team_id"] if g["team_a"] else None
+        b = g["team_b"]["team_id"] if g["team_b"] else None
+        if a is not None:
+            adj.setdefault(a, set())
+        if b is not None:
+            adj.setdefault(b, set())
+        if a is not None and b is not None:
+            adj[a].add(b)
+            adj[b].add(a)
+
+    seen: set[int] = set()
+    components: list[set[int]] = []
+    for node in sorted(adj):
+        if node in seen:
+            continue
+        stack = [node]
+        comp: set[int] = set()
+        while stack:
+            cur = stack.pop()
+            if cur in seen:
+                continue
+            seen.add(cur)
+            comp.add(cur)
+            stack.extend(adj[cur] - seen)
+        components.append(comp)
+    return components
+
+
+def _order_components(
+    components: list[set[int]], final_ranks: dict[int, int | None]
+) -> list[set[int]]:
+    """Order brackets best-first: the championship half (lowest final ranks) leads.
+
+    Ties / missing ranks fall back to the smallest team id so the order stays stable.
+    """
+
+    def sort_key(comp: set[int]) -> tuple[int, int]:
+        ranks = [r for r in (final_ranks.get(t) for t in comp) if r is not None]
+        min_rank = min(ranks) if ranks else 10**6
+        return (min_rank, min(comp))
+
+    return sorted(components, key=sort_key)
+
+
 def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
     """Return structured postseason bracket for ``season_id``; ``None`` when absent."""
     require_league(session)
@@ -206,7 +264,6 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
     owners = owner_name_map(session)
     conf_map_data = conference_map(session, season_id)
     cache: dict[int, Any] = {}
-    consolation_distinguished = any(bool(m.is_consolation) for m in rows)
 
     seen: set[tuple[int, frozenset[int]]] = set()
     game_dicts: list[dict[str, Any]] = []
@@ -230,13 +287,12 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
             elif m.opponent_score > m.team_score:
                 winner_team_id = m.opponent_team_id
 
-        is_consol = bool(m.is_consolation) if consolation_distinguished else None
         game_dicts.append(
             {
                 "week": m.week,
                 "matchup_id": m.matchup_id,
                 "is_playoff": bool(m.is_playoff),
-                "is_consolation": is_consol,
+                "is_consolation": None,  # assigned below from bracket membership
                 "game_label": None,
                 "team_a": _team_ref(
                     m.team_id,
@@ -260,9 +316,27 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
             }
         )
 
+    # Split the championship and consolation halves by matchup connectivity, then
+    # label the lower-ranked half as the championship bracket. final_rank is read
+    # from the cached Team rows fetched while building game_dicts.
+    final_ranks: dict[int, int | None] = {}
+    for tid in cache:
+        team = cache[tid]
+        final_ranks[tid] = getattr(team, "final_rank", None) if team is not None else None
+
+    components = _order_components(_connected_components(game_dicts), final_ranks)
+    consolation_distinguished = len(components) >= 2
+
     if consolation_distinguished:
-        playoff_games = [g for g in game_dicts if g["is_consolation"] is False]
-        consol_games = [g for g in game_dicts if g["is_consolation"] is True]
+        # components[0] is the championship half; everything after is consolation.
+        consol_ids: set[int] = set().union(*components[1:])
+        playoff_games: list[dict[str, Any]] = []
+        consol_games: list[dict[str, Any]] = []
+        for g in game_dicts:
+            a_id = g["team_a"]["team_id"] if g["team_a"] else None
+            is_consol = a_id in consol_ids if a_id is not None else False
+            g["is_consolation"] = is_consol
+            (consol_games if is_consol else playoff_games).append(g)
         playoff_bracket = _build_bracket_section(playoff_games, "playoff")
         consol_bracket = _build_bracket_section(consol_games, "consolation")
     else:

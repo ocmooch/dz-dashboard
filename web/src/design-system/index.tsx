@@ -229,7 +229,7 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
       "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
     bracket_unavailable: "Bracket data isn't available for this season",
     consolation_indistinguishable:
-      "Consolation bracket can't be separated from the playoff bracket for this season",
+      "No consolation bracket was recorded for this season",
     conference_membership_unavailable:
       "Conference membership data for historical seasons is not yet available",
     roster_history_unavailable:
