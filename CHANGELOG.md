@@ -4,6 +4,33 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-15 — Documentation cleanup: merge-wave reconciliation + retire obsolete tooling
+
+- **Reconciled the docs against the #61–#67 merge wave.** Every branch the prior docs called
+  "awaiting PR" is merged to `dev` and promoted to `main`: rivalries-insights (#61), seasons
+  league-changes (#62), baseline gate debt (#63/#64), injury enrichment (#65), engagement /
+  rivalries-strength (#66), and matchup zero-status (#67). `PROGRESS.md`, `docs/ACTIVE_WORK.md`, and
+  `docs/archive/COMPLETED_WORK.md` §3a updated; **there are now no open feature branches.**
+- **Retired the completed review-fixes program tooling.** All fix-passes P1–P6 are merged, so the
+  program is closed: deleted `docs/plans/REVIEW_FIXES_ROADMAP.md`, the `.claude/skills/fix-pass`
+  skill, the manual `docs/handoffs/review-fix-pass.template.md`, and the six per-pass plan snapshots
+  (`docs/archive/fix-P1…P6`). The canonical finding reference
+  (`docs/reviews/2026-06-in-browser-review.md`) is kept; the still-open UP findings moved into
+  `docs/ACTIVE_WORK.md` §2.
+- **Folded the forward execution plan into `docs/ACTIVE_WORK.md`** and deleted the standalone
+  `docs/plans/COMPLETION_ROADMAP.md` (its S2 shipped as #61; S1 conferences-repair and S8
+  league-history detail now live in `ACTIVE_WORK`).
+- **Pruned merged/superseded plan snapshots** (all summarized in `COMPLETED_WORK.md`, retained in git
+  history): merged feature plans (engagement-rivalries-strength, rivalries-insights, the three
+  seasons-league-changes docs, zero-score-gap-audit), the rejected owner-epithet proposal, the closed
+  F-54 handoff (`season-correct-nfl-team-danger-zone`), and the archive snapshots
+  `players-audit-dashboard`, `deferred-product-decisions`, `prerequisites`, `P0_DATA_READINESS`.
+  Moved `seasons-league-changes-inventory.md` into `docs/archive/` as the surviving data reference.
+- **Net:** `docs/` went from 44 markdown files to 22 — the numbered `00`–`10` design spec, the
+  runbook + design handoff, the single forward doc (`ACTIVE_WORK.md`), one archive aggregate plus
+  three references, one active upstream handoff, and the review reference. The remaining open work
+  (conferences repair, the UP program, the gated league-history expansion) is unchanged.
+
 ## 2026-06-14 — Documentation refresh: merge-wave reconciliation + tech-debt escalation
 
 - Reconciled the live docs against the merge wave that landed since 2026-06-08. The following are

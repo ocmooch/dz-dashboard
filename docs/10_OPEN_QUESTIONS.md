@@ -139,24 +139,21 @@ New-session note: these are primarily `../danger-zone` tasks. For F-25, start fr
 counts. For F-27, sanity-check reconstructed 2010-2015 scores against source NFL.com/team totals
 before calling them final. For F-49, prefer fixing source flags over adding dashboard inference.
 
-### N6. Backend gate is red on the `dev` baseline — ESCALATED (was a recurring side-note)
+### N6. Conferences feature is silently dead at runtime (gate is green) — OPEN
 
-Carried across several PRs as "pre-existing, unrelated, left untouched," now escalated because it
-touches **broad, long-lasting data-service code** and keeps the backend gate from going green:
+PRs #63/#64 cleared the gate-red part of this debt: the stale `tests/test_p5_matchups_unit.py`
+assertions (a removed `lineup_score_gap`/`score_gap_delta` box field) were removed, the
+`conferences.py` mypy/ruff drift was silenced with `type: ignore`, the `league_history.py`
+ambiguous-unicode error was fixed, and e2e/format debt was cleared. **The backend gate is green.**
 
-1. **Conferences ORM model drift.** `analytics/conferences.py` references `Team.conference_id`,
-   an attribute the Phase-1 ORM does not map → 3 mypy errors + 1 ruff import-sort error. The same
-   drift already forced PR #57 to read `conference_id` via raw SQL in `standings.py`.
-   `conferences.py` is **live** (backs `GET /v1/seasons/{id}/conferences`; feeds
-   `analytics/bracket.py`'s `conference_map`), so this is a reliability risk, not dead code. Fix
-   path: map the column in the Phase-1 `Team` model (upstream) **or** convert `conferences.py` to
-   the raw-SQL read `standings.py` already uses.
-2. **Stale matchups tests.** `tests/test_p5_matchups_unit.py` asserts a `lineup_score_gap` /
-   `gap_delta` box-score field no longer present in source (`has_long_td_score_gap` was removed)
-   → 2 pytest failures. Update or delete the assertions to match the shipped box output.
-
-(Plus 1 ruff ambiguous-unicode error in `league_history.py`.) Tracked operationally in
-`docs/ACTIVE_WORK.md` §0/§6.
+**But the silencing only fixed the types — the feature is still dead.** `analytics/conferences.py`
+imports `SeasonConference` and reads `Team.conference_id`, neither of which the Phase-1 ORM maps, so
+its `try/except` guard sets `_CONFERENCE_MODELS_AVAILABLE = False` at runtime. Every
+`GET /v1/seasons/{id}/conferences` returns `available=false, reason="no_conferences_this_season"`,
+and `conference_map()` (feeding `analytics/bracket.py`) returns `{}` — **the entire 2010–2019
+conference era is invisible.** The data is reachable: `standings.py` already reads the same tables
+via raw SQL (the approach PR #57 used). **Fix:** convert `conferences.py`'s two query sites to the
+same raw SQL and add a known-answer conferences test. Full handoff: `docs/ACTIVE_WORK.md` §6.1.
 
 ---
 

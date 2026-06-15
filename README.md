@@ -16,8 +16,9 @@ Phase 2 is **two pieces plus a contract between them**:
 
 > The full design package lives in `docs/` (`00_SEAM.md` … `10_OPEN_QUESTIONS.md`), with the
 > design handoff at `docs/DESIGN_HANDOFF.md`. Read `docs/00_SEAM.md`,
-> `docs/02_ARCHITECTURE.md`, and `docs/03_DATA_ACCESS.md` first. The pre-build kickoff and
-> prerequisites briefs are archived under `docs/archive/` for provenance.
+> `docs/02_ARCHITECTURE.md`, and `docs/03_DATA_ACCESS.md` first. Current state is in `PROGRESS.md`;
+> remaining work in `docs/ACTIVE_WORK.md`; finished work in `docs/archive/COMPLETED_WORK.md`. The
+> original design brief is archived at `docs/archive/PHASE2_KICKOFF.md` for provenance.
 
 ## Relationship to Phase 1 (ff-pipeline)
 
@@ -111,5 +112,6 @@ players, stats, draft, coverage, global search, league history, commissioner
 history, playoffs brackets, injury reports), one-command operations, and a
 both-domain test gate (analytics unit + contract, component/feature, and
 Playwright e2e/visual-regression). See `CHANGELOG.md` for per-pass history. The
-only open dashboard branch is `feature/rivalries-insights`; remaining backlog is
-upstream/data work tracked in `docs/ACTIVE_WORK.md`.
+application is fully merged with no open feature branches; the remaining backlog
+(a conferences-feature repair, the upstream data program, and a gated
+league-history expansion) is tracked in `docs/ACTIVE_WORK.md`.
