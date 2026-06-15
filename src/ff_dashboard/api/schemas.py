@@ -639,6 +639,24 @@ class RivalryMatrix(BaseModel):
     cells: list[RivalryCell]
 
 
+class RivalryInsights(BaseModel):
+    """Bundle behind the insight bands on ``/rivalries``.
+
+    Each band is its own availability-tagged object carrying rich, deep-linkable
+    context (matchup_id, owner refs, heat components, …), so the model stays
+    extra-permissive rather than enumerating a class per band. The frontend reads
+    each band's ``available`` first, then its rows.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    records: dict[str, Any]
+    streaks: dict[str, Any]
+    intensity: dict[str, Any]
+    nemeses: dict[str, Any]
+    playoffs: dict[str, Any]
+
+
 # ---------------------------------------------------------------------------
 # Records book
 # ---------------------------------------------------------------------------

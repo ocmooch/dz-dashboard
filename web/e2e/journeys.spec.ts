@@ -51,7 +51,9 @@ test("matchups → box score shows points-left-on-bench", async ({ page }) => {
 
 test("rivalry matrix renders", async ({ page }) => {
   await page.goto("/rivalries");
-  await expect(page.getByRole("heading", { name: "Rivalries" })).toBeVisible();
+  // The page now carries insight-band sub-headings ("Hottest Rivalries",
+  // "Playoff Rivalries"); match the page's own <h1> exactly to stay unambiguous.
+  await expect(page.getByRole("heading", { name: "Rivalries", exact: true })).toBeVisible();
 });
 
 test("bracket renders caveated postseason games", async ({ page }) => {

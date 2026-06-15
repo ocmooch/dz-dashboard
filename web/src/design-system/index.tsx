@@ -220,6 +220,8 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",
     no_meetings: "These managers never met",
+    insufficient_rivalry_history: "Not enough shared games yet to rank a rivalry",
+    no_playoff_meetings: "No postseason meetings on record",
     team_defense_not_scored: "Team defense not scored (known gap)",
     draft_not_captured: "Draft not captured for this season",
     player_unscored: "Player not scored — value unavailable",

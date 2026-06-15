@@ -7,10 +7,18 @@ import { Badge, Card, CardHeader, Checkbox, ErrorState, Skeleton } from "@/desig
 import { api } from "@/lib/api/client";
 import { qk } from "@/lib/queryKeys";
 
+import { RivalryInsights, type RivalryInsightsData } from "./RivalryInsights";
+
 async function fetchRivalryMatrix() {
   const { data, error } = await api.GET("/v1/owners/rivalry-matrix");
   if (error || !data) throw new Error("Failed to load rivalry matrix");
   return data.data;
+}
+
+async function fetchRivalryInsights(): Promise<RivalryInsightsData> {
+  const { data, error } = await api.GET("/v1/rivalries/insights");
+  if (error || !data) throw new Error("Failed to load rivalry insights");
+  return data.data as unknown as RivalryInsightsData;
 }
 
 export function RivalriesPage() {
@@ -19,6 +27,10 @@ export function RivalriesPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.rivalryMatrix,
     queryFn: fetchRivalryMatrix,
+  });
+  const insights = useQuery({
+    queryKey: qk.rivalryInsights,
+    queryFn: fetchRivalryInsights,
   });
 
   // The matrix is a presentation transform only: owners give the axes, and each
@@ -94,6 +106,15 @@ export function RivalriesPage() {
           )}
         </div>
       </Card>
+
+      {insights.isLoading && <Skeleton className="h-64 w-full" />}
+      {insights.isError && (
+        <ErrorState
+          message="Could not load rivalry insights."
+          onRetry={() => insights.refetch()}
+        />
+      )}
+      {insights.data && <RivalryInsights data={insights.data} />}
     </div>
   );
 }
