@@ -310,6 +310,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/owners/{owner_id}/story": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Owner Story */
+        get: operations["get_owner_story_v1_owners__owner_id__story_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/owners/{owner_id}/trajectory": {
         parameters: {
             query?: never;
@@ -387,6 +404,23 @@ export interface paths {
         };
         /** Get Draft Records */
         get: operations["get_draft_records_v1_records_draft_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rivalries/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rivalry Insights */
+        get: operations["get_rivalry_insights_v1_rivalries_insights_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -811,6 +845,10 @@ export interface components {
             injury_status?: string | null;
             /** Injury Body Part */
             injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
         };
         /** BoxScore */
         BoxScore: {
@@ -1224,6 +1262,11 @@ export interface components {
             data: components["schemas"]["OwnerSeasons"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[OwnerStory] */
+        Envelope_OwnerStory_: {
+            data: components["schemas"]["OwnerStory"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[OwnerTrajectory] */
         Envelope_OwnerTrajectory_: {
             data: components["schemas"]["OwnerTrajectory"];
@@ -1277,6 +1320,11 @@ export interface components {
         /** Envelope[RecordsBook] */
         Envelope_RecordsBook_: {
             data: components["schemas"]["RecordsBook"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[RivalryInsights] */
+        Envelope_RivalryInsights_: {
+            data: components["schemas"]["RivalryInsights"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[RivalryMatrix] */
@@ -1501,6 +1549,29 @@ export interface components {
              * @default false
              */
             description_gap: boolean;
+            /**
+             * Tier
+             * @default T3
+             */
+            tier: string;
+            /** Human Label */
+            human_label?: string | null;
+            /** Phase */
+            phase?: string | null;
+            /** Event Group Key */
+            event_group_key?: string | null;
+            /**
+             * Missing Context
+             * @default false
+             */
+            missing_context: boolean;
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["LeagueChangeDetail"][];
+            /** Canonical Type */
+            canonical_type?: string | null;
         };
         /** LeagueEra */
         LeagueEra: {
@@ -1811,6 +1882,51 @@ export interface components {
             /** Seasons */
             seasons: components["schemas"]["OwnerSeasonRow"][];
         };
+        /**
+         * OwnerStory
+         * @description The "Your Story" lead band on a manager profile.
+         *
+         *     Each superlative is its own rich, deep-linkable object (matchup_id, opponent
+         *     ref, scores) or ``None`` when it does not clear its min-sample bar — never a
+         *     forced 0 or fake value. The frontend reads each field and renders the line only
+         *     when present, so the model stays extra-permissive rather than enumerating a
+         *     class per superlative.
+         */
+        OwnerStory: {
+            owner: components["schemas"]["OwnerRef"];
+            /** Available */
+            available: boolean;
+            /** Signature Win */
+            signature_win?: {
+                [key: string]: unknown;
+            } | null;
+            /** Heartbreak */
+            heartbreak?: {
+                [key: string]: unknown;
+            } | null;
+            /** High Water Mark */
+            high_water_mark?: {
+                [key: string]: unknown;
+            } | null;
+            /** Nemesis */
+            nemesis?: {
+                [key: string]: unknown;
+            } | null;
+            /** Favorite Victim */
+            favorite_victim?: {
+                [key: string]: unknown;
+            } | null;
+            /** Luckiest Season */
+            luckiest_season?: {
+                [key: string]: unknown;
+            } | null;
+            /** Unluckiest Season */
+            unluckiest_season?: {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** OwnerTrajectory */
         OwnerTrajectory: {
             /** Owner Id */
@@ -2119,6 +2235,39 @@ export interface components {
             games: number;
             /** A Win Pct */
             a_win_pct?: number | null;
+        };
+        /**
+         * RivalryInsights
+         * @description Bundle behind the insight bands on ``/rivalries``.
+         *
+         *     Each band is its own availability-tagged object carrying rich, deep-linkable
+         *     context (matchup_id, owner refs, heat components, …), so the model stays
+         *     extra-permissive rather than enumerating a class per band. The frontend reads
+         *     each band's ``available`` first, then its rows.
+         */
+        RivalryInsights: {
+            /** Records */
+            records: {
+                [key: string]: unknown;
+            };
+            /** Streaks */
+            streaks: {
+                [key: string]: unknown;
+            };
+            /** Intensity */
+            intensity: {
+                [key: string]: unknown;
+            };
+            /** Nemeses */
+            nemeses: {
+                [key: string]: unknown;
+            };
+            /** Playoffs */
+            playoffs: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
         };
         /** RivalryMatrix */
         RivalryMatrix: {
@@ -2429,6 +2578,8 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            most_robbed?: components["schemas"]["StandingsInsightTeam"] | null;
+            most_blessed?: components["schemas"]["StandingsInsightTeam"] | null;
             /** Teams */
             teams: components["schemas"]["StandingsInsightTeam"][];
         };
@@ -2575,10 +2726,22 @@ export interface components {
             is_starter: boolean;
             /** League Points */
             league_points?: number | null;
+            /** Zero Reason */
+            zero_reason?: string | null;
+            /** Zero Detail */
+            zero_detail?: string | null;
             /** Acquisition Type */
             acquisition_type?: string | null;
             /** Acquisition Week */
             acquisition_week?: number | null;
+            /** Injury Status */
+            injury_status?: string | null;
+            /** Injury Body Part */
+            injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
         };
         /** TeamSchedule */
         TeamSchedule: {
@@ -3197,6 +3360,37 @@ export interface operations {
             };
         };
     };
+    get_owner_story_v1_owners__owner_id__story_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_OwnerStory_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_owner_trajectory_v1_owners__owner_id__trajectory_get: {
         parameters: {
             query?: never;
@@ -3316,6 +3510,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_DraftRecords_"];
+                };
+            };
+        };
+    };
+    get_rivalry_insights_v1_rivalries_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_RivalryInsights_"];
                 };
             };
         };

@@ -7,7 +7,6 @@ labelled in the payload so the UI can keep caveats next to affected data.
 
 from __future__ import annotations
 
-import re
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -21,7 +20,6 @@ from ff_pipeline.repository.models import (
     Season,
     Team,
     TeamRoster,
-    Transaction,
 )
 from sqlalchemy import distinct, func, select
 
@@ -35,6 +33,21 @@ from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
 )
+from ff_dashboard.analytics.league_changes import setting_change_events
+
+# Tier for state-table-derived changes (the setting_change classifier sets its own).
+_CATEGORY_TIER: dict[str, str] = {
+    "roster_slots": "T1",
+    "scoring_rules": "T1",
+    "playoffs": "T1",
+    "league_size": "T1",
+    "scoring_provenance": "T3",
+    "data_quality": "T3",
+    "schedule": "T2",
+    "standings": "T2",
+    "waiver": "T2",
+    "participants": "T2",
+}
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -121,6 +134,13 @@ def _change(
     participants_joined: list[str] | None = None,
     participants_left: list[str] | None = None,
     description_gap: bool = False,
+    tier: str | None = None,
+    human_label: str | None = None,
+    phase: str | None = None,
+    event_group_key: str | None = None,
+    missing_context: bool = False,
+    members: list[dict[str, Any]] | None = None,
+    canonical_type: str | None = None,
 ) -> dict[str, Any]:
     return {
         "category": category,
@@ -134,6 +154,13 @@ def _change(
         "participants_joined": participants_joined,
         "participants_left": participants_left,
         "description_gap": description_gap,
+        "tier": tier or _CATEGORY_TIER.get(category, "T2"),
+        "human_label": human_label or title,
+        "phase": phase,
+        "event_group_key": event_group_key,
+        "missing_context": missing_context or description_gap,
+        "members": members or [],
+        "canonical_type": canonical_type,
     }
 
 
@@ -296,7 +323,7 @@ def _slot_diff_summary(prior: Counter[str], current: Counter[str]) -> str:
         if p == 0:
             parts.append(f"+{c} {label}")
         elif c == 0:
-            parts.append(f"−{p} {label}")
+            parts.append(f"-{p} {label}")
         elif c > p:
             parts.append(f"{label}: {p}→{c}")
         else:
@@ -337,74 +364,6 @@ def _roster_changes(
             )
         )
     return changes
-
-
-_SETTING_PATTERNS: tuple[tuple[str, str, str], ...] = (
-    ("waiver", "Waiver/FAAB setting changed", r"(Waiver Type|Waiver Budget|Waiver Period)"),
-    ("standings", "Standings tiebreaker changed", r"Standings Tiebreaker"),
-    ("schedule", "League schedule edited", r"League Schedule for Week"),
-    ("playoffs", "Playoff format setting changed", r"Playoff Settings"),
-    ("roster_slots", "Roster positions setting updated", r"updated roster positions"),
-    ("scoring_rules", "Scoring settings updated", r"updated scoring settings"),
-)
-
-
-def _setting_changes(session: Session) -> dict[int, list[dict[str, Any]]]:
-    rows = session.execute(
-        select(Season.year, Transaction.extra_data, Transaction.executed_at)
-        .join(Transaction, Transaction.season_id == Season.season_id)
-        .where(Transaction.transaction_type == "setting_change")
-        .order_by(Season.year, Transaction.transaction_id)
-    ).all()
-    by_year: dict[int, list[dict[str, Any]]] = defaultdict(list)
-    seen: set[tuple[int, str, str]] = set()
-    for year, extra, executed_at in rows:
-        raw = extra or {}
-        description = raw.get("description") if isinstance(raw, Mapping) else None
-        if not description:
-            continue
-        for category, title, pattern in _SETTING_PATTERNS:
-            if not re.search(pattern, str(description), flags=re.IGNORECASE):
-                continue
-            key = (int(year), category, str(description))
-            if key in seen:
-                break
-            seen.add(key)
-            before_after = re.search(r" from '([^']+)' to '([^']+)'", str(description))
-            before = before_after.group(1) if before_after else None
-            after = before_after.group(2) if before_after else None
-            changed_at = executed_at.isoformat() if executed_at is not None else None
-            description_gap = before is None and after is None and category in {
-                "roster_slots",
-                "scoring_rules",
-            }
-            by_year[int(year)].append(
-                _change(
-                    category,
-                    title,
-                    str(description),
-                    before=before,
-                    after=after,
-                    source="nfl_com_transaction_log",
-                    changed_at=changed_at,
-                    description_gap=description_gap,
-                )
-            )
-            break
-    for year, changes in list(by_year.items()):
-        schedule_edits = [change for change in changes if change["category"] == "schedule"]
-        if len(schedule_edits) <= 1:
-            continue
-        by_year[year] = [change for change in changes if change["category"] != "schedule"]
-        by_year[year].append(
-            _change(
-                "schedule",
-                "League schedule edited",
-                f"{len(schedule_edits)} weekly schedule edits recorded in NFL.com transaction log.",
-                source="nfl_com_transaction_log",
-            )
-        )
-    return by_year
 
 
 def _active_owner_sets(session: Session) -> dict[int, set[int]]:
@@ -496,7 +455,6 @@ def league_timeline(session: Session) -> dict[str, Any]:
     scored_ids = _scored_season_ids(session)
     scoring_rules = _scoring_rules_by_season(session)
     roster_sigs = _roster_signatures(session)
-    setting_changes = _setting_changes(session)
     active_owner_sets = _active_owner_sets(session)
 
     rows: list[dict[str, Any]] = []
@@ -547,7 +505,6 @@ def league_timeline(session: Session) -> dict[str, Any]:
             )
         details.extend(_scoring_rule_changes(season, previous_season, scoring_rules))
         details.extend(_roster_changes(season, previous_season, roster_sigs))
-        details.extend(setting_changes.get(int(season.year), []))
         details.extend(_participant_changes(season, previous_season, active_owner_sets, owners))
         if raw_league_size > league_size:
             details.append(
@@ -603,6 +560,21 @@ def league_timeline(session: Session) -> dict[str, Any]:
         rows.append(row)
         previous = row
         previous_season = season
+
+    # Setting-change classifier: a STATE headline (roster/scoring) is absorbed when
+    # that season already shows a concrete state-table diff of the same category.
+    resolved_cats_by_year = {
+        int(r["season_year"]): {
+            d["category"]
+            for d in r["changes"]["details"]
+            if d["source"] == "derived_from_db"
+            and d["category"] in {"roster_slots", "scoring_rules"}
+        }
+        for r in rows
+    }
+    events_by_year = setting_change_events(session, resolved_cats_by_year=resolved_cats_by_year)
+    for r in rows:
+        r["changes"]["details"].extend(events_by_year.get(int(r["season_year"]), []))
 
     return {
         "league": {

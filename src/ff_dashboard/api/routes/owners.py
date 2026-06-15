@@ -12,6 +12,7 @@ from ff_pipeline.repository.queries import get_owner
 from ff_dashboard.analytics.commissioners import commissioner_history
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
+from ff_dashboard.analytics.owner_story import owner_story
 from ff_dashboard.analytics.owners import (
     list_owners_career,
     owner_career,
@@ -26,6 +27,7 @@ from ff_dashboard.api.schemas import (
     OwnerCareer,
     OwnerSeasons,
     OwnersList,
+    OwnerStory,
     OwnerTrajectory,
     RivalryMatrix,
 )
@@ -75,6 +77,14 @@ def get_owner_seasons(owner_id: int, session: SessionDep) -> Envelope[OwnerSeaso
         ),
         meta=build_meta(session),
     )
+
+
+@router.get("/v1/owners/{owner_id}/story", response_model=Envelope[OwnerStory])
+def get_owner_story(owner_id: int, session: SessionDep) -> Envelope[OwnerStory]:
+    data = owner_story(session, owner_id)
+    if data is None:
+        raise not_found(f"No owner with id {owner_id}")
+    return Envelope(data=OwnerStory(**data), meta=build_meta(session))
 
 
 @router.get("/v1/owners/{owner_id}/trajectory", response_model=Envelope[OwnerTrajectory])

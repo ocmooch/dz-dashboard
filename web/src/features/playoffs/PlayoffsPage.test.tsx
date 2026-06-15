@@ -131,7 +131,7 @@ describe("PlayoffsPage", () => {
     renderPage();
     expect(await screen.findByText("Playoffs")).toBeInTheDocument();
     expect(await screen.findByText(/Post-regular-season matchups/i)).toBeInTheDocument();
-    expect(screen.getByText("Playoff Bracket")).toBeInTheDocument();
+    expect(screen.getByText("Championship Bracket")).toBeInTheDocument();
     expect(screen.getByText("Consolation Bracket")).toBeInTheDocument();
     expect(screen.getAllByText("First Round").length).toBeGreaterThan(0);
     expect(screen.getByText("Championship")).toBeInTheDocument();
@@ -153,6 +153,6 @@ describe("PlayoffsPage", () => {
 
     renderPage();
     expect(await screen.findByText(/Bracket data isn't available/i)).toBeInTheDocument();
-    expect(screen.queryByText("Playoff Bracket")).not.toBeInTheDocument();
+    expect(screen.queryByText("Championship Bracket")).not.toBeInTheDocument();
   });
 });

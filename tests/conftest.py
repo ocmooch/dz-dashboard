@@ -142,18 +142,24 @@ def _populate(session: Session) -> None:
     oid = {k: o.owner_id for k, o in owners.items()}
 
     # --- Commissioner history: Maverick ran 2015-2016, Viper took over 2017.
-    session.add_all([
-        Commissioner(
-            league_id=LEAGUE_ID, owner_id=oid["mav"],
-            from_year=2015, to_year=2016,
-            notes="Fixture commissioner term",
-        ),
-        Commissioner(
-            league_id=LEAGUE_ID, owner_id=oid["viper"],
-            from_year=2017, to_year=None,
-            notes="Fixture current commissioner",
-        ),
-    ])
+    session.add_all(
+        [
+            Commissioner(
+                league_id=LEAGUE_ID,
+                owner_id=oid["mav"],
+                from_year=2015,
+                to_year=2016,
+                notes="Fixture commissioner term",
+            ),
+            Commissioner(
+                league_id=LEAGUE_ID,
+                owner_id=oid["viper"],
+                from_year=2017,
+                to_year=None,
+                notes="Fixture current commissioner",
+            ),
+        ]
+    )
 
     # --- Seasons. 2015 is a synthetic unscored gap; 2016/2017 are scored.
     seasons: dict[int, Season] = {}
@@ -837,6 +843,25 @@ def _populate(session: Session) -> None:
         )
     )
 
+    # --- A non-defense bench player with no raw/scored row is a confirmed
+    #     did-not-play zero in a scored box score, not a scoring-coverage gap.
+    no_stat_wr = Player(name_full="No Stat Bench Guy", position="WR", nfl_team="SEA")
+    session.add(no_stat_wr)
+    session.flush()
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=no_stat_wr.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="BN",
+            is_starter=False,
+            acquisition_type="draft",
+            acquisition_week=1,
+            extra_data={"snapshot_kind": "history", "opponent": "LAR"},
+        )
+    )
+
     # --- Zero-point context the box score must explain, again on Goose's bench:
     #       * a player whose NFL team was on bye (extra_data.opponent == "Bye")
     #         scored 0 — labelled "bye", not a fake gap; and
@@ -921,6 +946,36 @@ def _populate(session: Session) -> None:
         avatar_team = session.get(Team, team_id[(2017, team_key)])
         if avatar_team is not None:
             avatar_team.team_avatar_asset_id = avatars[asset_key].asset_id
+
+    # --- setting_change transactions (2016) exercising the tiered classifier:
+    #     an individual PASS, a same-day division-realignment cluster (-> one T1
+    #     event), routine T3 rows, a headline-only scoring edit with no state diff
+    #     (-> hedged routine member), and two in-season changes (marker + MISSING).
+    def _setting(desc: str, mon: int, day: int) -> Transaction:
+        return Transaction(
+            season_id=sid[2016],
+            transaction_type="setting_change",
+            executed_at=datetime(2016, mon, day, 12, 0, 0, tzinfo=UTC),
+            notes="Maverick",
+            extra_data={"raw_type": "lm", "description": desc},
+        )
+
+    session.add_all(
+        [
+            _setting("Maverick changed Fee for Joining League from '100.00' to '125.00'", 7, 1),
+            _setting("Maverick changed Alpha Squad's Division from '1' to '2'", 8, 2),
+            _setting("Maverick changed Beta Crew's Division from '2' to '1'", 8, 2),
+            _setting("Maverick changed Gamma Unit's Division from '1' to '2'", 8, 2),
+            _setting("Maverick changed Draft Time to 'Sep 2, 2016 8:00am PDT'", 8, 24),
+            _setting("Maverick updated scoring settings", 8, 25),
+            _setting(
+                "Maverick changed Standings Tiebreaker from 'Head to Head Record' to 'Points For'",
+                9,
+                30,
+            ),
+            _setting("Maverick updated playoff teams", 12, 10),
+        ]
+    )
 
     # --- A successful pipeline run so /v1/meta + records reflect a real run id.
     run = PipelineRun(status="success", mode="reconstruct", started_at=NOW, finished_at=NOW)

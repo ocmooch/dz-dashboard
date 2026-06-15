@@ -141,6 +141,17 @@ def test_box_def_starter_with_missing_row_is_flagged(session: Session) -> None:
     assert dst["reason"] == "team_defense_not_scored"
 
 
+def test_box_non_def_missing_row_is_did_not_play_zero(session: Session) -> None:
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    row = next(p for p in data["away"]["lineup"] if p["player_name"] == "No Stat Bench Guy")
+    assert row["available"] is True
+    assert row["league_points"] == 0.0
+    assert row["reason"] is None
+    assert row["zero_reason"] == "did_not_play"
+
+
 def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
     # A player nflverse never scored (no scored row) but with an authoritative
     # nfl_com_points shows that real value, available — never a "no scored data"
@@ -246,21 +257,6 @@ def test_box_authoritative_total_and_winner(session: Session) -> None:
     assert data["home"]["total_score"] == 130.0  # the real game score
     assert data["away"]["total_score"] == 125.0
     assert data["winner_team_id"] == KNOWN["team_id"][(2017, "ice")]
-
-
-def test_box_score_gap_delta_is_total_minus_starters(session: Session) -> None:
-    # total_score (130.0) > starter_points (104.0) because the DST starter has
-    # no scored row. The delta is always computed when total_score is present,
-    # regardless of lineup_score_gap, so callers always see the full discrepancy.
-    home = _ice_box(session)
-    assert home["score_gap_delta"] == pytest.approx(26.0)
-
-
-def test_box_lineup_score_gap_is_false_without_bonus_rules(session: Session) -> None:
-    # The fixture has no scoring rules, so long_td_bonus_rules() returns an
-    # empty frozenset and has_long_td_score_gap() is always False.
-    home = _ice_box(session)
-    assert home["lineup_score_gap"] is False
 
 
 def test_box_pre_2016_season_is_unscored_gap(session: Session) -> None:

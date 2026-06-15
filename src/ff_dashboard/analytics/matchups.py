@@ -40,6 +40,7 @@ from sqlalchemy import select
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
+from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.season_schedule import season_schedule
 
 # Margin thresholds for the week-matchup flags. Kept here (backend) rather than
@@ -391,6 +392,12 @@ def _team_box(
         points = _authoritative_points(roster_row)
         if points is None:
             points = nflverse_points
+        if points is None and slot not in DEF_SLOTS:
+            # In a scored season, a non-defense roster row with neither an
+            # NFL.com score nor an nflverse stat line is a player absence, not
+            # a per-row scoring gap. Keep DEF strict because missing DST rows
+            # are reconstruction holes.
+            points = 0.0
         league_points = round(points, 2) if points is not None else None
 
         available = points is not None
@@ -444,8 +451,7 @@ def _team_box(
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
             "lineup_value": None,
-            "injury_status": injury.report_status if injury else None,
-            "injury_body_part": injury.report_primary_injury if injury else None,
+            **injury_fields(injury),
         }
         lineup.append(entry)
 

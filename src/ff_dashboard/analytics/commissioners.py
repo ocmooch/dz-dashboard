@@ -38,6 +38,7 @@ def commissioner_history(session: Session) -> list[CommissionerTerm]:
             seasons = to_year - from_year + 1
         else:
             from ff_pipeline.repository.models import Season
+
             latest = session.execute(
                 select(Season.year)
                 .where(Season.league_id == league.league_id)

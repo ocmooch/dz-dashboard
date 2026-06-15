@@ -277,12 +277,20 @@ def standings_insights(
             }
         )
     teams.sort(key=lambda r: r["luck_delta"], reverse=True)
+    # The single most-robbed (lowest luck_delta) and most-blessed (highest) team
+    # of the season — the voiced headline picks. Chosen server-side so the
+    # frontend stays free of metric math (hard rule). Ties break to the lower
+    # team_id for a stable, reproducible pick.
+    most_blessed = max(teams, key=lambda t: (t["luck_delta"], -t["team_id"])) if teams else None
+    most_robbed = min(teams, key=lambda t: (t["luck_delta"], t["team_id"])) if teams else None
     return {
         "season_id": season_id,
         "season_year": standings["season_year"],
         "through_week": standings["through_week"],
         "available": bool(teams),
         "reason": None if teams else "no_completed_matchups",
+        "most_robbed": most_robbed,
+        "most_blessed": most_blessed,
         "teams": teams,
     }
 

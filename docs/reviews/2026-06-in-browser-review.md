@@ -437,7 +437,7 @@ response excerpt, not a paragraph.
   **2012 wk3–16 and 2013 wk0–16** — note the suspicious **week 0** entry (likely a preseason/import
   artifact worth auditing in the same pass).
 - Suspected location: Phase-1 roster→player matching (`ff_pipeline`); precedent for triage→ship:
-  `docs/archive/players-audit-dashboard.md` + `docs/handoffs/players-audit-danger-zone.md`.
+  `docs/archive/COMPLETED_WORK.md` §4 + `docs/handoffs/players-audit-danger-zone.md`.
 - Note: per CLAUDE.md, Phase-1 changes are restricted to additive read-only helpers; if the fix
   must mutate `team_rosters` matching it belongs in the **pipeline repo**, not the dashboard —
   scope that boundary explicitly in the pass's PLAN session.
@@ -822,7 +822,7 @@ dz-dashboard now renders the exact transaction log while keeping roster diffs as
 
 ## Proposed fix passes
 
-Precedent for triage→ship-in-passes: `docs/archive/players-audit-dashboard.md` +
+Precedent for triage→ship-in-passes: `docs/archive/COMPLETED_WORK.md` §4 +
 `docs/handoffs/players-audit-danger-zone.md`.
 
 **On batch count.** The ideal is 2–4 batches; this review covered the whole app and surfaced 48
@@ -837,13 +837,13 @@ first (data/analytics foundations → analytics → views).
 | Pass | Findings |
 |------|----------|
 | **P1 — Analytics correctness, scoping & enrichment** (incl. season-structure model) | F-32, F-22, F-31, F-10, F-12, F-23, F-17, F-13 — ✅ resolved by **PR #30** (made_playoffs caveat → F-49/UP) |
-| **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31**; post-regen redo verified in `docs/archive/fix-P2-post-regen-redo.md` because F-51 changed the coverage premise |
+| **P2 — Data honesty & affordance precision** | F-16, F-35, F-26, F-33, F-48, F-43 — ✅ resolved by **PR #31** + post-regen redo **PR #34** (F-51 changed the coverage premise; see `docs/archive/COMPLETED_WORK.md` §2) |
 | **P3 — Search (scope, teams, hardening)** | F-44, F-45, F-47 — ✅ resolved by **PR #32** (no contract change; real-DB click-through unblocked by the F-50 regen) |
 | **P4 — Transactions (dashboard roster-diff tier)** | F-37 tier 1 — ✅ resolved by **PR #35** |
 | **P5 — Frontend: navigation & presentation fixes** | F-34, F-36, F-05, F-24, F-07, F-15, F-46, F-14, F-11, F-40, F-30, F-04, F-28, F-02, F-42 — ✅ resolved by **PR #38** |
 | **P6 — Frontend: composition, seasonality & insight enhancements** | F-01, F-29, F-08, F-03, F-09, F-18, F-38, F-21, F-41 — ✅ resolved by **PR #40** (merged to `dev`; full gate green; real-DB endpoint + built-SPA click-through verified 2026-06-07) |
 | **UP — Upstream / Phase-1 program & research** (not dashboard PRs) | F-06, F-25 residual, F-27 sanity-check (data half ✅ landed → F-51), F-37 tier 2 ◐ (dated typed transactions exist and dz-dashboard consumes the exact log; FAAB bid rows still absent in spot check), F-49, ~~F-50~~ ✅ regen, ~~F-52~~ ✅ regen (real DB now `completed` for 2010–2025, `in_progress` only 2026; verified P6 VERIFY 2026-06-07), ~~F-53~~ ✅ regen |
-| **Re-verify (post-regen) — verified** | **F-51** (pre-2016 reconstruction landed → redo P2 honesty verification for F-16/F-26/F-33/F-35 + P1 F-22 scored-window); plan: `docs/archive/fix-P2-post-regen-redo.md` |
+| **Re-verify (post-regen) — verified** | **F-51** (pre-2016 reconstruction landed → redo P2 honesty verification for F-16/F-26/F-33/F-35 + P1 F-22 scored-window); resolved in **PR #34** (`docs/archive/COMPLETED_WORK.md` §2/§5) |
 
 ---
 

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ff_dashboard.analytics.bracket import season_bracket
+from ff_pipeline.repository.models import Season
+from sqlalchemy import select
+
+from ff_dashboard.analytics.bracket import (
+    _connected_components,
+    _order_components,
+    season_bracket,
+)
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
 from ff_dashboard.analytics.owners import list_owners_career, owner_career
@@ -15,7 +22,7 @@ from ff_dashboard.analytics.players import (
     player_scoring,
 )
 from ff_dashboard.analytics.records import championships, records_book
-from ff_dashboard.analytics.standings import compute_standings
+from ff_dashboard.analytics.standings import compute_standings, standings_insights
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
@@ -66,6 +73,51 @@ def test_standings_through_week_one(session: Session) -> None:
     assert (mav["wins"], mav["points_for"]) == (1, 150.0)  # blowout week only
 
 
+def test_standings_insights_robbed_and_blessed_picks(session: Session) -> None:
+    # 2016: Goose is the most-robbed team (won 1, all-play expected ~1.33;
+    # luck -0.33) and Slider the most-blessed (won 1, expected ~0.67; luck
+    # +0.33). The picks are the voiced headline for the "Robbed & Blessed" card.
+    data = standings_insights(session, KNOWN["season_id"][2016])
+    assert data is not None
+    assert data["available"] is True
+    robbed, blessed = data["most_robbed"], data["most_blessed"]
+    assert robbed is not None and blessed is not None
+    assert robbed["owner_name"] == "Goose"
+    assert blessed["owner_name"] == "Slider"
+    # They are genuinely the extremes of the field, not an arbitrary row.
+    assert robbed["luck_delta"] == min(t["luck_delta"] for t in data["teams"])
+    assert blessed["luck_delta"] == max(t["luck_delta"] for t in data["teams"])
+    # Each pick carries owner_id so the card can deep-link to the profile.
+    assert robbed["owner_id"] == KNOWN["owner_id"]["goose"]
+
+
+def test_standings_insights_ties_break_to_lower_team_id(session: Session) -> None:
+    # Deterministic tie-break: among equal luck_delta values the lower team_id
+    # wins both picks, so the headline is reproducible run to run.
+    data = standings_insights(session, KNOWN["season_id"][2016])
+    assert data is not None
+    blessed_delta = data["most_blessed"]["luck_delta"]
+    contenders = [t for t in data["teams"] if t["luck_delta"] == blessed_delta]
+    assert data["most_blessed"]["team_id"] == min(t["team_id"] for t in contenders)
+    robbed_delta = data["most_robbed"]["luck_delta"]
+    contenders = [t for t in data["teams"] if t["luck_delta"] == robbed_delta]
+    assert data["most_robbed"]["team_id"] == min(t["team_id"] for t in contenders)
+
+
+def test_standings_insights_unplayed_season_is_a_gap_not_zero(session: Session) -> None:
+    # The seeded-but-unplayed 2018 season has teams but no completed matchups:
+    # schedule luck is unavailable, and the picks are absent rather than a 0.
+    upcoming_id = session.execute(
+        select(Season.season_id).where(Season.status == "in_progress")
+    ).scalar_one()
+    data = standings_insights(session, upcoming_id)
+    assert data is not None
+    assert data["available"] is False
+    assert data["teams"] == []
+    assert data.get("most_robbed") is None
+    assert data.get("most_blessed") is None
+
+
 def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session) -> None:
     data = season_bracket(session, KNOWN["season_id"][2015])
     assert data is not None
@@ -89,6 +141,23 @@ def test_bracket_exposes_post_regular_season_games_with_caveat(session: Session)
     assert cb is not None
     consol_game = cb["rounds"][0]["games"][0]
     assert consol_game["team_b"]["owner_name"] == "Iceman"
+
+
+def test_bracket_split_by_connectivity_not_source_flag() -> None:
+    # Two placement halves that never play each other across the post-season; the
+    # championship/consolation split must come from connectivity, not is_consolation.
+    def g(a: int, b: int) -> dict[str, object]:
+        return {"team_a": {"team_id": a}, "team_b": {"team_id": b}}
+
+    games = [g(1, 4), g(2, 3), g(7, 10), g(8, 9), g(1, 2), g(7, 8)]
+    comps = _connected_components(games)
+    assert sorted(sorted(c) for c in comps) == [[1, 2, 3, 4], [7, 8, 9, 10]]
+
+    # Championship half (lower final ranks) leads after ordering.
+    ranks: dict[int, int | None] = {1: 1, 2: 2, 3: 3, 4: 4, 7: 7, 8: 8, 9: 9, 10: 10}
+    ordered = _order_components(comps, ranks)
+    assert min(ordered[0]) == 1  # the {1,2,3,4} half is the championship bracket
+    assert 7 in ordered[1]  # the {7..10} half is consolation
 
 
 def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:

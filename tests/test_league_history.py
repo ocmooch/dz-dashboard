@@ -158,6 +158,53 @@ def test_commissioner_history(session: Session) -> None:
     assert commissioner_for_year(terms, 2014) is None
 
 
+def _setting_events(details: list[dict]) -> list[dict]:  # type: ignore[type-arg]
+    return [d for d in details if d.get("source") == "nfl_com_transaction_log"]
+
+
+def test_timeline_classifies_2016_setting_changes(session: Session) -> None:
+    data = league_timeline(session)
+    row = next(r for r in data["seasons"] if r["season_year"] == 2016)
+    events = _setting_events(row["changes"]["details"])
+    by_label = {e["human_label"]: e for e in events}
+
+    # Division cluster -> one T1 realignment event with all 3 rows as members.
+    div = by_label["Division realignment"]
+    assert div["tier"] == "T1"
+    assert len(div["members"]) == 3
+    assert "3 teams" in div["summary"]
+
+    # Individual PASS (entry fee): T2 with before/after preserved.
+    fee = by_label["Entry fee"]
+    assert fee["tier"] == "T2"
+    assert (fee["before"], fee["after"]) == ("100.00", "125.00")
+
+    # In-season marker on the post-kickoff tiebreaker change.
+    assert by_label["Tiebreaker"]["phase"] == "in_season"
+
+    # MISSING-context affordance on the playoff-field headline.
+    playoff = by_label["Playoff field"]
+    assert playoff["missing_context"] is True
+    assert playoff["phase"] == "in_season"
+
+    # Routine bucket collapses the T3 rows, expandable to every underlying entry;
+    # the headline-only scoring edit (no state diff this season) is hedged, not dropped.
+    bucket = by_label["Routine changes"]
+    assert bucket["tier"] == "T3"
+    member_types = {m["canonical_type"] for m in bucket["members"]}
+    assert {"draft_time", "scoring_settings"} <= member_types
+    scoring_member = next(m for m in bucket["members"] if m["canonical_type"] == "scoring_settings")
+    assert scoring_member["missing_context"] is True
+
+
+def test_timeline_setting_changes_drop_nothing(session: Session) -> None:
+    data = league_timeline(session)
+    row = next(r for r in data["seasons"] if r["season_year"] == 2016)
+    events = _setting_events(row["changes"]["details"])
+    leaves = sum(len(e["members"]) if e["members"] else 1 for e in events)
+    assert leaves == 8  # every seeded 2016 setting_change row is represented
+
+
 def test_commissioner_in_league_overview_endpoint(client: TestClient) -> None:
     overview = _envelope(client.get("/v1/league/overview"))
     commissioners = overview["commissioners"]

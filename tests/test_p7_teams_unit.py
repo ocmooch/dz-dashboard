@@ -87,6 +87,30 @@ def test_roster_missing_dst_points_are_null_not_zero(session: Session) -> None:
     assert dst["league_points"] is None  # never a fake 0
 
 
+def test_roster_uses_box_score_zero_context(session: Session) -> None:
+    goose_2017 = KNOWN["team_id"][(2017, "goose")]
+    data = team_roster(session, goose_2017, week=1)
+    assert data is not None
+    rows = {p["player_name"]: p for p in data["players"]}
+
+    dnp = rows["No Stat Bench Guy"]
+    assert dnp["league_points"] == 0.0
+    assert dnp["zero_reason"] == "did_not_play"
+
+    bye = rows["Bye Week Guy"]
+    assert bye["league_points"] == 0.0
+    assert bye["zero_reason"] == "bye"
+
+    mismatch = rows["Mismatch Guy"]
+    assert mismatch["league_points"] == 0.0
+    assert mismatch["zero_reason"] == "unexpected"
+    assert mismatch["zero_detail"] is not None
+
+    dst = rows["Goose D/ST"]
+    assert dst["league_points"] is None
+    assert dst["zero_reason"] is None
+
+
 def test_roster_unknown_team_is_none(session: Session) -> None:
     assert team_roster(session, 999999, week=1) is None
 

@@ -220,6 +220,8 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",
     no_meetings: "These managers never met",
+    insufficient_rivalry_history: "Not enough shared games yet to rank a rivalry",
+    no_playoff_meetings: "No postseason meetings on record",
     team_defense_not_scored: "Team defense not scored (known gap)",
     draft_not_captured: "Draft not captured for this season",
     player_unscored: "Player not scored — value unavailable",
@@ -229,7 +231,7 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
       "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
     bracket_unavailable: "Bracket data isn't available for this season",
     consolation_indistinguishable:
-      "Consolation bracket can't be separated from the playoff bracket for this season",
+      "No consolation bracket was recorded for this season",
     conference_membership_unavailable:
       "Conference membership data for historical seasons is not yet available",
     roster_history_unavailable:

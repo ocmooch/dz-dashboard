@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
+import { InjuryBadge } from "@/components/InjuryBadge";
+import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import {
   Badge,
   Card,
@@ -148,13 +150,27 @@ function RosterCard({ teamId }: { teamId: number }) {
                     <Link to={`/players/${p.player_id}`} className="hover:text-accent">
                       <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
                     </Link>
+                    {p.injury_status != null && (
+                      <InjuryBadge
+                        status={p.injury_status}
+                        bodyPart={p.injury_body_part}
+                        secondary={p.injury_secondary}
+                        practiceStatus={p.injury_practice_status}
+                      />
+                    )}
                   </td>
                   <td className="text-muted">{p.position ?? "—"}</td>
                   <td className="dz-num">
                     {p.league_points == null ? (
                       <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
                     ) : (
-                      num(p.league_points)
+                      <PlayerScoreCell
+                        points={p.league_points}
+                        zeroReason={p.zero_reason}
+                        zeroDetail={p.zero_detail}
+                        injuryBodyPart={p.injury_body_part}
+                        muted={!p.is_starter}
+                      />
                     )}
                   </td>
                 </tr>

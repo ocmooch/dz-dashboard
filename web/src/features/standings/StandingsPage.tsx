@@ -11,6 +11,7 @@ import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
 type ConferenceSection = components["schemas"]["ConferenceSection"];
+type StandingsInsightTeam = components["schemas"]["StandingsInsightTeam"];
 
 async function fetchConferences(seasonId: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/conferences", {
@@ -59,6 +60,26 @@ function PlacementCell({ finalRank }: { finalRank: number | null | undefined }) 
   if (finalRank == null) return <span className="text-faint">—</span>;
   if (finalRank === 1) return <Trophy label="Champion" />;
   return <span className="num text-accent">{ordinal(finalRank)}</span>;
+}
+
+function LuckCallout({ kind, team }: { kind: "robbed" | "blessed"; team: StandingsInsightTeam }) {
+  const robbed = kind === "robbed";
+  const gap = Math.abs(team.luck_delta);
+  const wins = gap === 1 ? "win" : "wins";
+  return (
+    <Link to={`/managers/${team.owner_id}`} className="block bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface-3)]">
+      <div className={`dz-eyebrow mb-1 ${robbed ? "text-loss" : "text-win"}`}>{robbed ? "Robbed" : "Blessed"}</div>
+      <div className="font-display text-[var(--fs-h3)] font-bold tracking-wide">{team.team_name ?? team.owner_name}</div>
+      <p className="mt-1 text-[var(--fs-sm)] text-muted">
+        Won {num(team.actual_wins, 2)}, {robbed ? "should have won" : "on just"} {num(team.expected_wins, 2)} —{" "}
+        {robbed ? (
+          <>the schedule cost them <span className="num text-loss">{num(gap, 2)}</span> {wins}.</>
+        ) : (
+          <>the schedule gifted them <span className="num text-win">{num(gap, 2)}</span> {wins}.</>
+        )}
+      </p>
+    </Link>
+  );
 }
 
 function ConferenceTable({ conf }: { conf: ConferenceSection }) {
@@ -196,7 +217,7 @@ export function StandingsPage() {
       </Card>
 
       <Card>
-        <CardHeader eyebrow="all-play vs actual wins" title="Schedule Luck" />
+        <CardHeader eyebrow="all-play expected wins vs actual" title="Robbed &amp; Blessed" />
         {insights.isLoading && <Skeleton className="m-5 h-28 w-[calc(100%-2.5rem)]" />}
         {insights.data && !insights.data.available && (
           <div className="p-5">
@@ -204,35 +225,45 @@ export function StandingsPage() {
           </div>
         )}
         {insights.data?.available && (
-          <div className="overflow-x-auto">
-            <table className="dz-table">
-              <thead>
-                <tr>
-                  <th>Team</th>
-                  <th className="dz-num">Actual W</th>
-                  <th className="dz-num">Expected W</th>
-                  <th className="dz-num">Luck</th>
-                  <th className="dz-num">PF rank</th>
-                </tr>
-              </thead>
-              <tbody>
-                {insights.data.teams.map((r) => (
-                  <tr key={r.team_id}>
-                    <td>
-                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
-                    </td>
-                    <td className="dz-num">{num(r.actual_wins, 2)}</td>
-                    <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>
-                    <td className={`dz-num ${r.luck_delta >= 0 ? "text-win" : "text-loss"}`}>
-                      {r.luck_delta > 0 ? "+" : ""}
-                      {num(r.luck_delta, 2)}
-                    </td>
-                    <td className="dz-num text-muted">#{r.points_for_rank}</td>
+          <>
+            {(insights.data.most_robbed || insights.data.most_blessed) && (
+              <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-2">
+                {insights.data.most_robbed && <LuckCallout kind="robbed" team={insights.data.most_robbed} />}
+                {insights.data.most_blessed && <LuckCallout kind="blessed" team={insights.data.most_blessed} />}
+              </div>
+            )}
+            <div className="overflow-x-auto">
+              <table className="dz-table">
+                <thead>
+                  <tr>
+                    <th>Manager</th>
+                    <th className="dz-num">Actual W</th>
+                    <th className="dz-num">Expected W</th>
+                    <th className="dz-num">Luck</th>
+                    <th className="dz-num">PF rank</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {insights.data.teams.map((r) => (
+                    <tr key={r.team_id}>
+                      <td>
+                        <Link to={`/managers/${r.owner_id}`} className="hover:text-accent">
+                          <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
+                        </Link>
+                      </td>
+                      <td className="dz-num">{num(r.actual_wins, 2)}</td>
+                      <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>
+                      <td className={`dz-num ${r.luck_delta >= 0 ? "text-win" : "text-loss"}`}>
+                        {r.luck_delta > 0 ? "+" : ""}
+                        {num(r.luck_delta, 2)}
+                      </td>
+                      <td className="dz-num text-muted">#{r.points_for_rank}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

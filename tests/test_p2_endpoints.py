@@ -62,6 +62,9 @@ def test_standings_insights_endpoint(client: TestClient) -> None:
     assert by_owner["Goose"]["all_play_win_pct"] == 0.6667
     assert by_owner["Goose"]["luck_delta"] == -0.33
     assert by_owner["Slider"]["luck_delta"] == 0.33
+    # The voiced "Robbed & Blessed" picks ride the same envelope.
+    assert data["most_robbed"]["owner_name"] == "Goose"
+    assert data["most_blessed"]["owner_name"] == "Slider"
 
 
 def test_bracket_endpoint(client: TestClient) -> None:
@@ -120,6 +123,21 @@ def test_owner_seasons_and_trajectory(client: TestClient) -> None:
     assert len(seasons["seasons"]) == 3
     traj = _envelope(client.get(f"/v1/owners/{oid}/trajectory"))
     assert len(traj["points"]) == 3
+
+
+def test_owner_story_endpoint(client: TestClient) -> None:
+    oid = KNOWN["owner_id"]["mav"]
+    data = _envelope(client.get(f"/v1/owners/{oid}/story"))
+    assert data["available"] is True
+    assert data["signature_win"]["margin"] == 70.0
+    assert data["favorite_victim"]["opponent"]["owner_id"] == KNOWN["owner_id"]["ice"]
+    # Gated-out superlatives are absent (null), never a fabricated value.
+    assert data["nemesis"] is None
+    assert data["unluckiest_season"] is None
+
+
+def test_owner_story_not_found(client: TestClient) -> None:
+    assert client.get("/v1/owners/99999/story").status_code == 404
 
 
 def test_head_to_head_endpoint(client: TestClient) -> None:

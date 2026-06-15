@@ -203,6 +203,8 @@ class StandingsInsights(BaseModel):
     through_week: int
     available: bool
     reason: str | None = None
+    most_robbed: StandingsInsightTeam | None = None
+    most_blessed: StandingsInsightTeam | None = None
     teams: list[StandingsInsightTeam]
 
 
@@ -328,6 +330,14 @@ class LeagueChangeDetail(BaseModel):
     participants_joined: list[str] | None = None
     participants_left: list[str] | None = None
     description_gap: bool = False
+    # Tiered-classifier fields (defaulted so state-derived details stay valid).
+    tier: str = "T3"  # "T1" | "T2" | "T3"
+    human_label: str | None = None
+    phase: str | None = None  # "in_season" | "off_season"
+    event_group_key: str | None = None
+    missing_context: bool = False
+    members: list["LeagueChangeDetail"] = []
+    canonical_type: str | None = None
 
 
 class SeasonChangeFlags(BaseModel):
@@ -525,6 +535,29 @@ class OwnerTrajectory(BaseModel):
     points: list[TrajectoryPoint]
 
 
+class OwnerStory(BaseModel):
+    """The "Your Story" lead band on a manager profile.
+
+    Each superlative is its own rich, deep-linkable object (matchup_id, opponent
+    ref, scores) or ``None`` when it does not clear its min-sample bar — never a
+    forced 0 or fake value. The frontend reads each field and renders the line only
+    when present, so the model stays extra-permissive rather than enumerating a
+    class per superlative.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    owner: OwnerRef
+    available: bool
+    signature_win: dict[str, Any] | None = None
+    heartbreak: dict[str, Any] | None = None
+    high_water_mark: dict[str, Any] | None = None
+    nemesis: dict[str, Any] | None = None
+    favorite_victim: dict[str, Any] | None = None
+    luckiest_season: dict[str, Any] | None = None
+    unluckiest_season: dict[str, Any] | None = None
+
+
 # ---------------------------------------------------------------------------
 # Power ranking
 # ---------------------------------------------------------------------------
@@ -629,6 +662,24 @@ class RivalryOwner(OwnerRef):
 class RivalryMatrix(BaseModel):
     owners: list[RivalryOwner]
     cells: list[RivalryCell]
+
+
+class RivalryInsights(BaseModel):
+    """Bundle behind the insight bands on ``/rivalries``.
+
+    Each band is its own availability-tagged object carrying rich, deep-linkable
+    context (matchup_id, owner refs, heat components, …), so the model stays
+    extra-permissive rather than enumerating a class per band. The frontend reads
+    each band's ``available`` first, then its rows.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    records: dict[str, Any]
+    streaks: dict[str, Any]
+    intensity: dict[str, Any]
+    nemeses: dict[str, Any]
+    playoffs: dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -908,6 +959,8 @@ class BoxPlayer(BaseModel):
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
+    injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
+    injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
 
 
 class BoxTeam(BaseModel):
@@ -968,8 +1021,14 @@ class TeamRosterPlayer(BaseModel):
     roster_slot: str | None = None
     is_starter: bool
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
+    zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
+    zero_detail: str | None = None
     acquisition_type: str | None = None
     acquisition_week: int | None = None
+    injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
+    injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
+    injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
+    injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
 
 
 class TeamRosterOut(BaseModel):

@@ -40,6 +40,10 @@ const ROSTER = {
   players: [
     { player_id: 1, player_name: "Ice QB One", position: "QB", nfl_team: "BAL", roster_slot: "QB", is_starter: true, league_points: 24, acquisition_type: "draft", acquisition_week: 1 },
     { player_id: 2, player_name: "Ice D/ST", position: "DEF", nfl_team: "PIT", roster_slot: "DEF", is_starter: true, league_points: null, acquisition_type: "draft", acquisition_week: 1 },
+    { player_id: 3, player_name: "Bye Guy", position: "WR", nfl_team: "DET", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "bye", zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
+    { player_id: 4, player_name: "Scratch Guy", position: "WR", nfl_team: "SEA", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "did_not_play", zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
+    { player_id: 5, player_name: "Mismatch Guy", position: "WR", nfl_team: "KC", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "unexpected", zero_detail: "nflverse credits 8 pts but the league scored 0.", acquisition_type: "draft", acquisition_week: 1 },
+    { player_id: 6, player_name: "Goose Egg", position: "WR", nfl_team: "CHI", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: null, zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
   ],
 };
 
@@ -175,6 +179,19 @@ describe("TeamPage", () => {
     const gap = screen.getByText(/No scored data/i);
     expect(gap).toBeInTheDocument();
     expect(gap.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("explains roster zeroes with the same labels as box scores", async () => {
+    renderPage();
+    await screen.findByText("Ice QB One");
+
+    const pointsCell = (name: string) => screen.getByText(name).closest("tr")!.querySelector(".dz-num:last-child")!;
+    expect(pointsCell("Bye Guy")).toHaveTextContent("Bye");
+    expect(pointsCell("Scratch Guy")).toHaveTextContent("Out");
+    expect(pointsCell("Mismatch Guy")).toHaveTextContent("0.00!");
+    expect(pointsCell("Goose Egg")).toHaveTextContent("0.00");
+    expect(pointsCell("Goose Egg")).not.toHaveTextContent(/Bye|Out|!/);
+    expect(pointsCell("Ice D/ST")).toHaveTextContent(/No scored data/i);
   });
 
   it("renders the schedule with a box-score deep link", async () => {

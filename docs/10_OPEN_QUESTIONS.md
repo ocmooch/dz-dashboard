@@ -1,6 +1,6 @@
 # 10 — Open Questions & Default Decisions
 
-Originally the pre-build sign-off sheet. Phase 2 is now built (P0–P11), so this doc has been
+Originally the pre-build sign-off sheet. Phase 2 is now built (P0–P12), so this doc has been
 re-cut into **what was decided (resolved as built)**, **what is still genuinely open
 (deferred)**, **new issues the build surfaced**, and **locked-in** choices. Each item still
 links to the doc that depends on it.
@@ -101,13 +101,15 @@ table, rivalry snapshot) were composed on `feature/managers-page` against the al
 tested `/v1/owners/*` endpoints. Win % is derived client-side; record-only seasons render a
 `DataGap` for points-for rather than a fake 0. Nav item marked ready; feature tests added.
 
-### N2. Playoffs / Bracket view *(resolved locally — caveated build)*
+### N2. Playoffs / Bracket view — SHIPPED & MERGED (PRs #55, #60)
 
-`F2.3` is now implemented as a caveated `/bracket` route backed by
-`GET /v1/seasons/{id}/bracket`. The endpoint exposes only proven post-regular-season matchup
-rows grouped by week, with `available:false` / `bracket_unavailable` when no rows exist.
-The frontend renders the source caveat and does not infer a bracket tree, advancement, or
-playoff berth. F-49 remains upstream for source-derived consolation/playoff metadata.
+`F2.3` began as a caveated `/bracket` route backed by `GET /v1/seasons/{id}/bracket` (proven
+post-regular-season rows only, `available:false` when none exist). It has since shipped as a
+**true bracket visualization** (PR #55) and then **split into separate championship and
+consolation brackets** (PR #60), all merged to `dev` and promoted to `main`. The view still does
+not invent advancement it cannot prove. **F-49 remains upstream** for source-derived
+consolation/playoff-berth metadata — until it lands, `made_playoffs` stays `None` where a bracket
+can't be inferred honestly.
 
 ### N3. `/v1/home` composite was dropped in favor of client-side composition *(resolved — recorded)*
 
@@ -124,17 +126,34 @@ closed for the supported CI platform.
 
 ### N5. Upstream data work is partially retired, not fully closed
 
-The dashboard fix-passes are merged, but several UP items remain outside this repo:
+The dashboard fix-passes are merged, and **F-54 (season-correct player NFL team) is now closed**
+(persisted upstream + consumed, PR #51). Several UP items remain outside this repo:
 ownership-succession history (F-06), residual player-identity cleanup / roster-stat sanity checks
-(F-25/F-27), and playoff/consolation metadata (F-49). The exact transaction log appears partly
-landed upstream (dated add/drop/waiver/trade/draft/lineup rows exist in `danger-zone`) and is ready
-for dashboard consumption. Roster diffs remain as a fallback; FAAB/bid-bearing rows were not present
-in the current real DB spot check.
+(F-25/F-27), and playoff/consolation metadata (F-49). The exact transaction log is partly landed
+upstream (dated add/drop/waiver/trade/draft/lineup rows exist in `danger-zone`); the dashboard
+consumes the derived roster-diff tier but not yet the exact dates/types, and no FAAB/bid rows were
+present in the last real-DB spot check.
 
 New-session note: these are primarily `../danger-zone` tasks. For F-25, start from
 `docs/handoffs/players-audit-danger-zone.md` but use the status-update counts, not the original
 counts. For F-27, sanity-check reconstructed 2010-2015 scores against source NFL.com/team totals
 before calling them final. For F-49, prefer fixing source flags over adding dashboard inference.
+
+### N6. Conferences feature is silently dead at runtime (gate is green) — OPEN
+
+PRs #63/#64 cleared the gate-red part of this debt: the stale `tests/test_p5_matchups_unit.py`
+assertions (a removed `lineup_score_gap`/`score_gap_delta` box field) were removed, the
+`conferences.py` mypy/ruff drift was silenced with `type: ignore`, the `league_history.py`
+ambiguous-unicode error was fixed, and e2e/format debt was cleared. **The backend gate is green.**
+
+**But the silencing only fixed the types — the feature is still dead.** `analytics/conferences.py`
+imports `SeasonConference` and reads `Team.conference_id`, neither of which the Phase-1 ORM maps, so
+its `try/except` guard sets `_CONFERENCE_MODELS_AVAILABLE = False` at runtime. Every
+`GET /v1/seasons/{id}/conferences` returns `available=false, reason="no_conferences_this_season"`,
+and `conference_map()` (feeding `analytics/bracket.py`) returns `{}` — **the entire 2010–2019
+conference era is invisible.** The data is reachable: `standings.py` already reads the same tables
+via raw SQL (the approach PR #57 used). **Fix:** convert `conferences.py`'s two query sites to the
+same raw SQL and add a known-answer conferences test. Full handoff: `docs/ACTIVE_WORK.md` §6.1.
 
 ---
 
