@@ -31,8 +31,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   missing data renders `DataGap`. Frontend pure presentation (`RivalryInsights.tsx`). Real-DB spot
   check (2026-06-12): all 5 bands `available:true`. New backend test file (7 tests) + extended page
   test pass; full frontend gate green (153 Vitest + typecheck + gen:api no-drift + build). Plan:
-  `docs/plans/rivalries-insights.md`. **Carries the same pre-existing `dev` baseline breakage** —
-  see Open items below (now escalated).
+  `docs/plans/rivalries-insights.md`.
 
 - **/seasons league-changes tiered classifier — built on `feature/seasons-league-changes`
   (cut from `dev`), awaiting PR.** Replaces the old 6-regex `_SETTING_PATTERNS` (silently dropped
@@ -50,8 +49,23 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   `tests/test_league_changes.py` (classify/phase-oracle/aggregation, no DB) + fixture-backed
   integration in `tests/test_league_history.py` (seeded 2016 `setting_change` rows). Backend
   298 pass + ruff/mypy clean; frontend 153 pass + typecheck. Plan:
-  `docs/plans/seasons-league-changes-IMPL-PLAN.md`. **Carries the same pre-existing `dev` baseline
-  breakage** (see Open items).
+  `docs/plans/seasons-league-changes-IMPL-PLAN.md`.
+
+- **Injury-report enrichment (extends P12) — built on `feature/injury-enrichment` (cut from
+  `dev`), awaiting PR.** P12 surfaced only `report_status` + `report_primary_injury` on the box
+  score; this folds in the two unused upstream fields (`practice_status`, `report_secondary_injury`)
+  and adds the badge to the **week-scoped team roster** as well. New shared normalizer
+  `analytics/injuries.py` (`injury_fields`) decides what counts as a real designation (gates to
+  Out/Doubtful/Questionable/Probable; blank/"Note" → no badge), a real body part (drops nflverse
+  "Not injury related…" notes from **both** primary and secondary), and a short practice code
+  (DNP/Ltd/Full/Out). Consumed by both `matchups.py` (box score) and `teams.py` (`team_roster`
+  joins `injury_reports_for_week`); `BoxPlayer` + `TeamRosterPlayer` schemas gain
+  `injury_secondary`/`injury_practice_status` (client regenerated, no drift). Frontend: shared
+  `web/src/components/InjuryBadge.tsx` renders `Status · Primary[/Secondary] · PracticeCode` inline
+  with a full-sentence tooltip; "Out" practice not repeated behind an "Out" status. Real-DB check
+  (2024 wk1): McCaffrey `Q · Calf/Achilles · Ltd`, Marquise Brown `Out · Shoulder · DNP`, Chase's
+  "resting player" note suppressed. Tests: new `tests/test_injuries.py` (9, no DB) +
+  `InjuryBadge.test.tsx` (5). Full gate green (314 backend / 159 frontend).
 
 **Recently merged (since the 2026-06-08 doc consolidation):**
 
@@ -88,9 +102,9 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 **The forward execution plan is `docs/plans/COMPLETION_ROADMAP.md`** — handoff-ready sessions
 S1–S8 covering everything below. Summary:
 
-- **S1 — green the baseline + repair conferences (dashboard, do first).** Clears the gate AND
-  fixes the silently-dead conferences feature (see Open items). Unblocks a clean S2.
-- **S2 — ship `feature/rivalries-insights` → `dev`** (packaging; depends on S1).
+- **S1 — repair the silently-dead conferences feature (dashboard, do first).** Gate is already
+  green; this is the raw-SQL rewrite that revives the 2010–2019 conference era (see Open items).
+- **S2 — ship `feature/rivalries-insights` → `dev`** (packaging).
 - **UP program S3–S7 (upstream / `../danger-zone`):** F-49 playoff/consolation metadata, F-27
   reconstructed-scoring trust check, F-25 player-identity residuals, F-37 tier 2 transactions/FAAB,
   and F-06 ownership succession (⊘ blocked — needs a source ledger you supply). Detail in
@@ -102,30 +116,25 @@ S1–S8 covering everything below. Summary:
 
 - Rivalries-insights surfaces (open branch): `src/ff_dashboard/analytics/rivalries.py`,
   `src/ff_dashboard/api/routes/rivalries.py`, `web/src/features/rivalries/RivalryInsights.tsx`
-- **Escalated baseline debt:** `src/ff_dashboard/analytics/conferences.py` (mypy/ruff, Phase-1
-  `Team.conference_id` drift; also imported by `analytics/bracket.py` and routed at
-  `GET /v1/seasons/{id}/conferences`), `tests/test_p5_matchups_unit.py` (stale `lineup_score_gap` /
-  `gap_delta` assertions vs. current box output)
+- Injury-enrichment surfaces (open branch): `src/ff_dashboard/analytics/injuries.py`,
+  `web/src/components/InjuryBadge.tsx` (used by `BoxScorePage.tsx` + `teams/TeamPage.tsx`)
+- **Silently-dead conferences feature (S1):** `src/ff_dashboard/analytics/conferences.py`
+  (`_CONFERENCE_MODELS_AVAILABLE` is `False` at runtime; also imported by `analytics/bracket.py`
+  and routed at `GET /v1/seasons/{id}/conferences`) — gate is green, but the feature still needs
+  the raw-SQL rewrite. See Open items.
 
 ## Open items / deviations
 
-- **⚠ ESCALATED — backend gate is red on the `dev` baseline (broad, long-lasting).** Two issues
-  carried across multiple PRs as "pre-existing, unrelated":
-  1. **Conferences module written against non-existent ORM models (data-service level).**
-     `analytics/conferences.py` imports `SeasonConference` and reads `Team.conference_id` — **neither
-     exists in the Phase-1 ORM** (verified 2026-06-14: the import raises `ImportError`,
-     `hasattr(Team,"conference_id")` is `False`). The import-guard then sets
-     `_CONFERENCE_MODELS_AVAILABLE = False`, so **the conferences feature is silently dead for the
-     entire 2010–2019 conference era** — every season wrongly returns `no_conferences_this_season`,
-     and `conference_map()` (used by `analytics/bracket.py`) returns `{}`. Surfaces as **3 mypy +
-     1 ruff** errors. The data is fine: `standings.py` already reads the same `teams` /
-     `season_conferences` tables via raw SQL. **Fix:** rewrite `conferences.py` to use the same raw
-     SQL — this clears the gate *and* repairs the dead feature. Full handoff: S1 in
-     `docs/plans/COMPLETION_ROADMAP.md`.
-  2. **Stale matchups tests.** `test_p5_matchups_unit.py` still asserts a `lineup_score_gap` /
-     `gap_delta` box-score field that **no longer exists in source** (`has_long_td_score_gap` was
-     removed) → **2 pytest failures**. Update or delete the assertions to match the shipped box
-     output. (1 more ruff error sits in `league_history.py`: ambiguous-unicode.)
+- **Conferences feature is silently dead (functional, not a gate failure).** The gate-red debt
+  this section used to escalate was cleared by `51344a1` (stale matchups-test assertions removed;
+  `conferences.py` mypy/ruff silenced via `type: ignore`). But the silencing only fixed the types —
+  at runtime `analytics/conferences.py` still imports non-existent Phase-1 ORM models
+  (`SeasonConference`, `Team.conference_id`), so `_CONFERENCE_MODELS_AVAILABLE` is `False` (verified
+  2026-06-15). The feature is **silently dead for the entire 2010–2019 conference era** — every
+  season wrongly returns `no_conferences_this_season`, and `conference_map()` (used by
+  `analytics/bracket.py`) returns `{}`. The data is fine: `standings.py` already reads the same
+  `teams` / `season_conferences` tables via raw SQL. **Fix:** rewrite `conferences.py` to use the
+  same raw SQL. Full handoff: S1 in `docs/plans/COMPLETION_ROADMAP.md`.
 - Residual non-blocker from F-53 verification: 1–2 phantom **week-1-only** teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   roster-churn corruption; belongs with owner/team-identity research (F-06).
