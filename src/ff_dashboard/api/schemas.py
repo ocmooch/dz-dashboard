@@ -203,6 +203,8 @@ class StandingsInsights(BaseModel):
     through_week: int
     available: bool
     reason: str | None = None
+    most_robbed: StandingsInsightTeam | None = None
+    most_blessed: StandingsInsightTeam | None = None
     teams: list[StandingsInsightTeam]
 
 

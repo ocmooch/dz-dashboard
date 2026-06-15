@@ -2511,6 +2511,8 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            most_robbed?: components["schemas"]["StandingsInsightTeam"] | null;
+            most_blessed?: components["schemas"]["StandingsInsightTeam"] | null;
             /** Teams */
             teams: components["schemas"]["StandingsInsightTeam"][];
         };

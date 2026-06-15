@@ -62,6 +62,9 @@ def test_standings_insights_endpoint(client: TestClient) -> None:
     assert by_owner["Goose"]["all_play_win_pct"] == 0.6667
     assert by_owner["Goose"]["luck_delta"] == -0.33
     assert by_owner["Slider"]["luck_delta"] == 0.33
+    # The voiced "Robbed & Blessed" picks ride the same envelope.
+    assert data["most_robbed"]["owner_name"] == "Goose"
+    assert data["most_blessed"]["owner_name"] == "Slider"
 
 
 def test_bracket_endpoint(client: TestClient) -> None:

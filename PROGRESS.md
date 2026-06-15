@@ -21,6 +21,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   history lives in `docs/archive/COMPLETED_WORK.md`; the remaining open scope in
   `docs/ACTIVE_WORK.md`.
 
+- **Engagement / "Rivalries strength" spread — building on `feature/engagement-rivalries-strength`
+  (cut from `dev`), awaiting PR.** Spreads the Rivalries lens across the app by tier (plan +
+  noise guardrail in `docs/plans/engagement-rivalries-strength.md`). **Item A shipped (Tier 2):**
+  the Standings "Schedule Luck" card is reframed as **"Robbed & Blessed"** — two voiced callouts
+  (most-robbed = lowest `luck_delta`, most-blessed = highest) lead the existing ranked list, each
+  deep-linking to the manager profile (`/managers/{owner_id}`); rows now link to profiles too.
+  The pick is **server-side** (`standings_insights` returns `most_robbed`/`most_blessed`, ties →
+  lower `team_id`) to keep the frontend math-free; `StandingsInsights` schema + client regenerated
+  (no drift). Per-season scope unchanged; unavailable seasons (e.g. seeded-but-unplayed 2018) stay
+  `DataGap`, never a 0. Tests: extended `test_p2_analytics_unit.py` (picks/tie-break/unplayed-gap)
+  + `test_p2_endpoints.py` + `StandingsPage.test.tsx` (callouts render + link + DataGap). Full gate
+  green (317 backend / 161 frontend). **Item B (Manager-profile "Your Story") not yet built.**
+
 - **Rivalries page insight bands — landed on `feature/rivalries-insights`, awaiting PR to `dev`
   (the only open local branch).** Five league-wide bands below the rivalry matrix fed by one bundle
   endpoint `GET /v1/rivalries/insights` (`api/routes/rivalries.py` → `analytics/rivalries.py`, built
