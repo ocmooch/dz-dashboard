@@ -39,7 +39,12 @@ from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import injury_fields
-from ff_dashboard.analytics.matchups import _authoritative_points, roster_sort_key
+from ff_dashboard.analytics.matchups import (
+    DEF_SLOTS,
+    _authoritative_points,
+    classify_zero,
+    roster_sort_key,
+)
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -122,6 +127,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
             pairs[0][0].week if pairs else (weeks_available[-1] if weeks_available else 0)
         )
 
+    is_scored = season.year in set(seasons_scored(session))
     player_ids = [r.player_id for r, _ in pairs]
     # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
     # the current snapshot on players.nfl_team when no per-week team is stored —
@@ -148,8 +154,21 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         # nflverse reconstruction only when the field is absent. Keeps the team
         # page in agreement with the box score (which does the same).
         points = _authoritative_points(roster_row)
+        nflverse_points = scored.get(player.player_id)
         if points is None and player.player_id in scored:
-            points = scored[player.player_id]
+            points = nflverse_points
+        if is_scored and points is None and roster_row.roster_slot not in DEF_SLOTS:
+            # Same weekly-player rule as the box score: in a scored season, a
+            # non-DST roster row with neither an NFL.com score nor an nflverse
+            # stat line is an absence/DNP, not a scoring-data gap.
+            points = 0.0
+        league_points = round(points, 2) if points is not None else None
+        opponent = (roster_row.extra_data or {}).get("opponent")
+        zero_reason, zero_detail = classify_zero(
+            league_points,
+            opponent if isinstance(opponent, str) else None,
+            nflverse_points,
+        )
         players.append(
             {
                 "player_id": player.player_id,
@@ -158,7 +177,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
                 "roster_slot": roster_row.roster_slot,
                 "is_starter": bool(roster_row.is_starter),
-                "league_points": round(points, 2) if points is not None else None,
+                "league_points": league_points,
+                "zero_reason": zero_reason,
+                "zero_detail": zero_detail,
                 "acquisition_type": roster_row.acquisition_type,
                 "acquisition_week": roster_row.acquisition_week,
                 **injury_fields(injuries.get(player.player_id)),
@@ -170,7 +191,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         "season_year": season.year,
         "week": effective_week,
         "weeks_available": weeks_available,
-        "is_scored": season.year in set(seasons_scored(session)),
+        "is_scored": is_scored,
         "players": players,
     }
 

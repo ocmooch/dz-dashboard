@@ -474,11 +474,11 @@ describe("BoxScorePage", () => {
 
     expect(await ptsCell("Bye Guy")).toHaveTextContent("Bye");
     expect(await ptsCell("Scratch Guy")).toHaveTextContent("Out");
-    expect(await ptsCell("Mismatch Guy")).toHaveTextContent("⚠");
+    expect(await ptsCell("Mismatch Guy")).toHaveTextContent("!");
     // The clean played-0 shows a bare number with no status tag or warning.
     const clean = await ptsCell("Goose Egg");
     expect(clean).toHaveTextContent("0");
-    expect(clean).not.toHaveTextContent(/Bye|Out|⚠/);
+    expect(clean).not.toHaveTextContent(/Bye|Out|!/);
   });
 
   it("emphasizes the winning team's total score", async () => {

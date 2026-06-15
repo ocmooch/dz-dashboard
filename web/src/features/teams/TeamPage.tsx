@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import { LineTrend } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
+import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import {
   Badge,
   Card,
@@ -163,7 +164,13 @@ function RosterCard({ teamId }: { teamId: number }) {
                     {p.league_points == null ? (
                       <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
                     ) : (
-                      num(p.league_points)
+                      <PlayerScoreCell
+                        points={p.league_points}
+                        zeroReason={p.zero_reason}
+                        zeroDetail={p.zero_detail}
+                        injuryBodyPart={p.injury_body_part}
+                        muted={!p.is_starter}
+                      />
                     )}
                   </td>
                 </tr>

@@ -2726,6 +2726,10 @@ export interface components {
             is_starter: boolean;
             /** League Points */
             league_points?: number | null;
+            /** Zero Reason */
+            zero_reason?: string | null;
+            /** Zero Detail */
+            zero_detail?: string | null;
             /** Acquisition Type */
             acquisition_type?: string | null;
             /** Acquisition Week */

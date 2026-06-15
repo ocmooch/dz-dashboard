@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
+import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
@@ -100,40 +101,6 @@ function LineupTable({ team }: { team: BoxTeam }) {
   );
 }
 
-function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
-  const value = num(p.league_points);
-  // For a known absence (bye or inactive) replace the bare "0.0 BYE"/"0.0 DNP"
-  // with a cleaner status label — the 0 is implied.
-  if (p.zero_reason === "bye" || p.zero_reason === "did_not_play") {
-    const label = p.zero_reason === "bye" ? "Bye" : "Out";
-    const injuryDetail = p.injury_body_part ? ` · ${p.injury_body_part}` : "";
-    const title =
-      p.zero_reason === "bye"
-        ? "On bye — did not play"
-        : `Did not play (inactive / injury)${injuryDetail}`;
-    return (
-      <span className="dz-eyebrow text-faint" title={title}>
-        {label}
-      </span>
-    );
-  }
-  if (p.zero_reason === "unexpected") {
-    return (
-      <span
-        className="inline-flex items-center justify-end gap-1 text-loss"
-        title={p.zero_detail ?? "Unexpectedly 0 — reason unclear"}
-      >
-        {value}
-        <span aria-label="unexpectedly zero" className="dz-eyebrow">
-          ⚠
-        </span>
-      </span>
-    );
-  }
-  // Normal points — includes an organic 0.0 (played, scored nothing). Never a fake blank.
-  return <span className={muted ? "text-muted" : "text-text"}>{value}</span>;
-}
-
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   return (
     <tr>
@@ -177,7 +144,13 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
           // Pipeline explicitly flagged this entry as a gap (e.g. a known scoring hole).
           <DataGap reason={p.reason ?? undefined} size="sm" />
         ) : p.league_points != null ? (
-          <ScoreCell p={p} muted={muted} />
+          <PlayerScoreCell
+            points={p.league_points}
+            zeroReason={p.zero_reason}
+            zeroDetail={p.zero_detail}
+            injuryBodyPart={p.injury_body_part}
+            muted={muted}
+          />
         ) : (
           <span className="text-faint">—</span>
         )}
