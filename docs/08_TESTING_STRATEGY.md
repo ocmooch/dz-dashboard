@@ -131,17 +131,20 @@ Run against a real BFF bound to the fixture database:
 
 ## Continuous integration
 
-A single workflow (`.github/workflows/ci.yml`) runs **three jobs** on every push/PR to
-`dev`/`main`; all must be green to merge:
+Two workflows split by cost. `ci.yml` runs the **always-on, required** backend + frontend
+jobs on every push/PR to `dev`/`main`. `e2e.yml` runs the heavy contract-seam + e2e job, but
+**only when code that can change its outcome changes** (`web/**`, `src/ff_dashboard/**`,
+`scripts/serve_e2e.py`, `pyproject.toml`, `uv.lock`, or the workflow itself) — docs-only and
+memory changes skip it. e2e is not a required check, so a path-skip can't deadlock a PR.
 
 ```
-backend:  uv sync --extra dev → ruff check → mypy src/ → uv run pytest
-frontend: npm ci → npm run typecheck → npm run test → npm run build
-e2e:      uv sync + npm ci → boot BFF → npm run gen:api:check  (contract drift)
-                           → playwright install chromium → playwright test
+ci.yml  backend:  uv sync --extra dev → ruff check → ruff format --check → mypy src/ → pytest
+        frontend: npm ci → npm run test → npm run build  (build = tsc --noEmit && vite build, the type gate)
+e2e.yml e2e:      uv sync + npm ci → boot BFF → npm run gen:api:check  (contract drift)
+                           → playwright install chromium → playwright test   [path-scoped]
 ```
 
-Notes on the as-built workflow:
+Notes on the as-built workflows:
 - The backend + e2e jobs check out the sibling `ff-pipeline` (Phase 1) as `../danger-zone` via
   a deploy key, because `[tool.uv.sources]` points at the editable path (swap to the pinned git
   tag to drop that step — see `PHASE2_RUNBOOK.md`).
