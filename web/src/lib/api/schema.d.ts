@@ -1501,6 +1501,29 @@ export interface components {
              * @default false
              */
             description_gap: boolean;
+            /**
+             * Tier
+             * @default T3
+             */
+            tier: string;
+            /** Human Label */
+            human_label?: string | null;
+            /** Phase */
+            phase?: string | null;
+            /** Event Group Key */
+            event_group_key?: string | null;
+            /**
+             * Missing Context
+             * @default false
+             */
+            missing_context: boolean;
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["LeagueChangeDetail"][];
+            /** Canonical Type */
+            canonical_type?: string | null;
         };
         /** LeagueEra */
         LeagueEra: {

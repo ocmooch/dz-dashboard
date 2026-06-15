@@ -14,31 +14,47 @@ this repo, in `../danger-zone` / ff-pipeline).
 
 ## 0. At-a-glance — what is actually open
 
-The dashboard application is functionally complete (all P0–P11 milestones and all P1–P6 review
-fix-passes are merged — see the archive). The remaining work is, in priority order:
+The dashboard application is functionally complete (all P0–**P12** milestones and all P1–P6
+review fix-passes are merged — see the archive). The only un-merged dashboard work is the
+**rivalries-insights** branch (rivalry insight bands; awaiting PR to `dev`).
 
-1. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
-   (**F-54** season-correct player NFL team is now ☑ — persisted upstream and consumed; see §2.)
-2. **League-history expansion** once upstream identity/rules data exists. ☐
-3. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults. ☐
-4. **Housekeeping** (`pyproject.toml` fallback-tag bump). ☑ done — see §6.
+> **Forward execution plan:** `docs/plans/COMPLETION_ROADMAP.md` sequences all remaining work into
+> handoff-ready sessions **S1–S8** (S1 baseline-green+conferences → S2 ship rivalries-insights →
+> UP program S3–S7 → S8 league-history expansion). The priority list below maps onto those.
+
+The remaining work is, in priority order:
+
+1. **⚠ Baseline tech-debt — backend gate is red (broad, data-service level).** §6.1. Conferences
+   ORM model drift (live route + bracket dependency) and stale matchups tests have been carried as
+   "pre-existing, unrelated" across many PRs and keep `mypy`/`ruff`/`pytest` from passing on the
+   `dev` baseline. **Escalated** — fix before/with the rivalries-insights PR. ☐
+2. **The UP (upstream / danger-zone) program** — Phase-1 data/research, not dashboard PRs. ⤴
+   (**F-54** season-correct player NFL team is now ☑ — merged PR #51; see §2.)
+3. **League-history expansion** once upstream identity/rules data exists. ☐
+4. **Deferred product decisions** (theme toggle, avatars, exports, etc.) — reversible defaults,
+   all settled at their defaults (§4). ☑/☐
+5. **Housekeeping** (`pyproject.toml` fallback-tag bump). ☑ done — see §6.2.
 
 ---
 
 ## 1. In-progress / immediate — feature branches ☑/◐
 
-The league-history slice, season-aware **fantasy** team names, the player zero-week fix, the
-records season-correct champion name, and the team-avatar refresh are all **merged to `dev`**
-(PRs #47/#48/#49/#50; the old `feature/season-aware-team-names` line). The most recent branch,
-`feature/season-correct-nfl-team`, scoped the season-correct **NFL** team to upstream as **F-54**
-and — now that upstream persisted the per-week team and read helpers — routes the two
-season-scoped reads through them (see §2, F-54 ☑). No dashboard app feature is currently
-mid-implementation.
+**Merged since the last consolidation:** season-correct NFL team (F-54, PR #51), box-score
+roster layout + injury reports / P12 (PRs #52/#53), commissioner history, the playoffs/bracket
+visualization and its championship/consolation split (PRs #55/#60), the seasons/rules redesign +
+setting-gap resolution (PRs #54/#59), and the standings-500 fix (PR #57). Earlier: league-history,
+season-aware team names, player zero-week fix, records champion name, team avatars (PRs #47–#50).
+All are on `dev` and promoted to `main` via PRs #56/#58.
 
-- **Next dashboard work is gated on the UP program** (§2): each upstream data fix retires a
-  finding behind the read-only boundary, then the dashboard consumes it. Nothing else is open and
-  buildable dashboard-side except league-history expansion (§3), which also waits on upstream
-  identity/rules data.
+**Currently open (one branch):** `feature/rivalries-insights` — five league-wide rivalry insight
+bands + `GET /v1/rivalries/insights`. Committed to the branch and pushed to origin; **PR to `dev`
+not yet opened.** Before it merges, clear the §6.1 baseline gate breakage it inherits. Plan:
+`docs/plans/rivalries-insights.md`.
+
+- **After rivalries-insights, dashboard work is gated on the UP program** (§2): each upstream
+  data fix retires a finding behind the read-only boundary, then the dashboard consumes it. The
+  only other open buildable dashboard work is league-history expansion (§3), which also waits on
+  upstream identity/rules data.
 
 ---
 
@@ -90,7 +106,7 @@ returns `made_playoffs = None` unless a season's bracket is a proper subset of t
 `is_consolation` / playoff-team metadata in ff-pipeline** (prefer fixing source flags over
 dashboard inference); `made_playoffs` then resolves with no contract change.
 
-### F-54 — Season-correct player NFL team ☑ (landed, dashboard + upstream)
+### F-54 — Season-correct player NFL team ☑ (MERGED, PR #51 — dashboard + upstream)
 Upstream persisted the per-week NFL team (`player_stats_raw.nfl_team`, nflverse's current
 franchise code) and shipped the season-correct read helpers
 `queries.player_season_teams(session, player_ids, season_year)` (batched) and
@@ -134,7 +150,7 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 | Q8 | Keep-alive / run model | one-command (`make serve`); auto-start options provided but not installed | settled at default |
 | Q9 | Caching aggressiveness | in-process only, keyed on `latest_pipeline_run_id`; no materialized table | open only if first-hit latency bites |
 | Q10 | Theme toggle | dark-only; `tokens.css` ready for a light set but no `[data-theme="light"]` / UI toggle | **settled 2026-06-08: keep dark-only** |
-| Q11 | Avatars / logos / photos | team logos streamed from the DB asset store (`GET /v1/teams/{id}/avatar`), monogram fallback; owner photos a true source gap | **done 2026-06-08** (`docs/plans/deferred-product-decisions.md`) |
+| Q11 | Avatars / logos / photos | team logos streamed from the DB asset store (`GET /v1/teams/{id}/avatar`), monogram fallback; owner photos a true source gap | **done 2026-06-08** (`docs/archive/deferred-product-decisions.md`) |
 | Q12 | Mobile priority | laptop-first responsive | **settled 2026-06-08: keep laptop-first** |
 | Q13 | Exports / sharing | none | **settled 2026-06-08: no exports** |
 
@@ -154,7 +170,35 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 
 ---
 
-## 6. Housekeeping ☑
+## 6. Housekeeping & baseline tech-debt
+
+### 6.1 ⚠ Backend gate red on the `dev` baseline — ESCALATED ☐
+
+Carried across multiple PRs as "pre-existing, unrelated, left untouched." Escalated here because
+it sits in **broad, long-lasting data-service code** and blocks a green backend gate. Confirmed
+current 2026-06-14 (`uv run mypy src/ff_dashboard`, `ruff check`, `pytest tests/test_p5_matchups_unit.py`):
+
+- **Conferences module written against non-existent ORM models (highest priority).**
+  `src/ff_dashboard/analytics/conferences.py` imports `SeasonConference` and reads
+  `Team.conference_id` — **neither exists in the Phase-1 ORM** (verified 2026-06-14: the import
+  raises `ImportError`; `hasattr(Team,"conference_id") == False`; not in `Team.__table__.columns`).
+  The `try/except` import-guard then sets `_CONFERENCE_MODELS_AVAILABLE = False`, so **the
+  conferences feature is silently dead for the 2010–2019 conference era** — every season wrongly
+  returns `no_conferences_this_season`, and `conference_map()` (consumed by `analytics/bracket.py`)
+  returns `{}`. Surfaces as **3 mypy errors** (lines 37/40/84) + 1 ruff import-sort error. The data
+  is reachable — `standings.py` (lines ~78–96) already reads the same `teams` / `season_conferences`
+  tables via raw SQL and works (the same approach PR #57 used for the standings-500 fix).
+  **Fix path (dashboard-side, preferred):** rewrite `conferences.py`'s two query sites to the raw
+  SQL `standings.py` uses — this clears the gate **and** repairs the dead feature, with no upstream
+  dependency. **Full handoff: S1 in `docs/plans/COMPLETION_ROADMAP.md`.**
+- **Stale matchups unit tests.** `tests/test_p5_matchups_unit.py` asserts a `lineup_score_gap` /
+  `gap_delta` box-score field that **no longer exists in source** (`has_long_td_score_gap` was
+  removed) → **2 pytest failures** (`test_box_score_gap_delta_is_total_minus_starters`,
+  `test_box_lineup_score_gap_is_false_without_bonus_rules`). Update or delete the assertions to
+  match the shipped box output.
+- **Minor:** 1 ruff ambiguous-unicode error in `analytics/league_history.py`.
+
+### 6.2 `pyproject.toml` git-fallback tag ☑
 
 - **`pyproject.toml` git-fallback tag.** ☑ Bumped the documented git-source fallback example from
   `v1.0.0` to `v1.2.0` (the earliest danger-zone tag carrying the team/owner avatar columns the

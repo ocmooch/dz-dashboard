@@ -5,7 +5,7 @@ The execution tracker for the fix program seeded by `docs/reviews/2026-06-in-bro
 It does **not** restate findings — it points at them. Read this + the cited findings, not the tree.
 
 > **Naming, to avoid collision:** the review groups findings into **fix-passes P1–P6 + UP**. These
-> are *fix-pass* numbers and are **distinct** from the Phase-2 *milestone* numbers P0–P11 in
+> are *fix-pass* numbers and are **distinct** from the Phase-2 *milestone* numbers P0–P12 in
 > `docs/09_ROADMAP.md`. When in doubt write "fix-pass P2" vs "milestone P5".
 
 ## How to run this (lightweight, near-turnkey)
