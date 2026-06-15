@@ -96,14 +96,6 @@ function categoryLabel(category: string) {
   return labels[category] ?? category.replace(/_/g, " ");
 }
 
-type Impact = "high" | "medium" | "low";
-
-function impactOf(category: string): Impact {
-  if (category === "league_size" || category === "scoring_provenance") return "high";
-  if (category === "schedule" || category === "waiver" || category === "standings" || category === "data_quality") return "low";
-  return "medium";
-}
-
 const CATEGORY_COLOR: Record<string, string> = {
   league_size: "var(--warn)",
   scoring_provenance: "var(--info)",
@@ -170,100 +162,94 @@ function ParticipantList({ detail }: { detail: LeagueChangeDetail }) {
   );
 }
 
-function HighImpactChange({ detail }: { detail: LeagueChangeDetail }) {
+const SOURCE_LABELS: Record<string, string> = {
+  derived_from_db: "Derived from league database",
+  nfl_com_transaction_log: "NFL.com transaction log",
+  nfl_com_authoritative_total: "NFL.com season totals",
+  nflverse_reconstructed: "Reconstructed player scoring",
+};
+
+const CERTAINTY_LABELS: Record<string, string> = {
+  verified: "Verified from records",
+  source_limited: "Source-limited — inferred from partial data",
+  identity_source_limited: "Identity source-limited — manager mapping incomplete",
+};
+
+function sourceLabel(value: string): string {
+  return SOURCE_LABELS[value] ?? value.replace(/_/g, " ");
+}
+
+function certaintyLabel(value: string): string {
+  return CERTAINTY_LABELS[value] ?? value.replace(/_/g, " ");
+}
+
+// One uniform row per change: categorical label + a brief representation of
+// what changed, with an optional "More" disclosure for verbose context
+// (provenance, certainty caveats, unrecorded detail) when it's worth showing.
+function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
+  const [open, setOpen] = useState(false);
   const color = categoryColor(detail.category);
   const isParticipant = detail.category === "participants";
+
+  // Show the summary as the brief description only when it adds something
+  // beyond the title and the before→after diff (it often just restates `after`).
+  const brief =
+    detail.summary && detail.summary !== detail.title && detail.summary !== detail.after
+      ? detail.summary
+      : null;
+
+  // Verbose context worth tucking behind a click: non-default provenance, a
+  // certainty caveat, or a setting whose specific values weren't recorded.
+  const expandable =
+    detail.certainty !== "verified" ||
+    detail.source !== "derived_from_db" ||
+    detail.description_gap;
+
   return (
     <div
-      className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2.5"
-      style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+      className="px-3 py-2.5 border-b border-[var(--hairline)] last:border-0"
+      style={{ borderLeft: `3px solid ${color}` }}
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[var(--fs-xs)] font-semibold uppercase tracking-wide" style={{ color }}>
           {categoryLabel(detail.category)}
         </span>
         <span className="text-[var(--fs-sm)] font-semibold text-ink">{detail.title}</span>
         <ChangeTimestamp changedAt={detail.changed_at} />
+        {expandable && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="ml-auto flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-faint transition-colors hover:text-muted"
+          >
+            {open ? "Less" : "More"}
+            <span className="text-[10px]">{open ? "▾" : "▸"}</span>
+          </button>
+        )}
       </div>
-      {!isParticipant && detail.summary && (
-        <div className="mt-0.5 text-[var(--fs-xs)] text-muted">{detail.summary}</div>
-      )}
+
+      {brief && <div className="mt-0.5 text-[var(--fs-xs)] text-muted">{brief}</div>}
+
       {isParticipant ? (
         <ParticipantList detail={detail} />
       ) : (
         <BeforeAfter before={detail.before} after={detail.after} />
       )}
-    </div>
-  );
-}
 
-function MediumChange({ detail }: { detail: LeagueChangeDetail }) {
-  const color = categoryColor(detail.category);
-  const isParticipant = detail.category === "participants";
-  return (
-    <div className="flex items-start gap-2.5 py-2 border-b border-[var(--hairline)] last:border-0">
-      <span
-        className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-        style={{ background: color }}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[var(--fs-xs)] font-semibold" style={{ color }}>
-            {categoryLabel(detail.category)}
-          </span>
-          <span className="text-[var(--fs-sm)] text-ink">{detail.title}</span>
-          <ChangeTimestamp changedAt={detail.changed_at} />
-        </div>
-        {!isParticipant && detail.summary && detail.summary !== detail.title && (
-          <div className="text-[var(--fs-xs)] text-muted">{detail.summary}</div>
-        )}
-        {isParticipant ? (
-          <ParticipantList detail={detail} />
-        ) : (
-          <BeforeAfter before={detail.before} after={detail.after} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RoutineChanges({ details }: { details: LeagueChangeDetail[] }) {
-  const [open, setOpen] = useState(false);
-  if (details.length === 0) return null;
-
-  const typeList = [...new Set(details.map((d) => categoryLabel(d.category).toLowerCase()))].join(", ");
-
-  return (
-    <div className="mt-1">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-[var(--fs-xs)] text-faint transition-colors hover:text-muted"
-      >
-        <span className="text-[10px]">{open ? "▾" : "▸"}</span>
-        <span>
-          {details.length} routine {details.length === 1 ? "change" : "changes"} — {typeList}
-        </span>
-      </button>
-      {open && (
-        <div className="mt-2 space-y-1.5 border-l-2 border-[var(--hairline)] pl-3">
-          {details.map((d, i) => (
-            <div key={i} className="text-[var(--fs-xs)] text-faint">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="font-semibold text-muted">{d.title}</span>
-                <ChangeTimestamp changedAt={d.changed_at} />
-              </div>
-              {d.summary && d.summary !== d.title && (
-                <div className="mt-0.5 text-faint">{d.summary}</div>
-              )}
-              {(d.before || d.after) && (
-                <span className="font-mono">
-                  {d.before && <span className="text-faint line-through">{d.before}</span>}
-                  {d.before && d.after && <span className="mx-1 text-faint">→</span>}
-                  {d.after && <span className="text-muted">{d.after}</span>}
-                </span>
-              )}
+      {expandable && open && (
+        <div className="mt-2 space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-2.5 py-2 text-[var(--fs-xs)] text-faint">
+          <div>
+            <span className="font-semibold text-muted">Source:</span> {sourceLabel(detail.source)}
+          </div>
+          <div>
+            <span className="font-semibold text-muted">Certainty:</span> {certaintyLabel(detail.certainty)}
+          </div>
+          {detail.description_gap && (
+            <div className="italic">
+              The source records that this setting changed, but not its specific values.
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -319,10 +305,6 @@ function SeasonEntry({
   commissioner?: CommissionerTerm;
 }) {
   const details = season.changes.details;
-  const high = details.filter((d) => impactOf(d.category) === "high");
-  const medium = details.filter((d) => impactOf(d.category) === "medium");
-  const low = details.filter((d) => impactOf(d.category) === "low");
-
   const totalChanges = details.length;
 
   return (
@@ -364,25 +346,13 @@ function SeasonEntry({
       <div className="space-y-3">
         <ResultsRow season={season} />
 
-        {high.length > 0 && (
-          <div className="space-y-2">
-            {high.map((d, i) => (
-              <HighImpactChange key={i} detail={d} />
+        {totalChanges > 0 ? (
+          <div className="overflow-hidden rounded-[var(--radius-sm)] border border-[var(--hairline)]">
+            {details.map((d, i) => (
+              <ChangeRow key={`${d.category}-${d.title}-${i}`} detail={d} />
             ))}
           </div>
-        )}
-
-        {medium.length > 0 && (
-          <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] px-3 divide-y divide-[var(--hairline)]">
-            {medium.map((d, i) => (
-              <MediumChange key={i} detail={d} />
-            ))}
-          </div>
-        )}
-
-        <RoutineChanges details={low} />
-
-        {totalChanges === 0 && (
+        ) : (
           <div className="text-[var(--fs-xs)] text-faint italic">No material changes from prior season</div>
         )}
       </div>
@@ -409,8 +379,8 @@ export function LeagueHistoryPage() {
         <div className="dz-eyebrow mb-1">League museum</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League History</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          Year-by-year changes: what shifted, what it was before, and how it compares. High-impact changes
-          surface first; routine ones fold away.
+          Year-by-year changes: each one labelled by category with what it was before and after. Entries
+          carrying extra context — provenance or certainty caveats — expand on click.
         </p>
       </div>
 
@@ -436,7 +406,7 @@ export function LeagueHistoryPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[var(--fs-xs)] text-faint">
-        <span className="font-semibold text-muted">Change impact:</span>
+        <span className="font-semibold text-muted">Change category:</span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--warn)" }} />
           League structure
@@ -446,16 +416,16 @@ export function LeagueHistoryPage() {
           Scoring rules
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--series-5)" }} />
+          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--series-5)" }} />
           Roster
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--win)" }} />
+          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--win)" }} />
           Managers
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--text-faint)" }} />
-          Routine (collapsed)
+          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--series-2)" }} />
+          Playoffs
         </span>
       </div>
 
