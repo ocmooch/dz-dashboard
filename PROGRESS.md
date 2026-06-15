@@ -43,10 +43,14 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   pairwise). Frontend `ManagerStory.tsx` (mirrors `RivalryInsights.tsx`) renders as the lead band
   above the existing cards; omits absent lines; hides entirely when nothing clears. Tests:
   `test_owner_story.py` (Maverick rich case + Viper sparse-but-valid + both sign gates + min-sample)
-  + `test_p2_endpoints.py` + extended `ManagerProfilePage.test.tsx`. The **per-manager epithet** is
-  built as a SEPARATE reviewable proposal — `assign_epithet()` + documented/tested thresholds, but
-  **NOT wired** into the endpoint/UI; awaiting product-owner sign-off (`docs/plans/owner-epithet-proposal.md`).
-  Full gate green (330 backend / 162 frontend). VERIFY (click-through + epithet sign-off) pending.
+  + `test_p2_endpoints.py` + extended `ManagerProfilePage.test.tsx`. The **per-manager epithet**
+  was presented as a SEPARATE reviewable proposal, including thresholds and real-DB assignments
+  (`docs/plans/owner-epithet-proposal.md`), but was **not retained in code**: the VERIFY assignment
+  pass gave 12 managers an epithet, mostly "The Lucky Devil", so it failed the "earned, not noisy"
+  bar without product-owner sign-off. VERIFY complete on 2026-06-15: full gate green (326 backend /
+  162 frontend; no frontend `lint` script exists), e2e green after the intended Standings visual
+  baseline update, and running-app click-through passed for `/standings` → `/managers/11` plus
+  direct `/managers/11` with the "Your Story" band visible.
 
 - **Rivalries page insight bands — landed on `feature/rivalries-insights`, awaiting PR to `dev`
   (the only open local branch).** Five league-wide bands below the rivalry matrix fed by one bundle

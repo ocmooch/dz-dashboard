@@ -3,23 +3,14 @@
 The fixture (see ``tests/conftest.py``) gives Maverick a rich story (a 70-point
 beating, a playoff heartbreak, a favourite victim, a lucky season) and Viper a
 sparse-but-valid one (no wins, an unlucky season). Both sides of every min-sample
-and sign gate are exercised, and the epithet thresholds are checked just above and
-below each bar.
+and sign gate are exercised.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ff_dashboard.analytics.owner_story import (
-    EPITHET_BRIDESMAID_RUNNERUPS,
-    EPITHET_DYNASTY_TITLES,
-    EPITHET_LUCKY_DELTA,
-    MIN_EPITHET_SEASONS,
-    OwnerFingerprint,
-    assign_epithet,
-    owner_story,
-)
+from ff_dashboard.analytics.owner_story import owner_story
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
@@ -122,43 +113,3 @@ def test_sparse_owner_bundle_is_mostly_empty_but_valid(session: Session) -> None
 
 def test_unknown_owner_returns_none(session: Session) -> None:
     assert owner_story(session, 999999) is None
-
-
-# --- Epithet proposal: thresholds fire above the bar, not below -------------
-
-
-def _fp(**kw: object) -> OwnerFingerprint:
-    base: dict[str, object] = {
-        "seasons_played": MIN_EPITHET_SEASONS,
-        "championships": 0,
-        "runner_ups": 0,
-        "best_finish": None,
-        "win_pct": None,
-        "best_luck_delta": None,
-        "worst_luck_delta": None,
-    }
-    base.update(kw)
-    return OwnerFingerprint(**base)  # type: ignore[arg-type]
-
-
-def test_epithet_requires_min_tenure() -> None:
-    assert assign_epithet(_fp(seasons_played=MIN_EPITHET_SEASONS - 1, championships=5)) is None
-
-
-def test_epithet_dynasty_fires_at_threshold() -> None:
-    assert assign_epithet(_fp(championships=EPITHET_DYNASTY_TITLES))["label"] == "The Dynasty"
-    # One title short does not fire the Dynasty archetype.
-    assert assign_epithet(_fp(championships=EPITHET_DYNASTY_TITLES - 1)) is None
-
-
-def test_epithet_bridesmaid_fires_only_without_a_title() -> None:
-    assert assign_epithet(_fp(runner_ups=EPITHET_BRIDESMAID_RUNNERUPS))["label"] == "The Bridesmaid"
-    # A single runner-up is below the bar.
-    assert assign_epithet(_fp(runner_ups=EPITHET_BRIDESMAID_RUNNERUPS - 1)) is None
-    # A title disqualifies the Bridesmaid even with the runner-ups.
-    assert assign_epithet(_fp(championships=1, runner_ups=EPITHET_BRIDESMAID_RUNNERUPS)) is None
-
-
-def test_epithet_lucky_devil_fires_at_threshold() -> None:
-    assert assign_epithet(_fp(best_luck_delta=EPITHET_LUCKY_DELTA))["label"] == "The Lucky Devil"
-    assert assign_epithet(_fp(best_luck_delta=EPITHET_LUCKY_DELTA - 0.1)) is None

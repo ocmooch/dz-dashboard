@@ -26,9 +26,9 @@ The honesty rules from the project's hard rules are non-negotiable here:
 * Every concrete game carries a ``matchup_id`` for deep-linking and an opponent
   ``OwnerRef`` for linking to the pairwise / profile pages.
 
-The per-manager **epithet** (:func:`assign_epithet`) lives here too but is a
-*separate, reviewable proposal* — it is deliberately NOT part of :func:`owner_story`
-or the shipped endpoint. See ``docs/plans/owner-epithet-proposal.md``.
+The per-manager **epithet** remains a separate product proposal, not code in this
+module. It should be added only after product-owner sign-off on the vocabulary
+and assignment thresholds.
 """
 
 from __future__ import annotations
@@ -270,74 +270,3 @@ def owner_story(session: Session, owner_id: int) -> dict[str, Any] | None:
         "available": any(v is not None for v in fields.values()),
         **fields,
     }
-
-
-# ---------------------------------------------------------------------------
-# Per-manager epithet — SEPARATE, REVIEWABLE PROPOSAL. Not wired into
-# owner_story() or the /story endpoint; ships only after product-owner sign-off
-# on the vocabulary. Thresholds are documented in docs/plans/owner-epithet-proposal.md
-# and tested in tests/test_owner_story.py.
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class OwnerFingerprint:
-    """The statistical inputs an epithet is assigned from."""
-
-    seasons_played: int
-    championships: int
-    runner_ups: int
-    best_finish: int | None
-    win_pct: float | None
-    best_luck_delta: float | None  # max single-season luck_delta
-    worst_luck_delta: float | None  # min single-season luck_delta
-
-
-# Min tenure before any epithet is even considered — a one-season manager has no
-# "story" yet, so they simply get none.
-MIN_EPITHET_SEASONS = 3
-# Archetype thresholds (documented; tuned for full-season real-DB history).
-EPITHET_DYNASTY_TITLES = 3  # "The Dynasty"
-EPITHET_BRIDESMAID_RUNNERUPS = 2  # "The Bridesmaid" (and never a title)
-EPITHET_LUCKY_DELTA = 2.0  # "The Lucky Devil" — a season the schedule gave ≥2 wins
-EPITHET_ROBBED_DELTA = -2.0  # "The Snakebitten" — a season that cost ≥2 wins
-EPITHET_CONTENDER_WINPCT = 0.60  # "The Powerhouse" — sustained dominance, no title
-
-
-def assign_epithet(fp: OwnerFingerprint) -> dict[str, Any] | None:
-    """Assign at most one affectionate archetype, or ``None`` when nothing clears
-    its bar. Priority order is fixed; the first archetype whose threshold is met
-    wins. A small, celebratory/wry vocabulary — never cruel about a real person.
-
-    The bars are deliberately strict: an owner who doesn't clearly fit an archetype
-    gets **no** epithet rather than a forced or generic one.
-    """
-    if fp.seasons_played < MIN_EPITHET_SEASONS:
-        return None
-
-    if fp.championships >= EPITHET_DYNASTY_TITLES:
-        return {
-            "label": "The Dynasty",
-            "blurb": f"{fp.championships} titles — the standard everyone else is measured against.",
-        }
-    if fp.championships == 0 and fp.runner_ups >= EPITHET_BRIDESMAID_RUNNERUPS:
-        return {
-            "label": "The Bridesmaid",
-            "blurb": f"{fp.runner_ups} times to the final, never the ring.",
-        }
-    if fp.championships == 0 and fp.win_pct is not None and fp.win_pct >= EPITHET_CONTENDER_WINPCT:
-        return {
-            "label": "The Powerhouse",
-            "blurb": "A perennial contender still chasing that first title.",
-        }
-    if fp.best_luck_delta is not None and fp.best_luck_delta >= EPITHET_LUCKY_DELTA:
-        return {
-            "label": "The Lucky Devil",
-            "blurb": "The schedule has been a very good friend.",
-        }
-    if fp.worst_luck_delta is not None and fp.worst_luck_delta <= EPITHET_ROBBED_DELTA:
-        return {
-            "label": "The Snakebitten",
-            "blurb": "Has the all-play wins to show for it; the schedule disagreed.",
-        }
-    return None

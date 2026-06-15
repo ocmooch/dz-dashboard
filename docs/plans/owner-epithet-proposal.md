@@ -1,9 +1,10 @@
 # Proposal — the per-manager epithet (§3B stretch, NOT yet shipped)
 
-**Status:** reviewable proposal awaiting product-owner sign-off on the vocabulary
-and voice. The code exists (`analytics/owner_story.assign_epithet`) and is tested,
-but it is **deliberately not wired** into `owner_story()`, the `/v1/owners/{id}/story`
-endpoint, or `ManagerStory.tsx`. Ship only after sign-off (the VERIFY session).
+**Status:** reviewable proposal only; **not retained in code** after VERIFY because
+the real-DB assignment pass was too noisy and product-owner sign-off was not
+granted. Nothing here is wired into `owner_story()`, the `/v1/owners/{id}/story`
+endpoint, or `ManagerStory.tsx`. Ship only after explicit sign-off on the
+vocabulary, voice, thresholds, and assignment density.
 
 ## Why it's gated
 
@@ -20,7 +21,7 @@ a real person. So it follows the plan's non-negotiable guardrails:
 
 ## The fingerprint
 
-`OwnerFingerprint` (in `analytics/owner_story.py`) carries the inputs:
+The proposed fingerprint would carry these inputs:
 
 | field | source |
 |-------|--------|
@@ -33,21 +34,38 @@ a real person. So it follows the plan's non-negotiable guardrails:
 A gate applies first: **`seasons_played ≥ MIN_EPITHET_SEASONS (3)`** — a one/two-season
 manager has no story yet and gets nothing.
 
-| # | Label | Fires when | Constant |
-|---|-------|-----------|----------|
-| 1 | **The Dynasty** | `championships ≥ 3` | `EPITHET_DYNASTY_TITLES` |
-| 2 | **The Bridesmaid** | `championships == 0` and `runner_ups ≥ 2` | `EPITHET_BRIDESMAID_RUNNERUPS` |
-| 3 | **The Powerhouse** | `championships == 0` and `win_pct ≥ 0.60` | `EPITHET_CONTENDER_WINPCT` |
-| 4 | **The Lucky Devil** | best season `luck_delta ≥ +2.0` | `EPITHET_LUCKY_DELTA` |
-| 5 | **The Snakebitten** | worst season `luck_delta ≤ −2.0` | `EPITHET_ROBBED_DELTA` |
+| # | Label | Fires when |
+|---|-------|-----------|
+| 1 | **The Dynasty** | `championships ≥ 3` |
+| 2 | **The Bridesmaid** | `championships == 0` and `runner_ups ≥ 2` |
+| 3 | **The Powerhouse** | `championships == 0` and `win_pct ≥ 0.60` |
+| 4 | **The Lucky Devil** | best season `luck_delta ≥ +2.0` |
+| 5 | **The Snakebitten** | worst season `luck_delta ≤ −2.0` |
 
 Each yields `{label, blurb}`; the blurb is a short, affectionate sentence. Thresholds
 are tuned for full-season real-DB history (the fixture's 2-week seasons can't fire the
 luck bars, so those are tested in isolation against constructed fingerprints).
 
-Tests: `tests/test_owner_story.py` — each archetype fires at its threshold and does
-**not** fire just below it; the tenure gate and the "title disqualifies Bridesmaid"
-rule are covered.
+VERIFY note (2026-06-15): applying this proposal to the real DB assigned 12 managers,
+mostly via **The Lucky Devil**. That fails the "earned, not noisy" bar, so the helper
+was removed from the branch rather than kept without sign-off.
+
+Assigned under the withdrawn thresholds:
+
+| Manager | Assigned label | Triggering evidence |
+|---------|----------------|---------------------|
+| harry | The Snakebitten | worst `luck_delta = -3.91` |
+| scott | The Lucky Devil | best `luck_delta = +3.18` |
+| mike | The Lucky Devil | best `luck_delta = +2.91` |
+| sully | The Lucky Devil | best `luck_delta = +2.18` |
+| DJ | The Dynasty | 4 championships |
+| Dave | The Lucky Devil | best `luck_delta = +2.27` |
+| Gregg | The Lucky Devil | best `luck_delta = +2.45` |
+| Chris | The Lucky Devil | best `luck_delta = +2.73` |
+| Jeff | The Lucky Devil | best `luck_delta = +2.09` |
+| Rob | The Dynasty | 3 championships |
+| Jimbo | The Lucky Devil | best `luck_delta = +2.09` |
+| Cheese | The Lucky Devil | best `luck_delta = +2.64` |
 
 ## Open questions for the product owner
 
