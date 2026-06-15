@@ -12,8 +12,12 @@ from typing import TYPE_CHECKING, Any
 
 try:
     from ff_pipeline.repository.models import SeasonConference, Team  # type: ignore[attr-defined]
-    from ff_pipeline.repository.queries import get_season, list_conferences_for_season  # type: ignore[attr-defined]
+    from ff_pipeline.repository.queries import (  # type: ignore[attr-defined]
+        get_season,
+        list_conferences_for_season,
+    )
     from sqlalchemy import select
+
     _CONFERENCE_MODELS_AVAILABLE = True
 except (ImportError, AttributeError):
     _CONFERENCE_MODELS_AVAILABLE = False
@@ -33,11 +37,15 @@ def conference_map(session: Session, season_id: int) -> dict[int, tuple[int | No
     """
     if not _CONFERENCE_MODELS_AVAILABLE:
         return {}
+    # ``conference_id`` lives only on the future conference-aware ff_pipeline
+    # ``Team`` model; this branch is unreachable until those models exist
+    # (guarded by ``_CONFERENCE_MODELS_AVAILABLE``), so mypy can't see it.
+    team_conference_id = Team.conference_id  # type: ignore[attr-defined]
     rows = session.execute(
-        select(Team.team_id, Team.conference_id, SeasonConference.name)
+        select(Team.team_id, team_conference_id, SeasonConference.name)
         .join(
             SeasonConference,
-            Team.conference_id == SeasonConference.conference_id,
+            team_conference_id == SeasonConference.conference_id,
             isouter=True,
         )
         .where(Team.season_id == season_id)
@@ -59,7 +67,13 @@ def season_conferences(session: Session, season_id: int) -> dict[str, Any] | Non
     conference models are not yet available in ff_pipeline.
     """
     if not _CONFERENCE_MODELS_AVAILABLE:
-        return {"season_id": season_id, "season_year": None, "available": False, "reason": "no_conferences_this_season", "conferences": []}
+        return {
+            "season_id": season_id,
+            "season_year": None,
+            "available": False,
+            "reason": "no_conferences_this_season",
+            "conferences": [],
+        }
     require_league(session)
     season = get_season(session, season_id)
     if season is None:
@@ -81,7 +95,7 @@ def season_conferences(session: Session, season_id: int) -> dict[str, Any] | Non
 
     # Group team_id → conference_id for this season
     tid_rows = session.execute(
-        select(Team.team_id, Team.conference_id).where(Team.season_id == season_id)
+        select(Team.team_id, Team.conference_id).where(Team.season_id == season_id)  # type: ignore[attr-defined]
     ).all()
     conf_teams: dict[int, list[dict[str, Any]]] = {c.conference_id: [] for c in confs}
     for team_id_raw, conf_id_raw in tid_rows:
