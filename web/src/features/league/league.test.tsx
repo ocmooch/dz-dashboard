@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "@/test/render";
@@ -189,6 +189,87 @@ describe("LeagueHistoryPage", () => {
     expect(screen.getByText("Receptions: 1 point per 2 receptions")).toBeInTheDocument();
     expect(screen.getByText("Dynasty Crew")).toBeInTheDocument();
     expect(screen.getByText("Champion · Slider")).toBeInTheDocument();
+  });
+
+  it("renders tiers, the in-season marker, missing-context, and expandable members", async () => {
+    const member = {
+      ...CHANGE_DEFAULTS,
+      category: "divisions",
+      title: "Division assignment",
+      human_label: "Division assignment",
+      summary: "changed Alpha Squad's Division from '1' to '2'",
+      before: "1",
+      after: "2",
+      source: "nfl_com_transaction_log",
+      certainty: "source_limited",
+      tier: "T3",
+      phase: "off_season",
+      missing_context: false,
+      members: [],
+      canonical_type: "division_assignment",
+    };
+    const tiered = {
+      league: TIMELINE.league,
+      seasons: [
+        {
+          ...TIMELINE.seasons[1],
+          season_id: 9,
+          season_year: 2018,
+          changes: {
+            league_size_changed: false,
+            schedule_changed: false,
+            scoring_availability_changed: false,
+            details: [
+              {
+                ...CHANGE_DEFAULTS,
+                category: "divisions",
+                title: "Division realignment",
+                human_label: "Division realignment",
+                summary: "Division realignment — 1 team reassigned.",
+                source: "nfl_com_transaction_log",
+                certainty: "verified",
+                tier: "T1",
+                phase: "off_season",
+                missing_context: false,
+                members: [member],
+                canonical_type: "division_assignment",
+              },
+              {
+                ...CHANGE_DEFAULTS,
+                category: "playoffs",
+                title: "Playoff field",
+                human_label: "Playoff field",
+                summary: "scott finalized the playoff field on 2018-12-02.",
+                source: "nfl_com_transaction_log",
+                certainty: "source_limited",
+                tier: "T2",
+                phase: "in_season",
+                missing_context: true,
+                members: [],
+                canonical_type: "playoff_teams",
+              },
+            ],
+          },
+        },
+      ],
+    };
+    mockGet.mockImplementation((path: string) => {
+      if (path === "/v1/league/timeline") return Promise.resolve(envelope(tiered));
+      return Promise.resolve(envelope({}));
+    });
+
+    renderWithProviders(<LeagueHistoryPage />, ["/seasons"]);
+    // Wait for the async timeline to render an event before asserting on it.
+    expect(await screen.findByText("Division realignment")).toBeInTheDocument();
+    // T1 "Major" badge (legend + the event) and in-season marker (legend + event).
+    expect(screen.getAllByText("Major").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("in-season").length).toBeGreaterThan(0);
+    // Missing-context affordance — never a fabricated value.
+    expect(screen.getByText(/Context not recorded/)).toBeInTheDocument();
+    // Members are collapsed until expanded.
+    expect(screen.queryByText(/changed Alpha Squad/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Show 1/ }));
+    expect(screen.getByText(/changed Alpha Squad/)).toBeInTheDocument();
   });
 });
 

@@ -92,6 +92,13 @@ function categoryLabel(category: string) {
     scoring_rules: "Scoring rules",
     standings: "Standings",
     waiver: "Waivers",
+    draft: "Draft",
+    trades: "Trades",
+    money: "Money",
+    admin: "Admin",
+    commissioner: "Commissioner",
+    transactions: "Transactions",
+    divisions: "Divisions",
   };
   return labels[category] ?? category.replace(/_/g, " ");
 }
@@ -104,9 +111,16 @@ const CATEGORY_COLOR: Record<string, string> = {
   participants: "var(--win)",
   playoffs: "var(--series-2)",
   schedule: "var(--text-faint)",
-  waiver: "var(--text-faint)",
+  waiver: "var(--series-3)",
   standings: "var(--text-faint)",
   data_quality: "var(--loss)",
+  draft: "var(--series-4)",
+  trades: "var(--series-1)",
+  money: "var(--win)",
+  admin: "var(--text-faint)",
+  commissioner: "var(--series-2)",
+  transactions: "var(--series-3)",
+  divisions: "var(--warn)",
 };
 
 function categoryColor(category: string): string {
@@ -183,39 +197,91 @@ function certaintyLabel(value: string): string {
   return CERTAINTY_LABELS[value] ?? value.replace(/_/g, " ");
 }
 
-// One uniform row per change: categorical label + a brief representation of
-// what changed, with an optional "More" disclosure for verbose context
-// (provenance, certainty caveats, unrecorded detail) when it's worth showing.
+const TIER_RANK: Record<string, number> = { T1: 0, T2: 1, T3: 2 };
+
+function tierOf(detail: LeagueChangeDetail): string {
+  return detail.tier ?? "T3";
+}
+
+function InSeasonMarker() {
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: "color-mix(in srgb, var(--loss) 15%, transparent)", color: "var(--loss)" }}
+      title="Changed once the season was already underway"
+    >
+      in-season
+    </span>
+  );
+}
+
+// A nested sub-row inside an expanded aggregated event or routine bucket.
+function MemberRow({ detail }: { detail: LeagueChangeDetail }) {
+  return (
+    <div className="flex flex-col gap-0.5 px-3 py-1.5 border-b border-[var(--hairline)] last:border-0">
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[var(--fs-xs)] font-semibold text-muted">
+          {detail.human_label ?? detail.title}
+        </span>
+        <ChangeTimestamp changedAt={detail.changed_at} />
+        {detail.phase === "in_season" && <InSeasonMarker />}
+      </div>
+      <div className="text-[var(--fs-xs)] text-faint">{detail.summary}</div>
+      <BeforeAfter before={detail.before} after={detail.after} />
+    </div>
+  );
+}
+
+// One uniform row per change/event. T1 is highlighted, the in-season marker is
+// shown on in-season changes, aggregated events and the per-season routine
+// bucket expand to their member rows, and unrecoverable detail surfaces a
+// "context not recorded" affordance — never a fabricated value.
 function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
   const [open, setOpen] = useState(false);
   const color = categoryColor(detail.category);
   const isParticipant = detail.category === "participants";
+  const members = detail.members ?? [];
+  const hasMembers = members.length > 0;
+  const tier = tierOf(detail);
+  const isMajor = tier === "T1";
+  const inSeason = detail.phase === "in_season";
 
-  // Show the summary as the brief description only when it adds something
-  // beyond the title and the before→after diff (it often just restates `after`).
   const brief =
     detail.summary && detail.summary !== detail.title && detail.summary !== detail.after
       ? detail.summary
       : null;
 
-  // Verbose context worth tucking behind a click: non-default provenance, a
-  // certainty caveat, or a setting whose specific values weren't recorded.
-  const expandable =
+  const provExpandable =
     detail.certainty !== "verified" ||
     detail.source !== "derived_from_db" ||
     detail.description_gap;
+  const expandable = hasMembers || provExpandable;
 
   return (
     <div
       className="px-3 py-2.5 border-b border-[var(--hairline)] last:border-0"
-      style={{ borderLeft: `3px solid ${color}` }}
+      style={{
+        borderLeft: `${isMajor ? 4 : 3}px solid ${color}`,
+        background: isMajor ? "color-mix(in srgb, var(--surface-2) 60%, transparent)" : undefined,
+      }}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[var(--fs-xs)] font-semibold uppercase tracking-wide" style={{ color }}>
           {categoryLabel(detail.category)}
         </span>
-        <span className="text-[var(--fs-sm)] font-semibold text-ink">{detail.title}</span>
+        {isMajor && (
+          <span
+            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)" }}
+          >
+            Major
+          </span>
+        )}
+        <span className={`text-[var(--fs-sm)] text-ink ${isMajor ? "font-bold" : "font-semibold"}`}>
+          {detail.human_label ?? detail.title}
+        </span>
         <ChangeTimestamp changedAt={detail.changed_at} />
+        {inSeason && <InSeasonMarker />}
         {expandable && (
           <button
             type="button"
@@ -223,7 +289,7 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
             aria-expanded={open}
             className="ml-auto flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-faint transition-colors hover:text-muted"
           >
-            {open ? "Less" : "More"}
+            {hasMembers ? (open ? "Hide" : `Show ${members.length}`) : open ? "Less" : "More"}
             <span className="text-[10px]">{open ? "▾" : "▸"}</span>
           </button>
         )}
@@ -237,7 +303,21 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
         <BeforeAfter before={detail.before} after={detail.after} />
       )}
 
-      {expandable && open && (
+      {detail.missing_context && (
+        <div className="mt-1 text-[var(--fs-xs)] italic text-faint">
+          Context not recorded — NFL.com logged the action but not the detail.
+        </div>
+      )}
+
+      {open && hasMembers && (
+        <div className="mt-2 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-1)]">
+          {members.map((m, i) => (
+            <MemberRow key={`${m.canonical_type ?? m.category}-${i}`} detail={m} />
+          ))}
+        </div>
+      )}
+
+      {open && provExpandable && (
         <div className="mt-2 space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-2.5 py-2 text-[var(--fs-xs)] text-faint">
           <div>
             <span className="font-semibold text-muted">Source:</span> {sourceLabel(detail.source)}
@@ -245,11 +325,6 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
           <div>
             <span className="font-semibold text-muted">Certainty:</span> {certaintyLabel(detail.certainty)}
           </div>
-          {detail.description_gap && (
-            <div className="italic">
-              The source records that this setting changed, but not its specific values.
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -304,8 +379,14 @@ function SeasonEntry({
   season: LeagueTimelineSeason;
   commissioner?: CommissionerTerm;
 }) {
-  const details = season.changes.details;
-  const totalChanges = details.length;
+  const details = [...season.changes.details].sort(
+    (a, b) => (TIER_RANK[tierOf(a)] ?? 9) - (TIER_RANK[tierOf(b)] ?? 9),
+  );
+  // Count leaf changes (an aggregated event / routine bucket counts its members).
+  const totalChanges = details.reduce(
+    (sum, d) => sum + ((d.members?.length ?? 0) || 1),
+    0,
+  );
 
   return (
     <article className="grid gap-5 p-5 lg:grid-cols-[5.5rem_1fr]">
@@ -379,8 +460,10 @@ export function LeagueHistoryPage() {
         <div className="dz-eyebrow mb-1">League museum</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League History</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          Year-by-year changes: each one labelled by category with what it was before and after. Entries
-          carrying extra context — provenance or certainty caveats — expand on click.
+          Year-by-year changes, ranked by impact: <span className="font-semibold text-ink">Major</span> rule
+          changes are highlighted, significant ones are always shown, and routine admin/draft-logistics edits
+          collapse into one expandable group per season. Changes made after kickoff carry an{" "}
+          <span className="font-semibold text-ink">in-season</span> marker. Nothing is dropped.
         </p>
       </div>
 
@@ -406,26 +489,23 @@ export function LeagueHistoryPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[var(--fs-xs)] text-faint">
-        <span className="font-semibold text-muted">Change category:</span>
+        <span className="font-semibold text-muted">Reading the timeline:</span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--warn)" }} />
-          League structure
+          <span
+            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)" }}
+          >
+            Major
+          </span>
+          game-defining change
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--accent)" }} />
-          Scoring rules
+          <InSeasonMarker />
+          made after kickoff
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--series-5)" }} />
-          Roster
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--win)" }} />
-          Managers
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-1 rounded-sm" style={{ background: "var(--series-2)" }} />
-          Playoffs
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-faint">Show N ▸</span>
+          expand a grouped event
         </span>
       </div>
 

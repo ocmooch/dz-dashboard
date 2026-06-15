@@ -328,6 +328,14 @@ class LeagueChangeDetail(BaseModel):
     participants_joined: list[str] | None = None
     participants_left: list[str] | None = None
     description_gap: bool = False
+    # Tiered-classifier fields (defaulted so state-derived details stay valid).
+    tier: str = "T3"  # "T1" | "T2" | "T3"
+    human_label: str | None = None
+    phase: str | None = None  # "in_season" | "off_season"
+    event_group_key: str | None = None
+    missing_context: bool = False
+    members: list["LeagueChangeDetail"] = []
+    canonical_type: str | None = None
 
 
 class SeasonChangeFlags(BaseModel):

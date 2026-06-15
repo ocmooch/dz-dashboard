@@ -34,6 +34,25 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   `docs/plans/rivalries-insights.md`. **Carries the same pre-existing `dev` baseline breakage** —
   see Open items below (now escalated).
 
+- **/seasons league-changes tiered classifier — built on `feature/seasons-league-changes`
+  (cut from `dev`), awaiting PR.** Replaces the old 6-regex `_SETTING_PATTERNS` (silently dropped
+  ~88% of 267 `setting_change` rows) with a full auditable classifier in new
+  `analytics/league_changes.py`: every row → canonical type · tier (T1/T2/T3) · human label ·
+  rephrased sentence · off/in-season phase · aggregate-to-event · 2021 re-attribution, **nothing
+  dropped** (catch-all → T3). `WEEK1_KICKOFF` table validated against the 267-row phase oracle.
+  `league_history.league_timeline()` feeds it the resolved-category set so roster/scoring headlines
+  are absorbed by the state-table diff. `LeagueChangeDetail` schema extended (tier/phase/
+  human_label/members/missing_context/canonical_type) + client regenerated; `LeagueHistoryPage.tsx`
+  renders the 3 tiers, in-season marker, missing-context affordance, and expandable members.
+  Real-DB check (2026-06-14, `../danger-zone/data/fantasy.db`): 264 leaves + 3 state-absorbed =
+  267 (nothing dropped); FAAB merge, division realignments, 2014 schedule rebuild, 2018 waiver
+  reorder, 2021 Adjusted-Pts, commissioner-handoff noise filter all correct. Tests: new
+  `tests/test_league_changes.py` (classify/phase-oracle/aggregation, no DB) + fixture-backed
+  integration in `tests/test_league_history.py` (seeded 2016 `setting_change` rows). Backend
+  298 pass + ruff/mypy clean; frontend 153 pass + typecheck. Plan:
+  `docs/plans/seasons-league-changes-IMPL-PLAN.md`. **Carries the same pre-existing `dev` baseline
+  breakage** (see Open items).
+
 **Recently merged (since the 2026-06-08 doc consolidation):**
 
 - **P12 — Player injury reports (BFF + UI) — MERGED, PR #53.** `analytics/matchups.py` joins
