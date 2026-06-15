@@ -57,6 +57,5 @@ def test_fixture_audit_keeps_every_drift_path_alive(session: Session) -> None:
 
     missing = [path for path in _EXPECTED_DRIFT_PATHS if counts.get(path, 0) < 1]
     assert not missing, (
-        f"drift-handling path(s) no longer exercised by the audit: {missing}; "
-        f"counts={counts}"
+        f"drift-handling path(s) no longer exercised by the audit: {missing}; counts={counts}"
     )
