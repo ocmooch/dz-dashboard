@@ -27,6 +27,7 @@ from ff_pipeline.repository.queries import (
     get_player,
     get_season,
     get_team,
+    injury_reports_for_week,
     matchups_for_team,
     player_season_teams,
     roster_for_team_week,
@@ -37,6 +38,7 @@ from sqlalchemy import func, select
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
+from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import _authoritative_points, roster_sort_key
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -136,6 +138,10 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         ).all()
         scored = {int(pid): float(pts) for pid, pts in rows if pts is not None}
 
+    # Week-scoped injury designations — the same normalized field set the box
+    # score surfaces, so a player reads identically on both views for that week.
+    injuries = injury_reports_for_week(session, season.year, effective_week)
+
     players = []
     for roster_row, player in pairs:
         # Prefer NFL.com's authoritative per-player points; fall back to the
@@ -155,6 +161,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "league_points": round(points, 2) if points is not None else None,
                 "acquisition_type": roster_row.acquisition_type,
                 "acquisition_week": roster_row.acquisition_week,
+                **injury_fields(injuries.get(player.player_id)),
             }
         )
 

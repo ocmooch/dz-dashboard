@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
+import { InjuryBadge } from "@/components/InjuryBadge";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
@@ -99,17 +100,6 @@ function LineupTable({ team }: { team: BoxTeam }) {
   );
 }
 
-function InjuryBadge({ status, bodyPart }: { status: string; bodyPart?: string | null }) {
-  const short = status === "Questionable" ? "Q" : status;
-  const label = bodyPart ? `${short} · ${bodyPart}` : short;
-  const color = status === "Out" || status === "Doubtful" ? "var(--loss)" : "var(--warn)";
-  return (
-    <span className="ml-1 text-[var(--fs-xs)]" style={{ color }}>
-      {label}
-    </span>
-  );
-}
-
 function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
   const value = num(p.league_points);
   // For a known absence (bye or inactive) replace the bare "0.0 BYE"/"0.0 DNP"
@@ -158,7 +148,12 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         {p.player_name ?? "—"}
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
         {p.injury_status != null && (
-          <InjuryBadge status={p.injury_status} bodyPart={p.injury_body_part} />
+          <InjuryBadge
+            status={p.injury_status}
+            bodyPart={p.injury_body_part}
+            secondary={p.injury_secondary}
+            practiceStatus={p.injury_practice_status}
+          />
         )}
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>

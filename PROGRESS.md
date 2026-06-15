@@ -53,6 +53,22 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   `docs/plans/seasons-league-changes-IMPL-PLAN.md`. **Carries the same pre-existing `dev` baseline
   breakage** (see Open items).
 
+- **Injury-report enrichment (extends P12) — built on `feature/injury-enrichment` (cut from
+  `dev`), awaiting PR.** P12 surfaced only `report_status` + `report_primary_injury` on the box
+  score; this folds in the two unused upstream fields (`practice_status`, `report_secondary_injury`)
+  and adds the badge to the **week-scoped team roster** as well. New shared normalizer
+  `analytics/injuries.py` (`injury_fields`) decides what counts as a real designation (gates to
+  Out/Doubtful/Questionable/Probable; blank/"Note" → no badge), a real body part (drops nflverse
+  "Not injury related…" notes from **both** primary and secondary), and a short practice code
+  (DNP/Ltd/Full/Out). Consumed by both `matchups.py` (box score) and `teams.py` (`team_roster`
+  joins `injury_reports_for_week`); `BoxPlayer` + `TeamRosterPlayer` schemas gain
+  `injury_secondary`/`injury_practice_status` (client regenerated, no drift). Frontend: shared
+  `web/src/components/InjuryBadge.tsx` renders `Status · Primary[/Secondary] · PracticeCode` inline
+  with a full-sentence tooltip; "Out" practice not repeated behind an "Out" status. Real-DB check
+  (2024 wk1): McCaffrey `Q · Calf/Achilles · Ltd`, Marquise Brown `Out · Shoulder · DNP`, Chase's
+  "resting player" note suppressed. Tests: new `tests/test_injuries.py` (9, no DB) +
+  `InjuryBadge.test.tsx` (5). Full gate green (314 backend / 159 frontend).
+
 **Recently merged (since the 2026-06-08 doc consolidation):**
 
 - **P12 — Player injury reports (BFF + UI) — MERGED, PR #53.** `analytics/matchups.py` joins
@@ -102,6 +118,8 @@ S1–S8 covering everything below. Summary:
 
 - Rivalries-insights surfaces (open branch): `src/ff_dashboard/analytics/rivalries.py`,
   `src/ff_dashboard/api/routes/rivalries.py`, `web/src/features/rivalries/RivalryInsights.tsx`
+- Injury-enrichment surfaces (open branch): `src/ff_dashboard/analytics/injuries.py`,
+  `web/src/components/InjuryBadge.tsx` (used by `BoxScorePage.tsx` + `teams/TeamPage.tsx`)
 - **Escalated baseline debt:** `src/ff_dashboard/analytics/conferences.py` (mypy/ruff, Phase-1
   `Team.conference_id` drift; also imported by `analytics/bracket.py` and routed at
   `GET /v1/seasons/{id}/conferences`), `tests/test_p5_matchups_unit.py` (stale `lineup_score_gap` /

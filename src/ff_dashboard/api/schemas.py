@@ -934,6 +934,8 @@ class BoxPlayer(BaseModel):
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
+    injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
+    injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
 
 
 class BoxTeam(BaseModel):
@@ -996,6 +998,10 @@ class TeamRosterPlayer(BaseModel):
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
     acquisition_type: str | None = None
     acquisition_week: int | None = None
+    injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
+    injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
+    injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
+    injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
 
 
 class TeamRosterOut(BaseModel):

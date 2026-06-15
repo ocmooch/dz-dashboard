@@ -828,6 +828,10 @@ export interface components {
             injury_status?: string | null;
             /** Injury Body Part */
             injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
         };
         /** BoxScore */
         BoxScore: {
@@ -2657,6 +2661,14 @@ export interface components {
             acquisition_type?: string | null;
             /** Acquisition Week */
             acquisition_week?: number | null;
+            /** Injury Status */
+            injury_status?: string | null;
+            /** Injury Body Part */
+            injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
         };
         /** TeamSchedule */
         TeamSchedule: {
