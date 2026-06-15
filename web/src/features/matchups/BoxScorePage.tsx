@@ -67,7 +67,7 @@ function LineupTable({ team }: { team: BoxTeam }) {
           <th>Player</th>
           <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
           <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
-          <th className="dz-num" title="Actual vs projected (+/− delta). hit = beat projection; miss = fell short.">Value</th>
+          <th className="dz-num" title="Actual vs projected (+/− delta).">Value</th>
           <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
         </tr>
       </thead>
@@ -135,12 +135,6 @@ function ScoreCell({ p, muted }: { p: BoxPlayer; muted?: boolean }) {
 }
 
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
-  const valueLabel =
-    p.lineup_value === "starter_hit"
-      ? "hit"
-      : p.lineup_value === "starter_miss"
-        ? "miss"
-        : null;
   return (
     <tr>
       <td className="num text-faint">{p.roster_slot ?? "—"}</td>
@@ -177,7 +171,6 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         >
           {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
         </span>
-        {valueLabel && <span className="ml-1 text-[var(--fs-xs)] text-faint">{valueLabel}</span>}
       </td>
       <td className="dz-num">
         {!p.available ? (

@@ -169,6 +169,11 @@ S1–S8 covering everything below. Summary:
 - Residual non-blocker from F-53 verification: 1–2 phantom **week-1-only** teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   roster-churn corruption; belongs with owner/team-identity research (F-06).
+- **Zero-score / gap audit follow-up:** ad hoc box-score fix lives on
+  `feature/matchup-zero-status`; follow-up plan is `docs/plans/zero-score-gap-audit.md`. The
+  remaining work is to prove every week-scoped player-score surface is covered, safe-ignore, or
+  explicitly unresolved. Injury / in-out designations are intentionally week-scoped only and are
+  irrelevant to season/career summary pages.
 - League relevance = **ever-rostered only** (not "ever scored"): the pipeline scores the whole
   NFL, so "scored" is not a league-relevance signal.
 - F-49 remains upstream: playoff/consolation metadata is insufficient to compute `made_playoffs`

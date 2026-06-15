@@ -82,6 +82,8 @@ const BOX = {
         is_starter: true,
         breakdown: { passing: 24 },
         projection: null,
+        projection_delta: null,
+        lineup_value: null,
         available: true,
         reason: null,
       },
@@ -276,7 +278,7 @@ describe("BoxScorePage", () => {
     );
   });
 
-  it("labels a no-stat IR player 'IR' and other absences '—', not a data gap", async () => {
+  it("labels did-not-play zeroes as Out, not a data gap", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
         envelope({
@@ -302,24 +304,30 @@ describe("BoxScorePage", () => {
                 player_id: 30,
                 player_name: "Hurt Hero",
                 position: "WR",
-                league_points: null,
+                league_points: 0,
                 is_starter: false,
                 breakdown: {},
                 projection: null,
+                projection_delta: null,
                 available: true,
                 reason: null,
+                zero_reason: "did_not_play",
+                zero_detail: null,
               },
               {
                 roster_slot: "BN",
                 player_id: 31,
                 player_name: "Bye Week Body",
                 position: "RB",
-                league_points: null,
+                league_points: 0,
                 is_starter: false,
                 breakdown: {},
                 projection: null,
+                projection_delta: null,
                 available: true,
                 reason: null,
+                zero_reason: "did_not_play",
+                zero_detail: null,
               },
             ],
           },
@@ -328,16 +336,49 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/77");
-    // The points cell (last column) carries the label; scope to each row so the
-    // slot column ("IR") and empty projections ("—") don't create false matches.
     const irRow = (await screen.findByText("Hurt Hero")).closest("tr")!;
     const irCells = within(irRow).getAllByRole("cell");
-    expect(irCells[irCells.length - 1]).toHaveTextContent("—");
+    expect(irCells[irCells.length - 1]).toHaveTextContent("Out");
     const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
     const byeCells = within(byeRow).getAllByRole("cell");
-    expect(byeCells[byeCells.length - 1]).toHaveTextContent("—");
+    expect(byeCells[byeCells.length - 1]).toHaveTextContent("Out");
     // Neither is the amber honesty/data-gap affordance.
     expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
+  });
+
+  it("uses the signed value color without repeating hit or miss copy", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          home: {
+            ...BOX.home,
+            lineup: [
+              {
+                ...BOX.home.lineup[0],
+                projection: 20,
+                projection_delta: 4,
+                lineup_value: "starter_hit",
+              },
+              {
+                ...BOX.home.lineup[1],
+                projection: 3,
+                projection_delta: -3,
+                lineup_value: "starter_miss",
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+
+    const positive = await screen.findByText("+4.00");
+    const negative = await screen.findByText("-3.00");
+    expect(positive).toHaveClass("text-win");
+    expect(negative).toHaveClass("text-loss");
+    expect(screen.queryByText("hit")).not.toBeInTheDocument();
+    expect(screen.queryByText("miss")).not.toBeInTheDocument();
   });
 
   it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {

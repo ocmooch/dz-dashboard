@@ -843,6 +843,25 @@ def _populate(session: Session) -> None:
         )
     )
 
+    # --- A non-defense bench player with no raw/scored row is a confirmed
+    #     did-not-play zero in a scored box score, not a scoring-coverage gap.
+    no_stat_wr = Player(name_full="No Stat Bench Guy", position="WR", nfl_team="SEA")
+    session.add(no_stat_wr)
+    session.flush()
+    session.add(
+        TeamRoster(
+            team_id=team_id[(2017, "goose")],
+            player_id=no_stat_wr.player_id,
+            season_year=2017,
+            week=1,
+            roster_slot="BN",
+            is_starter=False,
+            acquisition_type="draft",
+            acquisition_week=1,
+            extra_data={"snapshot_kind": "history", "opponent": "LAR"},
+        )
+    )
+
     # --- Zero-point context the box score must explain, again on Goose's bench:
     #       * a player whose NFL team was on bye (extra_data.opponent == "Bye")
     #         scored 0 — labelled "bye", not a fake gap; and
