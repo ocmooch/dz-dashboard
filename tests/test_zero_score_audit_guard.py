@@ -1,7 +1,7 @@
 """CI guardrail for the zero-score / DST drift audit.
 
-This is the deliberately *top-level* double-check for the work captured in
-``docs/plans/zero-score-gap-audit.md``. It runs the same read-only audit as
+This is the deliberately *top-level* double-check for the matchup zero-status /
+DST drift work (merged in PR #67). It runs the same read-only audit as
 ``scripts/audit_zero_score_gaps.py`` against the fixture DB inside the normal
 pytest gate, so a regression that reintroduces an unexpected NFL.com-0 /
 nflverse-nonzero row — or silently collapses the missing-DST gap into a fake

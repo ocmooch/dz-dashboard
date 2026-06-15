@@ -10,9 +10,10 @@ Copy/paste the prompt below into a fresh Claude Code session in the Phase 1 repo
 Phase 2. As in Phase 1, run one long session per milestone (the milestones in
 `docs/09_ROADMAP.md` are sized to fit).
 
-> **Before you start:** work through `prerequisites.md` and answer the sign-off questions in
-> `docs/10_OPEN_QUESTIONS.md`. Paste your answers into the kickoff so Claude Code builds the
-> stack/visual direction you actually want, not the defaults.
+> **Before you start (historical):** the bootstrap step worked through a `prerequisites.md` brief
+> (retired in the 2026-06-15 doc cleanup; see git history) and answered the sign-off questions in
+> `docs/10_OPEN_QUESTIONS.md`. The resolved answers (Q1–Q7) are recorded in
+> `docs/archive/COMPLETED_WORK.md` §6.
 
 ---
 

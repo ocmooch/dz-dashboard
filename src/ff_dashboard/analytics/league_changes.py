@@ -8,7 +8,7 @@ a deliberate same-day/same-type cluster — collapsed into one elevated event.
 and every routine row lands in a per-season collapsible bucket.
 
 The per-type spec is the locked Decisions log in
-``docs/plans/seasons-league-changes-inventory.md`` (#1-#31). Roster/scoring detail
+``docs/archive/seasons-league-changes-inventory.md`` (#1-#31). Roster/scoring detail
 is resolved from the state tables in :mod:`ff_dashboard.analytics.league_history`
 (``_roster_changes`` / ``_scoring_rule_changes``); the matching headline here is
 absorbed when that concrete diff is already shown for the season.
