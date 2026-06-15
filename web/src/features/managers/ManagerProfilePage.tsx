@@ -19,6 +19,8 @@ import type { components } from "@/lib/api/schema";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
+import { ManagerStory, type OwnerStoryData } from "./ManagerStory";
+
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
 type RivalryMatrix = components["schemas"]["RivalryMatrix"];
 type CommissionerTerm = components["schemas"]["CommissionerTerm"];
@@ -51,6 +53,14 @@ async function fetchRivalryMatrix() {
   const { data, error } = await api.GET("/v1/owners/rivalry-matrix");
   if (error || !data) throw new Error("Failed to load rivalries");
   return data.data;
+}
+
+async function fetchStory(id: number) {
+  const { data, error } = await api.GET("/v1/owners/{owner_id}/story", {
+    params: { path: { owner_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load story");
+  return data.data as OwnerStoryData;
 }
 
 /** A scored season always books points; a record-only (pre-coverage) season comes
@@ -179,6 +189,7 @@ export function ManagerProfilePage() {
   const seasons = useQuery({ queryKey: qk.ownerSeasons(ownerId), queryFn: () => fetchSeasons(ownerId), enabled });
   const trajectory = useQuery({ queryKey: qk.ownerTrajectory(ownerId), queryFn: () => fetchTrajectory(ownerId), enabled });
   const matrix = useQuery({ queryKey: qk.rivalryMatrix, queryFn: fetchRivalryMatrix, enabled });
+  const story = useQuery({ queryKey: qk.ownerStory(ownerId), queryFn: () => fetchStory(ownerId), enabled });
 
   if (career.isError) {
     return (
@@ -223,6 +234,9 @@ export function ManagerProfilePage() {
       </div>
 
       {career.isLoading && <Skeleton className="h-40 w-full" />}
+
+      {story.isLoading && <Skeleton className="h-40 w-full" />}
+      {story.data && <ManagerStory story={story.data} />}
 
       {c && (
         <Card className="p-5">

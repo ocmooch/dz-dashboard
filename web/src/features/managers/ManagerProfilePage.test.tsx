@@ -47,6 +47,37 @@ const MATRIX = {
   ],
 };
 
+// A story with a signature win + a favourite victim present, but the nemesis and
+// luck lines gated out (null) — the band must render the present lines and omit
+// the absent ones entirely, never a forced 0.
+const STORY = {
+  owner: { owner_id: 1, display_name: "Alpha" },
+  available: true,
+  signature_win: {
+    opponent: { owner_id: 2, display_name: "Bravo" },
+    owner_score: 150,
+    opponent_score: 80,
+    margin: 70,
+    season_year: 2020,
+    week: 4,
+    matchup_id: 555,
+    is_playoff: false,
+  },
+  heartbreak: null,
+  high_water_mark: null,
+  nemesis: null,
+  favorite_victim: {
+    opponent: { owner_id: 2, display_name: "Bravo" },
+    games: 4,
+    wins: 3,
+    losses: 1,
+    ties: 0,
+    win_pct: 0.75,
+  },
+  luckiest_season: null,
+  unluckiest_season: null,
+};
+
 function mockEndpoints() {
   mockGet.mockImplementation((path: string) => {
     if (path === "/v1/owners/{owner_id}") return Promise.resolve({ data: { data: CAREER, meta: {} } });
@@ -54,6 +85,7 @@ function mockEndpoints() {
       return Promise.resolve({ data: { data: { owner_id: 1, display_name: "Alpha", seasons: SEASONS }, meta: {} } });
     if (path === "/v1/owners/{owner_id}/trajectory")
       return Promise.resolve({ data: { data: { owner_id: 1, display_name: "Alpha", points: TRAJ }, meta: {} } });
+    if (path === "/v1/owners/{owner_id}/story") return Promise.resolve({ data: { data: STORY, meta: {} } });
     if (path === "/v1/owners/rivalry-matrix") return Promise.resolve({ data: { data: MATRIX, meta: {} } });
     return Promise.resolve({ error: { detail: "unexpected" } });
   });
@@ -95,7 +127,9 @@ describe("ManagerProfilePage", () => {
     mockEndpoints();
     renderProfile();
 
-    const rival = await screen.findByRole("link", { name: /Bravo/ });
+    // Scope to the rivalry snapshot via its unique "GP" line (the story band also
+    // links to Bravo as the favourite victim).
+    const rival = (await screen.findByText(/4 GP/)).closest("a")!;
     expect(rival).toHaveAttribute("href", "/rivalries/1/vs/2");
     expect(rival).toHaveTextContent("4 GP");
   });
@@ -106,6 +140,28 @@ describe("ManagerProfilePage", () => {
 
     const latest = await screen.findByRole("link", { name: /Latest roster \(2020\)/i });
     expect(latest).toHaveAttribute("href", "/teams/101");
+  });
+
+  it("leads with the Your Story band, links to receipts, and omits gated-out lines", async () => {
+    mockEndpoints();
+    renderProfile();
+
+    // The lead band renders with its present superlatives.
+    expect(await screen.findByText("Your Story")).toBeInTheDocument();
+    expect(screen.getByText("Signature win")).toBeInTheDocument();
+    expect(screen.getByText("Favorite victim")).toBeInTheDocument();
+
+    // Signature win deep-links to the box score; favourite victim to the pairwise page.
+    const sig = screen.getByText("Signature win").closest("a")!;
+    expect(sig).toHaveAttribute("href", "/matchups/555");
+    const vic = screen.getByText("Favorite victim").closest("a")!;
+    expect(vic).toHaveAttribute("href", "/rivalries/1/vs/2");
+
+    // Gated-out (null) superlatives are simply absent — never a forced 0 / empty row.
+    expect(screen.queryByText("Kryptonite")).not.toBeInTheDocument();
+    expect(screen.queryByText("Heartbreak")).not.toBeInTheDocument();
+    expect(screen.queryByText("Luckiest season")).not.toBeInTheDocument();
+    expect(screen.queryByText("Robbed")).not.toBeInTheDocument();
   });
 
   it("renders a not-found state when the owner does not exist", async () => {

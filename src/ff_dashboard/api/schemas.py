@@ -203,6 +203,8 @@ class StandingsInsights(BaseModel):
     through_week: int
     available: bool
     reason: str | None = None
+    most_robbed: StandingsInsightTeam | None = None
+    most_blessed: StandingsInsightTeam | None = None
     teams: list[StandingsInsightTeam]
 
 
@@ -531,6 +533,29 @@ class OwnerTrajectory(BaseModel):
     owner_id: int
     display_name: str | None = None
     points: list[TrajectoryPoint]
+
+
+class OwnerStory(BaseModel):
+    """The "Your Story" lead band on a manager profile.
+
+    Each superlative is its own rich, deep-linkable object (matchup_id, opponent
+    ref, scores) or ``None`` when it does not clear its min-sample bar — never a
+    forced 0 or fake value. The frontend reads each field and renders the line only
+    when present, so the model stays extra-permissive rather than enumerating a
+    class per superlative.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    owner: OwnerRef
+    available: bool
+    signature_win: dict[str, Any] | None = None
+    heartbreak: dict[str, Any] | None = None
+    high_water_mark: dict[str, Any] | None = None
+    nemesis: dict[str, Any] | None = None
+    favorite_victim: dict[str, Any] | None = None
+    luckiest_season: dict[str, Any] | None = None
+    unluckiest_season: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------

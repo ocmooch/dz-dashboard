@@ -21,6 +21,37 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   history lives in `docs/archive/COMPLETED_WORK.md`; the remaining open scope in
   `docs/ACTIVE_WORK.md`.
 
+- **Engagement / "Rivalries strength" spread — building on `feature/engagement-rivalries-strength`
+  (cut from `dev`), awaiting PR.** Spreads the Rivalries lens across the app by tier (plan +
+  noise guardrail in `docs/plans/engagement-rivalries-strength.md`). **Item A shipped (Tier 2):**
+  the Standings "Schedule Luck" card is reframed as **"Robbed & Blessed"** — two voiced callouts
+  (most-robbed = lowest `luck_delta`, most-blessed = highest) lead the existing ranked list, each
+  deep-linking to the manager profile (`/managers/{owner_id}`); rows now link to profiles too.
+  The pick is **server-side** (`standings_insights` returns `most_robbed`/`most_blessed`, ties →
+  lower `team_id`) to keep the frontend math-free; `StandingsInsights` schema + client regenerated
+  (no drift). Per-season scope unchanged; unavailable seasons (e.g. seeded-but-unplayed 2018) stay
+  `DataGap`, never a 0. Tests: extended `test_p2_analytics_unit.py` (picks/tie-break/unplayed-gap)
+  + `test_p2_endpoints.py` + `StandingsPage.test.tsx` (callouts render + link + DataGap).
+  **Item B shipped (Tier 3):** the Manager-profile **"Your Story"** lead band. New pure reducer
+  `analytics/owner_story.py:owner_story()` over `head_to_head.all_pairwise()` + per-season
+  `standings_insights` luck + `owner_seasons`, surfaced at `GET /v1/owners/{id}/story`
+  (`OwnerStory` schema; client regenerated, gen:api stable). Superlatives: signature win (biggest
+  beating), heartbreak (closest loss, prefers a playoff elimination), high-water mark, nemesis +
+  favourite victim (reuse `MIN_NEMESIS_GAMES=3`), luckiest/unluckiest season (**sign-gated** — a
+  "luckiest" line only when max `luck_delta`>0, "robbed" only when min<0). Every gated-out
+  superlative is **absent (None)**, never a forced 0; each present line deep-links (box score /
+  pairwise). Frontend `ManagerStory.tsx` (mirrors `RivalryInsights.tsx`) renders as the lead band
+  above the existing cards; omits absent lines; hides entirely when nothing clears. Tests:
+  `test_owner_story.py` (Maverick rich case + Viper sparse-but-valid + both sign gates + min-sample)
+  + `test_p2_endpoints.py` + extended `ManagerProfilePage.test.tsx`. The **per-manager epithet**
+  was presented as a SEPARATE reviewable proposal, including thresholds and real-DB assignments
+  (`docs/plans/owner-epithet-proposal.md`), but was **not retained in code**: the VERIFY assignment
+  pass gave 12 managers an epithet, mostly "The Lucky Devil", so it failed the "earned, not noisy"
+  bar without product-owner sign-off. VERIFY complete on 2026-06-15: full gate green (326 backend /
+  162 frontend; no frontend `lint` script exists), e2e green after the intended Standings visual
+  baseline update, and running-app click-through passed for `/standings` → `/managers/11` plus
+  direct `/managers/11` with the "Your Story" band visible.
+
 - **Rivalries page insight bands — landed on `feature/rivalries-insights`, awaiting PR to `dev`
   (the only open local branch).** Five league-wide bands below the rivalry matrix fed by one bundle
   endpoint `GET /v1/rivalries/insights` (`api/routes/rivalries.py` → `analytics/rivalries.py`, built

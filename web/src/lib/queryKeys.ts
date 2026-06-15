@@ -13,6 +13,7 @@ export const qk = {
   owner: (ownerId: number) => ["owners", ownerId] as const,
   ownerSeasons: (ownerId: number) => ["owners", ownerId, "seasons"] as const,
   ownerTrajectory: (ownerId: number) => ["owners", ownerId, "trajectory"] as const,
+  ownerStory: (ownerId: number) => ["owners", ownerId, "story"] as const,
   rivalryMatrix: ["owners", "rivalry-matrix"] as const,
   rivalryInsights: ["rivalries", "insights"] as const,
   headToHead: (a: number, b: number) => ["owners", "head-to-head", a, b] as const,

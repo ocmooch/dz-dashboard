@@ -310,6 +310,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/owners/{owner_id}/story": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Owner Story */
+        get: operations["get_owner_story_v1_owners__owner_id__story_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/owners/{owner_id}/trajectory": {
         parameters: {
             query?: never;
@@ -1245,6 +1262,11 @@ export interface components {
             data: components["schemas"]["OwnerSeasons"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[OwnerStory] */
+        Envelope_OwnerStory_: {
+            data: components["schemas"]["OwnerStory"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[OwnerTrajectory] */
         Envelope_OwnerTrajectory_: {
             data: components["schemas"]["OwnerTrajectory"];
@@ -1859,6 +1881,51 @@ export interface components {
             display_name?: string | null;
             /** Seasons */
             seasons: components["schemas"]["OwnerSeasonRow"][];
+        };
+        /**
+         * OwnerStory
+         * @description The "Your Story" lead band on a manager profile.
+         *
+         *     Each superlative is its own rich, deep-linkable object (matchup_id, opponent
+         *     ref, scores) or ``None`` when it does not clear its min-sample bar — never a
+         *     forced 0 or fake value. The frontend reads each field and renders the line only
+         *     when present, so the model stays extra-permissive rather than enumerating a
+         *     class per superlative.
+         */
+        OwnerStory: {
+            owner: components["schemas"]["OwnerRef"];
+            /** Available */
+            available: boolean;
+            /** Signature Win */
+            signature_win?: {
+                [key: string]: unknown;
+            } | null;
+            /** Heartbreak */
+            heartbreak?: {
+                [key: string]: unknown;
+            } | null;
+            /** High Water Mark */
+            high_water_mark?: {
+                [key: string]: unknown;
+            } | null;
+            /** Nemesis */
+            nemesis?: {
+                [key: string]: unknown;
+            } | null;
+            /** Favorite Victim */
+            favorite_victim?: {
+                [key: string]: unknown;
+            } | null;
+            /** Luckiest Season */
+            luckiest_season?: {
+                [key: string]: unknown;
+            } | null;
+            /** Unluckiest Season */
+            unluckiest_season?: {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
         };
         /** OwnerTrajectory */
         OwnerTrajectory: {
@@ -2511,6 +2578,8 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            most_robbed?: components["schemas"]["StandingsInsightTeam"] | null;
+            most_blessed?: components["schemas"]["StandingsInsightTeam"] | null;
             /** Teams */
             teams: components["schemas"]["StandingsInsightTeam"][];
         };
@@ -3274,6 +3343,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_OwnerSeasons_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_owner_story_v1_owners__owner_id__story_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_OwnerStory_"];
                 };
             };
             /** @description Validation Error */
