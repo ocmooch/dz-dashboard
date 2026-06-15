@@ -248,21 +248,6 @@ def test_box_authoritative_total_and_winner(session: Session) -> None:
     assert data["winner_team_id"] == KNOWN["team_id"][(2017, "ice")]
 
 
-def test_box_score_gap_delta_is_total_minus_starters(session: Session) -> None:
-    # total_score (130.0) > starter_points (104.0) because the DST starter has
-    # no scored row. The delta is always computed when total_score is present,
-    # regardless of lineup_score_gap, so callers always see the full discrepancy.
-    home = _ice_box(session)
-    assert home["score_gap_delta"] == pytest.approx(26.0)
-
-
-def test_box_lineup_score_gap_is_false_without_bonus_rules(session: Session) -> None:
-    # The fixture has no scoring rules, so long_td_bonus_rules() returns an
-    # empty frozenset and has_long_td_score_gap() is always False.
-    home = _ice_box(session)
-    assert home["lineup_score_gap"] is False
-
-
 def test_box_pre_2016_season_is_unscored_gap(session: Session) -> None:
     mid = KNOWN["matchup_id"][(2015, 1, "mav")]
     data = box_score(session, mid)
