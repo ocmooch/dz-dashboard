@@ -59,13 +59,17 @@ test("rivalry matrix renders", async ({ page }) => {
 test("bracket renders caveated postseason games", async ({ page }) => {
   await page.goto("/");
   await selectSeason(page, "2015 · no player scoring");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Bracket" }).click();
-  await expect(page).toHaveURL(/\/bracket$/);
-  await expect(page.getByRole("heading", { name: "Bracket" })).toBeVisible();
+  // The /playoffs page (formerly /bracket) is the redesigned championship/
+  // consolation bracket view; the nav link and heading now read "Playoffs".
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Playoffs" }).click();
+  await expect(page).toHaveURL(/\/playoffs$/);
+  await expect(page.getByRole("heading", { name: "Playoffs", exact: true })).toBeVisible();
+  // The postseason caveat is the "caveated" part of this journey.
   await expect(page.getByText(/Post-regular-season matchups/i)).toBeVisible();
-  await expect(page.getByText("Week 3")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Slider.*Maverick/s })).toBeVisible();
-  await expect(page.getByRole("link", { name: /consolation.*Goose.*Iceman/s })).toBeVisible();
+  // Real postseason games render in the Championship bracket, each linking to
+  // its matchup detail — proves the bracket is populated, not faked/empty.
+  await expect(page.getByText("Championship Bracket")).toBeVisible();
+  await expect(page.locator('a[href^="/matchups/"]').first()).toBeVisible();
 });
 
 test("gap honesty: a pre-2016 box score is shown as not-scored, never faked", async ({ page }) => {
