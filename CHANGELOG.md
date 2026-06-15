@@ -4,6 +4,19 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-15 — Release v0.2.0 (dev → main promotion)
+
+- **Version bumped `0.1.0` → `0.2.0`** (`pyproject.toml`, `web/package.json` + lock) and `dev`
+  promoted to `main`, tagged `v0.2.0`. Minor bump: a batch of new features since `v0.1.0`, no
+  breaking changes (pre-1.0).
+- **What landed since the last release (PRs #59–#69):** resolve headline-only NFL.com setting edits
+  (#59), playoffs championship/consolation bracket split (#60), league-wide rivalry insight bands
+  (#61), tiered `/seasons` setting-change classifier (#62), stale-matchups/conferences mypy fixes
+  (#63), dev e2e + format debt cleanup (#64), injury enrichment across box score + team roster (#65),
+  Rivalries strength spread across Standings + manager profiles (#66), matchup zero-status semantics
+  + CI drift guard (#67), documentation archive cleanup (#68), and the two-workflow CI split with
+  path-scoped e2e (#69).
+
 ## 2026-06-15 — Documentation cleanup: merge-wave reconciliation + retire obsolete tooling
 
 - **Reconciled the docs against the #61–#67 merge wave.** Every branch the prior docs called
