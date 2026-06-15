@@ -31,8 +31,22 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   lower `team_id`) to keep the frontend math-free; `StandingsInsights` schema + client regenerated
   (no drift). Per-season scope unchanged; unavailable seasons (e.g. seeded-but-unplayed 2018) stay
   `DataGap`, never a 0. Tests: extended `test_p2_analytics_unit.py` (picks/tie-break/unplayed-gap)
-  + `test_p2_endpoints.py` + `StandingsPage.test.tsx` (callouts render + link + DataGap). Full gate
-  green (317 backend / 161 frontend). **Item B (Manager-profile "Your Story") not yet built.**
+  + `test_p2_endpoints.py` + `StandingsPage.test.tsx` (callouts render + link + DataGap).
+  **Item B shipped (Tier 3):** the Manager-profile **"Your Story"** lead band. New pure reducer
+  `analytics/owner_story.py:owner_story()` over `head_to_head.all_pairwise()` + per-season
+  `standings_insights` luck + `owner_seasons`, surfaced at `GET /v1/owners/{id}/story`
+  (`OwnerStory` schema; client regenerated, gen:api stable). Superlatives: signature win (biggest
+  beating), heartbreak (closest loss, prefers a playoff elimination), high-water mark, nemesis +
+  favourite victim (reuse `MIN_NEMESIS_GAMES=3`), luckiest/unluckiest season (**sign-gated** — a
+  "luckiest" line only when max `luck_delta`>0, "robbed" only when min<0). Every gated-out
+  superlative is **absent (None)**, never a forced 0; each present line deep-links (box score /
+  pairwise). Frontend `ManagerStory.tsx` (mirrors `RivalryInsights.tsx`) renders as the lead band
+  above the existing cards; omits absent lines; hides entirely when nothing clears. Tests:
+  `test_owner_story.py` (Maverick rich case + Viper sparse-but-valid + both sign gates + min-sample)
+  + `test_p2_endpoints.py` + extended `ManagerProfilePage.test.tsx`. The **per-manager epithet** is
+  built as a SEPARATE reviewable proposal — `assign_epithet()` + documented/tested thresholds, but
+  **NOT wired** into the endpoint/UI; awaiting product-owner sign-off (`docs/plans/owner-epithet-proposal.md`).
+  Full gate green (330 backend / 162 frontend). VERIFY (click-through + epithet sign-off) pending.
 
 - **Rivalries page insight bands — landed on `feature/rivalries-insights`, awaiting PR to `dev`
   (the only open local branch).** Five league-wide bands below the rivalry matrix fed by one bundle
