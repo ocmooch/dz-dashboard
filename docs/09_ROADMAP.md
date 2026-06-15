@@ -10,15 +10,26 @@ on earlier milestones. Two ordering rules are deliberate:
 
 ## Milestone summary
 
-**As-built status (2026-06-07):** P0-P11 are complete. P11 includes Makefile/runbook,
-`make dev`/`make serve`, CI jobs, e2e journeys, a visual-regression spec, committed
-Chromium/Linux screenshot baselines, and the visual spec in CI.
+**As-built status (2026-06-14):** P0–P12 are all complete and merged to `dev` (promoted to
+`main` via PRs #56/#58). P11 includes Makefile/runbook, `make dev`/`make serve`, CI jobs, e2e
+journeys, a visual-regression spec, committed Chromium/Linux screenshot baselines, and the
+visual spec in CI. **P12** (player injury reports: Phase-1 table upstream + BFF/UI badge) merged
+as PR #53.
 
-**Post-roadmap slice — League history (2026-06-08, `feature/season-aware-team-names`):** a
-read-only league-archive product beyond P0–P11. Adds `analytics/league_history.py` (+
-`historical_team_names.py`), the `/v1/league/*` endpoints (overview/timeline/eras/stories/
-managers — see `05_API_CONTRACT.md`), and the Seasons / Rules & Eras / Stories pages plus the
-About Data nav relabel (see `07_PAGES_AND_VIEWS.md`). Still local on the feature branch.
+**Post-roadmap slices — all merged.** Beyond P0–P12, the following shipped and are archived in
+`docs/archive/COMPLETED_WORK.md`:
+- **League history** (`analytics/league_history.py` + `historical_team_names.py`, the
+  `/v1/league/*` endpoints, the Seasons / Rules & Eras / Stories pages + About Data nav).
+- **Season-aware team names**, **player zero-week fix**, **records season-correct champion**,
+  **team avatars (Q11)**.
+- **Commissioner history** (upstream table + `/league` strip, per-season badge, manager card).
+- **Playoffs/Bracket** (F2.3): caveated endpoint → true bracket visualization (#55) → split
+  championship/consolation brackets (#60).
+- **Seasons/Rules redesign** (#54) + headline-only setting-edit resolution (#59).
+- **Season-correct player NFL team** (F-54, #51).
+
+The **only un-merged** dashboard work is the rivalries-insights branch (rivalry insight bands);
+see `PROGRESS.md`.
 
 | # | Milestone | Est. | Deliverable |
 |---|-----------|------|-------------|
@@ -217,7 +228,13 @@ dashboard against the Phase 1 DB, with all tests green; PR `feature/* → dev`.
 
 ---
 
-## P12 — Player injury reports (Phase 1 + BFF + UI)
+## P12 — Player injury reports (Phase 1 + BFF + UI) — ☑ SHIPPED (PR #53)
+
+> **Build outcome:** Phase 1 `player_injury_reports` table + backfill landed upstream first;
+> the Phase 2 half (BFF join in `analytics/matchups.py` adding `injury_status` /
+> `injury_body_part`, the `BoxPlayer` schema fields, the regenerated client, and the inline
+> `InjuryBadge` + tooltip reason in `BoxScorePage.tsx`) merged as PR #53. Box-score roster layout
+> also gained IR/RES separation, game-status display, and projection-from-raw-stats (PRs #52/#53).
 
 **Goal:** Surface per-player, per-week injury designation and body part on the box score so
 "Out" becomes "Out · Knee" and "Questionable" is visible at a glance.

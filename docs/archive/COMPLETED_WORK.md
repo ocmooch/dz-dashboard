@@ -15,11 +15,11 @@ Status convention used below: ☑ = done/merged/resolved.
 
 ---
 
-## 1. Phase 2 roadmap milestones (P0–P11) — all shipped ☑
+## 1. Phase 2 roadmap milestones (P0–P12) — all shipped ☑
 
-The 12 Phase-2 build milestones from `docs/09_ROADMAP.md` are complete. Phase 2 implemented
-app features are functionally complete: a read-only FastAPI BFF, a generated-contract React
-SPA, and the full view set.
+All Phase-2 build milestones from `docs/09_ROADMAP.md` are complete and merged. Phase 2
+implemented app features are functionally complete: a read-only FastAPI BFF, a
+generated-contract React SPA, and the full view set.
 
 | # | Milestone | Status | Notes |
 |---|-----------|--------|-------|
@@ -35,6 +35,7 @@ SPA, and the full view set.
 | P9 | Power ranking + timelines | ☑ | shared chart wrappers |
 | P10 | Global search + coverage/about + gap polish | ☑ | no fake zeros anywhere |
 | P11 | Operations + docs + e2e/visual-regression | ☑ | Makefile/RUNBOOK/e2e + committed Chromium/Linux visual baselines in CI |
+| P12 | Player injury reports (Phase 1 + BFF + UI) | ☑ | injury badge + body part on box score; Phase-1 table upstream + BFF/UI (PR #53) |
 
 Supporting ops shipped with P11: root `README`, `web/README.md`, `docs/PHASE2_RUNBOOK.md`,
 `Makefile`, local service scripts (`scripts/dz-dashboard.service`, `scripts/cron.example`),
@@ -94,10 +95,41 @@ see `docs/ACTIVE_WORK.md`.
 
 ---
 
-## 3. Post-roadmap product slices landed locally ☑
+## 3. Post-roadmap product slices ☑
 
-Shipped on `feature/season-aware-team-names` (commit `67acb5b`) and earlier feature branches,
-beyond the original P0–P11 / P1–P6 scope.
+Beyond the original P0–P11 / P1–P6 scope. **All of the slices below are now merged to `dev` and
+promoted to `main` (via PRs #56/#58)** — the earlier "landed locally" framing is retired.
+
+### 3a. Merged 2026-06-09 → 2026-06-14 (newest)
+
+- **P12 — Player injury reports (BFF + UI). PR #53.** `analytics/matchups.py` joins
+  `injury_reports_for_week` and adds `injury_status` / `injury_body_part` per player; `BoxPlayer`
+  schema + regenerated client; inline `InjuryBadge` ("Out · Knee", "Q") on the box score with the
+  reason appended to the "Out" tooltip. (Phase-1 `player_injury_reports` table + backfill landed
+  upstream first.) Roadmap milestone P12 ☑.
+- **Box-score enrichment. PRs #52, #53.** IR/RES split out from bench in the roster layout, player
+  game-status display, projections computed from raw stats, and column-header tooltips.
+- **Commissioner history. PR #54-line / promoted #56.** Upstream `commissioners` table (migration
+  `b1d3e4f5a6c7`, seed YAML, loader) + `queries.commissioner_terms`;
+  `analytics/commissioners.commissioner_history`; `CommissionerTerm` on `LeagueOverview` +
+  `OwnerCareer`; commissioner strip on `/league`, per-season badge, and a manager-profile card.
+  Succession harry → sully → scott → Dave → Jeff → Chris → DJ → Rob (2024–present).
+- **Playoffs/Bracket (F2.3) — fully shipped. PRs #55, #60.** Evolved from the caveated `/bracket`
+  endpoint (§3b) into a true bracket visualization (#55), then split into separate **championship**
+  and **consolation** brackets (#60). Closes N2 as *shipped* (was "resolved locally"). F-49 source
+  metadata still upstream.
+- **Seasons / Rules & Eras redesign. PRs #54, #59.** `/seasons/` timeline rebuilt with an impact
+  hierarchy and before→after diffs; headline-only NFL.com setting edits resolved into concrete
+  change details instead of bare gaps.
+- **Season-correct player NFL team (F-54). PR #51.** `stats.py:season_totals` and
+  `teams.py:team_roster` route through upstream `queries.player_season_teams` (folds to season-era
+  codes — a 2015 Raider reads "OAK"), with a `players.nfl_team` snapshot fallback. No API shape
+  change. Real-DB: 2015 renders SD/OAK/STL.
+- **Standings 500 fix. PR #57.** Read `conference_id` via raw SQL because the Phase-1 `Team` ORM
+  does not map the column. (The same model drift still breaks `conferences.py` — tracked in
+  `docs/ACTIVE_WORK.md` §6.1.)
+
+### 3b. Earlier slices (merged PRs #47–#50; original `feature/season-aware-team-names` line)
 
 - **League-history product slice.** Read-only `/v1/league/overview`, `/v1/league/timeline`,
   `/v1/league/eras`, `/v1/league/stories`, `/v1/league/managers` backed by
@@ -118,11 +150,11 @@ beyond the original P0–P11 / P1–P6 scope.
   2025 now includes weeks 5–12 as zero-point reasoned weeks, with week 9 marked bye.
   Surfaces: `src/ff_dashboard/analytics/players.py`, `src/ff_dashboard/api/schemas.py`,
   `web/src/features/players/PlayerDetailPage.tsx`.
-- **F2.3 Playoffs/Bracket view (caveated).** Caveated `/bracket` route backed by
-  `GET /v1/seasons/{id}/bracket` (`analytics/bracket.py`). Exposes only proven post-regular-season
-  matchup rows grouped by week, with `available:false` / `bracket_unavailable` when none exist. Does
-  **not** infer a bracket tree, advancement, or playoff berth. (F-49 source metadata remains
-  upstream — see `docs/ACTIVE_WORK.md`.)
+- **F2.3 Playoffs/Bracket view (caveated — the original build).** Caveated `/bracket` route backed
+  by `GET /v1/seasons/{id}/bracket` (`analytics/bracket.py`): proven post-regular-season matchup
+  rows grouped by week, `available:false` / `bracket_unavailable` when none exist; no inferred
+  advancement. **Superseded by the full bracket visualization + championship/consolation split in
+  §3a (PRs #55/#60).** (F-49 source metadata remains upstream — see `docs/ACTIVE_WORK.md`.)
 
 ---
 
@@ -189,7 +221,8 @@ From `docs/10_OPEN_QUESTIONS.md` — settled by the as-built system.
 
 - **N1 ☑** Manager index (`/managers`) + Manager profile (`/managers/{owner_id}`) composed against
   the `/v1/owners/*` endpoints; win% client-derived; record-only seasons render a `DataGap`.
-- **N2 (resolved locally)** Playoffs/Bracket — caveated `/bracket` build (see §3).
+- **N2 ☑ (SHIPPED, PRs #55/#60)** Playoffs/Bracket — full bracket visualization split into
+  championship + consolation brackets (see §3a). F-49 source metadata still upstream.
 - **N3 ☑** `/v1/home` composite dropped in favor of client-side composition of standings + records +
   power (SPA does orchestration only, no math). Docs 02/04/05/07 updated.
 - **N4 ☑** Visual-regression baselines committed (Chromium/Linux); CI runs the full Playwright suite.
@@ -221,3 +254,8 @@ open — both tracked in `docs/ACTIVE_WORK.md`.)
 - `docs/archive/players-audit-dashboard.md` — players data-honesty audit (dashboard half)
 - `docs/archive/fix-P1-analytics.md` … `fix-P6-frontend-insights.md` — merged fix-pass plans
   (P2 has both `fix-P2-honesty.md` and `fix-P2-post-regen-redo.md`)
+- `docs/archive/deferred-product-decisions.md` — Q10–Q13 decisions + Q11 team-avatar build (merged)
+- `docs/archive/commissioner-history.md` — commissioner-history slice (merged)
+
+(The still-active plans remain in `docs/plans/`: `REVIEW_FIXES_ROADMAP.md` and
+`rivalries-insights.md` — the latter is the one open feature branch.)

@@ -16,112 +16,100 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-- **Commissioner history landed locally.** Full stack: danger-zone `commissioners` table (migration `b1d3e4f5a6c7`, seed YAML, loader script), `ff_pipeline.repository.queries.commissioner_terms`, `ff_dashboard.analytics.commissioners.commissioner_history`, `CommissionerTerm` schema on both `LeagueOverview` and `OwnerCareer`, commissioner strip on `/league` history page, per-season commissioner badge on each season entry, and a commissioner card on manager profile pages for owners who served. Commissioner history distilled from NFL.com `lm` transaction records: harry (2010–11) → sully (2012–13) → scott (2014–15) → Dave (2016–17) → Jeff (2018–19) → Chris (2020–21) → DJ (2022–23) → Rob (2024–present). 2 new backend unit tests pass. Frontend: 152 Vitest + typecheck pass.
+- **Everything below P12 is now merged to `dev` (and promoted to `main` via PRs #56/#58).** The
+  only un-merged dashboard work is the rivalries-insights branch (see next bullet). The aggregate
+  history lives in `docs/archive/COMPLETED_WORK.md`; the remaining open scope in
+  `docs/ACTIVE_WORK.md`.
 
-- **P12 Phase 2 (injury reports BFF + UI) landed locally.** `analytics/matchups.py` calls `injury_reports_for_week(session, season_year, week)` (Phase 1 helper) and adds `injury_status` / `injury_body_part` per player. `api/schemas.py` `BoxPlayer` has both fields. Generated client regenerated. `BoxScorePage.tsx` shows an inline `InjuryBadge` (e.g. "Out · Knee", "Q") after the position tag for any player with a non-null injury status; the "Out" Pts-cell tooltip now appends the body part when available. Pre-existing test label mismatches (BYE→Bye, DNP→Out, IR→—) fixed. Full gate green: backend 237 pytest + ruff + mypy; frontend 152 Vitest + typecheck + gen:api drift.
+- **Rivalries page insight bands — landed on `feature/rivalries-insights`, awaiting PR to `dev`
+  (the only open local branch).** Five league-wide bands below the rivalry matrix fed by one bundle
+  endpoint `GET /v1/rivalries/insights` (`api/routes/rivalries.py` → `analytics/rivalries.py`, built
+  on `head_to_head.all_pairwise`): **Hottest Rivalries**, **Rivalry Superlatives** (reuses the
+  previously-dead `closest_rivalry()`), **Win Streaks**, **Nemesis & Favorite Victim**, and
+  **Playoff Rivalries**. All math in Python; min-sample gates are documented constants
+  (`MIN_INTENSITY_GAMES=4`, `MIN_NEMESIS_GAMES=3`, `MIN_ACTIVE_STREAK=3`); every row deep-links;
+  missing data renders `DataGap`. Frontend pure presentation (`RivalryInsights.tsx`). Real-DB spot
+  check (2026-06-12): all 5 bands `available:true`. New backend test file (7 tests) + extended page
+  test pass; full frontend gate green (153 Vitest + typecheck + gen:api no-drift + build). Plan:
+  `docs/plans/rivalries-insights.md`. **Carries the same pre-existing `dev` baseline breakage** —
+  see Open items below (now escalated).
 
-- **Phase 2 implemented app features are functionally complete.** Roadmap milestones P0–P11 are
-  shipped. P11 now includes committed Chromium/Linux visual-regression baselines, and CI runs the
-  full Playwright suite (journeys plus visual snapshots). The Playoffs/Bracket view from F2.3
-  is now landed locally as a caveated backend endpoint plus `/bracket` page: it renders proven
-  post-regular-season games and does not infer a bracket tree.
-- **League-history product slice landed locally.** Added read-only `/v1/league/overview`,
-  `/v1/league/timeline`, `/v1/league/eras`, `/v1/league/stories`, and `/v1/league/managers`
-  endpoints backed by `ff_dashboard.analytics.league_history`. The SPA now exposes top-level
-  Seasons, Rules & Eras, Stories, and About Data navigation, with Home linking into the league
-  archive. Accuracy pass now keeps the league at the active standings-backed 12-team size,
-  caveats inactive/artifact team rows, and renders concrete change details for scoring rules,
-  schedule length, roster/RES slots, waiver/FAAB, standings tiebreakers, manager churn, and
-  source/provenance gaps.
-- **Season-aware (period-correct) team names landed locally.** `analytics/historical_team_names.py`
-  recovers the NFL.com season/slot name keyed by `(season_year, team_abbrev)` and
-  `period_team_name()` overrides the post-merge canonical `team_name` on season-scoped surfaces
-  (player ownership timelines). Falls back to the stored name when the slot/year is unknown.
-- **Player scoring DNP/bye zero-week fix landed locally.** `/v1/players/{id}/scoring` now unions
-  reconstructed scored rows with authoritative NFL.com roster points when available, so proven
-  0-point inactive/injury/bye weeks render as zero bars with reason indicators instead of
-  disappearing from the weekly chart. Real-DB spot check: player 11827 / 2025 now includes weeks
-  5–12 as zero-point reasoned weeks, with week 9 marked bye.
-- **Deferred product decisions resolved (Q10–Q13); team avatars built (Q11) — landed locally.**
-  Q10 dark-only, Q12 laptop-first, Q13 no-exports settled at default (doc-only, reversible). Q11
-  ships team logos from the DB: read-only binary `GET /v1/teams/{team_id}/avatar` streams from
-  Phase 1's on-disk asset store (`ASSETS_ROOT` setting; `assets_root` on `app.state`), 404ing
-  cleanly to a monogram fallback; `Chip` gained `avatarUrl`, wired across team chips. Owner photos
-  remain a true source gap (0 rows; F-06). No contract change. Plan:
-  `docs/plans/deferred-product-decisions.md`. Real-DB spot check passed (team 1 logo streams).
-- **fix-pass P6 — MERGED, PR #40.** Shipped backend helpers/endpoints for
-  standings luck/all-play, manager consistency, player insights, box-score enrichment, and revised
-  all-play-aware power. Frontend uses shared season phase, re-curates Home, adds
-  player/manager/standings insights, records trophy filtering, draft value filters + drill-down
-  focus, power all-play methodology, and richer box-score player rows. **Full gate green** (backend
-  pytest 213 + ruff + mypy; frontend gen:api no-drift + typecheck + Vitest 139; SPA production
-  build). Real-DB verification on 2026-06-07: the two new insight endpoints
-  (`/v1/players/{id}/insights`, `/v1/seasons/{id}/standings/insights`) plus box-score, power, and
-  owners return honest `available`/`reason` payloads with no 500s, and the built SPA serves every
-  P6 deep link. (No `lint` script exists in `web/`; typecheck is the TS gate.)
-- **fix-pass P4 (Transactions, roster-diff tier) — MERGED, PR #35.** F-37 tier 1 shipped:
-  `derive_roster_moves(session, team_id)`, additive
-  `GET /v1/teams/{team_id}/roster-moves`, `RosterMove` / `TeamRosterMoves`, and the team-page
-  **In-season moves** card. The existing transactions card is relabelled **Draft** because the
-  real DB's `transactions` table is draft-only. Moves are not gated on `is_scored`; seasons with
-  fewer than two roster snapshots return `available:false` with `roster_history_unavailable`.
-- **F-53 is fixed upstream.** The danger-zone regen repaired corrupt week-1 roster snapshots.
-  Real-DB verification on 2026-06-06 confirmed normal churn: team 184/2024 now returns wk1
-  adds=2/drops=0 (was fabricated 68/67), and 2010 team 13 has period-correct week-1 players.
-  No dashboard code change was needed after the regen.
-- **fix-pass P5 (Frontend navigation & presentation fixes) — MERGED, PR #38.** Implemented:
-  F-24 player-index contract cleanup, `WeekStepper` direct select, scrollable global search,
-  rank-ordered timeline tooltips + 12-color ramp, team season navigation, unavailable box-score
-  fallback links, manager latest-roster link, manager sort toggles, clearer rivalry labels, signed
-  matchup margins, 12-column snake draft board, stats defaulting to season totals, standings final
-  placement, and compact player ownership cards. Full gate is green; generated-client drift is
-  clean; real-DB browser click-through completed on 2026-06-06.
+**Recently merged (since the 2026-06-08 doc consolidation):**
+
+- **P12 — Player injury reports (BFF + UI) — MERGED, PR #53.** `analytics/matchups.py` joins
+  `injury_reports_for_week` and adds `injury_status` / `injury_body_part` per player; `BoxPlayer`
+  schema + regenerated client; inline `InjuryBadge` ("Out · Knee", "Q") on the box score; reason
+  appended to the "Out" tooltip. P12 is **complete** (Phase 1 table merged upstream first).
+- **Box-score enrichment — MERGED, PR #52 + #53.** IR/RES split out from bench in the roster
+  layout, player game-status display, projections computed from raw stats, column-header tooltips.
+- **Commissioner history — MERGED (#54-line / #56 to main).** Upstream `commissioners` table +
+  seed/loader and `queries.commissioner_terms`; `analytics/commissioners.commissioner_history`;
+  `CommissionerTerm` on `LeagueOverview` + `OwnerCareer`; commissioner strip on `/league`,
+  per-season badge, and a manager-profile card. Succession: harry → sully → scott → Dave → Jeff →
+  Chris → DJ → Rob (2024–present).
+- **Playoffs/Bracket — shipped, MERGED, PRs #55 + #60.** F2.3 evolved from the caveated `/bracket`
+  endpoint into a true bracket visualization (#55) and then split into separate **championship**
+  and **consolation** brackets (#60). N2 is now **shipped**, not just "resolved locally."
+- **Seasons / Rules & Eras page redesign — MERGED, PRs #54 + #59.** `/seasons/` timeline rebuilt
+  with an impact hierarchy and before→after diffs; PR #59 resolves headline-only NFL.com setting
+  edits into concrete change details instead of bare gaps.
+- **F-54 — season-correct player NFL team — MERGED, PR #51.** Dashboard routes `stats.py:season_totals`
+  and `teams.py:team_roster` through upstream `queries.player_season_teams` (folds to season-era
+  codes; a 2015 Raider reads "OAK"), with a `players.nfl_team` snapshot fallback. No API shape
+  change. Real-DB spot check confirmed 2015 renders SD/OAK/STL.
+- **Standings 500 fix — MERGED, PR #57.** `conference_id` read via raw SQL because the Phase-1
+  `Team` ORM model does not map the column. **This same model drift still breaks the gate** — see
+  Open items.
+- Earlier merged work (league-history slice, season-aware team names, player zero-week fix,
+  records season-correct champion, team avatars Q11, deferred decisions Q10–Q13, fix-passes P1–P6)
+  is all archived in `docs/archive/COMPLETED_WORK.md`.
 
 ## Next
 
-- **The P1–P6 review-fixes program is complete** — all six dashboard passes are merged to `dev`.
-  The remaining dashboard-side N2/F2.3 bracket decision is resolved locally by the caveated
-  build. Next dashboard step is review/PR packaging.
-- Next league-history expansion should consume upstream/manual identity and rules data when
-  available: durable human manager overrides, roster-slot settings, full scoring-rule tables,
-  playoff format metadata, and verified scoring mismatch classification.
-- **F-54 — season-correct player NFL team — LANDED 2026-06-10 (dashboard + upstream).** Upstream
-  persisted the per-week NFL team (`player_stats_raw.nfl_team`) and shipped batched read helpers
-  `queries.player_season_teams` / `player_nfl_team`, which fold nflverse's current code to the
-  season-era one (`historical_team_code`; a 2015 Raider reads "OAK"). The dashboard now routes its
-  two season-scoped reads — `stats.py:season_totals` (batched per leaderboard page) and
-  `teams.py:team_roster` — through `player_season_teams`, with a `players.nfl_team`-snapshot
-  fallback mirroring `period_team_name()`. No API shape change. Known-answer test in
-  `tests/test_fixp1_stats.py`; real-DB spot check confirms 2015 renders SD/OAK/STL. Branch
-  `feature/season-correct-nfl-team` (PR pending to `dev`). Handoff closed.
-- Remaining open product/data work is the **UP** (upstream / danger-zone) program: F-06 ownership
-  succession, residual F-25 player identity cleanup, F-49 playoff/consolation metadata, and the
-  F-27 trustworthiness sanity-check. Read-only spot check on 2026-06-07 shows F-37 tier 2 is now
-  partly landed upstream (dated transaction rows with add/drop/waiver/trade/draft/lineup types);
-  dashboard still renders the derived roster-diff tier and has not consumed exact transaction
-  dates/FAAB details.
-- **F-52 is RESOLVED upstream** by the danger-zone regen: the real DB now reports
-  `status:completed` for 2010–2025 and `in_progress` only for 2026 (verified 2026-06-07). The P6
-  season-phase helper derives phase from data rather than `seasons.status`, so no dashboard change
-  is needed; a later pass could optionally trust `status` now that it is correct.
+**The forward execution plan is `docs/plans/COMPLETION_ROADMAP.md`** — handoff-ready sessions
+S1–S8 covering everything below. Summary:
+
+- **S1 — green the baseline + repair conferences (dashboard, do first).** Clears the gate AND
+  fixes the silently-dead conferences feature (see Open items). Unblocks a clean S2.
+- **S2 — ship `feature/rivalries-insights` → `dev`** (packaging; depends on S1).
+- **UP program S3–S7 (upstream / `../danger-zone`):** F-49 playoff/consolation metadata, F-27
+  reconstructed-scoring trust check, F-25 player-identity residuals, F-37 tier 2 transactions/FAAB,
+  and F-06 ownership succession (⊘ blocked — needs a source ledger you supply). Detail in
+  `docs/ACTIVE_WORK.md` §2.
+- **S8 — league-history expansion (dashboard, last).** Gated on the UP outputs (per-season config
+  ledger: scoring tables, schedule length, waiver↔FAAB, playoff format, durable manager overrides).
 
 ## Files that matter now
 
-- F2.3 bracket local surfaces: `src/ff_dashboard/analytics/bracket.py`,
-  `src/ff_dashboard/api/routes/seasons.py`, `web/src/features/bracket/BracketPage.tsx`
-- League-history local surfaces: `src/ff_dashboard/analytics/league_history.py`,
-  `src/ff_dashboard/api/routes/league.py`, `web/src/features/league/`
-- Player scoring zero-week surfaces: `src/ff_dashboard/analytics/players.py`,
-  `src/ff_dashboard/api/schemas.py`, `web/src/features/players/PlayerDetailPage.tsx`
-- Docs/status touched for packaging: `docs/03_DATA_ACCESS.md`, `docs/04_ANALYTICS_MODEL.md`,
-  `docs/05_API_CONTRACT.md`, `docs/07_PAGES_AND_VIEWS.md`, `docs/09_ROADMAP.md`,
-  `docs/10_OPEN_QUESTIONS.md`, `PROGRESS.md`
+- Rivalries-insights surfaces (open branch): `src/ff_dashboard/analytics/rivalries.py`,
+  `src/ff_dashboard/api/routes/rivalries.py`, `web/src/features/rivalries/RivalryInsights.tsx`
+- **Escalated baseline debt:** `src/ff_dashboard/analytics/conferences.py` (mypy/ruff, Phase-1
+  `Team.conference_id` drift; also imported by `analytics/bracket.py` and routed at
+  `GET /v1/seasons/{id}/conferences`), `tests/test_p5_matchups_unit.py` (stale `lineup_score_gap` /
+  `gap_delta` assertions vs. current box output)
 
 ## Open items / deviations
 
+- **⚠ ESCALATED — backend gate is red on the `dev` baseline (broad, long-lasting).** Two issues
+  carried across multiple PRs as "pre-existing, unrelated":
+  1. **Conferences module written against non-existent ORM models (data-service level).**
+     `analytics/conferences.py` imports `SeasonConference` and reads `Team.conference_id` — **neither
+     exists in the Phase-1 ORM** (verified 2026-06-14: the import raises `ImportError`,
+     `hasattr(Team,"conference_id")` is `False`). The import-guard then sets
+     `_CONFERENCE_MODELS_AVAILABLE = False`, so **the conferences feature is silently dead for the
+     entire 2010–2019 conference era** — every season wrongly returns `no_conferences_this_season`,
+     and `conference_map()` (used by `analytics/bracket.py`) returns `{}`. Surfaces as **3 mypy +
+     1 ruff** errors. The data is fine: `standings.py` already reads the same `teams` /
+     `season_conferences` tables via raw SQL. **Fix:** rewrite `conferences.py` to use the same raw
+     SQL — this clears the gate *and* repairs the dead feature. Full handoff: S1 in
+     `docs/plans/COMPLETION_ROADMAP.md`.
+  2. **Stale matchups tests.** `test_p5_matchups_unit.py` still asserts a `lineup_score_gap` /
+     `gap_delta` box-score field that **no longer exists in source** (`has_long_td_score_gap` was
+     removed) → **2 pytest failures**. Update or delete the assertions to match the shipped box
+     output. (1 more ruff error sits in `league_history.py`: ambiguous-unicode.)
 - Residual non-blocker from F-53 verification: 1–2 phantom **week-1-only** teams per season with
-  duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. This is separate from the
-  repaired roster-churn corruption and belongs with owner/team-identity research.
+  duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
+  roster-churn corruption; belongs with owner/team-identity research (F-06).
 - League relevance = **ever-rostered only** (not "ever scored"): the pipeline scores the whole
   NFL, so "scored" is not a league-relevance signal.
 - F-49 remains upstream: playoff/consolation metadata is insufficient to compute `made_playoffs`
@@ -145,7 +133,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 | P9 | Power ranking + timelines | ☑ | — | shared chart wrappers |
 | P10 | Global search + coverage/about + gap polish | ☑ | — | no fake zeros anywhere |
 | P11 | Operations + docs + e2e/visual-regression | ☑ | — | Makefile/RUNBOOK/e2e + visual baselines in CI |
-| P12 | Player injury reports (Phase 1 + BFF + UI) | ◐ | — | Phase 1 merged upstream; Phase 2 (BFF + UI) landed locally |
+| P12 | Player injury reports (Phase 1 + BFF + UI) | ☑ | — | Phase 1 upstream + Phase 2 BFF/UI merged (PR #53) |
 
 Status key: ☐ todo · ◐ in progress · ☑ done. Put the plan path in **Plan** once a PLAN
 session writes `docs/plans/P{N}-{name}.md`.

@@ -4,11 +4,32 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-14 — Documentation refresh: merge-wave reconciliation + tech-debt escalation
+
+- Reconciled the live docs against the merge wave that landed since 2026-06-08. The following are
+  now **merged to `dev` and promoted to `main`** (PRs #56/#58) and were re-filed from "landed
+  locally" into the archive: **P12 player injury reports + box-score enrichment** (PRs #52/#53),
+  **commissioner history**, **playoffs/bracket** (caveated → true bracket #55 → championship/
+  consolation split #60), **seasons/rules redesign + setting-gap resolution** (PRs #54/#59),
+  **season-correct player NFL team (F-54)** (PR #51), and the **standings-500 fix** (PR #57).
+- **Roadmap:** P12 marked ☑ (as-built status now P0–P12); milestone trackers in `PROGRESS.md` and
+  `docs/archive/COMPLETED_WORK.md` updated. **Open questions:** N2 (bracket) moved to *shipped*;
+  N5 notes F-54 closed; added **N6** for the baseline gate breakage.
+- **The only un-merged dashboard work** is the `feature/rivalries-insights` branch (rivalry insight
+  bands + `GET /v1/rivalries/insights`); PR to `dev` not yet opened.
+- **Escalated long-standing tech-debt** (carried across many PRs as "pre-existing, unrelated"),
+  now tracked as `docs/ACTIVE_WORK.md` §6.1 / open-question N6: (1) **conferences ORM model drift**
+  — `analytics/conferences.py` references the unmapped `Team.conference_id` (3 mypy + 1 ruff
+  errors) on a *live* route (`/v1/seasons/{id}/conferences`) also feeding `bracket.py`; the same
+  drift forced PR #57's raw-SQL workaround; (2) **stale matchups tests** — `test_p5_matchups_unit.py`
+  asserts a removed `lineup_score_gap`/`gap_delta` box field (2 pytest failures); (3) a minor ruff
+  ambiguous-unicode error in `league_history.py`. The backend gate is red until these land.
+
 ## 2026-06-08 — Deferred product decisions (Q10–Q13) resolved; team avatars built (Q11)
 
 - Settled the four genuinely-open deferred product decisions from `docs/10_OPEN_QUESTIONS.md`:
   **Q10 keep dark-only**, **Q12 keep laptop-first**, **Q13 no exports** (all reversible, doc-only),
-  and **Q11 pull team logos from the DB**. Decision plan: `docs/plans/deferred-product-decisions.md`.
+  and **Q11 pull team logos from the DB**. Decision plan: `docs/archive/deferred-product-decisions.md`.
 - **Q11 team avatars.** New read-only binary route `GET /v1/teams/{team_id}/avatar` streams a team's
   season logo from Phase 1's on-disk content-addressed asset store (new `ASSETS_ROOT` setting, default
   `<db_dir>/assets`; `assets_root` injected on `app.state` like the engine/cache). 404s cleanly on
