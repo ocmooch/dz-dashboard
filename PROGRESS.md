@@ -98,6 +98,25 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
   "resting player" note suppressed. Tests: new `tests/test_injuries.py` (9, no DB) +
   `InjuryBadge.test.tsx` (5). Full gate green (314 backend / 159 frontend).
 
+- **Zero-score / gap audit follow-up — addressed on `feature/matchup-zero-status`.** Team roster
+  week-scoped player scoring now shares the box-score semantics: authoritative NFL.com points win,
+  nflverse rows fill only when authoritative points are absent, missing non-DST rows in scored
+  seasons become explicit DNP/Out zeroes, missing DST rows stay `DataGap`, and every 0 can carry
+  `zero_reason` / `zero_detail` (`bye`, `did_not_play`, `unexpected`, or organic 0). The shared
+  frontend `PlayerScoreCell` renders the same labels on box scores and team rosters. Player scoring
+  was already covered with the same backend classifier; weekly stats leaders are documented as
+  safe-ignore leaderboards. New read-only audit helper:
+  `uv run python scripts/audit_zero_score_gaps.py --examples 5`; live DB run on 2026-06-15 scoped
+  46,527 actual matchup roster rows and found 0 unexpected zeroes and 0 missing DST rows. The six
+  prior exceptions were resolved upstream: Christine Michael rows were moved off Michael Cox and
+  locked with an override/resolver guard; shared `special_teams_tds` no longer double-scores D/ST
+  rows; D/ST `points_allowed` is reconstructed from play-by-play so NFL.com fantasy PA semantics
+  are followed. Manager activity showed no in-season 2010 scoring-setting change or manual score
+  edit explaining those D/ST zeroes. Plan updated: `docs/plans/zero-score-gap-audit.md`. Focused
+  tests green:
+  `tests/test_p7_teams_unit.py` + `tests/test_p5_matchups_unit.py` (41 backend), team/matchups
+  Vitest (25 frontend), plus frontend typecheck and scoped Ruff.
+
 **Recently merged (since the 2026-06-08 doc consolidation):**
 
 - **P12 — Player injury reports (BFF + UI) — MERGED, PR #53.** `analytics/matchups.py` joins
@@ -169,6 +188,11 @@ S1–S8 covering everything below. Summary:
 - Residual non-blocker from F-53 verification: 1–2 phantom **week-1-only** teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   roster-churn corruption; belongs with owner/team-identity research (F-06).
+- **Zero-score / gap audit follow-up:** addressed on `feature/matchup-zero-status`; upstream
+  systemic fixes resolved the six unexpected zeroes and the dashboard audit is clean. Remaining
+  optional upstream question only: whether Phase 1 should persist authoritative `0.0` for every DNP
+  roster row. Dashboard treatment is explicit and tested; injury / in-out designations remain
+  week-scoped-only and irrelevant to season/career summary pages.
 - League relevance = **ever-rostered only** (not "ever scored"): the pipeline scores the whole
   NFL, so "scored" is not a league-relevance signal.
 - F-49 remains upstream: playoff/consolation metadata is insufficient to compute `made_playoffs`

@@ -392,6 +392,12 @@ def _team_box(
         points = _authoritative_points(roster_row)
         if points is None:
             points = nflverse_points
+        if points is None and slot not in DEF_SLOTS:
+            # In a scored season, a non-defense roster row with neither an
+            # NFL.com score nor an nflverse stat line is a player absence, not
+            # a per-row scoring gap. Keep DEF strict because missing DST rows
+            # are reconstruction holes.
+            points = 0.0
         league_points = round(points, 2) if points is not None else None
 
         available = points is not None

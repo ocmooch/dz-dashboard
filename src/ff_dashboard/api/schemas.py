@@ -1021,6 +1021,8 @@ class TeamRosterPlayer(BaseModel):
     roster_slot: str | None = None
     is_starter: bool
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
+    zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
+    zero_detail: str | None = None
     acquisition_type: str | None = None
     acquisition_week: int | None = None
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"

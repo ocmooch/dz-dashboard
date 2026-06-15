@@ -141,6 +141,17 @@ def test_box_def_starter_with_missing_row_is_flagged(session: Session) -> None:
     assert dst["reason"] == "team_defense_not_scored"
 
 
+def test_box_non_def_missing_row_is_did_not_play_zero(session: Session) -> None:
+    mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    data = box_score(session, mid)
+    assert data is not None
+    row = next(p for p in data["away"]["lineup"] if p["player_name"] == "No Stat Bench Guy")
+    assert row["available"] is True
+    assert row["league_points"] == 0.0
+    assert row["reason"] is None
+    assert row["zero_reason"] == "did_not_play"
+
+
 def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
     # A player nflverse never scored (no scored row) but with an authoritative
     # nfl_com_points shows that real value, available — never a "no scored data"
