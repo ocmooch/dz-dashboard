@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+import ff_dashboard.analytics.matchups as matchups_module
 from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
     _roster_data_context_from_transactions,
@@ -23,6 +24,7 @@ from ff_dashboard.analytics.matchups import (
     solve_optimal,
     week_matchups,
 )
+from ff_dashboard.analytics.players import player_scoring
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
@@ -194,6 +196,68 @@ def test_box_projection_gap_is_week_coverage_not_player_math(session: Session) -
     assert dnp["projection"] is None
     assert dnp["projection_available"] is False
     assert dnp["projection_reason"] == "projections_not_captured"
+
+
+def test_box_score_unions_canonical_identity_cluster(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    split_roster = KNOWN["player_id"]["split_roster"]
+    split_stats = KNOWN["player_id"]["split_stats"]
+
+    def fake_cluster(_session: Session, player_id: int) -> dict[str, object] | None:
+        if player_id in {split_roster, split_stats}:
+            return {
+                "player_id": player_id,
+                "canonical_player_id": split_roster,
+                "member_player_ids": [split_roster, split_stats],
+            }
+        return {
+            "player_id": player_id,
+            "canonical_player_id": player_id,
+            "member_player_ids": [player_id],
+        }
+
+    monkeypatch.setattr(matchups_module, "player_identity_cluster", fake_cluster)
+
+    mid = KNOWN["matchup_id"][(2017, 1, "mav")]
+    data = box_score(session, mid)
+    assert data is not None
+    split = next(p for p in data["home"]["lineup"] if p["player_name"] == "Split Sam")
+
+    assert split["player_id"] == split_roster
+    assert split["league_points"] == 0.0
+    assert split["zero_reason"] is None
+    assert split["injury_status"] == "Out"
+    assert split["injury_body_part"] == "Back"
+
+
+def test_player_scoring_unions_canonical_identity_cluster(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    split_roster = KNOWN["player_id"]["split_roster"]
+    split_stats = KNOWN["player_id"]["split_stats"]
+
+    def fake_cluster(_session: Session, player_id: int) -> dict[str, object] | None:
+        if player_id in {split_roster, split_stats}:
+            return {
+                "player_id": player_id,
+                "canonical_player_id": split_roster,
+                "member_player_ids": [split_roster, split_stats],
+            }
+        return {
+            "player_id": player_id,
+            "canonical_player_id": player_id,
+            "member_player_ids": [player_id],
+        }
+
+    monkeypatch.setattr(matchups_module, "player_identity_cluster", fake_cluster)
+
+    data = player_scoring(session, split_roster, 2017)
+    assert data is not None
+    assert data["total_points"] == 0.0
+    assert data["weeks"] == [
+        {"week": 1, "points": 0.0, "breakdown": {}, "zero_reason": None, "zero_detail": None}
+    ]
 
 
 # --- Zero-point context classification --------------------------------------

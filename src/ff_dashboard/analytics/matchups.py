@@ -30,6 +30,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     injury_reports_for_week,
+    player_identity_cluster,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -345,12 +346,19 @@ def _projected_points_from_stats(
 
 
 def _batch_projections(
-    session: Any, player_ids: list[int], season_year: int, week: int
+    session: Any,
+    player_ids: list[int],
+    season_year: int,
+    week: int,
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, ProjectionModel]:
     """Latest projection row per player for a given season/week, in one query."""
     if not player_ids:
         return {}
     from sqlalchemy import func
+
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
 
     # Subquery: max fetched_at per player for this season/week.
     sub = (
@@ -359,7 +367,7 @@ def _batch_projections(
             func.max(ProjectionModel.fetched_at).label("latest"),
         )
         .where(
-            ProjectionModel.player_id.in_(player_ids),
+            ProjectionModel.player_id.in_(lookup_ids),
             ProjectionModel.season_year == season_year,
             ProjectionModel.week == week,
         )
@@ -377,7 +385,15 @@ def _batch_projections(
         .scalars()
         .all()
     )
-    return {r.player_id: r for r in rows}
+    by_member = {int(r.player_id): r for r in rows}
+    out: dict[int, ProjectionModel] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
 
 
 # How much nflverse-credited production, while the league scored 0, counts as a
@@ -518,11 +534,17 @@ def solve_optimal(players: list[dict[str, Any]], slots: list[str]) -> float:
 
 
 def _scored_points(
-    session: Session, season_id: int, week: int, player_ids: list[int]
+    session: Session,
+    season_id: int,
+    week: int,
+    player_ids: list[int],
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, tuple[float, dict[str, Any]]]:
     """``player_id -> (total_points, breakdown)`` for one (season, week)."""
     if not player_ids:
         return {}
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
     rows = session.execute(
         select(
             PlayerStatsScored.player_id,
@@ -531,10 +553,45 @@ def _scored_points(
         ).where(
             PlayerStatsScored.season_id == season_id,
             PlayerStatsScored.week == week,
-            PlayerStatsScored.player_id.in_(player_ids),
+            PlayerStatsScored.player_id.in_(lookup_ids),
         )
     ).all()
-    return {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    by_member = {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    out: dict[int, tuple[float, dict[str, Any]]] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
+
+
+def _identity_cluster_members(session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+    """Roster-player id -> member ids to read as the same canonical player."""
+    out: dict[int, list[int]] = {}
+    for player_id in player_ids:
+        cluster = player_identity_cluster(session, player_id)
+        if cluster is None:
+            out[player_id] = [player_id]
+            continue
+        members = [
+            int(member_id)
+            for member_id in cast("list[int]", cluster["member_player_ids"])
+            if member_id is not None
+        ]
+        out[player_id] = sorted({player_id, *members}, key=lambda member_id: member_id != player_id)
+    return out
+
+
+def _injury_for_player_cluster(
+    injuries: dict[int, Any], player_id: int, cluster_members: dict[int, list[int]]
+) -> Any | None:
+    for member_id in cluster_members.get(player_id, [player_id]):
+        injury = injuries.get(member_id)
+        if injury is not None:
+            return injury
+    return None
 
 
 def _team_box(
@@ -565,8 +622,9 @@ def _team_box(
     # the per-player DATA badge and surface a single team-level caveat instead.
     roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
-    scored = _scored_points(session, season.season_id, week, player_ids)
-    projections = _batch_projections(session, player_ids, season.year, week)
+    cluster_members = _identity_cluster_members(session, player_ids)
+    scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
+    projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
     projection_coverage = coverage_status_for_projection_week(session, season.year, week)
     projections_available_for_week = projection_coverage["status"] in {"present", "partial"}
     projection_reason = (
@@ -649,7 +707,7 @@ def _team_box(
             else None
         )
 
-        injury = injuries.get(player.player_id)
+        injury = _injury_for_player_cluster(injuries, player.player_id, cluster_members)
         injury_payload = injury_fields(injury)
         roster_status = _extra_str(roster_row, "player_status")
         roster_status_label = _extra_str(roster_row, "player_status_label")

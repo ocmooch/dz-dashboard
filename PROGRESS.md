@@ -38,11 +38,16 @@ single cycle-state source; the `docs/handoffs/*` checkboxes are reference-only).
 branch; Units B/C (upstream crosswalk + identity-aware ingest), D (dashboard consume), and E
 (projections-source investigation) remain.
 
-Sibling upstream branch `../danger-zone` → `feature/player-identity-crosswalk` adds the additive
-`player_identity_links` crosswalk table, ORM model, and `player_identity_cluster()` read helper
-with focused tests. This is not the full canonical identity fix yet: curation/seeding of the Mike
-Williams-style links and ingestion-aware resolver behavior remain upstream work before the
-dashboard should union canonical clusters for stats/injuries.
+Follow-up (same date): Units B/C/D/E were completed across `../danger-zone` and this dashboard.
+The live DB is migrated to `player_identity_links`, seeded with the high-confidence Mike Williams
+link `25239 -> 1032` plus documented no-link decisions for the other 17 duplicate-name triage
+groups, and nflverse/Sleeper ingest maps now resolve linked members to the canonical player. The
+Sleeper projection backfill populated every completed-season regular-week cell through 2025
+(214/214 cells, no missing cells). Dashboard analytics now consume canonical clusters for box
+scores, team rosters, player scoring, player insights, and unresolved-split detection. Live
+verification: `/matchups/1823` Mike Williams renders on roster id `1032` with `league_points=0.0`,
+`projection=0.0`, `projection_available=true`, and the coverage matrix reports
+`identity_split_candidate_count=0`; W7 still correctly has no injury report row.
 
 **Prior (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
 class in the per-player `DATA` "roster drift" badge. The badge fires when the W-N snapshot shows

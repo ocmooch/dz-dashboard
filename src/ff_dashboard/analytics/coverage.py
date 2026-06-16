@@ -15,6 +15,7 @@ from ff_pipeline.repository.models import (
     Matchup,
     Player,
     PlayerAvailability,
+    PlayerIdentityLink,
     PlayerInjuryReport,
     PlayerStatsScored,
     Projection,
@@ -354,6 +355,11 @@ def _identity_split_candidates(session: Session) -> list[dict[str, Any]]:
         for pid in session.execute(select(PlayerInjuryReport.player_id).distinct()).scalars().all()
         if pid is not None
     }
+    linked_member_ids = {
+        int(pid)
+        for pid in session.execute(select(PlayerIdentityLink.member_player_id)).scalars().all()
+        if pid is not None
+    }
     players = list(
         session.execute(
             select(
@@ -385,6 +391,7 @@ def _identity_split_candidates(session: Session) -> list[dict[str, Any]]:
             r
             for r in rows
             if int(r.player_id) not in rostered_ids
+            and int(r.player_id) not in linked_member_ids
             and (int(r.player_id) in scored_ids or int(r.player_id) in injured_ids)
         ]
         if not roster_side or not data_side:
