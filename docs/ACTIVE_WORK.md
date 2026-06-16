@@ -36,6 +36,17 @@ feature branches.** Remaining work, in priority order:
    | **D** | dz-dashboard | VERIFY ☑ | Consume canonical (Part B1): box-score, team-roster, player-scoring, and player-insight stat reads route through the cluster helper. Live `/matchups/1823` Mike Williams now renders `league_points=0.0` and `projection=0.0` on roster id `1032`; W7 correctly still has no injury row. | ☑ verified |
    | **E** | ../danger-zone | VERIFY ☑ | Projections were a **crawl-coverage gap, not a source gap.** Sleeper's `api.sleeper.com/projections/nfl/{year}/{week}` serves full historical projections. Live DB backfill completed 2026-06-16 for every completed-season regular-week cell through 2025: **214/214 cells present**, no missing cells; `/matchups/1823` projection/value symptom resolved. | ☑ verified |
 
+   **⚠ Merge sequencing (the only open operational step).** Dashboard PR #77 (Units A+D) *imports*
+   `player_identity_cluster` from ff-pipeline, and dashboard CI resolves ff-pipeline at
+   `../danger-zone:dev`. The helper lives on danger-zone PR #49 (`feature/player-identity-crosswalk`),
+   not yet on danger-zone `dev`. **Land danger-zone #49 → `dev` before dz-dashboard #77 → `dev`**, or
+   #77's CI fails with an ImportError. Local gates pass only because the local `../danger-zone`
+   checkout is on the crosswalk branch. Unit-B triage was re-verified 2026-06-16: across all 18
+   league-relevant duplicate-name groups, **Mike Williams is the only one matching the stranded-split
+   signature** (rostered-but-dataless beside a non-rostered data twin) — the 17 `no_link` decisions
+   are correct, so Unit B is complete, not partial. Unit-C idempotency guard
+   (`test_reingest_does_not_restrand_linked_member`) added on #49.
+
    Reference framing: `docs/handoffs/00-data-integrity-program.md`.
 1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
    *silently dead* for the 2010–2019 conference era. §6.1.
