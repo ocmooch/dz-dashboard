@@ -148,7 +148,6 @@ def _roster_data_context(
     team_id: int,
     player_id: int,
     week: int,
-    roster_slot: str | None,
 ) -> tuple[str, str] | None:
     txns = list(
         session.execute(
@@ -164,7 +163,6 @@ def _roster_data_context(
         txns,
         team_id=team_id,
         week=week,
-        roster_slot=roster_slot,
     )
 
 
@@ -173,13 +171,19 @@ def _roster_data_context_from_transactions(
     *,
     team_id: int,
     week: int,
-    roster_slot: str | None,
 ) -> tuple[str, str] | None:
+    # An acquisition is any inbound move onto this team. ``draft`` rows carry
+    # ``direction == "add"`` (effective_week 0), every other inbound type carries
+    # ``direction == "in"``; accept both. Excluding ``add`` here is the bug that
+    # made drafted-then-re-acquired players look like late additions: a player
+    # drafted in W0, dropped, and re-added via waiver/FA in W11 has a real W1
+    # roster row but no *in*-direction add until W11, so ``week < first_add``
+    # fired a false "Roster drift" badge. Counting the draft (W0) clears it.
     team_add_weeks = [
         int(t.effective_week)
         for t in txns
         if t.team_id == team_id
-        and t.direction == "in"
+        and t.direction in {"in", "add"}
         and t.effective_week is not None
         and t.transaction_type in {"add", "draft", "free_agent_add", "waiver_add", "trade"}
     ]
@@ -193,23 +197,17 @@ def _roster_data_context_from_transactions(
                 "roster context is suspect.",
             )
 
-    same_week_slots = list(
-        dict.fromkeys(
-            str(t.extra_data.get("to_slot")).strip()
-            for t in txns
-            if t.transaction_type == "lineup_change"
-            and t.effective_week == week
-            and isinstance(t.extra_data, dict)
-            and t.extra_data.get("to_slot")
-        )
-    )
-    if roster_slot and same_week_slots and roster_slot not in same_week_slots:
-        return (
-            "DATA",
-            f"Roster drift: W{week} lineup transaction moved him to "
-            f"{'/'.join(same_week_slots)}, but the snapshot shows {roster_slot}. "
-            "Points are retained; slot context is suspect.",
-        )
+    # NOTE: we deliberately do *not* flag a snapshot roster_slot that disagrees
+    # with that week's ``lineup_change`` ``to_slot`` values. Moving a player
+    # between starting slots and the bench (BN) is routine, allowed lineup
+    # management for any ownable player — he never entered or left the team, so
+    # it is not a data-integrity problem. A DB-wide audit found 38/40 such
+    # "slot conflict" firings were pure start/bench juggling (the snapshot is a
+    # point-in-time capture; the player simply moved within the week). The only
+    # genuinely notable slot case — a player parked in an IR/RES slot who has
+    # lost the status that made him eligible there — is surfaced separately by
+    # the reserve-eligibility path in ``_score_context`` (slot in ``IR_SLOTS``),
+    # which gives accurate RES context instead of a misleading "roster drift".
     return None
 
 
@@ -665,7 +663,6 @@ def _team_box(
                 team_id=team_id,
                 player_id=player.player_id,
                 week=week,
-                roster_slot=slot,
             )
         )
         context_label, context_detail = _score_context(

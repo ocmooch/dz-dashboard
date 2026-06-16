@@ -250,51 +250,74 @@ def test_box_flags_roster_before_team_acquisition_as_data_drift() -> None:
         ],
         team_id=10,
         week=1,
-        roster_slot="BN",
     )
     assert context is not None
     assert context[0] == "DATA"
     assert "first add him in W3" in context[1]
 
 
-def test_box_flags_slot_transaction_snapshot_conflict() -> None:
-    context = _roster_data_context_from_transactions(
-        [
-            SimpleNamespace(
-                transaction_type="lineup_change",
-                effective_week=1,
-                team_id=None,
-                direction="out",
-                extra_data={"from_slot": "BN", "to_slot": "WR"},
-            )
-        ],
-        team_id=10,
-        week=1,
-        roster_slot="RES",
-    )
+def test_box_drafted_then_readded_player_is_not_data_drift() -> None:
+    # Drafted by the team in W0 (direction="add"), dropped, then re-acquired via
+    # waiver/FA in a later week. The W1 roster row is legitimate; the draft must
+    # count as the first acquisition so ``week < first_add`` never fires. Without
+    # counting the draft this was the dominant false positive (800 box rows,
+    # e.g. Dak Prescott / Keon Coleman / Washington DEF on matchup 195).
+    txns = [
+        SimpleNamespace(
+            transaction_type="draft",
+            effective_week=0,
+            team_id=10,
+            direction="add",
+            extra_data=None,
+        ),
+        SimpleNamespace(
+            transaction_type="waiver_add",
+            effective_week=11,
+            team_id=10,
+            direction="in",
+            extra_data=None,
+        ),
+    ]
+    assert _roster_data_context_from_transactions(txns, team_id=10, week=1) is None
+
+
+def test_box_late_add_without_draft_remains_data_drift() -> None:
+    # Genuine drift survives the draft fix: the player was never drafted by this
+    # team and the first acquisition is later than the snapshot week (the 2010
+    # residual class, where the in-season transaction log starts mid-season).
+    txns = [
+        SimpleNamespace(
+            transaction_type="free_agent_add",
+            effective_week=7,
+            team_id=10,
+            direction="in",
+            extra_data=None,
+        )
+    ]
+    context = _roster_data_context_from_transactions(txns, team_id=10, week=2)
     assert context is not None
     assert context[0] == "DATA"
-    assert "transaction moved him to WR" in context[1]
+    assert "first add him in W7" in context[1]
 
 
-def test_box_slot_conflict_detail_dedupes_repeated_target_slots() -> None:
-    # Several same-week lineup_change rows can repeat the same to_slot; the detail
-    # must not read "BN/R/W/T/BN/R/W/T" — duplicates are collapsed, order kept.
+def test_box_lineup_slot_change_is_not_data_drift() -> None:
+    # Moving a player between a starting slot and the bench (or any start↔start /
+    # start↔BN shuffle) is routine, allowed lineup management — he never entered
+    # or left the team, so a snapshot slot that differs from that week's
+    # lineup_change target must NOT be flagged as roster drift. A DB-wide audit
+    # found 38/40 historical "slot conflict" firings were exactly this; the only
+    # notable slot case (an ineligible IR/RES occupant) is surfaced by the
+    # reserve-eligibility path, not here.
     txns = [
         SimpleNamespace(
             transaction_type="lineup_change",
             effective_week=1,
             team_id=None,
             direction="out",
-            extra_data={"from_slot": "RB", "to_slot": slot},
+            extra_data={"from_slot": "BN", "to_slot": "WR"},
         )
-        for slot in ("BN", "R/W/T", "BN", "R/W/T")
     ]
-    context = _roster_data_context_from_transactions(txns, team_id=10, week=1, roster_slot="RB")
-    assert context is not None
-    assert context[0] == "DATA"
-    assert "moved him to BN/R/W/T," in context[1]
-    assert "BN/R/W/T/BN" not in context[1]
+    assert _roster_data_context_from_transactions(txns, team_id=10, week=1) is None
 
 
 def test_reserve_slot_with_points_is_never_labeled_injured() -> None:
