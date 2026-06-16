@@ -31,8 +31,10 @@ from ff_pipeline.repository.models import (
     PipelineRun,
     Player,
     PlayerAvailability,
+    PlayerInjuryReport,
     PlayerStatsRaw,
     PlayerStatsScored,
+    Projection,
     Season,
     SourceHealth,
     Team,
@@ -362,6 +364,15 @@ def _populate(session: Session) -> None:
         "raider": Player(
             name_full="Relocation Reggie", position="WR", nfl_team="LV", gsis_id="G10"
         ),
+        # Cross-source identity split fixture: roster rows point at the NFL.com
+        # identity, while stats/injury live under the nflverse twin. The dashboard
+        # must detect this as a data-quality signal, not union it locally.
+        "split_roster": Player(
+            name_full="Split Sam", position="WR", nfl_team="LAC", nfl_com_player_id="NFL-SPLIT"
+        ),
+        "split_stats": Player(
+            name_full="Split Sam", position="WR", nfl_team="LAC", gsis_id="GSIS-SPLIT"
+        ),
     }
     session.add_all(players.values())
     session.flush()
@@ -658,7 +669,37 @@ def _populate(session: Session) -> None:
                     "opponent": "Bye",
                 },
             ),
+            TeamRoster(
+                team_id=team_id[(2017, "mav")],
+                player_id=pid["split_roster"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+            ),
         ]
+    )
+    _add_raw_and_scored(
+        session,
+        player_id=pid["split_stats"],
+        season_id=sid[2017],
+        season_year=2017,
+        week=1,
+        points=0.0,
+        breakdown={},
+    )
+    session.add(
+        PlayerInjuryReport(
+            player_id=pid["split_stats"],
+            season_year=2017,
+            week=1,
+            game_type="REG",
+            report_status="Out",
+            report_primary_injury="Back",
+            date_modified=NOW,
+        )
     )
 
     # --- Availability: only the latest season (2017) has it (the current-season-only gap).
@@ -800,6 +841,54 @@ def _populate(session: Session) -> None:
                 points=pts,
                 breakdown={"rushing": pts},
             )
+
+    # --- Projection coverage cells used by the coverage tests:
+    #   W1 = real scored projections (present);
+    #   W2 = no rows at all (absent / not captured);
+    #   W3 = HOLLOW rows — projected_points=0 + all-zero stats, the shape Sleeper
+    #        returns for pre-coverage seasons; must read as absent, never a 0.0;
+    #   W4 = stats-only — projected_points=None but real projected_stats, the
+    #        current-season not-yet-scored shape; must read as present.
+    session.add_all(
+        [
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=1,
+                source="fixture",
+                projected_stats=None,
+                projected_points=20.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_k1"],
+                season_year=2017,
+                week=1,
+                source="fixture",
+                projected_stats=None,
+                projected_points=3.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=3,
+                source="fixture",
+                projected_stats={"passing_yards": 0.0, "passing_tds": 0.0},
+                projected_points=0.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=4,
+                source="fixture",
+                projected_stats={"passing_yards": 280.0, "passing_tds": 2.0},
+                projected_points=None,
+                fetched_at=NOW,
+            ),
+        ]
+    )
 
     # --- A genuinely-missing DEF row: Goose's 2017 wk1 DST is a starter with no
     #     scored row, so the box score still flags it (reason "team_defense_not_scored")

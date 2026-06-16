@@ -30,6 +30,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     injury_reports_for_week,
+    player_identity_cluster,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -38,7 +39,7 @@ from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
-from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
 from ff_dashboard.analytics.player_status import should_suppress_status
@@ -344,13 +345,39 @@ def _projected_points_from_stats(
     return apply_rules(numeric, scoring_rules).total_points
 
 
+def _real_projection(*, proj_row: Any, rules: ScoringRules) -> float | None:
+    """A player's *real* projected points, or ``None`` when there isn't one.
+
+    Prefer the stored ``projected_points``; fall back to scoring the raw
+    ``projected_stats``. A zero result is treated as *no projection*: the source
+    (Sleeper) emits hollow all-zero rows for players it didn't project and for
+    entire pre-coverage seasons, and a bare ``0.0`` next to a player reads as a
+    real forecast of zero, which it isn't.
+    """
+    if proj_row is None:
+        return None
+    if proj_row.projected_points is not None and float(proj_row.projected_points) != 0.0:
+        return round(float(proj_row.projected_points), 2)
+    computed = _projected_points_from_stats(proj_row.projected_stats, rules)
+    if computed is not None and round(computed, 2) != 0.0:
+        return round(computed, 2)
+    return None
+
+
 def _batch_projections(
-    session: Any, player_ids: list[int], season_year: int, week: int
+    session: Any,
+    player_ids: list[int],
+    season_year: int,
+    week: int,
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, ProjectionModel]:
     """Latest projection row per player for a given season/week, in one query."""
     if not player_ids:
         return {}
     from sqlalchemy import func
+
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
 
     # Subquery: max fetched_at per player for this season/week.
     sub = (
@@ -359,7 +386,7 @@ def _batch_projections(
             func.max(ProjectionModel.fetched_at).label("latest"),
         )
         .where(
-            ProjectionModel.player_id.in_(player_ids),
+            ProjectionModel.player_id.in_(lookup_ids),
             ProjectionModel.season_year == season_year,
             ProjectionModel.week == week,
         )
@@ -368,16 +395,33 @@ def _batch_projections(
     )
     rows = (
         session.execute(
-            select(ProjectionModel).join(
+            select(ProjectionModel)
+            .join(
                 sub,
                 (ProjectionModel.player_id == sub.c.player_id)
                 & (ProjectionModel.fetched_at == sub.c.latest),
+            )
+            # The subquery's max(fetched_at) is scoped to this season/week, but the
+            # outer row match is on (player_id, fetched_at) — so without repeating
+            # the season/week filter here, a different week sharing the same
+            # fetched_at would join in and overwrite the right row.
+            .where(
+                ProjectionModel.season_year == season_year,
+                ProjectionModel.week == week,
             )
         )
         .scalars()
         .all()
     )
-    return {r.player_id: r for r in rows}
+    by_member = {int(r.player_id): r for r in rows}
+    out: dict[int, ProjectionModel] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
 
 
 # How much nflverse-credited production, while the league scored 0, counts as a
@@ -518,11 +562,17 @@ def solve_optimal(players: list[dict[str, Any]], slots: list[str]) -> float:
 
 
 def _scored_points(
-    session: Session, season_id: int, week: int, player_ids: list[int]
+    session: Session,
+    season_id: int,
+    week: int,
+    player_ids: list[int],
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, tuple[float, dict[str, Any]]]:
     """``player_id -> (total_points, breakdown)`` for one (season, week)."""
     if not player_ids:
         return {}
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
     rows = session.execute(
         select(
             PlayerStatsScored.player_id,
@@ -531,10 +581,45 @@ def _scored_points(
         ).where(
             PlayerStatsScored.season_id == season_id,
             PlayerStatsScored.week == week,
-            PlayerStatsScored.player_id.in_(player_ids),
+            PlayerStatsScored.player_id.in_(lookup_ids),
         )
     ).all()
-    return {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    by_member = {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    out: dict[int, tuple[float, dict[str, Any]]] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
+
+
+def _identity_cluster_members(session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+    """Roster-player id -> member ids to read as the same canonical player."""
+    out: dict[int, list[int]] = {}
+    for player_id in player_ids:
+        cluster = player_identity_cluster(session, player_id)
+        if cluster is None:
+            out[player_id] = [player_id]
+            continue
+        members = [
+            int(member_id)
+            for member_id in cast("list[int]", cluster["member_player_ids"])
+            if member_id is not None
+        ]
+        out[player_id] = sorted({player_id, *members}, key=lambda member_id: member_id != player_id)
+    return out
+
+
+def _injury_for_player_cluster(
+    injuries: dict[int, Any], player_id: int, cluster_members: dict[int, list[int]]
+) -> Any | None:
+    for member_id in cluster_members.get(player_id, [player_id]):
+        injury = injuries.get(member_id)
+        if injury is not None:
+            return injury
+    return None
 
 
 def _team_box(
@@ -565,8 +650,16 @@ def _team_box(
     # the per-player DATA badge and surface a single team-level caveat instead.
     roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
-    scored = _scored_points(session, season.season_id, week, player_ids)
-    projections = _batch_projections(session, player_ids, season.year, week)
+    cluster_members = _identity_cluster_members(session, player_ids)
+    scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
+    projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
+    projection_coverage = coverage_status_for_projection_week(session, season.year, week)
+    projections_available_for_week = projection_coverage["status"] == "present"
+    projection_reason = (
+        str(projection_coverage["reason"])
+        if projection_coverage.get("reason") is not None
+        else None
+    )
     scoring_rules = _season_scoring_rules(session, season.season_id)
     injuries = injury_reports_for_week(session, season.year, week)
 
@@ -617,28 +710,30 @@ def _team_box(
 
         # Projection vs actual. Use the authoritative projected_points when stored;
         # fall back to scoring projected_stats with the season's rules when the
-        # pipeline loaded raw stat projections but didn't apply scoring yet.
-        projection: float | None = None
-        proj_row = projections.get(player.player_id)
-        if proj_row is not None:
-            if proj_row.projected_points is not None:
-                projection = round(float(proj_row.projected_points), 2)
-            else:
-                computed = _projected_points_from_stats(proj_row.projected_stats, scoring_rules)
-                if computed is not None:
-                    projection = round(computed, 2)
+        # pipeline loaded raw stat projections but didn't apply scoring yet. A
+        # *zero* projection is not a real forecast — Sleeper returns hollow,
+        # all-zero rows for unprojected players (and entire pre-2018 seasons), so
+        # treat a 0 as "no projection" (renders a gap / dash) rather than a bogus
+        # 0.0 next to the player.
+        projection = _real_projection(
+            proj_row=projections.get(player.player_id), rules=scoring_rules
+        )
         projection_delta = (
             round(league_points - projection, 2)
             if league_points is not None and projection is not None
             else None
         )
+        projection_available = projections_available_for_week
+        player_projection_reason = None
+        if projection is None and not projections_available_for_week:
+            player_projection_reason = projection_reason
         team_point_share = (
             round(league_points / total_score, 4)
             if league_points is not None and total_score is not None and total_score > 0
             else None
         )
 
-        injury = injuries.get(player.player_id)
+        injury = _injury_for_player_cluster(injuries, player.player_id, cluster_members)
         injury_payload = injury_fields(injury)
         roster_status = _extra_str(roster_row, "player_status")
         roster_status_label = _extra_str(roster_row, "player_status_label")
@@ -694,6 +789,8 @@ def _team_box(
             "breakdown": breakdown,
             "projection": projection,
             "projection_delta": projection_delta,
+            "projection_available": projection_available,
+            "projection_reason": player_projection_reason,
             "team_point_share": team_point_share,
             "available": available,
             "reason": reason,
@@ -788,6 +885,16 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
             "is_playoff": bool(m.is_playoff),
         }
 
+    # Projection coverage is a property of the (season, week), identical for both
+    # teams — surface it once at the box level so the UI can show a single
+    # top-level "no projections for this season" note instead of a gap chip on
+    # every player row.
+    projection_coverage = coverage_status_for_projection_week(session, season.year, m.week)
+    projections_available = projection_coverage["status"] == "present"
+    projection_reason = (
+        None if projections_available else str(projection_coverage.get("reason") or "")
+    ) or None
+
     home = _team_box(session, m.team_id, season, m.week, m.team_score)
 
     away: dict[str, Any] | None = None
@@ -819,6 +926,8 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "week": m.week,
         "available": True,
         "is_playoff": bool(m.is_playoff),
+        "projections_available": projections_available,
+        "projection_reason": projection_reason,
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,

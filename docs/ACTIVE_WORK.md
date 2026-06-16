@@ -19,6 +19,35 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
+0. **Data Integrity & Coverage program** ◐ (cross-repo, heavy lift — the structural fix for the
+   recurring "works here but not there" / wrong-`player_id` reports). **This block is the single
+   cycle-state tracker** — the `docs/handoffs/*` files are reference specs, not status (their
+   checkboxes were stale and lied; ignore them for state). The program was re-cut (2026-06-16) from
+   3 cross-repo "workstreams" into **5 single-repo, session-sized units** because the old cut
+   crossed the repo boundary, smeared status across 5 docs, and bundled reachable with unreachable
+   "done when"s — which is exactly why fresh sessions kept reporting success while the symptom on
+   `/matchups/1823` survived. Units, in dependency order:
+
+   | Unit | Repo | Phase | What | State |
+   |------|------|-------|------|-------|
+   | **A** | dz-dashboard | VERIFY ☑ | Coverage matrix slice: `/v1/meta/coverage`, self-explaining projection gaps, identity-split *detection* (Part B2). Full gate green; click-through done on `/matchups/1823` (uncovered) + `/matchups/193` (2025 W1 covered). | ☑ verified on `feature/data-coverage-matrix-dashboard`; **pending PR → `dev`** |
+   | **B** | ../danger-zone | VERIFY ☑ | Put `player_identity_links` on the **live DB**, seed the 18-group triage set (start Mike Williams `1032↔25239`), expose the read-only `player_identity_cluster()` helper. Applied to live DB 2026-06-16; curated seed links `25239 -> 1032` and records the other 17 duplicate-name triage decisions as no-link namesakes/ghosts. | ☑ verified |
+   | **C** | ../danger-zone | VERIFY ☑ | Identity-aware ingest: nflverse `gsis_id` and Sleeper projection maps resolve linked members to the canonical player before writing stats/projections, so reruns attach Mike Williams data to `1032` instead of extending the split. Focused idempotency/map tests pass. | ☑ verified for seeded links |
+   | **D** | dz-dashboard | VERIFY ☑ | Consume canonical (Part B1): box-score, team-roster, player-scoring, and player-insight stat reads route through the cluster helper. Live `/matchups/1823` Mike Williams now renders `league_points=0.0` and `projection=0.0` on roster id `1032`; W7 correctly still has no injury row. | ☑ verified |
+   | **E** | both | ◐ **corrected** | **Earlier "214/214 cells present" claim was wrong on values.** The backfill loaded rows for 2010–2025, but Sleeper returns *hollow* rows (all-zero stats, `projected_points=0`) for **2010–2017** — full row counts, **0% real**. Real Sleeper coverage **begins 2018** (probed: 2017=0 real, 2018=53, 2019=73, 2020+=~85 per RB-week; 2026 W1 is stats-only-real). Loading hollow rows was a *regression*: `/matchups/1823` (2017) rendered fake `0.0` projections instead of an honest gap. **Dashboard fix ✅** (commit on `feature/data-coverage-matrix-dashboard`): coverage + per-player projection require a *real* value (nonzero points, or stats-only) — 2017 renders `projections_not_captured`, 2018+ render real values (9/9 on a 2023 box score), current-season stats-only stays present; also fixed a latent `_batch_projections` cross-week join bug; regression tests pin hollow→absent / stats-only→present. **Upstream cleanup ✅** (`../danger-zone:feature/player-identity-crosswalk`): `_upsert_projections` now skips hollow rows on ingest + `scripts/prune_hollow_projections.py` deleted the existing ones — live DB **522,143 → 40,759** rows (92% were hollow), leaving only real 2018–2026 projections; 2010–2017 now have zero rows. **Display ✅:** box score carries one box-level `projections_available`/`projection_reason` → a single top-level note ("Projection data isn't available for the 2017 season…") instead of a gap chip per player; Proj/Value cells show plain dashes; layout identical when present. **Pre-2018 projections do not exist at the source — genuinely unclosable, now surfaced honestly + minimally.** | ☑ complete (dashboard + upstream) |
+
+   **⚠ Merge sequencing (the only open operational step).** Dashboard PR #77 (Units A+D) *imports*
+   `player_identity_cluster` from ff-pipeline, and dashboard CI resolves ff-pipeline at
+   `../danger-zone:dev`. The helper lives on danger-zone PR #49 (`feature/player-identity-crosswalk`),
+   not yet on danger-zone `dev`. **Land danger-zone #49 → `dev` before dz-dashboard #77 → `dev`**, or
+   #77's CI fails with an ImportError. Local gates pass only because the local `../danger-zone`
+   checkout is on the crosswalk branch. Unit-B triage was re-verified 2026-06-16: across all 18
+   league-relevant duplicate-name groups, **Mike Williams is the only one matching the stranded-split
+   signature** (rostered-but-dataless beside a non-rostered data twin) — the 17 `no_link` decisions
+   are correct, so Unit B is complete, not partial. Unit-C idempotency guard
+   (`test_reingest_does_not_restrand_linked_member`) added on #49.
+
+   Reference framing: `docs/handoffs/00-data-integrity-program.md`.
 1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
    *silently dead* for the 2010–2019 conference era. §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.
@@ -73,6 +102,11 @@ status-update counts), then fix or document the residuals upstream. Current real
 - D4 never-rostered / never-scored "ghost" players = 400; scope-policy decision still open.
 - D5 duplicate same-player/season/week roster rows = **0** → resolved.
 - D3 `is_active` semantics + stale `nfl_team` — needs a documented, stable definition.
+- Cross-source `player_id` splits are now explicitly tracked by the Data Integrity program.
+  Dashboard detection is implemented on `feature/data-coverage-matrix-dashboard`; upstream
+  crosswalk scaffolding is implemented on `feature/player-identity-crosswalk`. Still required
+  upstream: curate/seed the league-relevant links (including Mike Williams 1032 ↔ 25239) and make
+  ingestion consult canonical identity before creating new player stubs.
 - Coordinated dashboard add: expose `last_season` on `PlayerOut` once D1 is fully populated
   (additive; run `gen:api` drift check in the same cycle).
 (See memory `player-stub-duplicates`.)

@@ -64,6 +64,11 @@ do.
 | Projections (`projections`, Sleeper) | current season forward | **Partial/seasonal** | Projection-vs-actual only where projections exist |
 | Trending players (`trending_players`, Sleeper) | current, rolling | **Partial** | Optional "buzz" widget, current season only |
 
+`/v1/meta/coverage` is the runtime source of truth for the coverage envelope above. It exposes
+the feed-by-season/week matrix, relevance/exclusion tallies, and diagnostic identity-split
+candidates so views can render self-explaining gaps instead of bare absence. The prose table is
+orientation; the matrix and its contract tests are authoritative for current DB truth.
+
 ### Important reconstruction caveat (timing)
 
 Phase 1's historical reconstruction has completed, and F-51 added pre-2016 per-player scoring.

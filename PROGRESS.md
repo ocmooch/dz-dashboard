@@ -19,7 +19,37 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
-**In progress (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
+**In progress (2026-06-16):** `feature/data-coverage-matrix-dashboard` implements the dashboard
+side of the Data Integrity & Coverage program from `docs/handoffs/`: a PLAN artifact
+(`docs/plans/data-integrity-coverage-program.md`), `/v1/meta/coverage`, projection feed-cell
+coverage for box scores, and interim identity-split detection. The matrix separates relevance
+from feed coverage, emits reason codes, and counts unresolved cross-source player splits without
+unioning stats/injuries in the dashboard. Fixture coverage now includes one covered projection
+cell and one same-name roster/stats twin; contract tests pin both. The originating projection-gap
+class now renders `DataGap` for feed-absent projection/value cells instead of bare dashes. The
+anti-whack-a-mole rule is recorded in `docs/08_TESTING_STRATEGY.md`, and `docs/03_DATA_ACCESS.md`
+points at `/v1/meta/coverage` as runtime truth. **VERIFIED (2026-06-16, Unit A):** full gate green
+— backend pytest 369, ruff, mypy, write-safety clean; frontend `gen:api` no-drift, typecheck,
+vitest 167 — plus real-DB click-through: `/matchups/1823` (2017 W7) renders all starters
+`projection_available=false, reason=projections_not_captured` (Mike Williams pid=1032 DNP), and
+`/matchups/193` (2025 W1) renders 9/9 starter projections + deltas. **This branch is ready to PR →
+`dev`.** The program is re-cut into 5 single-repo units tracked in `docs/ACTIVE_WORK.md` §0 (the
+single cycle-state source; the `docs/handoffs/*` checkboxes are reference-only). Unit A = this
+branch; Units B/C (upstream crosswalk + identity-aware ingest), D (dashboard consume), and E
+(projections-source investigation) remain.
+
+Follow-up (same date): Units B/C/D/E were completed across `../danger-zone` and this dashboard.
+The live DB is migrated to `player_identity_links`, seeded with the high-confidence Mike Williams
+link `25239 -> 1032` plus documented no-link decisions for the other 17 duplicate-name triage
+groups, and nflverse/Sleeper ingest maps now resolve linked members to the canonical player. The
+Sleeper projection backfill populated every completed-season regular-week cell through 2025
+(214/214 cells, no missing cells). Dashboard analytics now consume canonical clusters for box
+scores, team rosters, player scoring, player insights, and unresolved-split detection. Live
+verification: `/matchups/1823` Mike Williams renders on roster id `1032` with `league_points=0.0`,
+`projection=0.0`, `projection_available=true`, and the coverage matrix reports
+`identity_split_candidate_count=0`; W7 still correctly has no injury report row.
+
+**Prior (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
 class in the per-player `DATA` "roster drift" badge. The badge fires when the W-N snapshot shows
 a player on a team but transactions don't *add* him until a later week. The acquisition scan in
 `_roster_data_context_from_transactions` (`analytics/matchups.py`) required `direction == "in"`,
@@ -122,6 +152,10 @@ The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the rema
 
 All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
 
+0. **Data Integrity & Coverage program** (cross-repo heavy lift; new 2026-06-16). Structural fix
+   for the recurring data-gap / wrong-`player_id` whack-a-mole. Three handoff prompts under
+   `docs/handoffs/`: start at `00-data-integrity-program.md`, then `player-identity-resolution.md`
+   and `data-coverage-matrix.md` (paramount). `docs/ACTIVE_WORK.md` §0.
 1. **Repair the silently-dead conferences feature** (dashboard, do first; see Open items). The gate
    is green but `analytics/conferences.py` returns empty for the entire 2010–2019 conference era.
    Fix = the raw-SQL rewrite `standings.py` already uses. `docs/ACTIVE_WORK.md` §6.1.

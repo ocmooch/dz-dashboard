@@ -385,6 +385,25 @@ describe("BoxScorePage", () => {
     expect(screen.queryByText("miss")).not.toBeInTheDocument();
   });
 
+  it("shows one top-level note (not per-row gaps) when the season has no projections", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          season_year: 2017,
+          projections_available: false,
+          projection_reason: "projections_not_captured",
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+
+    // A single page-level note explains the blank columns…
+    expect(await screen.findByText(/Projection data isn.t available for the 2017 season/)).toBeInTheDocument();
+    // …and no per-player projection gap chip is rendered.
+    expect(screen.queryByText("Projections not captured for this season/week")).toBeNull();
+  });
+
   it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {
     get.mockImplementation(() =>
       Promise.resolve(

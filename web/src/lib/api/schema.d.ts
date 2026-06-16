@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/meta/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Coverage Matrix */
+        get: operations["coverage_matrix_v1_meta_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/league/overview": {
         parameters: {
             query?: never;
@@ -836,6 +853,13 @@ export interface components {
             projection?: number | null;
             /** Projection Delta */
             projection_delta?: number | null;
+            /**
+             * Projection Available
+             * @default true
+             */
+            projection_available: boolean;
+            /** Projection Reason */
+            projection_reason?: string | null;
             /** Team Point Share */
             team_point_share?: number | null;
             /** Lineup Value */
@@ -881,6 +905,13 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /**
+             * Projections Available
+             * @default true
+             */
+            projections_available: boolean;
+            /** Projection Reason */
+            projection_reason?: string | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
@@ -1091,6 +1122,50 @@ export interface components {
              */
             dst_scoring_complete: boolean;
         };
+        /** CoverageFeedCell */
+        CoverageFeedCell: {
+            /** Season Year */
+            season_year: number;
+            /** Week */
+            week: number;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason?: string | null;
+            /** Row Count */
+            row_count: number;
+            /** Projected Points Count */
+            projected_points_count?: number | null;
+            /** Projected Stats Count */
+            projected_stats_count?: number | null;
+        };
+        /** CoverageMatrix */
+        CoverageMatrix: {
+            relevance: components["schemas"]["CoverageRelevance"];
+            /** Feeds */
+            feeds: {
+                [key: string]: components["schemas"]["CoverageFeedCell"][];
+            };
+            /** Reason Codes */
+            reason_codes: {
+                [key: string]: string;
+            };
+        };
+        /** CoverageRelevance */
+        CoverageRelevance: {
+            /** Total Players */
+            total_players: number;
+            /** League Rostered Players */
+            league_rostered_players: number;
+            /** League Relevant Players */
+            league_relevant_players: number;
+            /** Excluded Players */
+            excluded_players: number;
+            /** Identity Split Candidate Count */
+            identity_split_candidate_count: number;
+            /** Identity Split Candidates */
+            identity_split_candidates: components["schemas"]["IdentitySplitCandidate"][];
+        };
         /** DataCaveat */
         DataCaveat: {
             /** Code */
@@ -1221,6 +1296,11 @@ export interface components {
         /** Envelope[ChampionshipHistory] */
         Envelope_ChampionshipHistory_: {
             data: components["schemas"]["ChampionshipHistory"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[CoverageMatrix] */
+        Envelope_CoverageMatrix_: {
+            data: components["schemas"]["CoverageMatrix"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[DraftBoard] */
@@ -1529,6 +1609,45 @@ export interface components {
              * @default ok
              */
             status: string;
+        };
+        /** IdentitySplitCandidate */
+        IdentitySplitCandidate: {
+            /** Name Full */
+            name_full: string;
+            /** Reason */
+            reason: string;
+            /** Members */
+            members: components["schemas"]["IdentitySplitMember"][];
+        };
+        /** IdentitySplitMember */
+        IdentitySplitMember: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Position */
+            position?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
+            /** Gsis Id */
+            gsis_id?: string | null;
+            /** Nfl Com Player Id */
+            nfl_com_player_id?: string | null;
+            /**
+             * Rostered
+             * @default false
+             */
+            rostered: boolean;
+            /**
+             * Scored
+             * @default false
+             */
+            scored: boolean;
+            /**
+             * Injured
+             * @default false
+             */
+            injured: boolean;
         };
         /** LatestRun */
         LatestRun: {
@@ -2981,6 +3100,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_MetaResponse_"];
+                };
+            };
+        };
+    };
+    coverage_matrix_v1_meta_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CoverageMatrix_"];
                 };
             };
         };

@@ -6,10 +6,11 @@ from fastapi import APIRouter
 from ff_pipeline.api._meta import build_meta
 from ff_pipeline.repository.queries import latest_pipeline_run
 
-from ff_dashboard.analytics.coverage import compute_coverage
+from ff_dashboard.analytics.coverage import compute_coverage, compute_coverage_matrix
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Coverage,
+    CoverageMatrix,
     Envelope,
     HealthResponse,
     LatestRun,
@@ -39,3 +40,10 @@ def meta(session: SessionDep) -> Envelope[MetaResponse]:
         coverage=Coverage(**compute_coverage(session)),
     )
     return Envelope(data=data, meta=build_meta(session))
+
+
+@router.get("/v1/meta/coverage", response_model=Envelope[CoverageMatrix], tags=["meta"])
+def coverage_matrix(session: SessionDep) -> Envelope[CoverageMatrix]:
+    return Envelope(
+        data=CoverageMatrix(**compute_coverage_matrix(session)), meta=build_meta(session)
+    )

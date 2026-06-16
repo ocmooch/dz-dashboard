@@ -236,6 +236,11 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
       "Conference membership data for historical seasons is not yet available",
     roster_history_unavailable:
       "Week-by-week roster history isn't available for this season, so adds and drops can't be derived",
+    projections_not_captured: "Projections not captured for this season/week",
+    projection_points_not_scored:
+      "Projection rows exist, but projected fantasy points were not scored",
+    identity_split_candidate:
+      "Player identity split detected; stats may live under a source twin",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">

@@ -58,6 +58,11 @@ Tests live **flat in `tests/`**, grouped by roadmap milestone rather than a nest
 - **Draft:** pick-value definition; steal/bust identification.
 - **Gap behavior:** every metric, when pointed at gap data, returns `available:false` (never
   0). This is a first-class assertion class.
+- **Coverage matrix behavior:** every data-gated feature declares its coverage envelope through
+  `/v1/meta/coverage` or a BFF helper backed by it. A feature is not done when it works on the
+  page in front of you; it is done when it renders correctly inside the declared envelope and
+  returns a self-explaining `DataGap` everywhere outside it. Contract tests must pin both the
+  present cell and the gap cell so silent coverage drift becomes a failing test.
 
 Target: high coverage on `analytics/` (treat it like Phase 1 treated the scoring engine —
 this is where correctness lives).

@@ -24,9 +24,14 @@ from pydantic import BaseModel, ConfigDict
 
 __all__ = [
     "Coverage",
+    "CoverageFeedCell",
+    "CoverageMatrix",
+    "CoverageRelevance",
     "Envelope",
     "ErrorBody",
     "HealthResponse",
+    "IdentitySplitCandidate",
+    "IdentitySplitMember",
     "LatestRun",
     "Meta",
     "MetaResponse",
@@ -64,6 +69,49 @@ class Coverage(BaseModel):
     reconstruction_complete: bool
     availability_current_season_only: bool = True
     dst_scoring_complete: bool = False
+
+
+class IdentitySplitMember(BaseModel):
+    player_id: int
+    name_full: str
+    position: str | None = None
+    nfl_team: str | None = None
+    gsis_id: str | None = None
+    nfl_com_player_id: str | None = None
+    rostered: bool = False
+    scored: bool = False
+    injured: bool = False
+
+
+class IdentitySplitCandidate(BaseModel):
+    name_full: str
+    reason: str
+    members: list[IdentitySplitMember]
+
+
+class CoverageRelevance(BaseModel):
+    total_players: int
+    league_rostered_players: int
+    league_relevant_players: int
+    excluded_players: int
+    identity_split_candidate_count: int
+    identity_split_candidates: list[IdentitySplitCandidate]
+
+
+class CoverageFeedCell(BaseModel):
+    season_year: int
+    week: int
+    status: str
+    reason: str | None = None
+    row_count: int
+    projected_points_count: int | None = None
+    projected_stats_count: int | None = None
+
+
+class CoverageMatrix(BaseModel):
+    relevance: CoverageRelevance
+    feeds: dict[str, list[CoverageFeedCell]]
+    reason_codes: dict[str, str]
 
 
 class MetaResponse(BaseModel):
@@ -952,6 +1000,8 @@ class BoxPlayer(BaseModel):
     breakdown: dict[str, Any] = {}
     projection: float | None = None
     projection_delta: float | None = None
+    projection_available: bool = True
+    projection_reason: str | None = None
     team_point_share: float | None = None
     lineup_value: str | None = None
     available: bool = True
@@ -996,6 +1046,11 @@ class BoxScore(BaseModel):
     available: bool
     reason: str | None = None
     is_playoff: bool = False
+    # Whether this (season, week) has real projection data — drives a single
+    # top-level note rather than a per-player gap. ``projection_reason`` carries
+    # the machine code (e.g. ``projections_not_captured``) for the UI copy.
+    projections_available: bool = True
+    projection_reason: str | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None

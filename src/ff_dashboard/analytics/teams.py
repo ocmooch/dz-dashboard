@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup, PlayerStatsScored
+from ff_pipeline.repository.models import Matchup
 from ff_pipeline.repository.queries import (
     get_player,
     get_season,
@@ -42,6 +42,9 @@ from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
     DEF_SLOTS,
     _authoritative_points,
+    _identity_cluster_members,
+    _injury_for_player_cluster,
+    _scored_points,
     classify_zero,
     roster_sort_key,
 )
@@ -138,20 +141,18 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
     # team page reads the audit week the same way the box score does (shared rule).
     roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in pairs)
     player_ids = [r.player_id for r, _ in pairs]
+    cluster_members = _identity_cluster_members(session, player_ids)
     # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
     # the current snapshot on players.nfl_team when no per-week team is stored —
     # mirrors period_team_name()'s fallback for fantasy names.
     season_teams = player_season_teams(session, player_ids, season.year)
-    scored: dict[int, float] = {}
-    if player_ids:
-        rows = session.execute(
-            select(PlayerStatsScored.player_id, PlayerStatsScored.total_points).where(
-                PlayerStatsScored.season_id == season.season_id,
-                PlayerStatsScored.week == effective_week,
-                PlayerStatsScored.player_id.in_(player_ids),
-            )
-        ).all()
-        scored = {int(pid): float(pts) for pid, pts in rows if pts is not None}
+    scored = _scored_points(
+        session,
+        season.season_id,
+        effective_week,
+        player_ids,
+        cluster_members,
+    )
 
     # Week-scoped injury designations — the same normalized field set the box
     # score surfaces, so a player reads identically on both views for that week.
@@ -163,8 +164,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         # nflverse reconstruction only when the field is absent. Keeps the team
         # page in agreement with the box score (which does the same).
         points = _authoritative_points(roster_row)
-        nflverse_points = scored.get(player.player_id)
-        if points is None and player.player_id in scored:
+        scored_row = scored.get(player.player_id)
+        nflverse_points = scored_row[0] if scored_row is not None else None
+        if points is None and scored_row is not None:
             points = nflverse_points
         if is_scored and points is None and roster_row.roster_slot not in DEF_SLOTS:
             # Same weekly-player rule as the box score: in a scored season, a
@@ -191,7 +193,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "zero_detail": zero_detail,
                 "acquisition_type": roster_row.acquisition_type,
                 "acquisition_week": roster_row.acquisition_week,
-                **injury_fields(injuries.get(player.player_id)),
+                **injury_fields(
+                    _injury_for_player_cluster(injuries, player.player_id, cluster_members)
+                ),
             }
         )
 

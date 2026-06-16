@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.matchups import classify_zero
+from ff_dashboard.analytics.matchups import _identity_cluster_members, classify_zero
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -94,20 +94,24 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
             "weeks": [],
         }
 
+    member_ids = _identity_cluster_members(session, [player_id])[player_id]
     scored_rows = session.execute(
         select(
+            PlayerStatsScored.player_id,
             PlayerStatsScored.week,
             PlayerStatsScored.total_points,
             PlayerStatsScored.points_breakdown,
         )
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
-        .where(PlayerStatsScored.player_id == player_id, Season.year == season_year)
+        .where(PlayerStatsScored.player_id.in_(member_ids), Season.year == season_year)
         .order_by(PlayerStatsScored.week)
     ).all()
     scored_points_by_week: dict[int, float | None] = {}
     breakdown_by_week: dict[int, dict[str, Any]] = {}
-    for w, pts, breakdown in scored_rows:
+    for pid, w, pts, breakdown in scored_rows:
         week = int(w)
+        if week in scored_points_by_week and int(pid) != player_id:
+            continue
         scored_points_by_week[week] = float(pts) if pts is not None else None
         breakdown_by_week[week] = breakdown or {}
 
@@ -261,10 +265,11 @@ def player_insights(session: Session, player_id: int) -> dict[str, Any] | None:
         return None
 
     ownership = ownership_timeline(session, player_id)
+    member_ids = _identity_cluster_members(session, [player_id])[player_id]
     best_week_row = session.execute(
         select(Season.year, PlayerStatsScored.week, PlayerStatsScored.total_points)
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
-        .where(PlayerStatsScored.player_id == player_id)
+        .where(PlayerStatsScored.player_id.in_(member_ids))
         .order_by(PlayerStatsScored.total_points.desc())
         .limit(1)
     ).first()
@@ -272,7 +277,7 @@ def player_insights(session: Session, player_id: int) -> dict[str, Any] | None:
         select(Season.year, func.sum(PlayerStatsScored.total_points))
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
         .where(
-            PlayerStatsScored.player_id == player_id,
+            PlayerStatsScored.player_id.in_(member_ids),
             PlayerStatsScored.week <= Season.regular_season_weeks,
         )
         .group_by(Season.year)

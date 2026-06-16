@@ -28,6 +28,8 @@ from sqlalchemy import func, select
 
 from ff_dashboard.analytics.coverage import (
     compute_coverage,
+    compute_coverage_matrix,
+    coverage_status_for_projection_week,
     dst_scoring_complete,
     seasons_present,
     seasons_scored,
@@ -163,3 +165,59 @@ def test_coverage_payload_shape(session: Session) -> None:
     assert cov["scored_year_max"] == seasons_scored(session)[-1]
     assert isinstance(cov["reconstruction_complete"], bool)
     assert isinstance(cov["dst_scoring_complete"], bool)
+
+
+def test_projection_week_coverage_is_data_driven(session: Session) -> None:
+    covered = coverage_status_for_projection_week(session, 2017, 1)
+    assert covered["status"] == "present"
+    assert covered["reason"] is None
+    assert covered["row_count"] == 2
+
+    uncovered = coverage_status_for_projection_week(session, 2017, 2)
+    assert uncovered["status"] == "absent"
+    assert uncovered["reason"] == "projections_not_captured"
+    assert uncovered["row_count"] == 0
+
+    # Hollow rows (projected_points=0 + all-zero stats — Sleeper's pre-coverage
+    # shape) must read as absent, not a bogus 0.0 projection. There IS a row, so
+    # this guards specifically against counting the hollow row as coverage.
+    hollow = coverage_status_for_projection_week(session, 2017, 3)
+    assert hollow["status"] == "absent"
+    assert hollow["reason"] == "projections_not_captured"
+    assert hollow["row_count"] == 1
+
+    # Stats-only rows (projected_points NULL but real projected_stats — the
+    # current season's not-yet-scored shape) must read as present.
+    stats_only = coverage_status_for_projection_week(session, 2017, 4)
+    assert stats_only["status"] == "present"
+    assert stats_only["reason"] is None
+    assert stats_only["projected_stats_count"] == 1
+
+
+def test_coverage_matrix_reports_relevance_feeds_and_identity_splits(session: Session) -> None:
+    matrix = compute_coverage_matrix(session)
+    assert set(matrix) == {"relevance", "feeds", "reason_codes"}
+    feeds = matrix["feeds"]
+    assert set(feeds) == {
+        "rosters",
+        "scored_stats",
+        "injuries",
+        "projections",
+        "transactions",
+        "availability",
+    }
+
+    projections = {
+        (cell["season_year"], cell["week"]): cell
+        for cell in feeds["projections"]  # type: ignore[index]
+    }
+    assert projections[(2017, 1)]["status"] == "present"
+    assert projections[(2017, 1)]["projected_points_count"] == 2
+    assert (2017, 2) not in projections
+
+    relevance = matrix["relevance"]
+    assert relevance["total_players"] > relevance["league_rostered_players"]  # type: ignore[index]
+    assert relevance["identity_split_candidate_count"] == 1  # type: ignore[index]
+    candidate = relevance["identity_split_candidates"][0]  # type: ignore[index]
+    assert candidate["name_full"] == "Split Sam"
+    assert {m["rostered"] for m in candidate["members"]} == {True, False}
