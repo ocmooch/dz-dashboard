@@ -141,7 +141,15 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         )}
         <ContextBadge p={p} />
       </td>
-      <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
+      <td className="dz-num text-faint">
+        {p.projection != null ? (
+          num(p.projection)
+        ) : p.projection_available === false ? (
+          <DataGap reason={p.projection_reason ?? "projections_not_captured"} size="sm" />
+        ) : (
+          "—"
+        )}
+      </td>
       <td className="dz-num text-faint">
         {p.team_point_share != null ? pct(p.team_point_share) : "—"}
       </td>
@@ -160,7 +168,13 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
               : undefined
           }
         >
-          {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
+          {p.projection_delta != null ? (
+            `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}`
+          ) : p.projection_available === false ? (
+            <DataGap reason={p.projection_reason ?? "projections_not_captured"} size="sm" />
+          ) : (
+            "—"
+          )}
         </span>
       </td>
       <td className="dz-num">

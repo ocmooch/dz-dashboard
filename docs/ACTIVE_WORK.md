@@ -19,13 +19,15 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
-0. **Data Integrity & Coverage program** (cross-repo, heavy lift — the structural fix for the
-   recurring "works here but not there" / wrong-`player_id` reports). Start at
-   `docs/handoffs/00-data-integrity-program.md`, then the two workstream handoffs:
-   `player-identity-resolution.md` (stamp out cross-source `player_id` splits — extends F-25) and
-   `data-coverage-matrix.md` (the paramount deliverable: a data-driven, identity-cluster-aware
-   relevance + coverage matrix that instructs the DB/UI and makes gaps self-explaining). Supersedes
-   the ad-hoc, page-by-page approach behind most recent matchup fixes.
+0. **Data Integrity & Coverage program** ◐ (cross-repo, heavy lift — the structural fix for the
+   recurring "works here but not there" / wrong-`player_id` reports). Dashboard branch
+   `feature/data-coverage-matrix-dashboard` now has the first matrix slice:
+   `/v1/meta/coverage`, projection feed-cell gap reasons, and interim identity-split detection.
+   Upstream branch `../danger-zone:feature/player-identity-crosswalk` adds the additive
+   `player_identity_links` table and read helper. Still open: seed/curate the crosswalk, make
+   ingestion identity-aware so new crawls do not mint twins, then have the dashboard consume
+   canonical clusters for stats/injuries. Start from `docs/handoffs/00-data-integrity-program.md`
+   for the full framing.
 1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
    *silently dead* for the 2010–2019 conference era. §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.
@@ -80,6 +82,11 @@ status-update counts), then fix or document the residuals upstream. Current real
 - D4 never-rostered / never-scored "ghost" players = 400; scope-policy decision still open.
 - D5 duplicate same-player/season/week roster rows = **0** → resolved.
 - D3 `is_active` semantics + stale `nfl_team` — needs a documented, stable definition.
+- Cross-source `player_id` splits are now explicitly tracked by the Data Integrity program.
+  Dashboard detection is implemented on `feature/data-coverage-matrix-dashboard`; upstream
+  crosswalk scaffolding is implemented on `feature/player-identity-crosswalk`. Still required
+  upstream: curate/seed the league-relevant links (including Mike Williams 1032 ↔ 25239) and make
+  ingestion consult canonical identity before creating new player stubs.
 - Coordinated dashboard add: expose `last_season` on `PlayerOut` once D1 is fully populated
   (additive; run `gen:api` drift check in the same cycle).
 (See memory `player-stub-duplicates`.)

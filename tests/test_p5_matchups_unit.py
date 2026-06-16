@@ -172,6 +172,30 @@ def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Sess
     assert viper["reason"] is None
 
 
+def test_box_projection_gap_is_week_coverage_not_player_math(session: Session) -> None:
+    covered_mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    covered = box_score(session, covered_mid)
+    assert covered is not None
+    projected = next(p for p in covered["home"]["lineup"] if p["player_name"] == "Ice QB One")
+    assert projected["projection"] == 20.0
+    assert projected["projection_delta"] == 4.0
+    assert projected["projection_available"] is True
+    assert projected["projection_reason"] is None
+
+    unprojected = next(p for p in covered["home"]["lineup"] if p["player_name"] == "Ice RB One")
+    assert unprojected["projection"] is None
+    assert unprojected["projection_available"] is True
+    assert unprojected["projection_reason"] is None
+
+    uncovered_mid = KNOWN["matchup_id"][(2017, 2, "goose")]
+    uncovered = box_score(session, uncovered_mid)
+    assert uncovered is not None
+    dnp = next(p for p in uncovered["home"]["lineup"] if p["player_name"] == "DNP Dana")
+    assert dnp["projection"] is None
+    assert dnp["projection_available"] is False
+    assert dnp["projection_reason"] == "projections_not_captured"
+
+
 # --- Zero-point context classification --------------------------------------
 
 

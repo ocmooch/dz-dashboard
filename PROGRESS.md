@@ -19,7 +19,28 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
-**In progress (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
+**In progress (2026-06-16):** `feature/data-coverage-matrix-dashboard` implements the dashboard
+side of the Data Integrity & Coverage program from `docs/handoffs/`: a PLAN artifact
+(`docs/plans/data-integrity-coverage-program.md`), `/v1/meta/coverage`, projection feed-cell
+coverage for box scores, and interim identity-split detection. The matrix separates relevance
+from feed coverage, emits reason codes, and counts unresolved cross-source player splits without
+unioning stats/injuries in the dashboard. Fixture coverage now includes one covered projection
+cell and one same-name roster/stats twin; contract tests pin both. The originating projection-gap
+class now renders `DataGap` for feed-absent projection/value cells instead of bare dashes. The
+anti-whack-a-mole rule is recorded in `docs/08_TESTING_STRATEGY.md`, and `docs/03_DATA_ACCESS.md`
+points at `/v1/meta/coverage` as runtime truth. Focused dashboard checks are green:
+`uv run pytest tests/test_coverage_integrity.py tests/test_p1_bootstrap.py tests/test_p5_matchups_unit.py -q`,
+`uv run ruff check/format --check` on touched Python files, `uv run mypy src/ff_dashboard`,
+`npm run typecheck`, and `npm run test -- matchups.test.tsx`. A current-branch BFF is running on
+`http://127.0.0.1:8800` for API generation/click-through.
+
+Sibling upstream branch `../danger-zone` → `feature/player-identity-crosswalk` adds the additive
+`player_identity_links` crosswalk table, ORM model, and `player_identity_cluster()` read helper
+with focused tests. This is not the full canonical identity fix yet: curation/seeding of the Mike
+Williams-style links and ingestion-aware resolver behavior remain upstream work before the
+dashboard should union canonical clusters for stats/injuries.
+
+**Prior (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
 class in the per-player `DATA` "roster drift" badge. The badge fires when the W-N snapshot shows
 a player on a team but transactions don't *add* him until a later week. The acquisition scan in
 `_roster_data_context_from_transactions` (`analytics/matchups.py`) required `direction == "in"`,

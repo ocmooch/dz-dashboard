@@ -385,6 +385,29 @@ describe("BoxScorePage", () => {
     expect(screen.queryByText("miss")).not.toBeInTheDocument();
   });
 
+  it("renders projection feed gaps as DataGap labels", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          home: {
+            ...BOX.home,
+            lineup: [
+              {
+                ...BOX.home.lineup[0],
+                projection_available: false,
+                projection_reason: "projections_not_captured",
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+
+    expect(await screen.findAllByText("Projections not captured for this season/week")).toHaveLength(2);
+  });
+
   it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {
     get.mockImplementation(() =>
       Promise.resolve(

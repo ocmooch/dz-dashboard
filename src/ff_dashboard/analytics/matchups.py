@@ -38,7 +38,7 @@ from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
-from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
 from ff_dashboard.analytics.player_status import should_suppress_status
@@ -567,6 +567,13 @@ def _team_box(
     player_ids = [r.player_id for r, _ in roster]
     scored = _scored_points(session, season.season_id, week, player_ids)
     projections = _batch_projections(session, player_ids, season.year, week)
+    projection_coverage = coverage_status_for_projection_week(session, season.year, week)
+    projections_available_for_week = projection_coverage["status"] in {"present", "partial"}
+    projection_reason = (
+        str(projection_coverage["reason"])
+        if projection_coverage.get("reason") is not None
+        else None
+    )
     scoring_rules = _season_scoring_rules(session, season.season_id)
     injuries = injury_reports_for_week(session, season.year, week)
 
@@ -632,6 +639,10 @@ def _team_box(
             if league_points is not None and projection is not None
             else None
         )
+        projection_available = projections_available_for_week
+        player_projection_reason = None
+        if projection is None and not projections_available_for_week:
+            player_projection_reason = projection_reason
         team_point_share = (
             round(league_points / total_score, 4)
             if league_points is not None and total_score is not None and total_score > 0
@@ -694,6 +705,8 @@ def _team_box(
             "breakdown": breakdown,
             "projection": projection,
             "projection_delta": projection_delta,
+            "projection_available": projection_available,
+            "projection_reason": player_projection_reason,
             "team_point_share": team_point_share,
             "available": available,
             "reason": reason,
