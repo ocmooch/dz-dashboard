@@ -30,6 +30,29 @@ function isIR(slot: string | null | undefined): boolean {
   return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
 }
 
+function contextTone(label: string | null | undefined): string {
+  if (label === "DATA") return "border-[color:var(--loss)] text-loss";
+  if (label === "INJ") return "border-[color:var(--warn)] text-[var(--warn)]";
+  if (label === "RES") return "border-[color:var(--muted)] text-muted";
+  return "border-[color:var(--hairline)] text-faint";
+}
+
+function showRowContext(p: BoxPlayer): boolean {
+  return !!p.context_label && !["Bye", "DNP", "Out", "Check"].includes(p.context_label);
+}
+
+function ContextBadge({ p }: { p: BoxPlayer }) {
+  if (!showRowContext(p)) return null;
+  return (
+    <span
+      className={`ml-1 rounded border px-1 py-0.5 align-middle text-[10px] font-bold leading-none ${contextTone(p.context_label)}`}
+      title={p.context_detail ?? undefined}
+    >
+      {p.context_label}
+    </span>
+  );
+}
+
 
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
@@ -69,7 +92,7 @@ function LineupTable({ team }: { team: BoxTeam }) {
           <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
           <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
           <th className="dz-num" title="Actual vs projected (+/− delta).">Value</th>
-          <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
+          <th className="dz-num" title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores.">Pts</th>
         </tr>
       </thead>
       <tbody>
@@ -116,6 +139,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             practiceStatus={p.injury_practice_status}
           />
         )}
+        <ContextBadge p={p} />
       </td>
       <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
       <td className="dz-num text-faint">
@@ -148,6 +172,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             points={p.league_points}
             zeroReason={p.zero_reason}
             zeroDetail={p.zero_detail}
+            zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
             injuryBodyPart={p.injury_body_part}
             muted={muted}
           />
@@ -185,6 +210,17 @@ function TeamColumn({ team, isWinner }: { team: BoxTeam; isWinner: boolean }) {
             {team.beat_projection_by >= 0 ? "beat projection by " : "under projection by "}
             {num(Math.abs(team.beat_projection_by))}
           </Badge>
+        </div>
+      )}
+      {team.roster_reconstructed && team.roster_reconstructed_note && (
+        <div className="px-5 pb-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">reconstructed</span>
+            {team.roster_reconstructed_note}
+          </div>
         </div>
       )}
       <div className="px-5 pb-2">

@@ -45,6 +45,11 @@ from ff_dashboard.analytics.matchups import (
     classify_zero,
     roster_sort_key,
 )
+from ff_dashboard.analytics.roster_snapshots import (
+    is_reconstructed_week,
+    reconstructed_note,
+    snapshot_kind,
+)
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
@@ -128,6 +133,10 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         )
 
     is_scored = season.year in set(seasons_scored(session))
+    # When the displayed week's whole roster is a reconstructed audit snapshot,
+    # the per-player attribution/slots are approximate — surface one caveat so the
+    # team page reads the audit week the same way the box score does (shared rule).
+    roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in pairs)
     player_ids = [r.player_id for r, _ in pairs]
     # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
     # the current snapshot on players.nfl_team when no per-week team is stored —
@@ -192,6 +201,10 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         "week": effective_week,
         "weeks_available": weeks_available,
         "is_scored": is_scored,
+        "roster_reconstructed": roster_reconstructed,
+        "roster_reconstructed_note": (
+            reconstructed_note(effective_week) if roster_reconstructed else None
+        ),
         "players": players,
     }
 

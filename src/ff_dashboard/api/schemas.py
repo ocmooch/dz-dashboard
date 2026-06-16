@@ -942,6 +942,11 @@ class BoxPlayer(BaseModel):
     player_id: int
     player_name: str | None = None
     position: str | None = None
+    nfl_opponent: str | None = None
+    nfl_game_status: str | None = None
+    roster_status: str | None = None
+    roster_status_label: str | None = None
+    reserve_eligibility_status: str | None = None
     league_points: float | None = None  # null (not 0) when unscored — see ``reason``
     is_starter: bool
     breakdown: dict[str, Any] = {}
@@ -957,6 +962,8 @@ class BoxPlayer(BaseModel):
     # attempted explanation in ``zero_detail``.
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
+    context_label: str | None = None  # concise UI flag: "DNP" | "Out" | "RES + pts" | etc.
+    context_detail: str | None = None  # tooltip / row detail explaining the flag
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
@@ -973,6 +980,12 @@ class BoxTeam(BaseModel):
     optimal_total: float
     points_left_on_bench: float
     beat_projection_by: float | None = None
+    # True when this side's whole week is a reconstructed roster-audit snapshot
+    # (not a live weekly capture): roster→team attribution and slots are
+    # approximate. Per-player DATA drift badges are suppressed in this case in
+    # favor of the single ``roster_reconstructed_note`` caveat.
+    roster_reconstructed: bool = False
+    roster_reconstructed_note: str | None = None
     lineup: list[BoxPlayer]
 
 
@@ -1023,6 +1036,8 @@ class TeamRosterPlayer(BaseModel):
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None
+    context_label: str | None = None
+    context_detail: str | None = None
     acquisition_type: str | None = None
     acquisition_week: int | None = None
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
@@ -1037,6 +1052,11 @@ class TeamRosterOut(BaseModel):
     week: int
     weeks_available: list[int]
     is_scored: bool
+    # True when the displayed week's whole roster is a reconstructed audit
+    # snapshot (not a live weekly capture): per-player attribution/slots are
+    # approximate. Shown as one caveat banner, mirroring the box score.
+    roster_reconstructed: bool = False
+    roster_reconstructed_note: str | None = None
     players: list[TeamRosterPlayer]
 
 
@@ -1108,7 +1128,10 @@ class TeamRosterMoves(BaseModel):
     season_year: int
     is_scored: bool  # informational; moves are NOT gated on it
     available: bool  # False when <2 distinct roster snapshot weeks
-    roster_weeks: list[int]
+    roster_weeks: list[int]  # authoritative weeks used for the diff (audit weeks excluded)
+    # Weeks dropped from the diff because their whole roster is a reconstructed
+    # audit snapshot (non-authoritative); excluded to avoid fabricated churn.
+    reconstructed_weeks: list[int] = []
     moves: list[RosterMove]
 
 

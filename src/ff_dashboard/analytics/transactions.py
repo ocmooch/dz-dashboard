@@ -25,6 +25,7 @@ from sqlalchemy import select
 
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.roster_snapshots import is_reconstructed_week, snapshot_kind
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -43,6 +44,12 @@ def derive_roster_moves(session: Session, team_id: int) -> dict[str, Any] | None
     the week they are gone. Drop-then-readd yields a ``drop`` then a fresh ``add``
     (the stint model). With fewer than two snapshot weeks churn cannot be derived,
     so ``available`` is ``False`` (the UI renders a ``DataGap``, never zeros).
+
+    Weeks whose whole roster is a reconstructed *audit* snapshot are **excluded
+    from the diff** (and reported in ``reconstructed_weeks``): their attribution
+    is non-authoritative, so diffing against one fabricates a churn burst at the
+    audit↔history boundary — every player the audit roster disagrees with would
+    look added or dropped. See ``analytics/roster_snapshots``.
     """
     require_league(session)  # 503 when the pipeline has never run
     team = get_team(session, team_id)
@@ -58,11 +65,23 @@ def derive_roster_moves(session: Session, team_id: int) -> dict[str, Any] | None
         .where(TeamRoster.team_id == team_id)
     ).all()
 
-    roster_weeks = sorted({int(r.week) for r, _ in rows})
+    # Drop reconstructed (all-audit) weeks before diffing — see docstring.
+    week_kinds: dict[int, list[str | None]] = defaultdict(list)
+    for r, _ in rows:
+        week_kinds[int(r.week)].append(snapshot_kind(r))
+    reconstructed_weeks = sorted(
+        w for w, kinds in week_kinds.items() if is_reconstructed_week(kinds)
+    )
+    reconstructed_set = set(reconstructed_weeks)
+
+    roster_weeks = sorted({int(r.week) for r, _ in rows} - reconstructed_set)
     present: dict[int, set[int]] = defaultdict(set)
     players: dict[int, Player] = {}
     for r, p in rows:
-        present[p.player_id].add(int(r.week))
+        week = int(r.week)
+        if week in reconstructed_set:
+            continue
+        present[p.player_id].add(week)
         players[p.player_id] = p
 
     is_scored = season.year in set(seasons_scored(session))
@@ -95,6 +114,7 @@ def derive_roster_moves(session: Session, team_id: int) -> dict[str, Any] | None
         "is_scored": is_scored,
         "available": available,
         "roster_weeks": roster_weeks,
+        "reconstructed_weeks": reconstructed_weeks,
         "moves": moves,
     }
 

@@ -10,6 +10,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ff_pipeline.repository.models import (
+    Base,
+    League,
+    Owner,
+    Player,
+    Season,
+    Team,
+    TeamRoster,
+)
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session as SASession
+
+from ff_dashboard.analytics.teams import team_roster
 from ff_dashboard.analytics.transactions import derive_roster_moves
 from tests.conftest import KNOWN
 
@@ -85,3 +98,94 @@ def test_roster_moves_not_gated_on_is_scored(session: Session) -> None:
 
 def test_roster_moves_unknown_team_is_none(session: Session) -> None:
     assert derive_roster_moves(session, 999999) is None
+
+
+# --- Reconstructed (all-audit) week handling -------------------------------
+#
+# These build a tiny self-contained DB rather than perturbing the shared
+# fixture's known answers. The scenario mirrors the live data that motivated the
+# fix: week 1 is a non-authoritative ``audit`` snapshot whose roster differs from
+# the authoritative weeks, so naively diffing against it fabricates churn.
+
+
+def _audit_week_session() -> SASession:
+    """A one-team season where W1 is all-``audit`` and W2/W3 are ``history``.
+
+    W1 (audit) holds {Keep, Late}; the real weeks hold {Keep, Early}. A diff that
+    trusts W1 would drop Early at W1 and add it at... etc. — the fix drops W1.
+    """
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    session = SASession(engine)
+    league = League(league_id="L", name="T", platform="nfl_com", current_season_year=2025)
+    session.add(league)
+    owner = Owner(league_id="L", display_name="O", joined_year=2025)
+    session.add(owner)
+    season = Season(league_id="L", year=2025, status="in_progress")
+    session.add(season)
+    session.flush()
+    team = Team(season_id=season.season_id, owner_id=owner.owner_id, team_name="Tm")
+    session.add(team)
+    keep = Player(name_full="Keep Guy", position="WR")
+    early = Player(name_full="Early Guy", position="RB")
+    late = Player(name_full="Late Guy", position="QB")
+    session.add_all([keep, early, late])
+    session.flush()
+
+    def roster(player: Player, week: int, kind: str) -> TeamRoster:
+        return TeamRoster(
+            team_id=team.team_id,
+            player_id=player.player_id,
+            season_year=2025,
+            week=week,
+            roster_slot=player.position,
+            is_starter=True,
+            extra_data={"snapshot_kind": kind},
+        )
+
+    session.add_all(
+        [
+            # Week 1 — entirely audit (non-authoritative): Keep + Late.
+            roster(keep, 1, "audit"),
+            roster(late, 1, "audit"),
+            # Weeks 2 & 3 — authoritative history: Keep + Early (the real roster).
+            roster(keep, 2, "history"),
+            roster(early, 2, "history"),
+            roster(keep, 3, "history"),
+            roster(early, 3, "history"),
+        ]
+    )
+    session.commit()
+    return session
+
+
+def test_roster_moves_excludes_reconstructed_audit_week() -> None:
+    with _audit_week_session() as session:
+        team_id = session.execute(select(Team.team_id)).scalar_one()
+        data = derive_roster_moves(session, team_id)
+        assert data is not None
+        # W1 (all-audit) is reported but never diffed against.
+        assert data["reconstructed_weeks"] == [1]
+        assert data["roster_weeks"] == [2, 3]
+        # "Late Guy" existed only in the bogus audit week → no move at all.
+        names = {m["player_name"] for m in data["moves"]}
+        assert "Late Guy" not in names
+        # No fabricated W1 churn: every emitted move is at an authoritative week.
+        assert all(m["week"] in (2, 3) for m in data["moves"])
+        # Keep Guy spans both authoritative weeks → a single retain.
+        keep_moves = [m for m in data["moves"] if m["player_name"] == "Keep Guy"]
+        assert [m["action"] for m in keep_moves] == ["retain"]
+
+
+def test_team_roster_flags_reconstructed_audit_week() -> None:
+    with _audit_week_session() as session:
+        team_id = session.execute(select(Team.team_id)).scalar_one()
+        wk1 = team_roster(session, team_id, 1)
+        assert wk1 is not None
+        assert wk1["roster_reconstructed"] is True
+        assert "audit snapshot" in (wk1["roster_reconstructed_note"] or "")
+        # An authoritative week carries no caveat.
+        wk2 = team_roster(session, team_id, 2)
+        assert wk2 is not None
+        assert wk2["roster_reconstructed"] is False
+        assert wk2["roster_reconstructed_note"] is None

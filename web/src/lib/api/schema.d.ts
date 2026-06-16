@@ -811,6 +811,16 @@ export interface components {
             player_name?: string | null;
             /** Position */
             position?: string | null;
+            /** Nfl Opponent */
+            nfl_opponent?: string | null;
+            /** Nfl Game Status */
+            nfl_game_status?: string | null;
+            /** Roster Status */
+            roster_status?: string | null;
+            /** Roster Status Label */
+            roster_status_label?: string | null;
+            /** Reserve Eligibility Status */
+            reserve_eligibility_status?: string | null;
             /** League Points */
             league_points?: number | null;
             /** Is Starter */
@@ -841,6 +851,10 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Context Label */
+            context_label?: string | null;
+            /** Context Detail */
+            context_detail?: string | null;
             /** Injury Status */
             injury_status?: string | null;
             /** Injury Body Part */
@@ -892,6 +906,13 @@ export interface components {
             points_left_on_bench: number;
             /** Beat Projection By */
             beat_projection_by?: number | null;
+            /**
+             * Roster Reconstructed
+             * @default false
+             */
+            roster_reconstructed: boolean;
+            /** Roster Reconstructed Note */
+            roster_reconstructed_note?: string | null;
             /** Lineup */
             lineup: components["schemas"]["BoxPlayer"][];
         };
@@ -2692,6 +2713,11 @@ export interface components {
             available: boolean;
             /** Roster Weeks */
             roster_weeks: number[];
+            /**
+             * Reconstructed Weeks
+             * @default []
+             */
+            reconstructed_weeks: number[];
             /** Moves */
             moves: components["schemas"]["RosterMove"][];
         };
@@ -2707,6 +2733,13 @@ export interface components {
             weeks_available: number[];
             /** Is Scored */
             is_scored: boolean;
+            /**
+             * Roster Reconstructed
+             * @default false
+             */
+            roster_reconstructed: boolean;
+            /** Roster Reconstructed Note */
+            roster_reconstructed_note?: string | null;
             /** Players */
             players: components["schemas"]["TeamRosterPlayer"][];
         };
@@ -2730,6 +2763,10 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Context Label */
+            context_label?: string | null;
+            /** Context Detail */
+            context_detail?: string | null;
             /** Acquisition Type */
             acquisition_type?: string | null;
             /** Acquisition Week */
