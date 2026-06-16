@@ -19,6 +19,13 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
+0. **Data Integrity & Coverage program** (cross-repo, heavy lift — the structural fix for the
+   recurring "works here but not there" / wrong-`player_id` reports). Start at
+   `docs/handoffs/00-data-integrity-program.md`, then the two workstream handoffs:
+   `player-identity-resolution.md` (stamp out cross-source `player_id` splits — extends F-25) and
+   `data-coverage-matrix.md` (the paramount deliverable: a data-driven, identity-cluster-aware
+   relevance + coverage matrix that instructs the DB/UI and makes gaps self-explaining). Supersedes
+   the ad-hoc, page-by-page approach behind most recent matchup fixes.
 1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
    *silently dead* for the 2010–2019 conference era. §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.

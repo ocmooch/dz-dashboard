@@ -122,6 +122,10 @@ The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the rema
 
 All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
 
+0. **Data Integrity & Coverage program** (cross-repo heavy lift; new 2026-06-16). Structural fix
+   for the recurring data-gap / wrong-`player_id` whack-a-mole. Three handoff prompts under
+   `docs/handoffs/`: start at `00-data-integrity-program.md`, then `player-identity-resolution.md`
+   and `data-coverage-matrix.md` (paramount). `docs/ACTIVE_WORK.md` §0.
 1. **Repair the silently-dead conferences feature** (dashboard, do first; see Open items). The gate
    is green but `analytics/conferences.py` returns empty for the entire 2010–2019 conference era.
    Fix = the raw-SQL rewrite `standings.py` already uses. `docs/ACTIVE_WORK.md` §6.1.
