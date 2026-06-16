@@ -178,6 +178,21 @@ def test_projection_week_coverage_is_data_driven(session: Session) -> None:
     assert uncovered["reason"] == "projections_not_captured"
     assert uncovered["row_count"] == 0
 
+    # Hollow rows (projected_points=0 + all-zero stats — Sleeper's pre-coverage
+    # shape) must read as absent, not a bogus 0.0 projection. There IS a row, so
+    # this guards specifically against counting the hollow row as coverage.
+    hollow = coverage_status_for_projection_week(session, 2017, 3)
+    assert hollow["status"] == "absent"
+    assert hollow["reason"] == "projections_not_captured"
+    assert hollow["row_count"] == 1
+
+    # Stats-only rows (projected_points NULL but real projected_stats — the
+    # current season's not-yet-scored shape) must read as present.
+    stats_only = coverage_status_for_projection_week(session, 2017, 4)
+    assert stats_only["status"] == "present"
+    assert stats_only["reason"] is None
+    assert stats_only["projected_stats_count"] == 1
+
 
 def test_coverage_matrix_reports_relevance_feeds_and_identity_splits(session: Session) -> None:
     matrix = compute_coverage_matrix(session)

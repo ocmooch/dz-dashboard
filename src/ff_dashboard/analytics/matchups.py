@@ -345,6 +345,25 @@ def _projected_points_from_stats(
     return apply_rules(numeric, scoring_rules).total_points
 
 
+def _real_projection(*, proj_row: Any, rules: ScoringRules) -> float | None:
+    """A player's *real* projected points, or ``None`` when there isn't one.
+
+    Prefer the stored ``projected_points``; fall back to scoring the raw
+    ``projected_stats``. A zero result is treated as *no projection*: the source
+    (Sleeper) emits hollow all-zero rows for players it didn't project and for
+    entire pre-coverage seasons, and a bare ``0.0`` next to a player reads as a
+    real forecast of zero, which it isn't.
+    """
+    if proj_row is None:
+        return None
+    if proj_row.projected_points is not None and float(proj_row.projected_points) != 0.0:
+        return round(float(proj_row.projected_points), 2)
+    computed = _projected_points_from_stats(proj_row.projected_stats, rules)
+    if computed is not None and round(computed, 2) != 0.0:
+        return round(computed, 2)
+    return None
+
+
 def _batch_projections(
     session: Any,
     player_ids: list[int],
@@ -376,10 +395,19 @@ def _batch_projections(
     )
     rows = (
         session.execute(
-            select(ProjectionModel).join(
+            select(ProjectionModel)
+            .join(
                 sub,
                 (ProjectionModel.player_id == sub.c.player_id)
                 & (ProjectionModel.fetched_at == sub.c.latest),
+            )
+            # The subquery's max(fetched_at) is scoped to this season/week, but the
+            # outer row match is on (player_id, fetched_at) — so without repeating
+            # the season/week filter here, a different week sharing the same
+            # fetched_at would join in and overwrite the right row.
+            .where(
+                ProjectionModel.season_year == season_year,
+                ProjectionModel.week == week,
             )
         )
         .scalars()
@@ -626,7 +654,7 @@ def _team_box(
     scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
     projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
     projection_coverage = coverage_status_for_projection_week(session, season.year, week)
-    projections_available_for_week = projection_coverage["status"] in {"present", "partial"}
+    projections_available_for_week = projection_coverage["status"] == "present"
     projection_reason = (
         str(projection_coverage["reason"])
         if projection_coverage.get("reason") is not None
@@ -682,16 +710,14 @@ def _team_box(
 
         # Projection vs actual. Use the authoritative projected_points when stored;
         # fall back to scoring projected_stats with the season's rules when the
-        # pipeline loaded raw stat projections but didn't apply scoring yet.
-        projection: float | None = None
-        proj_row = projections.get(player.player_id)
-        if proj_row is not None:
-            if proj_row.projected_points is not None:
-                projection = round(float(proj_row.projected_points), 2)
-            else:
-                computed = _projected_points_from_stats(proj_row.projected_stats, scoring_rules)
-                if computed is not None:
-                    projection = round(computed, 2)
+        # pipeline loaded raw stat projections but didn't apply scoring yet. A
+        # *zero* projection is not a real forecast — Sleeper returns hollow,
+        # all-zero rows for unprojected players (and entire pre-2018 seasons), so
+        # treat a 0 as "no projection" (renders a gap / dash) rather than a bogus
+        # 0.0 next to the player.
+        projection = _real_projection(
+            proj_row=projections.get(player.player_id), rules=scoring_rules
+        )
         projection_delta = (
             round(league_points - projection, 2)
             if league_points is not None and projection is not None

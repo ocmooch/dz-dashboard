@@ -23,7 +23,7 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
-from sqlalchemy import Integer, distinct, func, select
+from sqlalchemy import Integer, and_, distinct, func, select
 from sqlalchemy import cast as sql_cast
 
 if TYPE_CHECKING:
@@ -151,6 +151,34 @@ def compute_coverage(session: Session) -> dict[str, object]:
     }
 
 
+def _real_projection_signals() -> tuple[Any, Any]:
+    """Two SQL count expressions for *real* projections in a ``projections`` scan.
+
+    A projection is real in one of two shapes, and hollow source rows are neither:
+
+    * **scored** — ``projected_points`` is present and nonzero (2018+ live cells);
+    * **stats-only** — ``projected_points`` is ``NULL`` but ``projected_stats`` is
+      populated (the current season's freshly loaded, not-yet-scored cells).
+
+    Hollow pre-coverage rows carry ``projected_points = 0`` (not ``NULL``) and
+    all-zero stats, so both signals are 0 for them. Returned as
+    ``(scored_count, stats_only_count)`` for use in an aggregate ``select``.
+    """
+    scored = func.sum(
+        sql_cast(
+            and_(Projection.projected_points.is_not(None), Projection.projected_points != 0),
+            Integer,
+        )
+    )
+    stats_only = func.sum(
+        sql_cast(
+            and_(Projection.projected_points.is_(None), Projection.projected_stats.is_not(None)),
+            Integer,
+        )
+    )
+    return scored, stats_only
+
+
 def coverage_status_for_projection_week(
     session: Session, season_year: int, week: int
 ) -> dict[str, object]:
@@ -159,30 +187,36 @@ def coverage_status_for_projection_week(
     This is the box-score consumer's narrow read: it answers whether a missing
     projection is a player-level miss or a feed-level gap. The decision is data
     driven on rows in ``projections``, never on calendar constants.
+
+    A week counts as captured only when it carries at least one *real* projection.
+    Sleeper — the projection source — returns full rosters of **hollow** rows
+    (all-zero ``projected_stats`` and ``projected_points = 0``) for seasons before
+    its projection coverage begins (~2018). Counting those rows as "present" is
+    what made a 2017 box score render a misleading ``0.0`` instead of an honest
+    "not captured" gap, so we ignore them. See :func:`_real_projection_signals`
+    for the two shapes a *real* projection takes (scored points vs stats-only).
     """
-    rows, with_points, with_stats = session.execute(
+    rows, real_points, stats_only = session.execute(
         select(
             func.count(Projection.projection_id),
-            func.count(Projection.projected_points),
-            func.sum(sql_cast(Projection.projected_stats.is_not(None), Integer)),
+            *_real_projection_signals(),
         ).where(Projection.season_year == season_year, Projection.week == week)
     ).one()
     row_count = int(rows or 0)
-    if row_count == 0:
+    points_count = int(real_points or 0)
+    stats_count = int(stats_only or 0)
+    if points_count == 0 and stats_count == 0:
+        # No rows, or only hollow source rows: both are "not captured" to the UI.
         return {
             "status": "absent",
             "reason": "projections_not_captured",
-            "row_count": 0,
+            "row_count": row_count,
             "projected_points_count": 0,
             "projected_stats_count": 0,
         }
-    points_count = int(with_points or 0)
-    stats_count = int(with_stats or 0)
-    status = "present" if points_count or stats_count else "partial"
-    reason = None if status == "present" else "projection_points_not_scored"
     return {
-        "status": status,
-        "reason": reason,
+        "status": "present",
+        "reason": None,
         "row_count": row_count,
         "projected_points_count": points_count,
         "projected_stats_count": stats_count,
@@ -272,13 +306,17 @@ def _season_week_cells(
 
 
 def _projection_cells(session: Session) -> list[dict[str, object]]:
+    # Count only *real* projections per cell; hollow pre-coverage rows (all-zero
+    # stats, 0 points — see ``coverage_status_for_projection_week``) must not mark
+    # a week "present" or the matrix would advertise coverage the source never had.
+    scored, stats_only = _real_projection_signals()
     stmt = (
         select(
             Projection.season_year,
             Projection.week,
             func.count(Projection.projection_id),
-            func.count(Projection.projected_points),
-            func.sum(sql_cast(Projection.projected_stats.is_not(None), Integer)),
+            scored,
+            stats_only,
         )
         .group_by(Projection.season_year, Projection.week)
         .order_by(Projection.season_year, Projection.week)
@@ -288,13 +326,13 @@ def _projection_cells(session: Session) -> list[dict[str, object]]:
         row_count = int(rows or 0)
         points_count = int(points or 0)
         stats_count = int(stats or 0)
-        status = "present" if points_count or stats_count else "partial"
+        present = points_count > 0 or stats_count > 0
         cells.append(
             {
                 "season_year": int(season_year),
                 "week": int(week),
-                "status": status,
-                "reason": None if status == "present" else "projection_points_not_scored",
+                "status": "present" if present else "absent",
+                "reason": None if present else "projections_not_captured",
                 "row_count": row_count,
                 "projected_points_count": points_count,
                 "projected_stats_count": stats_count,

@@ -842,8 +842,13 @@ def _populate(session: Session) -> None:
                 breakdown={"rushing": pts},
             )
 
-    # --- Projection coverage: only 2017 W1 has projection rows in the fixture.
-    # 2017 W2 is the uncovered cell used by the matrix-driven box-score gap test.
+    # --- Projection coverage cells used by the coverage tests:
+    #   W1 = real scored projections (present);
+    #   W2 = no rows at all (absent / not captured);
+    #   W3 = HOLLOW rows — projected_points=0 + all-zero stats, the shape Sleeper
+    #        returns for pre-coverage seasons; must read as absent, never a 0.0;
+    #   W4 = stats-only — projected_points=None but real projected_stats, the
+    #        current-season not-yet-scored shape; must read as present.
     session.add_all(
         [
             Projection(
@@ -862,6 +867,24 @@ def _populate(session: Session) -> None:
                 source="fixture",
                 projected_stats=None,
                 projected_points=3.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=3,
+                source="fixture",
+                projected_stats={"passing_yards": 0.0, "passing_tds": 0.0},
+                projected_points=0.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=4,
+                source="fixture",
+                projected_stats={"passing_yards": 280.0, "passing_tds": 2.0},
+                projected_points=None,
                 fetched_at=NOW,
             ),
         ]
