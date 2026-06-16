@@ -1046,6 +1046,11 @@ class BoxScore(BaseModel):
     available: bool
     reason: str | None = None
     is_playoff: bool = False
+    # Whether this (season, week) has real projection data — drives a single
+    # top-level note rather than a per-player gap. ``projection_reason`` carries
+    # the machine code (e.g. ``projections_not_captured``) for the UI copy.
+    projections_available: bool = True
+    projection_reason: str | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None

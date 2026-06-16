@@ -905,6 +905,13 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /**
+             * Projections Available
+             * @default true
+             */
+            projections_available: boolean;
+            /** Projection Reason */
+            projection_reason?: string | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */

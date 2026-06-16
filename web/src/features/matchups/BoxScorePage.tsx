@@ -142,13 +142,10 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
         <ContextBadge p={p} />
       </td>
       <td className="dz-num text-faint">
-        {p.projection != null ? (
-          num(p.projection)
-        ) : p.projection_available === false ? (
-          <DataGap reason={p.projection_reason ?? "projections_not_captured"} size="sm" />
-        ) : (
-          "—"
-        )}
+        {/* A missing projection is a plain dash; when the whole season lacks
+            projection data the box score shows one top-level note instead of a
+            gap chip on every row. */}
+        {p.projection != null ? num(p.projection) : "—"}
       </td>
       <td className="dz-num text-faint">
         {p.team_point_share != null ? pct(p.team_point_share) : "—"}
@@ -168,13 +165,9 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
               : undefined
           }
         >
-          {p.projection_delta != null ? (
-            `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}`
-          ) : p.projection_available === false ? (
-            <DataGap reason={p.projection_reason ?? "projections_not_captured"} size="sm" />
-          ) : (
-            "—"
-          )}
+          {p.projection_delta != null
+            ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}`
+            : "—"}
         </span>
       </td>
       <td className="dz-num">
@@ -301,6 +294,17 @@ export function BoxScorePage() {
             </Link>
           )}
         </Card>
+      )}
+
+      {data && data.available && data.projections_available === false && (
+        <div
+          className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-faint">note</span>
+          Projection data isn’t available for the {data.season_year} season, so the Proj and Value
+          columns are blank. Scoring is unaffected.
+        </div>
       )}
 
       {data && data.available && data.home && (

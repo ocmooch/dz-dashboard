@@ -885,6 +885,16 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
             "is_playoff": bool(m.is_playoff),
         }
 
+    # Projection coverage is a property of the (season, week), identical for both
+    # teams — surface it once at the box level so the UI can show a single
+    # top-level "no projections for this season" note instead of a gap chip on
+    # every player row.
+    projection_coverage = coverage_status_for_projection_week(session, season.year, m.week)
+    projections_available = projection_coverage["status"] == "present"
+    projection_reason = (
+        None if projections_available else str(projection_coverage.get("reason") or "")
+    ) or None
+
     home = _team_box(session, m.team_id, season, m.week, m.team_score)
 
     away: dict[str, Any] | None = None
@@ -916,6 +926,8 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "week": m.week,
         "available": True,
         "is_playoff": bool(m.is_playoff),
+        "projections_available": projections_available,
+        "projection_reason": projection_reason,
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,
