@@ -19,7 +19,36 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
-**In progress (2026-06-16):** `feature/player-status-played-guard` suppresses NFL.com
+**In progress (2026-06-16):** `feature/player-flag-data-gap-cleanup` fixes a false-positive
+class in the per-player `DATA` "roster drift" badge. The badge fires when the W-N snapshot shows
+a player on a team but transactions don't *add* him until a later week. The acquisition scan in
+`_roster_data_context_from_transactions` (`analytics/matchups.py`) required `direction == "in"`,
+but `draft` rows carry `direction == "add"` (effective_week 0) — so a player **drafted** by the
+team (legitimately on the W1 roster) who was later dropped and re-acquired via waiver/FA looked
+like a brand-new late addition and got a red badge. Fix = count `direction in {"in","add"}` so the
+W0 draft is the first acquisition. Empirical DB-wide scan (real `fantasy.db`): **800 box-score
+rows** were false positives (all drafted-then-re-added, snapshot side correct, badge side wrong);
+the fix clears every one (matchup 195 went 5→0 DATA badges — Dak Prescott, Keon Coleman, Evan
+Engram, Rhamondre Stevenson, Washington DEF). **39 rows remain genuinely flagged** and all fall in
+**2010 weeks 2–8**: there the in-season transaction log is missing (draft at W0, then *no*
+add/drop/lineup txns until W6), so an early-season pickup that persisted has no acquisition row
+before its W6+ first add — the history roster is right, the transaction log is incomplete. Those
+39 are left flagged for upstream review (see Open items). BFF-only; SPA unchanged. Regression
+tests added in `test_p5_matchups_unit.py` (drafted-then-re-added → no badge; un-drafted late add →
+badge kept).
+
+Same branch — **retired the DATA badge's second branch (slot conflict).** It fired when the
+snapshot `roster_slot` disagreed with that week's `lineup_change` `to_slot`, but moving a player
+between starting slots and the bench is routine, allowed lineup management — he never entered or
+left the team, so it's not a data-integrity problem. DB-wide audit: 40 firings, **38 pure
+start/bench juggling**, only 2 touched IR/RES. Worse, the flag *short-circuited* `_score_context`,
+so the 2 IR/RES cases got a misleading "roster drift" message instead of their real reserve
+context. Removed the branch (and the now-unused `roster_slot` param); the genuine IR/RES case is
+owned by the existing reserve-eligibility path (slot in `IR_SLOTS`). Verified on the 2 real cases:
+Nick Chubb m2200 → "Bye" (accurate), Ken Johnson m2053 → "RES" reserve context (accurate). Net:
+DATA now fires only on genuine team-membership drift (branch 1).
+
+**Prior (2026-06-16):** `feature/player-status-played-guard` suppresses NFL.com
 current-state-drift `player_status` badges. NFL.com stamps a player's *current* roster status
 onto historical weeks, so the box score showed IA/IR/SUS on players who clearly played and
 scored that week (m193: IR×26, IA×22, SUS×1). New `analytics/player_status.py`
@@ -31,8 +60,10 @@ Genuine DNPs keep their badge (honest 0 explanation). BFF-only fix — no schema
 only `context_label`; team page reads the separate injury-report table, unaffected. Verified on
 m193: Q kept (Purdy/McCarthy), IA/IR dropped on all 8 scorers, IR kept on the genuine 0 (Lloyd).
 This is §2 of the same drift class as the audit-snapshot fix below. The Phase-1 root fix (stop
-storing current-status on history reconstructs) is a separate `../danger-zone` change — not yet
-done; the Phase-2 guard makes a re-ingest optional cleanup, not a prerequisite.
+storing current-status on history reconstructs) was implemented in `../danger-zone` PR #47.
+Optional cleanup was run 2026-06-16: `reconstruct_lineups(..., year=2025, weeks=[1])`
+rewrote 187 rows with 0 fetch failures; 2025-W1 history rows now have zero
+`player_status` / `player_status_label` keys while keeping game status and NFL.com points.
 
 **Prior (2026-06-15):** `feature/matchup-context-clues` fixes matchup box-score context
 for unusual player states. The BFF now emits `context_label` / `context_detail` plus roster
@@ -113,6 +144,14 @@ All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
 - **Phantom week-1-only teams (identity artifact).** 1–2 phantom week-1-only teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   F-53 roster-churn corruption; belongs with owner/team-identity research (F-06).
+- **2010 in-season transaction log starts at W6 (upstream gap).** 2010 has draft txns (W0) but
+  the first add/drop/lineup/trade/waiver row is W6 — weeks 1–5 were never ingested. Effect on the
+  dashboard: 39 box-score rows (2010 W2–W8) still carry the per-player `DATA` "roster drift" badge
+  because their history-snapshot team membership has no corroborating acquisition txn before W6.
+  The roster side is correct; the badge is honest-but-noisy on a known-incomplete window. Resolution
+  pending upstream: backfill 2010 W1–W5 transactions in `../danger-zone`, or (dashboard) treat a
+  season whose earliest non-draft txn week > 1 as a coverage gap and suppress the per-player badge
+  there. Left flagged this pass per the investigation that landed `feature/player-flag-data-gap-cleanup`.
 - **F-49 `made_playoffs = None`** where a bracket can't be inferred honestly — intentional until
   upstream playoff/consolation metadata lands (see `docs/ACTIVE_WORK.md` §2 F-49).
 - **League relevance = ever-rostered only** (not "ever scored"): the pipeline scores the whole NFL,
