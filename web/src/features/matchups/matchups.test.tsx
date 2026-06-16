@@ -278,7 +278,7 @@ describe("BoxScorePage", () => {
     );
   });
 
-  it("labels did-not-play zeroes as Out, not a data gap", async () => {
+  it("labels did-not-play zeroes as DNP unless the backend provides an Out context", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
         envelope({
@@ -313,6 +313,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "Out",
+                context_detail: "Ruled out - hamstring.",
               },
               {
                 roster_slot: "BN",
@@ -328,6 +330,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "DNP",
+                context_detail: "Team played but no stat/scored row was recorded.",
               },
             ],
           },
@@ -341,7 +345,7 @@ describe("BoxScorePage", () => {
     expect(irCells[irCells.length - 1]).toHaveTextContent("Out");
     const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
     const byeCells = within(byeRow).getAllByRole("cell");
-    expect(byeCells[byeCells.length - 1]).toHaveTextContent("Out");
+    expect(byeCells[byeCells.length - 1]).toHaveTextContent("DNP");
     // Neither is the amber honesty/data-gap affordance.
     expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
   });
@@ -415,6 +419,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "bye",
                 zero_detail: null,
+                context_label: "Bye",
+                context_detail: "NFL team was on bye; zero is expected.",
               },
               {
                 roster_slot: "WR",
@@ -429,6 +435,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "DNP",
+                context_detail: "Team played but no stat/scored row was recorded.",
               },
               {
                 roster_slot: "WR",
@@ -443,6 +451,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "unexpected",
                 zero_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
+                context_label: "Check",
+                context_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
               },
               {
                 roster_slot: "WR",
@@ -457,6 +467,22 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: null,
                 zero_detail: null,
+              },
+              {
+                roster_slot: "RES",
+                player_id: 54,
+                player_name: "Reserve Scorer",
+                position: "WR",
+                league_points: 12.1,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+                context_label: "RES + pts",
+                context_detail: "Recorded in RES while also credited with points.",
               },
             ],
           },
@@ -473,12 +499,72 @@ describe("BoxScorePage", () => {
     };
 
     expect(await ptsCell("Bye Guy")).toHaveTextContent("Bye");
-    expect(await ptsCell("Scratch Guy")).toHaveTextContent("Out");
+    expect(await ptsCell("Scratch Guy")).toHaveTextContent("DNP");
     expect(await ptsCell("Mismatch Guy")).toHaveTextContent("!");
     // The clean played-0 shows a bare number with no status tag or warning.
     const clean = await ptsCell("Goose Egg");
     expect(clean).toHaveTextContent("0");
-    expect(clean).not.toHaveTextContent(/Bye|Out|!/);
+    expect(clean).not.toHaveTextContent(/Bye|DNP|Check|!/);
+    const reserve = await ptsCell("Reserve Scorer");
+    expect(reserve).toHaveTextContent("12.10");
+    const reserveRow = screen.getByText("Reserve Scorer").closest("tr")!;
+    expect(reserveRow).toHaveTextContent("RES");
+  });
+
+  it("shows one reconstruction caveat for an audit-snapshot week instead of per-player DATA badges", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 193,
+          season_year: 2025,
+          week: 1,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 4,
+          home: {
+            team_id: 4,
+            team_name: "Reconstructed Squad",
+            owner_name: "Audit",
+            total_score: 100,
+            starter_points: 100,
+            bench_points: 0,
+            optimal_total: 100,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            roster_reconstructed: true,
+            roster_reconstructed_note:
+              "Week-1 lineup is reconstructed from a roster-audit snapshot; " +
+              "player-to-team attribution and lineup slots are approximate.",
+            lineup: [
+              {
+                roster_slot: "QB",
+                player_id: 60,
+                player_name: "Drifted Starter",
+                position: "QB",
+                league_points: 20,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+                // The backend suppresses DATA on reconstructed weeks; the row
+                // carries no context_label even though it drifts from txns.
+                context_label: null,
+                context_detail: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/193");
+
+    expect(await screen.findByText(/reconstructed from a roster-audit snapshot/i)).toBeInTheDocument();
+    // No per-player DATA badge anywhere on a reconstructed week.
+    expect(screen.queryByText("DATA")).not.toBeInTheDocument();
   });
 
   it("emphasizes the winning team's total score", async () => {

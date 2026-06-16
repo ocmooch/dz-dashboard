@@ -187,11 +187,31 @@ describe("TeamPage", () => {
 
     const pointsCell = (name: string) => screen.getByText(name).closest("tr")!.querySelector(".dz-num:last-child")!;
     expect(pointsCell("Bye Guy")).toHaveTextContent("Bye");
-    expect(pointsCell("Scratch Guy")).toHaveTextContent("Out");
+    expect(pointsCell("Scratch Guy")).toHaveTextContent("DNP");
     expect(pointsCell("Mismatch Guy")).toHaveTextContent("0.00!");
     expect(pointsCell("Goose Egg")).toHaveTextContent("0.00");
-    expect(pointsCell("Goose Egg")).not.toHaveTextContent(/Bye|Out|!/);
+    expect(pointsCell("Goose Egg")).not.toHaveTextContent(/Bye|DNP|!/);
     expect(pointsCell("Ice D/ST")).toHaveTextContent(/No scored data/i);
+  });
+
+  it("shows the reconstruction caveat for an audit-snapshot roster week", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/teams/{team_id}/roster") {
+        return Promise.resolve(
+          envelope({
+            ...ROSTER,
+            roster_reconstructed: true,
+            roster_reconstructed_note:
+              "Week-1 lineup is reconstructed from a roster-audit snapshot; " +
+              "player-to-team attribution and lineup slots are approximate.",
+          }),
+        );
+      }
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    await screen.findByText("Ice QB One");
+    expect(screen.getByText(/reconstructed from a roster-audit snapshot/i)).toBeInTheDocument();
   });
 
   it("renders the schedule with a box-score deep link", async () => {

@@ -129,6 +129,17 @@ function RosterCard({ teamId }: { teamId: number }) {
       {data && data.players.length === 0 && (
         <EmptyState title="No roster recorded" hint="No roster snapshot for this week." />
       )}
+      {data?.roster_reconstructed && data.roster_reconstructed_note && (
+        <div className="px-5 pt-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">reconstructed</span>
+            {data.roster_reconstructed_note}
+          </div>
+        </div>
+      )}
       {data && data.players.length > 0 && (
         <div className="overflow-x-auto">
           <table className="dz-table">
@@ -168,6 +179,7 @@ function RosterCard({ teamId }: { teamId: number }) {
                         points={p.league_points}
                         zeroReason={p.zero_reason}
                         zeroDetail={p.zero_detail}
+                        zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
                         injuryBodyPart={p.injury_body_part}
                         muted={!p.is_starter}
                       />

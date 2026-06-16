@@ -17,8 +17,44 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 **The dashboard application is functionally complete and fully merged.** All P0–P12 milestones,
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
-to `main`. As of 2026-06-15 there are **no open feature branches** — the branches that recent docs
-described as "awaiting PR" all landed:
+to `main`.
+
+**In progress (2026-06-15):** `feature/matchup-context-clues` fixes matchup box-score context
+for unusual player states. The BFF now emits `context_label` / `context_detail` plus roster
+status, NFL opponent/game status, and reserve eligibility context; the SPA renders DNP vs Out
+accurately and shows non-zero reserve-slot scores as points plus a concise flag.
+
+Polish (same branch): per-player `DATA` "roster drift" was firing on ~every player of an
+**all-`audit`-snapshot week** (e.g. 2025-W1 / matchup 193, where the whole week is a
+reconstructed roster audit, not a live capture). That is systemic, not player-specific, so we
+now detect a reconstructed week (`_is_reconstructed_week`: every known `snapshot_kind` is
+`audit`), **suppress the per-player DATA badges**, and surface **one team-level caveat**
+(`BoxTeam.roster_reconstructed` / `roster_reconstructed_note`, rendered as a banner above the
+lineup). A reserve-slot player *credited with points* is also no longer escalated to an `INJ`
+badge (it implied an injury the data doesn't prove — Nabers/Hunter on m193); it stays `RES`.
+Net for m193: from ~25 red DATA badges down to one banner per team + only the genuinely
+player-specific flags (DNP / RES).
+
+Full resolution (same branch): the audit-snapshot drift is a **class** (any week whose only
+`team_rosters.snapshot_kind` is `audit` — a non-authoritative live capture stamped onto a week
+slot, never superseded by `history`), not a one-off. The live DB has it on **2025-W1 and
+2026-W1** (all 12 teams each). Detection is now centralized in `analytics/roster_snapshots.py`
+(`snapshot_kind` / `is_reconstructed_week` / `reconstructed_note`) and every per-week roster
+consumer honors it:
+- **Box score** — one team-level banner; per-player DATA suppressed (as above).
+- **Team page roster** — `team_roster` emits `roster_reconstructed` + note; `TeamPage` renders
+  the same banner (the WeekStepper can land on an audit W1).
+- **Roster-moves** (`derive_roster_moves`) — reconstructed weeks are **excluded from the
+  week-over-week diff** (reported in `reconstructed_weeks`); previously an audit W1 baseline
+  fabricated a phantom churn burst at W1→W2 (~15 fake adds/drops per 2025 team — verified gone).
+- **Observability** — `scripts/audit_reconstructed_roster_weeks.py` (read-only, `--strict`)
+  lists every reconstructed cell and flags those backing a live matchup; run after each ingest.
+
+The Phase-1 **prevention** fix (stop an `audit` capture from ever being a week's sole
+authoritative roster) is a separate `../danger-zone` change, handled on its
+`feature/matchup-player-status-context` branch.
+
+Recently landed branches:
 
 - **#61** rivalries-insights — five league-wide rivalry insight bands + `GET /v1/rivalries/insights`.
 - **#62** seasons league-changes — full auditable classifier (`analytics/league_changes.py`),

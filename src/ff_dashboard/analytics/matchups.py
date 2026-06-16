@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from ff_pipeline.repository.models import Matchup, PlayerStatsScored
+from ff_pipeline.repository.models import Matchup, PlayerStatsScored, Transaction
 from ff_pipeline.repository.models import Projection as ProjectionModel
 from ff_pipeline.repository.models import ScoringRule as ScoringRuleModel
 from ff_pipeline.repository.queries import (
@@ -40,7 +40,12 @@ from sqlalchemy import select
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.injuries import injury_fields
+from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.roster_snapshots import (
+    is_reconstructed_week,
+    reconstructed_note,
+    snapshot_kind,
+)
 from ff_dashboard.analytics.season_schedule import season_schedule
 
 # Margin thresholds for the week-matchup flags. Kept here (backend) rather than
@@ -102,6 +107,184 @@ def _authoritative_points(roster_row: Any) -> float | None:
     extra = roster_row.extra_data or {}
     value = extra.get("nfl_com_points")
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _extra_str(roster_row: Any, key: str) -> str | None:
+    extra = roster_row.extra_data or {}
+    value = extra.get(key)
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _reserve_eligibility_status(
+    roster_row: Any, injury: Any, injury_payload: InjuryFields
+) -> str | None:
+    slot = (roster_row.roster_slot or "").upper()
+    if slot not in IR_SLOTS:
+        return None
+    return (
+        _extra_str(roster_row, "player_status_label")
+        or _extra_str(roster_row, "player_status")
+        or injury_payload.get("injury_status")
+        or injury_payload.get("injury_practice_status")
+        or (injury.practice_status if injury is not None else None)
+        or roster_row.roster_slot
+    )
+
+
+def _roster_data_context(
+    session: Session,
+    *,
+    season_id: int,
+    team_id: int,
+    player_id: int,
+    week: int,
+    roster_slot: str | None,
+) -> tuple[str, str] | None:
+    txns = list(
+        session.execute(
+            select(Transaction).where(
+                Transaction.season_id == season_id,
+                Transaction.player_id == player_id,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return _roster_data_context_from_transactions(
+        txns,
+        team_id=team_id,
+        week=week,
+        roster_slot=roster_slot,
+    )
+
+
+def _roster_data_context_from_transactions(
+    txns: list[Any],
+    *,
+    team_id: int,
+    week: int,
+    roster_slot: str | None,
+) -> tuple[str, str] | None:
+    team_add_weeks = [
+        int(t.effective_week)
+        for t in txns
+        if t.team_id == team_id
+        and t.direction == "in"
+        and t.effective_week is not None
+        and t.transaction_type in {"add", "draft", "free_agent_add", "waiver_add", "trade"}
+    ]
+    if team_add_weeks:
+        first_add = min(team_add_weeks)
+        if week < first_add:
+            return (
+                "DATA",
+                f"Roster drift: snapshot shows this player on this team in W{week}, "
+                f"but transactions first add him in W{first_add}. Points/status are shown; "
+                "roster context is suspect.",
+            )
+
+    same_week_slots = list(
+        dict.fromkeys(
+            str(t.extra_data.get("to_slot")).strip()
+            for t in txns
+            if t.transaction_type == "lineup_change"
+            and t.effective_week == week
+            and isinstance(t.extra_data, dict)
+            and t.extra_data.get("to_slot")
+        )
+    )
+    if roster_slot and same_week_slots and roster_slot not in same_week_slots:
+        return (
+            "DATA",
+            f"Roster drift: W{week} lineup transaction moved him to "
+            f"{'/'.join(same_week_slots)}, but the snapshot shows {roster_slot}. "
+            "Points are retained; slot context is suspect.",
+        )
+    return None
+
+
+def _score_context(
+    *,
+    data_context: tuple[str, str] | None,
+    league_points: float | None,
+    zero_reason: str | None,
+    zero_detail: str | None,
+    nfl_opponent: str | None,
+    nfl_game_status: str | None,
+    roster_slot: str | None,
+    roster_status: str | None,
+    roster_status_label: str | None,
+    reserve_eligibility_status: str | None,
+    injury_payload: InjuryFields,
+) -> tuple[str | None, str | None]:
+    if data_context is not None:
+        return data_context
+
+    injury_status = injury_payload.get("injury_status")
+    injury_body = injury_payload.get("injury_body_part")
+    injury_practice = injury_payload.get("injury_practice_status")
+    slot = (roster_slot or "").upper()
+    matchup = " ".join(part for part in (nfl_opponent, nfl_game_status) if part)
+
+    if zero_reason == "bye":
+        return "Bye", "NFL team was on bye; zero is expected."
+
+    if zero_reason == "unexpected":
+        return "Check", zero_detail
+
+    if zero_reason == "did_not_play":
+        if injury_status == "Out":
+            detail = f"Ruled out{f' - {injury_body}' if injury_body else ''}."
+            return "Out", detail
+        if roster_status:
+            label = roster_status
+            detail = roster_status_label or "Roster badge captured from NFL.com."
+            return label, detail
+        if slot in IR_SLOTS:
+            detail = "Reserve slot; team played but no stat/scored row was recorded."
+            if matchup:
+                detail = f"{detail} Game: {matchup}."
+            if injury_practice:
+                detail = f"{detail} Injury report practice: {injury_practice}."
+                return "INJ", detail
+            return str(roster_slot), detail
+        reason = "Team played but no stat/scored row was recorded."
+        if matchup:
+            reason = f"{reason} Game: {matchup}."
+        if injury_practice:
+            reason = f"{reason} Injury report practice: {injury_practice}."
+        else:
+            reason = f"{reason} No injury designation was captured."
+        return "DNP", reason
+
+    if slot in IR_SLOTS:
+        if league_points is not None and league_points > 0:
+            reason = (
+                f"Recorded in {roster_slot} while also credited with points; "
+                "those points are real but excluded from bench/optimal totals. "
+                "The current data does not prove why the reserve slot and stat line coexist."
+            )
+            if reserve_eligibility_status:
+                reason = f"{reason} Eligibility context: {reserve_eligibility_status}."
+            else:
+                reason = f"{reason} No reserve eligibility designation was captured."
+            # A reserve-slot player who is *also* credited with points clearly
+            # played and scored, so we never escalate this to an "INJ" badge:
+            # an injury-report row for the same week does not prove the points
+            # were earned despite an injury, and labeling a 12-point line "INJ"
+            # is exactly the misleading-injury implication we want to avoid. The
+            # certain fact is the reserve slot; surface that and keep any injury
+            # nuance in the detail text only.
+            return "RES", reason
+        if reserve_eligibility_status:
+            return roster_slot, f"Reserve slot context: {reserve_eligibility_status}."
+        return roster_slot, "Reserve slot; no additional eligibility context captured."
+
+    if roster_status:
+        detail = roster_status_label or "Roster badge captured from NFL.com."
+        return roster_status, detail
+
+    return None, None
 
 
 def _season_scoring_rules(session: Any, season_id: int) -> ScoringRules:
@@ -360,6 +543,11 @@ def _team_box(
             season.year,
         )
     roster = scoped
+    # When every known per-row snapshot is an audit reconstruction, the whole
+    # week's roster is reconstructed (not a live weekly capture). In that case
+    # per-player "roster drift" is systemic, not player-specific, so we suppress
+    # the per-player DATA badge and surface a single team-level caveat instead.
+    roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
     scored = _scored_points(session, season.season_id, week, player_ids)
     projections = _batch_projections(session, player_ids, season.year, week)
@@ -408,7 +596,7 @@ def _team_box(
         # Explain a 0.0 result: a bye / DNP status reason, a plain played-0, or a
         # flagged "unexpected" 0. Uses the per-week opponent ("Bye") + whether the
         # player has any nflverse stat line as evidence of having played.
-        opponent = (roster_row.extra_data or {}).get("opponent")
+        opponent = _extra_str(roster_row, "opponent")
         zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
 
         # Projection vs actual. Use the authoritative projected_points when stored;
@@ -435,11 +623,48 @@ def _team_box(
         )
 
         injury = injuries.get(player.player_id)
+        injury_payload = injury_fields(injury)
+        roster_status = _extra_str(roster_row, "player_status")
+        roster_status_label = _extra_str(roster_row, "player_status_label")
+        reserve_eligibility = _reserve_eligibility_status(roster_row, injury, injury_payload)
+        # On a reconstructed (all-audit) week, skip the per-player drift check —
+        # the team-level caveat covers it, and a badge on every row would bury
+        # the genuinely player-specific context (DNP / Out / reserve+points).
+        data_context = (
+            None
+            if roster_reconstructed
+            else _roster_data_context(
+                session,
+                season_id=season.season_id,
+                team_id=team_id,
+                player_id=player.player_id,
+                week=week,
+                roster_slot=slot,
+            )
+        )
+        context_label, context_detail = _score_context(
+            data_context=data_context,
+            league_points=league_points,
+            zero_reason=zero_reason,
+            zero_detail=zero_detail,
+            nfl_opponent=opponent,
+            nfl_game_status=_extra_str(roster_row, "game_status"),
+            roster_slot=slot,
+            roster_status=roster_status,
+            roster_status_label=roster_status_label,
+            reserve_eligibility_status=reserve_eligibility,
+            injury_payload=injury_payload,
+        )
         entry = {
             "roster_slot": slot,
             "player_id": player.player_id,
             "player_name": player.name_full,
             "position": player.position,
+            "nfl_opponent": opponent,
+            "nfl_game_status": _extra_str(roster_row, "game_status"),
+            "roster_status": roster_status,
+            "roster_status_label": roster_status_label,
+            "reserve_eligibility_status": reserve_eligibility,
             "league_points": league_points,
             "is_starter": is_starter,
             "breakdown": breakdown,
@@ -450,8 +675,10 @@ def _team_box(
             "reason": reason,
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
+            "context_label": context_label,
+            "context_detail": context_detail,
             "lineup_value": None,
-            **injury_fields(injury),
+            **injury_payload,
         }
         lineup.append(entry)
 
@@ -507,6 +734,8 @@ def _team_box(
         "beat_projection_by": round(beat_projection_by, 2)
         if beat_projection_by is not None
         else None,
+        "roster_reconstructed": roster_reconstructed,
+        "roster_reconstructed_note": reconstructed_note(week) if roster_reconstructed else None,
         "lineup": lineup,
     }
 

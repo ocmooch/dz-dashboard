@@ -7,11 +7,15 @@ solver and end-to-end through the hand-authored Iceman 2017 wk1 box score.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
+from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
+    _roster_data_context_from_transactions,
+    _score_context,
     box_score,
     classify_zero,
     roster_sort_key,
@@ -150,6 +154,9 @@ def test_box_non_def_missing_row_is_did_not_play_zero(session: Session) -> None:
     assert row["league_points"] == 0.0
     assert row["reason"] is None
     assert row["zero_reason"] == "did_not_play"
+    assert row["context_label"] == "DNP"
+    assert row["context_detail"] is not None
+    assert "No injury designation" in row["context_detail"]
 
 
 def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
@@ -210,11 +217,112 @@ def test_box_zero_context_is_wired_end_to_end(session: Session) -> None:
     assert bye["available"] is True
     assert bye["league_points"] == 0.0
     assert bye["zero_reason"] == "bye"
+    assert bye["context_label"] == "Bye"
 
     mismatch = next(p for p in away if p["player_name"] == "Mismatch Guy")
     assert mismatch["league_points"] == 0.0  # authoritative league value, not nflverse 8.0
     assert mismatch["zero_reason"] == "unexpected"
     assert mismatch["zero_detail"] is not None
+    assert mismatch["context_label"] == "Check"
+
+
+def test_box_reserve_points_are_explained(session: Session) -> None:
+    home = _ice_box(session)
+    row = next(p for p in home["lineup"] if p["player_name"] == "Ice IR Guy")
+    assert row["roster_slot"] == "IR"
+    assert row["league_points"] == 30.0
+    assert row["context_label"] == "RES"
+    assert row["context_detail"] is not None
+    assert "does not prove why" in row["context_detail"]
+    assert row["reserve_eligibility_status"] == "IR"
+
+
+def test_box_flags_roster_before_team_acquisition_as_data_drift() -> None:
+    context = _roster_data_context_from_transactions(
+        [
+            SimpleNamespace(
+                transaction_type="free_agent_add",
+                effective_week=3,
+                team_id=10,
+                direction="in",
+                extra_data=None,
+            )
+        ],
+        team_id=10,
+        week=1,
+        roster_slot="BN",
+    )
+    assert context is not None
+    assert context[0] == "DATA"
+    assert "first add him in W3" in context[1]
+
+
+def test_box_flags_slot_transaction_snapshot_conflict() -> None:
+    context = _roster_data_context_from_transactions(
+        [
+            SimpleNamespace(
+                transaction_type="lineup_change",
+                effective_week=1,
+                team_id=None,
+                direction="out",
+                extra_data={"from_slot": "BN", "to_slot": "WR"},
+            )
+        ],
+        team_id=10,
+        week=1,
+        roster_slot="RES",
+    )
+    assert context is not None
+    assert context[0] == "DATA"
+    assert "transaction moved him to WR" in context[1]
+
+
+def test_box_slot_conflict_detail_dedupes_repeated_target_slots() -> None:
+    # Several same-week lineup_change rows can repeat the same to_slot; the detail
+    # must not read "BN/R/W/T/BN/R/W/T" — duplicates are collapsed, order kept.
+    txns = [
+        SimpleNamespace(
+            transaction_type="lineup_change",
+            effective_week=1,
+            team_id=None,
+            direction="out",
+            extra_data={"from_slot": "RB", "to_slot": slot},
+        )
+        for slot in ("BN", "R/W/T", "BN", "R/W/T")
+    ]
+    context = _roster_data_context_from_transactions(txns, team_id=10, week=1, roster_slot="RB")
+    assert context is not None
+    assert context[0] == "DATA"
+    assert "moved him to BN/R/W/T," in context[1]
+    assert "BN/R/W/T/BN" not in context[1]
+
+
+def test_reserve_slot_with_points_is_never_labeled_injured() -> None:
+    # A reserve-slot player credited with points clearly played and scored; an
+    # injury-report row for that week must not turn the badge into "INJ" — that
+    # would imply an injury the data doesn't prove (see Nabers/Hunter on m193).
+    injury = SimpleNamespace(
+        report_status="Questionable",
+        report_primary_injury="Knee",
+        report_secondary_injury=None,
+        practice_status="Did Not Participate In Practice",
+    )
+    label, detail = _score_context(
+        data_context=None,
+        league_points=12.1,
+        zero_reason=None,
+        zero_detail=None,
+        nfl_opponent="DAL",
+        nfl_game_status="Win,24-20",
+        roster_slot="RES",
+        roster_status=None,
+        roster_status_label=None,
+        reserve_eligibility_status="Questionable",
+        injury_payload=injury_fields(injury),
+    )
+    assert label == "RES"
+    assert detail is not None
+    assert "does not prove why" in detail
 
 
 def test_box_lineup_is_in_canonical_display_order(session: Session) -> None:
