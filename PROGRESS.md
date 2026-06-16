@@ -28,11 +28,15 @@ unioning stats/injuries in the dashboard. Fixture coverage now includes one cove
 cell and one same-name roster/stats twin; contract tests pin both. The originating projection-gap
 class now renders `DataGap` for feed-absent projection/value cells instead of bare dashes. The
 anti-whack-a-mole rule is recorded in `docs/08_TESTING_STRATEGY.md`, and `docs/03_DATA_ACCESS.md`
-points at `/v1/meta/coverage` as runtime truth. Focused dashboard checks are green:
-`uv run pytest tests/test_coverage_integrity.py tests/test_p1_bootstrap.py tests/test_p5_matchups_unit.py -q`,
-`uv run ruff check/format --check` on touched Python files, `uv run mypy src/ff_dashboard`,
-`npm run typecheck`, and `npm run test -- matchups.test.tsx`. A current-branch BFF is running on
-`http://127.0.0.1:8800` for API generation/click-through.
+points at `/v1/meta/coverage` as runtime truth. **VERIFIED (2026-06-16, Unit A):** full gate green
+— backend pytest 369, ruff, mypy, write-safety clean; frontend `gen:api` no-drift, typecheck,
+vitest 167 — plus real-DB click-through: `/matchups/1823` (2017 W7) renders all starters
+`projection_available=false, reason=projections_not_captured` (Mike Williams pid=1032 DNP), and
+`/matchups/193` (2025 W1) renders 9/9 starter projections + deltas. **This branch is ready to PR →
+`dev`.** The program is re-cut into 5 single-repo units tracked in `docs/ACTIVE_WORK.md` §0 (the
+single cycle-state source; the `docs/handoffs/*` checkboxes are reference-only). Unit A = this
+branch; Units B/C (upstream crosswalk + identity-aware ingest), D (dashboard consume), and E
+(projections-source investigation) remain.
 
 Sibling upstream branch `../danger-zone` → `feature/player-identity-crosswalk` adds the additive
 `player_identity_links` crosswalk table, ORM model, and `player_identity_cluster()` read helper

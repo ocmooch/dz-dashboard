@@ -1,6 +1,11 @@
 # Handoff → Player Identity Resolution (stamp out `player_id` confusion permanently)
 
-**Read `00-data-integrity-program.md` first.** · **Status:** ☐ · **Repos:** canonical fix in
+**Read `00-data-integrity-program.md` first.** · **Status (2026-06-16):** ◐ split by repo — Part B2
+(dashboard detection) ☑ shipped on `feature/data-coverage-matrix-dashboard`; Part A (danger-zone
+crosswalk + identity-aware ingest) ◐ early BUILD on `feature/player-identity-crosswalk` (table NOT
+yet on the live DB, not seeded, ingest not identity-aware = Units B+C); Part B1 (dashboard consume
+canonical = Unit D) ⊘ blocked on Part A. Live tracker: `docs/ACTIVE_WORK.md` §0. · **Repos:**
+canonical fix in
 `../danger-zone` (Phase 1); consume/detect in `dz-dashboard` (Phase 2). · **Extends:** F-25
 (`docs/ACTIVE_WORK.md` §2) + `docs/handoffs/players-audit-danger-zone.md` (D1–D5). · **Authored:**
 2026-06-16 against the live DB.

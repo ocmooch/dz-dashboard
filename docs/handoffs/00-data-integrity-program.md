@@ -1,6 +1,9 @@
 # Handoff → Data Integrity & Coverage Program (START HERE)
 
-**Status:** ☐ not started · **Owns:** the two recurring, cross-cutting data problems behind
+**Status (2026-06-16):** ◐ in progress — re-cut into 5 single-repo units; **live cycle-state is
+tracked in `docs/ACTIVE_WORK.md` §0, not here.** This file is now reference framing only (its one
+build deliverable — the anti-whack-a-mole rule in `docs/08_TESTING_STRATEGY.md` — is ☑ done).
+· **Owns:** the two recurring, cross-cutting data problems behind
 most "it works here but not there" reports · **Scope:** spans both repos (`dz-dashboard` Phase 2
 + `../danger-zone` Phase 1) · **Authored:** 2026-06-16, against the live DB
 (`../danger-zone/data/fantasy.db`).

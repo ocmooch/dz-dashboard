@@ -20,14 +20,23 @@ P1–P6 review fix-passes, and every post-roadmap slice — see the archive). Th
 feature branches.** Remaining work, in priority order:
 
 0. **Data Integrity & Coverage program** ◐ (cross-repo, heavy lift — the structural fix for the
-   recurring "works here but not there" / wrong-`player_id` reports). Dashboard branch
-   `feature/data-coverage-matrix-dashboard` now has the first matrix slice:
-   `/v1/meta/coverage`, projection feed-cell gap reasons, and interim identity-split detection.
-   Upstream branch `../danger-zone:feature/player-identity-crosswalk` adds the additive
-   `player_identity_links` table and read helper. Still open: seed/curate the crosswalk, make
-   ingestion identity-aware so new crawls do not mint twins, then have the dashboard consume
-   canonical clusters for stats/injuries. Start from `docs/handoffs/00-data-integrity-program.md`
-   for the full framing.
+   recurring "works here but not there" / wrong-`player_id` reports). **This block is the single
+   cycle-state tracker** — the `docs/handoffs/*` files are reference specs, not status (their
+   checkboxes were stale and lied; ignore them for state). The program was re-cut (2026-06-16) from
+   3 cross-repo "workstreams" into **5 single-repo, session-sized units** because the old cut
+   crossed the repo boundary, smeared status across 5 docs, and bundled reachable with unreachable
+   "done when"s — which is exactly why fresh sessions kept reporting success while the symptom on
+   `/matchups/1823` survived. Units, in dependency order:
+
+   | Unit | Repo | Phase | What | State |
+   |------|------|-------|------|-------|
+   | **A** | dz-dashboard | VERIFY ☑ | Coverage matrix slice: `/v1/meta/coverage`, self-explaining projection gaps, identity-split *detection* (Part B2). Full gate green; click-through done on `/matchups/1823` (uncovered) + `/matchups/193` (2025 W1 covered). | ☑ verified on `feature/data-coverage-matrix-dashboard`; **pending PR → `dev`** |
+   | **B** | ../danger-zone | BUILD ◐ | Put `player_identity_links` on the **live DB**, seed the 18-group triage set (start Mike Williams `1032↔25239`), expose the read-only `player_identity_cluster()` helper. Branch `feature/player-identity-crosswalk` has the table/ORM/helper coded but **not applied to the live DB, not seeded.** | ◐ early build |
+   | **C** | ../danger-zone | BUILD ☐ | Identity-aware ingest: `_create_stub_players` consults the crosswalk/external-id map before minting a twin + idempotency re-ingest test. **The permanent anti-whack-a-mole piece** (without it every crawl re-mints the split). Depends on B. | ☐ todo |
+   | **D** | dz-dashboard | BUILD ☐ | Consume canonical (Part B1): route matchup/player/injury joins through the cluster helper so `1823` Mike Williams renders his unioned `0.0` line (**caveat: W7 has no injury row even under the correct twin — injuries are W1–6/12–14**). Depends on B + a live-DB regen. | ☐ blocked on B |
+   | **E** | ../danger-zone | INVESTIGATE ☐ | Projections reality: the feed only ever captured 2024/2025/2026 **W1** — no reingest changes that. User chose *investigate whether a historical pre-game projections source exists*; if none, formally document `projections` as current-era-only and accept the self-explaining gap as final. | ☐ to investigate |
+
+   Reference framing: `docs/handoffs/00-data-integrity-program.md`.
 1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
    *silently dead* for the 2010–2019 conference era. §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.

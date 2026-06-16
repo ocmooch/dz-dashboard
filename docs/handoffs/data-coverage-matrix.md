@@ -1,8 +1,12 @@
 # Handoff → Data Coverage & Relevance Matrix (the paramount deliverable)
 
 **Read `00-data-integrity-program.md` first, and run `player-identity-resolution.md` before
-finalizing the relevance scope** (the matrix's relevance is identity-cluster-aware). · **Status:**
-☐ · **Repo:** `dz-dashboard` (BFF, read-only) + a small read-only helper in `../danger-zone`
+finalizing the relevance scope** (the matrix's relevance is identity-cluster-aware). · **Status
+(2026-06-16):** ☑ dashboard half BUILD+VERIFY complete (Unit A) — `/v1/meta/coverage` live,
+projection gaps self-explaining, contract tests green, full gate green, click-through done on
+`/matchups/1823` (uncovered) + `/matchups/193` (2025 W1 covered). Pending merge to `dev`. Identity-
+*cluster*-aware relevance still depends on the upstream crosswalk (Units B/C). · **Repo:**
+`dz-dashboard` (BFF, read-only) + a small read-only helper in `../danger-zone`
 `queries.py` if needed. · **Builds on:** the existing `analytics/coverage.py` + `/v1/meta`. ·
 **Authored:** 2026-06-16 against the live DB.
 
