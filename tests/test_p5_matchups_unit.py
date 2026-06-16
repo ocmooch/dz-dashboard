@@ -319,10 +319,85 @@ def test_reserve_slot_with_points_is_never_labeled_injured() -> None:
         roster_status_label=None,
         reserve_eligibility_status="Questionable",
         injury_payload=injury_fields(injury),
+        player_played=True,
     )
     assert label == "RES"
     assert detail is not None
     assert "does not prove why" in detail
+
+
+def _score_context_kwargs(**overrides: object) -> dict[str, object]:
+    """Minimal ``_score_context`` arguments with sane defaults, for badge tests."""
+    base: dict[str, object] = {
+        "data_context": None,
+        "league_points": 14.0,
+        "zero_reason": None,
+        "zero_detail": None,
+        "nfl_opponent": "DAL",
+        "nfl_game_status": "Win,24-20",
+        "roster_slot": "WR",
+        "roster_status": None,
+        "roster_status_label": None,
+        "reserve_eligibility_status": None,
+        "injury_payload": injury_fields(None),
+        "player_played": True,
+    }
+    base.update(overrides)
+    return base
+
+
+def test_score_context_suppresses_incompatible_status_when_played() -> None:
+    # NFL.com current-state drift: an "Inactive" stamped onto a week the player
+    # actually scored must not surface as a badge.
+    label, detail = _score_context(
+        **_score_context_kwargs(
+            roster_status="IA",
+            roster_status_label="Inactive",
+            league_points=20.0,
+            player_played=True,
+        )
+    )
+    assert label is None
+    assert detail is None
+
+
+def test_score_context_suppresses_injured_reserve_when_played() -> None:
+    label, _ = _score_context(
+        **_score_context_kwargs(
+            roster_status="IR",
+            roster_status_label="Injured Reserve",
+            player_played=True,
+        )
+    )
+    assert label is None
+
+
+def test_score_context_keeps_questionable_when_played() -> None:
+    # A game-time injury designation is compatible with playing — keep it.
+    label, detail = _score_context(
+        **_score_context_kwargs(
+            roster_status="Q",
+            roster_status_label="Questionable",
+            player_played=True,
+        )
+    )
+    assert label == "Q"
+    assert detail == "Questionable"
+
+
+def test_score_context_keeps_incompatible_status_when_did_not_play() -> None:
+    # An inactive player who genuinely did not play keeps the badge: it is the
+    # honest explanation of the 0, not drift.
+    label, _ = _score_context(
+        **_score_context_kwargs(
+            league_points=0.0,
+            zero_reason="did_not_play",
+            roster_status="IA",
+            roster_status_label="Inactive",
+            player_played=False,
+        )
+    )
+    assert label == "IA"
 
 
 def test_box_lineup_is_in_canonical_display_order(session: Session) -> None:

@@ -41,6 +41,7 @@ from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.player_status import should_suppress_status
 from ff_dashboard.analytics.roster_snapshots import (
     is_reconstructed_week,
     reconstructed_note,
@@ -116,14 +117,23 @@ def _extra_str(roster_row: Any, key: str) -> str | None:
 
 
 def _reserve_eligibility_status(
-    roster_row: Any, injury: Any, injury_payload: InjuryFields
+    roster_row: Any, injury: Any, injury_payload: InjuryFields, *, player_played: bool
 ) -> str | None:
     slot = (roster_row.roster_slot or "").upper()
     if slot not in IR_SLOTS:
         return None
+    # A reserve-slot player who actually played cannot truthfully carry a
+    # did-not-play roster status (NFL.com current-state drift); drop the
+    # anachronistic IR/IA/SUS and fall through to injury-report / slot context.
+    roster_status_label = _extra_str(roster_row, "player_status_label")
+    roster_status = _extra_str(roster_row, "player_status")
+    if should_suppress_status(roster_status_label, played=player_played):
+        roster_status_label = None
+    if should_suppress_status(roster_status, played=player_played):
+        roster_status = None
     return (
-        _extra_str(roster_row, "player_status_label")
-        or _extra_str(roster_row, "player_status")
+        roster_status_label
+        or roster_status
         or injury_payload.get("injury_status")
         or injury_payload.get("injury_practice_status")
         or (injury.practice_status if injury is not None else None)
@@ -216,9 +226,17 @@ def _score_context(
     roster_status_label: str | None,
     reserve_eligibility_status: str | None,
     injury_payload: InjuryFields,
+    player_played: bool,
 ) -> tuple[str | None, str | None]:
     if data_context is not None:
         return data_context
+
+    # NFL.com stamps a player's *current* status onto historical weeks, so a
+    # player who demonstrably played can carry a did-not-play badge (IA/IR/SUS).
+    # Suppress an incompatible roster status whenever there's proof the player
+    # played; keep game-time injury designations (Q/D/P) and genuine DNPs.
+    if should_suppress_status(roster_status, played=player_played):
+        roster_status = None
 
     injury_status = injury_payload.get("injury_status")
     injury_body = injury_payload.get("injury_body_part")
@@ -626,7 +644,15 @@ def _team_box(
         injury_payload = injury_fields(injury)
         roster_status = _extra_str(roster_row, "player_status")
         roster_status_label = _extra_str(roster_row, "player_status_label")
-        reserve_eligibility = _reserve_eligibility_status(roster_row, injury, injury_payload)
+        # "Played" = has a real nflverse stat line (an organic 0 counts) or a
+        # positive league score. Used to suppress NFL.com current-state-drift
+        # statuses (IA/IR/SUS) on players who clearly played that week.
+        player_played = nflverse_points is not None or (
+            league_points is not None and league_points > 0
+        )
+        reserve_eligibility = _reserve_eligibility_status(
+            roster_row, injury, injury_payload, player_played=player_played
+        )
         # On a reconstructed (all-audit) week, skip the per-player drift check —
         # the team-level caveat covers it, and a badge on every row would bury
         # the genuinely player-specific context (DNP / Out / reserve+points).
@@ -654,6 +680,7 @@ def _team_box(
             roster_status_label=roster_status_label,
             reserve_eligibility_status=reserve_eligibility,
             injury_payload=injury_payload,
+            player_played=player_played,
         )
         entry = {
             "roster_slot": slot,

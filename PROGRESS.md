@@ -19,7 +19,22 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
-**In progress (2026-06-15):** `feature/matchup-context-clues` fixes matchup box-score context
+**In progress (2026-06-16):** `feature/player-status-played-guard` suppresses NFL.com
+current-state-drift `player_status` badges. NFL.com stamps a player's *current* roster status
+onto historical weeks, so the box score showed IA/IR/SUS on players who clearly played and
+scored that week (m193: IR×26, IA×22, SUS×1). New `analytics/player_status.py`
+(`should_suppress_status` / `is_compatible_with_play`) gates `_score_context` and
+`_reserve_eligibility_status` in `analytics/matchups.py`: an *incompatible* availability/roster
+status (IA/IR/SUS/… — everything but the game-time Q/D/P designations) is dropped whenever the
+player played (real nflverse stat line, an organic 0 included, or a positive league score).
+Genuine DNPs keep their badge (honest 0 explanation). BFF-only fix — no schema change, SPA renders
+only `context_label`; team page reads the separate injury-report table, unaffected. Verified on
+m193: Q kept (Purdy/McCarthy), IA/IR dropped on all 8 scorers, IR kept on the genuine 0 (Lloyd).
+This is §2 of the same drift class as the audit-snapshot fix below. The Phase-1 root fix (stop
+storing current-status on history reconstructs) is a separate `../danger-zone` change — not yet
+done; the Phase-2 guard makes a re-ingest optional cleanup, not a prerequisite.
+
+**Prior (2026-06-15):** `feature/matchup-context-clues` fixes matchup box-score context
 for unusual player states. The BFF now emits `context_label` / `context_detail` plus roster
 status, NFL opponent/game status, and reserve eligibility context; the SPA renders DNP vs Out
 accurately and shows non-zero reserve-slot scores as points plus a concise flag.
