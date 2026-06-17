@@ -197,6 +197,12 @@ chart wrappers.
 **Done when:** power ranking renders with its "how this is computed" explainer; timelines
 animate once and read clearly.
 
+**Post-roadmap relocation (2026-06-17):** `/power` was retired as a top-level space and folded
+into **Standings** as a `?lens=power` toggle with a `WeekStepper` (any week, not just the last),
+plus a read-only "Power at playoff entry" snapshot on the Playoffs page. `/power` redirects to
+`/standings?lens=power`. The model math is unchanged; its explainer was reframed to be honest
+that it is a points-dominant lens on the season, not a forecast.
+
 ## P10 — Global search + coverage/about + gap polish
 
 **Goal:** cross-cutting UX and the honesty layer everywhere.

@@ -12,7 +12,6 @@ import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { ManagersPage } from "@/features/managers/ManagersPage";
 import { ManagerProfilePage } from "@/features/managers/ManagerProfilePage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
-import { PowerPage } from "@/features/power/PowerPage";
 import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
 import { PlayersPage } from "@/features/players/PlayersPage";
 import { RecordsPage } from "@/features/records/RecordsPage";
@@ -34,7 +33,7 @@ export function App() {
             <Route index element={<HomePage />} />
             <Route path="seasons" element={<LeagueHistoryPage />} />
             <Route path="standings" element={<StandingsPage />} />
-            <Route path="power" element={<PowerPage />} />
+            <Route path="power" element={<Navigate to="/standings?lens=power" replace />} />
             <Route path="playoffs" element={<PlayoffsPage />} />
             <Route path="bracket" element={<Navigate to="/playoffs" replace />} />
             <Route path="records" element={<RecordsPage />} />

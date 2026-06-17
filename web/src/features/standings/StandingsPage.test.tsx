@@ -22,6 +22,8 @@ const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefine
 const STANDINGS = {
   season_id: 2,
   season_year: 2016,
+  through_week: 14,
+  regular_season_weeks: 14,
   rank_basis: "final_rank",
   tiebreak_caveat: null,
   rows: [
@@ -111,6 +113,55 @@ const INSIGHTS_GAP = {
   teams: [],
 };
 
+const powerRow = (rank: number, owner: string, power: number, delta: number, standingsRank: number) => ({
+  rank,
+  team_id: rank === 1 ? 10 : 11,
+  team_name: `${owner} 2016`,
+  owner_id: rank,
+  owner_name: owner,
+  wins: 11,
+  losses: 3,
+  ties: 0,
+  points_for: 1600,
+  power_score: power,
+  points_for_per_game: 114.3,
+  all_play_win_pct: 0.78,
+  win_pct: 0.786,
+  recent_points_for_per_game: 120,
+  z_points_for: 1.2,
+  z_all_play_win_pct: 1.0,
+  z_win_pct: 1.0,
+  z_recent: 1.1,
+  standings_rank: standingsRank,
+  rank_delta: delta,
+});
+
+const POWER = {
+  season_id: 2,
+  season_year: 2016,
+  through_week: 14,
+  regular_season_weeks: 14,
+  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  explainer: "Power score blends four within-season z-scores per the documented weights.",
+  rows: [powerRow(1, "Iceman", 1.54, 1, 2), powerRow(2, "Goose", -0.32, -1, 1)],
+};
+
+const POWER_TIMELINE = {
+  season_id: 2,
+  season_year: 2016,
+  regular_season_weeks: 14,
+  teams: [
+    { team_id: 10, team_name: "Iceman 2016", owner_name: "Iceman", points: [
+      { week: 1, rank: 2, power_score: 0.4 },
+      { week: 2, rank: 1, power_score: 1.54 },
+    ] },
+    { team_id: 11, team_name: "Goose 2016", owner_name: "Goose", points: [
+      { week: 1, rank: 1, power_score: 0.8 },
+      { week: 2, rank: 2, power_score: -0.32 },
+    ] },
+  ],
+};
+
 let insightsResponse: unknown = INSIGHTS;
 
 function routeByPath(path: string) {
@@ -118,14 +169,16 @@ function routeByPath(path: string) {
   if (path === "/v1/seasons/{season_id}/standings/timeline") return envelope(TIMELINE);
   if (path === "/v1/seasons/{season_id}/standings/insights") return envelope(insightsResponse);
   if (path === "/v1/seasons/{season_id}/conferences") return envelope({ available: false, conferences: [] });
+  if (path === "/v1/seasons/{season_id}/power") return envelope(POWER);
+  if (path === "/v1/seasons/{season_id}/power/timeline") return envelope(POWER_TIMELINE);
   throw new Error(`unexpected path ${path}`);
 }
 
-function renderPage() {
+function renderPage(initialPath = "/standings") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialPath]}>
         <StandingsPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -166,5 +219,27 @@ describe("StandingsPage", () => {
     expect(await screen.findByText("Robbed & Blessed")).toBeInTheDocument();
     expect(screen.queryByText("Robbed")).not.toBeInTheDocument();
     expect(screen.queryByText("Blessed")).not.toBeInTheDocument();
+  });
+
+  it("?lens=power swaps to the power table with scores and the model-vs-record movement", async () => {
+    renderPage("/standings?lens=power");
+    expect((await screen.findAllByText("Iceman")).length).toBeGreaterThan(0);
+    expect(screen.getByText("1.54")).toBeInTheDocument();
+    expect(screen.getByText("-0.32")).toBeInTheDocument();
+    expect(screen.getByText(/▲ 1/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ 1/)).toBeInTheDocument();
+  });
+
+  it("power lens offers a week selector and the power-over-time chart", async () => {
+    renderPage("/standings?lens=power");
+    expect(await screen.findByLabelText("Power ranking by week (rank 1 on top)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Select week")).toBeInTheDocument();
+  });
+
+  it("record lens (default) does not fetch power", async () => {
+    renderPage();
+    await screen.findByText("Champion");
+    const paths = get.mock.calls.map((c) => c[0]);
+    expect(paths).not.toContain("/v1/seasons/{season_id}/power");
   });
 });

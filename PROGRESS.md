@@ -19,6 +19,15 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**In progress (2026-06-17):** `feature/power-into-standings` retires `/power` as a top-level space
+and folds it into **Standings** as a `?lens=power` toggle (`Tabs`) with a `WeekStepper` so power is
+viewable for any week of any season — the backend already supported `through_week`, so this was
+frontend-only. The Power table/hooks are extracted to a reusable `web/src/features/power/`
+(`PowerTable.tsx`, `usePower.ts`); the routed `PowerPage` is gone and `/power` redirects to
+`/standings?lens=power`. Playoffs gains a read-only "Power at playoff entry" snapshot. The model
+math is unchanged (still the documented 0.40/0.25/0.20/0.15 z-score blend); only the explainer was
+reframed to be honest that it is a points-dominant lens, not a forecast. **Ready to PR → `dev`.**
+
 **In progress (2026-06-16):** `feature/data-coverage-matrix-dashboard` implements the dashboard
 side of the Data Integrity & Coverage program from `docs/handoffs/`: a PLAN artifact
 (`docs/plans/data-integrity-coverage-program.md`), `/v1/meta/coverage`, projection feed-cell

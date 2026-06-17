@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton } from "@/design-system";
+import { PowerTable } from "@/features/power/PowerTable";
+import { usePower } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, teamAvatarUrl } from "@/lib/format";
@@ -260,6 +262,8 @@ export function PlayoffsPage() {
     queryFn: () => fetchBracket(seasonId as number),
     enabled: seasonId != null,
   });
+  // Power as of playoff entry = the default (end-of-regular-season) ranking.
+  const power = usePower(seasonId);
 
   return (
     <div className="dz-rise space-y-5">
@@ -312,6 +316,21 @@ export function PlayoffsPage() {
 
           {data.caveat && (
             <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>
+          )}
+
+          {power.data && power.data.rows.length > 0 && (
+            <Card>
+              <CardHeader
+                eyebrow="who entered the bracket strongest · all-play adjusted"
+                title="Power at playoff entry"
+                action={
+                  <Link to="/standings?lens=power" className="text-[var(--fs-sm)] text-accent hover:underline">
+                    week-by-week lens →
+                  </Link>
+                }
+              />
+              <PowerTable data={power.data} />
+            </Card>
           )}
         </div>
       )}
