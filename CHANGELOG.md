@@ -4,6 +4,20 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-17 — Fold Power into Standings (lens) + Playoffs snapshot
+
+- **Retired `/power` as a top-level space.** It duplicated Standings (both are
+  season-state-as-of-week with a "rank by week" `RankFlow`); power is now a Standings
+  `?lens=power` toggle. Frontend-only — `power_ranking`/`power_timeline` already accepted
+  `through_week`, so a `WeekStepper` now exposes power for any week of any season.
+- **Extracted** `web/src/features/power/PowerTable.tsx` + `usePower.ts` (shared by Standings
+  and Playoffs); deleted the routed `PowerPage`; `/power` → `/standings?lens=power` redirect;
+  removed the "Power" nav entry.
+- **Playoffs** gained a read-only "Power at playoff entry" snapshot (end-of-regular-season
+  ranking) linking to the week-by-week lens.
+- **Model unchanged** (0.40·PF/g + 0.25·all-play% + 0.20·win% + 0.15·last-3-PF/g); the
+  explainer was reframed to state it is a points-dominant lens, not a forecast.
+
 ## 2026-06-15 — Release v0.2.0 (dev → main promotion)
 
 - **Version bumped `0.1.0` → `0.2.0`** (`pyproject.toml`, `web/package.json` + lock) and `dev`

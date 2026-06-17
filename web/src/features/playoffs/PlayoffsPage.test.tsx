@@ -108,6 +108,32 @@ const BRACKET = {
   },
 };
 
+const POWER = {
+  season_id: 1,
+  season_year: 2015,
+  through_week: 13,
+  regular_season_weeks: 13,
+  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  explainer: "Power score blends four within-season z-scores per the documented weights.",
+  rows: [
+    {
+      rank: 1, team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider",
+      wins: 11, losses: 2, ties: 0, points_for: 1500, power_score: 1.42,
+      points_for_per_game: 115, all_play_win_pct: 0.82, win_pct: 0.846, recent_points_for_per_game: 120,
+      z_points_for: 1.3, z_all_play_win_pct: 1.2, z_win_pct: 1.1, z_recent: 1.0,
+      standings_rank: 1, rank_delta: 0,
+    },
+  ],
+};
+
+let bracketResponse: unknown = BRACKET;
+
+function routeByPath(path: string) {
+  if (path === "/v1/seasons/{season_id}/bracket") return envelope(bracketResponse);
+  if (path === "/v1/seasons/{season_id}/power") return envelope(POWER);
+  throw new Error(`unexpected path ${path}`);
+}
+
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -120,8 +146,9 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  bracketResponse = BRACKET;
   get.mockReset();
-  get.mockResolvedValue(envelope(BRACKET));
+  get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -141,18 +168,23 @@ describe("PlayoffsPage", () => {
   });
 
   it("renders a DataGap when no bracket rows are available", async () => {
-    get.mockResolvedValueOnce(
-      envelope({
-        ...BRACKET,
-        available: false,
-        reason: "bracket_unavailable",
-        playoff_bracket: null,
-        consolation_bracket: null,
-      }),
-    );
+    bracketResponse = {
+      ...BRACKET,
+      available: false,
+      reason: "bracket_unavailable",
+      playoff_bracket: null,
+      consolation_bracket: null,
+    };
 
     renderPage();
     expect(await screen.findByText(/Bracket data isn't available/i)).toBeInTheDocument();
     expect(screen.queryByText("Championship Bracket")).not.toBeInTheDocument();
+  });
+
+  it("surfaces the 'Power at playoff entry' snapshot linking to the week-by-week lens", async () => {
+    renderPage();
+    expect(await screen.findByText("Power at playoff entry")).toBeInTheDocument();
+    const lensLink = screen.getByText(/week-by-week lens/i).closest("a");
+    expect(lensLink).toHaveAttribute("href", "/standings?lens=power");
   });
 });

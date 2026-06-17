@@ -6,7 +6,7 @@ deep-linkable (N3 / F10.2). This is the map a builder follows to compose pages f
 design-system primitives.
 
 **Route convention (as built).** Season-scoped views are driven by the **global season
-switcher**, so their routes are flat (`/standings`, `/power`, `/matchups`, `/draft`) rather
+switcher**, so their routes are flat (`/standings`, `/matchups`, `/draft`) rather
 than carrying a `/seasons/{season_id}/...` prefix — the selected season lives in app state, not
 the path. Entity routes that *are* path-scoped (`/matchups/{matchup_id}`, `/teams/{team_id}`,
 `/players/{player_id}`, `/rivalries/{a}/vs/{b}`) stay deep-linkable. (This is a deliberate
@@ -51,22 +51,27 @@ The landing view; a glanceable cockpit for the current season.
 
 ## Standings  `/standings`
 
-- **Shows:** full standings table (rank, manager/team, W-L-T, PF, PA, completed-season
-  finish, streak); schedule-luck/all-play insight; a standings-over-time chart with
-  rank-ordered Week N tooltips.
+A two-lens view (`?lens=record|power`), toggled with `Tabs`:
+
+- **Record lens (default):** full standings table (rank, manager/team, W-L-T, PF, PA,
+  completed-season finish, streak); schedule-luck/all-play insight; a standings-over-time
+  chart with rank-ordered Week N tooltips.
+- **Power lens:** the power ranking re-sorts the table by a model score (PF/g, all-play win
+  pct, actual win pct, recent PF/g, model weights) with a model-vs-record delta and a
+  "how this is computed" explainer; a `WeekStepper` (`?week=`) drives the as-of-week table
+  while the power-over-time chart shows the full season. Power is *the same season-state-as-of-week
+  data as Standings, re-sorted by strength* — which is why it lives here rather than as its own
+  top-level space. (`/power` redirects to `/standings?lens=power`.)
 - **Endpoints:** `/v1/seasons/{id}/standings?through_week=`,
-  `/v1/seasons/{id}/standings/insights`, `/v1/seasons/{id}/standings/timeline`.
-- **Components/charts:** `Table`, `RankFlow`, `RecordLine`, `Trophy`.
+  `/v1/seasons/{id}/standings/insights`, `/v1/seasons/{id}/standings/timeline`,
+  `/v1/seasons/{id}/power?through_week=`, `/v1/seasons/{id}/power/timeline`.
+- **Components/charts:** `Tabs`, `WeekStepper`, `Table`, `RankFlow`, `RecordLine`, `Trophy`,
+  `PowerTable`.
 - **Gaps:** historical standings exist for 2010–2025 → render normally; if season metadata is
   pending, `DataGap`.
 
-## Power ranking  `/power`
-
-- **Shows:** the current power ranking (with PF/g, all-play win pct, actual win pct, recent
-  PF/g, model weights), an "how this is computed" explainer, and a power-score-over-time chart.
-- **Endpoints:** `/v1/seasons/{id}/power?through_week=`, `/v1/seasons/{id}/power/timeline`.
-- **Components/charts:** `Table`, `RankFlow`/`LineTrend`, `Tabs`.
-- **Gaps:** current season not yet scored → `DataGap`.
+Playoffs also embeds a read-only **"Power at playoff entry"** snapshot (the end-of-regular-season
+power ranking) via the shared `PowerTable`, linking back to `/standings?lens=power`.
 
 ## Playoffs / Bracket  `/bracket`
 

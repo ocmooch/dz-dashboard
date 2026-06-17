@@ -19,7 +19,7 @@ rationale isn't lost; none needs further action unless you want to revisit.
 | Q3 | Visual direction | **"Danger Zone" HUD** — dark instrument-panel, afterburner-orange accent (`#ff6a1a`), mono/tabular numerics. Fonts: **Saira Condensed** (display), **IBM Plex Sans** (body), **IBM Plex Mono** (numbers) — not Inter. A future light token set is possible but not implemented (see Q10). |
 | Q4 | View priority | Built per default order, including Manager index/profile and the caveated Playoffs/Bracket view. |
 | Q5 | Standings tiebreaker | Prefer reconstructed `teams.final_rank`; else compute wins→points-for, exposing `rank_basis` + `tiebreak_caveat` (computed & pre-2019). Old best-of-3 not re-derived. (`04_ANALYTICS_MODEL.md` §1) |
-| Q6 | Power-ranking model | Z-score blend **0.5·PPG + 0.3·win% + 0.2·last-3-PPG**; weights in one constant and shipped in the payload's `weights`. (`analytics/power.py`) |
+| Q6 | Power-ranking model | Within-season z-score blend **0.40·PF/g + 0.25·all-play% + 0.20·win% + 0.15·last-3-PF/g**; weights in one constant and shipped in the payload's `weights`. A points-dominant lens (its terms correlate with scoring), not a forecast. Surfaced as the Standings `?lens=power` toggle + a Playoffs entry snapshot, not a top-level space. (`analytics/power.py`) |
 | Q7 | Optimal-lineup definition | Implemented in `analytics/matchups.py` (optimal-lineup / points-left-on-bench) reading the roster slot configuration; covered by a hand-solved unit test. |
 
 ---

@@ -1,14 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
+import { PowerTable } from "@/features/power/PowerTable";
+import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
+
+type Lens = "record" | "power";
 
 type ConferenceSection = components["schemas"]["ConferenceSection"];
 type StandingsInsightTeam = components["schemas"]["StandingsInsightTeam"];
@@ -139,7 +143,35 @@ export function StandingsPage() {
     enabled: seasonId != null,
   });
 
+  // Lens (record | power) and the as-of week for the power lens live in the URL.
+  const [params, setParams] = useSearchParams();
+  const lens: Lens = params.get("lens") === "power" ? "power" : "record";
+  const regWeeks = data?.regular_season_weeks;
+  const weekParam = params.get("week");
+  const week = weekParam ? Math.max(1, Number(weekParam) || 1) : undefined;
+  const effectiveWeek = week ?? regWeeks;
+
+  const power = usePower(seasonId, week, lens === "power");
+  const powerTimeline = usePowerTimeline(seasonId, lens === "power");
+
+  function setLens(next: Lens) {
+    const p = new URLSearchParams(params);
+    if (next === "power") p.set("lens", "power");
+    else {
+      p.delete("lens");
+      p.delete("week");
+    }
+    setParams(p, { replace: true });
+  }
+  function setWeek(w: number) {
+    const p = new URLSearchParams(params);
+    p.set("lens", "power");
+    p.set("week", String(w));
+    setParams(p, { replace: true });
+  }
+
   const flow = timeline.data ? toRankFlow(timeline.data.teams) : null;
+  const powerFlow = powerTimeline.data ? toRankFlow(powerTimeline.data.teams) : null;
   const showFinalPlacement = data?.rows.some((r) => r.final_rank != null) ?? false;
 
   return (
@@ -149,17 +181,32 @@ export function StandingsPage() {
           <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Standings</h1>
         </div>
-        {data && (
-          <Badge variant={data.rank_basis === "final_rank" ? "default" : "accent"}>
-            order: {data.rank_basis === "final_rank" ? "official (NFL.com)" : "computed · wins→PF"}
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          <Tabs<Lens>
+            tabs={[
+              { id: "record", label: "Record" },
+              { id: "power", label: "Power" },
+            ]}
+            value={lens}
+            onChange={setLens}
+          />
+          {lens === "record" && data && (
+            <Badge variant={data.rank_basis === "final_rank" ? "default" : "accent"}>
+              order: {data.rank_basis === "final_rank" ? "official (NFL.com)" : "computed · wins→PF"}
+            </Badge>
+          )}
+          {lens === "power" && power.data && (
+            <Badge variant="accent">through week {power.data.through_week}</Badge>
+          )}
+        </div>
       </div>
 
-      {data?.tiebreak_caveat && (
+      {lens === "record" && data?.tiebreak_caveat && (
         <Badge variant="gap">historical tiebreak may differ from NFL.com for this era</Badge>
       )}
 
+      {lens === "record" && (
+        <>
       <Card>
         <CardHeader eyebrow="regular season" title="Table" />
         {isLoading && (
@@ -299,6 +346,63 @@ export function StandingsPage() {
           )}
         </div>
       </Card>
+        </>
+      )}
+
+      {lens === "power" && (
+        <>
+          <Card>
+            <CardHeader
+              eyebrow="model · all-play adjusted · re-sorted by strength"
+              title="Power, as of the selected week"
+              action={
+                regWeeks ? (
+                  <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />
+                ) : undefined
+              }
+            />
+            {power.isLoading && (
+              <div className="space-y-2 p-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            )}
+            {power.isError && (
+              <ErrorState message="Could not reach the analytics service." onRetry={() => power.refetch()} />
+            )}
+            {power.data && (power.data.rows.length > 0 ? (
+              <PowerTable data={power.data} />
+            ) : (
+              <div className="p-5">
+                <DataGap reason="no_standings_rows" />
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <CardHeader eyebrow="rank by week" title="Power over time" />
+            <div className="p-5">
+              {powerTimeline.isLoading && <Skeleton className="h-[280px] w-full" />}
+              {powerFlow && powerFlow.data.length > 0 ? (
+                <RankFlow
+                  title="Power ranking by week (rank 1 on top)"
+                  data={powerFlow.data}
+                  series={powerFlow.series}
+                  xKey="week"
+                  xLabel="Week"
+                  teamCount={powerFlow.teamCount}
+                  height={300}
+                />
+              ) : (
+                !powerTimeline.isLoading && (
+                  <p className="text-[var(--fs-sm)] text-faint">No weekly data for this season yet.</p>
+                )
+              )}
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

@@ -51,13 +51,15 @@ W_RECENT = 0.15
 RECENT_WEEKS = 3
 
 POWER_EXPLAINER = (
-    "Power score blends three within-season z-scores (each team measured against "
+    "Power score blends four within-season z-scores (each team measured against "
     f"its peers that year): {W_POINTS_FOR:g} x points-for per game, {W_ALL_PLAY:g} x "
     f"all-play win pct, {W_WIN_PCT:g} x actual win pct, and {W_RECENT:g} x "
     f"points-for per game over the last {RECENT_WEEKS} weeks. All-play compares "
     "each team's weekly score against every other team that week, so the model "
-    "rewards schedule-resistant scoring without needing player-level data. It is "
-    "a transparent model for argument's sake, not a prediction."
+    "rewards schedule-resistant scoring without needing player-level data. "
+    "Points-for, all-play, and recent form all track scoring, so this is really a "
+    "points-dominant lens on the season — a way to re-sort the table by strength and "
+    "see who over- or under-performs their record, not a prediction."
 )
 
 POWER_WEIGHTS = {
