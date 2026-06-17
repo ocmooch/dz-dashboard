@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/render";
 
 import { LeagueHistoryPage } from "./LeagueHistoryPage";
-import { RulesErasPage } from "./RulesErasPage";
 import { StoriesPage } from "./StoriesPage";
 
 vi.mock("@/lib/api/client", () => ({ api: { GET: vi.fn() } }));
@@ -46,6 +45,7 @@ const TIMELINE = {
       scoring_provenance: "nfl_com_authoritative_total",
       verification_status: "known_source_gap",
       source: "team_totals_without_player_reconstruction",
+      era_id: "era-1",
       changes: {
         league_size_changed: false,
         schedule_changed: false,
@@ -69,6 +69,7 @@ const TIMELINE = {
       scoring_provenance: "nflverse_reconstructed",
       verification_status: "verification_pending",
       source: "computed_from_scored_player_rows",
+      era_id: "era-2",
       changes: {
         league_size_changed: false,
         schedule_changed: false,
@@ -179,12 +180,14 @@ beforeEach(() => {
 });
 
 describe("LeagueHistoryPage", () => {
-  it("renders seasons with champion and schedule format", async () => {
-    renderWithProviders(<LeagueHistoryPage />, ["/seasons"]);
-    expect(await screen.findByText("League History")).toBeInTheDocument();
-    // Schedule format: reg=2, po=1 → "2-wk regular season · playoffs wk 3–3"
-    const schedules = await screen.findAllByText(/2-wk regular season/);
-    expect(schedules.length).toBeGreaterThan(0);
+  it("renders seasons with champion, change detail, and the eras strip", async () => {
+    renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
+    expect(await screen.findByText("League Timeline")).toBeInTheDocument();
+    // Structural shape lives in the eras strip, not repeated per season row.
+    expect(await screen.findByText("Eras at a Glance")).toBeInTheDocument();
+    expect(screen.getByText("NFL.com team totals")).toBeInTheDocument();
+    expect(screen.getByText("Reconstructed player scoring")).toBeInTheDocument();
+    // The rich timeline change detail is intact.
     expect(screen.getByText("Scoring rule changed")).toBeInTheDocument();
     expect(screen.getByText("Receptions: 1 point per 2 receptions")).toBeInTheDocument();
     expect(screen.getByText("Dynasty Crew")).toBeInTheDocument();
@@ -258,7 +261,7 @@ describe("LeagueHistoryPage", () => {
       return Promise.resolve(envelope({}));
     });
 
-    renderWithProviders(<LeagueHistoryPage />, ["/seasons"]);
+    renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
     // Wait for the async timeline to render an event before asserting on it.
     expect(await screen.findByText("Division realignment")).toBeInTheDocument();
     // T1 "Major" badge (legend + the event) and in-season marker (legend + event).
@@ -273,12 +276,17 @@ describe("LeagueHistoryPage", () => {
   });
 });
 
-describe("RulesErasPage", () => {
-  it("renders derived eras and material changes", async () => {
-    renderWithProviders(<RulesErasPage />, ["/rules"]);
-    expect(await screen.findByText("Rules & Eras")).toBeInTheDocument();
-    expect(await screen.findByText(/team-total-only era/i)).toBeInTheDocument();
-    expect(screen.getByText("Before: Receptions: 1 point per 2 receptions")).toBeInTheDocument();
+describe("eras strip (merged from the old Rules & Eras page)", () => {
+  it("shows era spans and folds rule changes into the timeline, not a separate log", async () => {
+    renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
+    await screen.findByText("Eras at a Glance");
+    // Multi-season era span is rendered from /v1/league/eras (unique to the strip).
+    expect(screen.getByText("2016–2017")).toBeInTheDocument();
+    // The known source gap surfaces as a labelled badge, never a fabricated value.
+    expect(screen.getByText("source gap")).toBeInTheDocument();
+    // The old degraded "Before: …" material-changes list is gone; the timeline's
+    // before/after rendering owns this now.
+    expect(screen.queryByText("Before: Receptions: 1 point per 2 receptions")).not.toBeInTheDocument();
   });
 });
 

@@ -411,6 +411,7 @@ class LeagueTimelineSeason(BaseModel):
     scoring_provenance: str
     verification_status: str
     source: str
+    era_id: str
     changes: SeasonChangeFlags
 
 

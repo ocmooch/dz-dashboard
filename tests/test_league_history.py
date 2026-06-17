@@ -71,11 +71,16 @@ def test_league_timeline_labels_scoring_provenance(session: Session) -> None:
         certainty="source_limited",
     )
     assert by_year[2017]["champion"]["owner_name"] == "Maverick"
+    # era_id tags each season with its contiguous structural era, matching league_eras().
+    assert by_year[2015]["era_id"] == "era-1"
+    assert by_year[2016]["era_id"] == "era-2"
+    assert by_year[2017]["era_id"] == "era-2"
 
 
 def test_league_eras_are_derived_from_material_context_changes(session: Session) -> None:
     data = league_eras(session)
     assert [era["season_years"] for era in data["eras"]] == [[2015], [2016, 2017]]
+    assert [era["era_id"] for era in data["eras"]] == ["era-1", "era-2"]
     change_2016 = next(change for change in data["changes"] if change["season_year"] == 2016)
     assert change_2016["league_size_changed"] is False
     assert change_2016["schedule_changed"] is False

@@ -110,26 +110,16 @@ export function HomePage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Link to="/seasons">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Link to="/timeline">
           <Card hover className="h-full p-5">
-            <Badge variant="accent">League History</Badge>
+            <Badge variant="accent">Timeline</Badge>
             <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
-              Browse the archive by season
+              Browse the league by season &amp; era
             </h2>
             <p className="mt-2 text-[var(--fs-sm)] text-muted">
-              Champions, league size, schedule shape, and scoring provenance by year.
-            </p>
-          </Card>
-        </Link>
-        <Link to="/rules">
-          <Card hover className="h-full p-5">
-            <Badge variant="accent">Rules &amp; Eras</Badge>
-            <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
-              Compare seasons in context
-            </h2>
-            <p className="mt-2 text-[var(--fs-sm)] text-muted">
-              Era labels explain when league size, schedule, or scoring provenance changed.
+              Champions, league size, schedule shape, and scoring provenance by year — with the
+              structural eras and every material rule change in context.
             </p>
           </Card>
         </Link>
