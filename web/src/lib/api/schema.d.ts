@@ -1862,6 +1862,8 @@ export interface components {
             verification_status: string;
             /** Source */
             source: string;
+            /** Era Id */
+            era_id: string;
             changes: components["schemas"]["SeasonChangeFlags"];
         };
         /** ManagerDirectory */

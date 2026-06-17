@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { teamAvatarUrl } from "@/lib/format";
@@ -12,6 +12,7 @@ type LeagueTimeline = components["schemas"]["LeagueTimeline"];
 type LeagueTimelineSeason = components["schemas"]["LeagueTimelineSeason"];
 type LeagueChangeDetail = components["schemas"]["LeagueChangeDetail"];
 type CommissionerTerm = components["schemas"]["CommissionerTerm"];
+type LeagueEra = components["schemas"]["LeagueEra"];
 
 async function fetchTimeline(): Promise<LeagueTimeline> {
   const { data, error } = await api.GET("/v1/league/timeline");
@@ -25,18 +26,25 @@ async function fetchOverview(): Promise<components["schemas"]["LeagueOverview"]>
   return data.data;
 }
 
+async function fetchEras(): Promise<components["schemas"]["LeagueEras"]> {
+  const { data, error } = await api.GET("/v1/league/eras");
+  if (error || !data) throw new Error("league eras");
+  return data.data;
+}
+
+function provenanceLabel(value: string): string {
+  const labels: Record<string, string> = {
+    nfl_com_authoritative_total: "NFL.com team totals",
+    nflverse_reconstructed: "Reconstructed player scoring",
+  };
+  return labels[value] ?? value.replace(/_/g, " ");
+}
+
 function commissionerForYear(
   terms: CommissionerTerm[],
   year: number,
 ): CommissionerTerm | undefined {
   return terms.find((t) => t.from_year <= year && (t.to_year === null || t.to_year === undefined || t.to_year >= year));
-}
-
-function formatSchedule(reg?: number | null, po?: number | null): string {
-  if (!reg && !po) return "";
-  if (reg && po) return `${reg}-wk regular season · playoffs wk ${reg + 1}–${reg + po}`;
-  if (reg) return `${reg}-wk regular season`;
-  return `${po} playoff weeks`;
 }
 
 function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
@@ -73,6 +81,52 @@ function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
                 )}
               </div>
             </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+// "Eras at a glance": the structural shape of the league over contiguous spans —
+// the unique lens the old /rules page carried, now folded above the timeline. Each
+// cell anchors to that era's most-recent season in the timeline below.
+function EraStrip({ eras }: { eras: LeagueEra[] }) {
+  if (eras.length === 0) return null;
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader eyebrow="structural shape" title="Eras at a Glance" />
+      <div className="flex min-w-0 flex-wrap gap-0 divide-x divide-[var(--hairline)]">
+        {eras.map((era) => {
+          const span =
+            era.start_year === era.end_year
+              ? `${era.start_year}`
+              : `${era.start_year}–${era.end_year}`;
+          const weeks =
+            era.regular_season_weeks != null
+              ? `${era.regular_season_weeks}${era.playoff_weeks != null ? `+${era.playoff_weeks}` : ""} wk`
+              : null;
+          return (
+            <a
+              key={era.era_id}
+              href={`#${era.era_id}`}
+              className="group flex-1 min-w-[8rem] px-4 py-3 text-center transition-colors hover:bg-[var(--surface-2)]"
+            >
+              <div className="text-[var(--fs-sm)] font-semibold tabular-nums text-ink transition-colors group-hover:text-accent">
+                {span}
+              </div>
+              <div className="mt-0.5 text-[var(--fs-xs)] tabular-nums text-faint">
+                {era.league_size} teams{weeks ? ` · ${weeks}` : ""}
+              </div>
+              <div className="mt-1.5 text-[10px] uppercase tracking-wide text-faint">
+                {provenanceLabel(era.scoring_provenance)}
+              </div>
+              {era.verification_status === "known_source_gap" && (
+                <div className="mt-1.5">
+                  <Badge variant="gap">source gap</Badge>
+                </div>
+              )}
+            </a>
           );
         })}
       </div>
@@ -375,9 +429,11 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
 function SeasonEntry({
   season,
   commissioner,
+  anchorId,
 }: {
   season: LeagueTimelineSeason;
   commissioner?: CommissionerTerm;
+  anchorId?: string;
 }) {
   const details = [...season.changes.details].sort(
     (a, b) => (TIER_RANK[tierOf(a)] ?? 9) - (TIER_RANK[tierOf(b)] ?? 9),
@@ -389,17 +445,15 @@ function SeasonEntry({
   );
 
   return (
-    <article className="grid gap-5 p-5 lg:grid-cols-[5.5rem_1fr]">
+    <article
+      id={anchorId}
+      className="grid scroll-mt-24 gap-5 p-5 lg:grid-cols-[5.5rem_1fr]"
+    >
       {/* Left: year + quick meta */}
       <div className="shrink-0">
         <div className="font-display text-[var(--fs-h2)] font-bold tabular-nums text-accent">
           {season.season_year}
         </div>
-        {season.regular_season_weeks || season.playoff_weeks ? (
-          <div className="mt-1 text-[var(--fs-xs)] text-faint leading-relaxed">
-            {formatSchedule(season.regular_season_weeks, season.playoff_weeks)}
-          </div>
-        ) : null}
         {commissioner && (
           <div className="mt-2">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">
@@ -444,26 +498,40 @@ function SeasonEntry({
 export function LeagueHistoryPage() {
   const timeline = useQuery({ queryKey: qk.leagueTimeline, queryFn: fetchTimeline });
   const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
+  const erasQuery = useQuery({ queryKey: qk.leagueEras, queryFn: fetchEras });
 
   if (timeline.isError) {
-    return <ErrorState message="Could not load league history." onRetry={() => timeline.refetch()} />;
+    return <ErrorState message="Could not load the league timeline." onRetry={() => timeline.refetch()} />;
   }
 
   // newest first for scroll-to-recent UX
   const seasons = [...(timeline.data?.seasons ?? [])].reverse();
   const latest = timeline.data?.seasons.at(-1);
   const commissioners = overview.data?.commissioners ?? [];
+  const eras = erasQuery.data?.eras ?? [];
+
+  // Anchor each era to its most-recent season so the strip's cells scroll into place.
+  const eraAnchorBySeasonId = new Map<number, string>();
+  const seenEra = new Set<string>();
+  for (const s of seasons) {
+    if (!seenEra.has(s.era_id)) {
+      seenEra.add(s.era_id);
+      eraAnchorBySeasonId.set(s.season_id, s.era_id);
+    }
+  }
 
   return (
     <div className="dz-rise space-y-6">
       <div>
         <div className="dz-eyebrow mb-1">League museum</div>
-        <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League History</h1>
+        <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League Timeline</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          Year-by-year changes, ranked by impact: <span className="font-semibold text-ink">Major</span> rule
-          changes are highlighted, significant ones are always shown, and routine admin/draft-logistics edits
-          collapse into one expandable group per season. Changes made after kickoff carry an{" "}
-          <span className="font-semibold text-ink">in-season</span> marker. Nothing is dropped.
+          Every season, newest first, with the structural <span className="font-semibold text-ink">eras</span>{" "}
+          that shape them. <span className="font-semibold text-ink">Major</span> rule changes are highlighted,
+          routine admin/draft-logistics edits collapse into one expandable group per season, and changes made
+          after kickoff carry an <span className="font-semibold text-ink">in-season</span> marker. Era labels
+          and scoring sources reflect only what the database can prove — gaps stay labelled, never filled in.
+          Nothing is dropped.
         </p>
       </div>
 
@@ -474,8 +542,15 @@ export function LeagueHistoryPage() {
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <Stat label="League" value={timeline.data?.league.name ?? "-"} />
             <Stat label="Seasons" value={timeline.data?.league.season_count ?? "-"} tone="accent" />
-            <Stat label="Start" value={timeline.data?.league.start_year ?? "-"} />
-            <Stat label="Latest" value={latest?.season_year ?? "-"} />
+            <Stat
+              label="Span"
+              value={
+                timeline.data?.league.start_year
+                  ? `${timeline.data.league.start_year}–${latest?.season_year ?? "-"}`
+                  : "-"
+              }
+            />
+            <Stat label="Eras" value={eras.length || "-"} />
           </div>
         )}
       </Card>
@@ -485,6 +560,13 @@ export function LeagueHistoryPage() {
         <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
       ) : (
         <CommissionerStrip terms={commissioners} />
+      )}
+
+      {/* Eras at a glance — reference strip above the timeline */}
+      {erasQuery.isLoading ? (
+        <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
+      ) : (
+        <EraStrip eras={eras} />
       )}
 
       {/* Legend */}
@@ -510,15 +592,7 @@ export function LeagueHistoryPage() {
       </div>
 
       <Card>
-        <CardHeader
-          eyebrow="newest → oldest"
-          title="Season Timeline"
-          action={
-            <Link to="/rules" className="dz-badge dz-badge--accent">
-              Rules &amp; Eras
-            </Link>
-          }
-        />
+        <CardHeader eyebrow="newest → oldest" title="Season Timeline" />
         <div className="divide-y divide-[var(--hairline)]">
           {timeline.isLoading &&
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="m-5 h-20" />)}
@@ -526,6 +600,7 @@ export function LeagueHistoryPage() {
             <SeasonEntry
               key={season.season_id}
               season={season}
+              anchorId={eraAnchorBySeasonId.get(season.season_id)}
               commissioner={
                 season.season_year
                   ? commissionerForYear(commissioners, season.season_year)
