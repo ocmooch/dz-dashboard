@@ -28,9 +28,15 @@ horizontal W/L `ResultTimeline` (green/red cells, postseason set off by a subtle
 fallback" cards merge into **one** compact, collapsible feed (acquisitions only — backend
 `team_transactions` now drops `lineup_change`/`setting_change`), with the actor/device `notes`
 suppressed and the derived roster-diff used only when no exact log exists, behind a single clear
-"derived" flag. A starters-only week (the one upstream final-week snapshot gap) gets an honest
-roster note. Full gate green (backend 373, frontend 170, typecheck, ruff, mypy, build) + manual
-click-through. **Ready to PR → `dev`.**
+"derived" flag. **Follow-up refinements (2026-06-17):** a short week's roster now pads up to the
+team-season's usual size with dashed empty slots (`team_roster` → `is_empty`, derived from
+snapshots not settings) instead of a note — the nearby transactions explain the drops; bench/IR are
+never capped (the extra-bench-from-dropped-starter case renders in full). The transactions feed is
+grouped into collapsible weeks (latest open; draft = its own week-0 "Draft" bucket; includes
+pre-week-1 moves). Week-end snapshot semantics + variable bench documented in
+`docs/03_DATA_ACCESS.md` and the `roster-snapshot-semantics` memory. Full gate green (backend 374,
+frontend 172, typecheck, ruff, mypy, build) + manual click-through (team 175 wk17 shows 9 + 6 dashed
+slots; wk17 drops sit right beside them). **PR #80 open → `dev`.**
 
 **In progress (2026-06-17):** `feature/power-into-standings` retires `/power` as a top-level space
 and folds it into **Standings** as a `?lens=power` toggle (`Tabs`) with a `WeekStepper` so power is

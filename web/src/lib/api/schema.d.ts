@@ -2903,6 +2903,11 @@ export interface components {
             roster_slot?: string | null;
             /** Is Starter */
             is_starter: boolean;
+            /**
+             * Is Empty
+             * @default false
+             */
+            is_empty: boolean;
             /** League Points */
             league_points?: number | null;
             /** Zero Reason */

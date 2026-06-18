@@ -98,6 +98,16 @@ post-regen verification sweep before trusting standings/matchup/box-score views.
 - **Two matchup rows per game.** `matchups` has one row per (season, week, team). A
   head-to-head game is two rows; dedupe by pairing `team_id`/`opponent_team_id` when counting
   games so you don't double-count.
+- **Roster snapshots are *week-end* state.** A `team_rosters` row set for `(team, week)` reflects
+  the roster as it stood at the *end* of that week — not mid-week, and not during a playoff BYE.
+  The default bench is 6 (so a typical roster is starters + 6, e.g. 9 + 6 = 15), but **bench size
+  is variable**: a manager can carry more than 6 only by leaving a starting slot empty (K/DST is
+  frequently dropped to juggle players across games), and can carry fewer by dropping without
+  replacing. So a week's row count can be *under* or *over* the usual size. Consequences the
+  analytics encodes (not the frontend): never assume a fixed roster size or a 6-cap on bench;
+  render every stored bench/IR row (don't truncate); and pad a short week up to the team-season's
+  usual size with empty/dashed slots (`team_roster` → `is_empty`, derived from the snapshots, not
+  league settings) so a dropped-everyone week reads as open spots rather than a smaller roster.
 
 ### `is_scored` means *per-player fantasy scoring*, not "season complete" (F-16/F-35)
 

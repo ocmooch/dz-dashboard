@@ -307,4 +307,81 @@ describe("TeamPage", () => {
     renderPage();
     expect(await screen.findByText(/No roster churn detected/i)).toBeInTheDocument();
   });
+
+  it("renders an open roster spot as a dashed empty slot, not a player", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/teams/{team_id}/roster") {
+        return Promise.resolve(
+          envelope({
+            ...ROSTER,
+            players: [
+              ROSTER.players[0],
+              {
+                player_id: -1,
+                player_name: null,
+                position: null,
+                nfl_team: null,
+                roster_slot: null,
+                is_starter: false,
+                league_points: null,
+                is_empty: true,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    expect(await screen.findByText("empty slot")).toBeInTheDocument();
+    expect(screen.getByText("Ice QB One")).toBeInTheDocument();
+  });
+
+  it("groups transactions by week with a collapsible Draft bucket", async () => {
+    transactions = {
+      team_id: 10,
+      season_year: 2017,
+      transactions: [
+        {
+          transaction_id: 10,
+          transaction_type: "draft",
+          executed_at: "2017-08-01T00:00:00+00:00",
+          effective_week: 0,
+          player_id: 7,
+          player_name: "Drafted Dan",
+          direction: null,
+          waiver_priority_used: null,
+          faab_bid: null,
+          counterpart_team_id: null,
+          counterpart_team_name: null,
+          notes: null,
+          extra_data: null,
+        },
+        {
+          transaction_id: 11,
+          transaction_type: "free_agent_add",
+          executed_at: "2017-09-25T00:00:00+00:00",
+          effective_week: 3,
+          player_id: 8,
+          player_name: "Week3 Willie",
+          direction: "in",
+          waiver_priority_used: null,
+          faab_bid: null,
+          counterpart_team_id: null,
+          counterpart_team_name: null,
+          notes: null,
+          extra_data: null,
+        },
+      ],
+    };
+    renderPage();
+    // The latest week is open; the Draft bucket exists but starts collapsed.
+    expect(await screen.findByText("Week 3")).toBeInTheDocument();
+    expect(screen.getByText("Week3 Willie")).toBeInTheDocument();
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+    expect(screen.queryByText("Drafted Dan")).not.toBeInTheDocument();
+    // Expanding the Draft bucket reveals the pick.
+    await userEvent.click(screen.getByText("Draft"));
+    expect(await screen.findByText("Drafted Dan")).toBeInTheDocument();
+  });
 });

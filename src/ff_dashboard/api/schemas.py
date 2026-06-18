@@ -1104,6 +1104,10 @@ class TeamRosterPlayer(BaseModel):
     nfl_team: str | None = None
     roster_slot: str | None = None
     is_starter: bool
+    # A placeholder for an open roster spot at week-end (a player was dropped and
+    # not replaced). Padded up to the team-season's usual roster size so the slot
+    # reads as empty/dashed rather than vanishing. All other fields are null.
+    is_empty: bool = False
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None

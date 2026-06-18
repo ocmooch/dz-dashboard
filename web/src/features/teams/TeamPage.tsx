@@ -142,20 +142,6 @@ function RosterCard({ teamId }: { teamId: number }) {
           </div>
         </div>
       )}
-      {data &&
-        data.players.length > 0 &&
-        weeks.length > 1 &&
-        data.players.every((p) => p.is_starter) && (
-          <div className="px-5 pt-2">
-            <div
-              className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
-              role="note"
-            >
-              <span className="dz-eyebrow mr-1 text-faint">snapshot</span>
-              Bench/IR weren&apos;t captured in this week&apos;s roster snapshot.
-            </div>
-          </div>
-        )}
       {data && data.players.length > 0 && (
         <div className="overflow-x-auto">
           <table className="dz-table">
@@ -168,41 +154,52 @@ function RosterCard({ teamId }: { teamId: number }) {
               </tr>
             </thead>
             <tbody>
-              {data.players.map((p) => (
-                <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                  <td className="font-mono text-[var(--fs-xs)] text-muted">
-                    {p.roster_slot ?? "—"}
-                  </td>
-                  <td>
-                    <Link to={`/players/${p.player_id}`} className="hover:text-accent">
-                      <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
-                    </Link>
-                    {p.injury_status != null && (
-                      <InjuryBadge
-                        status={p.injury_status}
-                        bodyPart={p.injury_body_part}
-                        secondary={p.injury_secondary}
-                        practiceStatus={p.injury_practice_status}
-                      />
-                    )}
-                  </td>
-                  <td className="text-muted">{p.position ?? "—"}</td>
-                  <td className="dz-num">
-                    {p.league_points == null ? (
-                      <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
-                    ) : (
-                      <PlayerScoreCell
-                        points={p.league_points}
-                        zeroReason={p.zero_reason}
-                        zeroDetail={p.zero_detail}
-                        zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
-                        injuryBodyPart={p.injury_body_part}
-                        muted={!p.is_starter}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {data.players.map((p) =>
+                p.is_empty ? (
+                  // An open roster spot at week-end — fully dashed, no link. The
+                  // nearby transactions show the drop that left it empty.
+                  <tr key={p.player_id} className="text-faint opacity-50">
+                    <td className="font-mono text-[var(--fs-xs)]">—</td>
+                    <td>empty slot</td>
+                    <td>—</td>
+                    <td className="dz-num">—</td>
+                  </tr>
+                ) : (
+                  <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
+                    <td className="font-mono text-[var(--fs-xs)] text-muted">
+                      {p.roster_slot ?? "—"}
+                    </td>
+                    <td>
+                      <Link to={`/players/${p.player_id}`} className="hover:text-accent">
+                        <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
+                      </Link>
+                      {p.injury_status != null && (
+                        <InjuryBadge
+                          status={p.injury_status}
+                          bodyPart={p.injury_body_part}
+                          secondary={p.injury_secondary}
+                          practiceStatus={p.injury_practice_status}
+                        />
+                      )}
+                    </td>
+                    <td className="text-muted">{p.position ?? "—"}</td>
+                    <td className="dz-num">
+                      {p.league_points == null ? (
+                        <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
+                      ) : (
+                        <PlayerScoreCell
+                          points={p.league_points}
+                          zeroReason={p.zero_reason}
+                          zeroDetail={p.zero_detail}
+                          zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
+                          injuryBodyPart={p.injury_body_part}
+                          muted={!p.is_starter}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
@@ -294,9 +291,6 @@ function ScoringTrendCard({ teamId }: { teamId: number }) {
   );
 }
 
-// How many feed rows show before the "Show all" expander.
-const TX_PREVIEW = 8;
-
 /** One compact transaction line, shared by the exact log and the derived
  *  fallback so both read identically: a +/−/⇄ glyph, the player, faint detail,
  *  and the type pill. */
@@ -328,31 +322,61 @@ function TxRow({
   );
 }
 
-function ShowAllButton({
-  expanded,
-  total,
-  onToggle,
-}: {
-  expanded: boolean;
-  total: number;
-  onToggle: () => void;
-}) {
+function weekLabel(week: number) {
+  // Draft (and any pre-week-0 rows) bucket together as the season's opening.
+  return week <= 0 ? "Draft" : `Week ${week}`;
+}
+
+type WeekGroup = { week: number; count: number; body: React.ReactNode };
+
+/** Collapsible week sections for the transactions feed — newest week first, and
+ *  the most recent week starts open so the latest moves are visible at a glance.
+ *  Users expand/collapse at the week boundary. */
+function WeekAccordion({ groups }: { groups: WeekGroup[] }) {
+  const [open, setOpen] = useState<Set<number>>(
+    () => new Set(groups.length ? [groups[0].week] : []),
+  );
+  const toggle = (w: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(w)) next.delete(w);
+      else next.add(w);
+      return next;
+    });
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full border-t border-[var(--hairline)] px-5 py-2 text-[var(--fs-xs)] text-muted hover:text-accent"
-    >
-      {expanded ? "Show less" : `Show all (${total})`}
-    </button>
+    <div className="divide-y divide-[var(--hairline)]">
+      {groups.map((g) => {
+        const isOpen = open.has(g.week);
+        return (
+          <div key={g.week}>
+            <button
+              type="button"
+              onClick={() => toggle(g.week)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center justify-between gap-3 px-5 py-2 text-left hover:text-accent"
+            >
+              <span className="dz-eyebrow text-text">{weekLabel(g.week)}</span>
+              <span className="flex items-center gap-2 text-[var(--fs-xs)] text-faint">
+                {g.count}
+                <span className="num text-muted">{isOpen ? "–" : "+"}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)] bg-[color:var(--surface-1)]">
+                {g.body}
+              </ol>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 /** A team's roster acquisitions: the exact recorded log when present, otherwise
  *  a single clearly-flagged fallback derived from week-to-week roster snapshots.
- *  Compact and collapsible so a busy season doesn't dominate the page. */
+ *  Grouped into collapsible weeks (the draft is its own opening bucket). */
 function TransactionsCard({ teamId }: { teamId: number }) {
-  const [expanded, setExpanded] = useState(false);
   const tx = useQuery({
     queryKey: qk.teamTransactions(teamId),
     queryFn: () => fetchTransactions(teamId),
@@ -377,21 +401,23 @@ function TransactionsCard({ teamId }: { teamId: number }) {
     );
   }
 
-  // Preferred path: the exact recorded log, newest first.
+  // Preferred path: the exact recorded log, grouped by effective week.
   if (hasExact) {
-    const rows = [...exactRows].sort(
-      (a, b) => (b.executed_at ?? "").localeCompare(a.executed_at ?? ""),
-    );
-    const shown = expanded ? rows : rows.slice(0, TX_PREVIEW);
-    return (
-      <Card>
-        <CardHeader
-          eyebrow="recorded log"
-          title="Transactions"
-          action={<span className="text-[var(--fs-xs)] text-faint">{rows.length}</span>}
-        />
-        <ol className="divide-y divide-[var(--hairline)]">
-          {shown.map((t) => (
+    const byWeek = new Map<number, typeof exactRows>();
+    for (const t of exactRows) {
+      const w = t.effective_week ?? 0;
+      const bucket = byWeek.get(w);
+      if (bucket) bucket.push(t);
+      else byWeek.set(w, [t]);
+    }
+    const groups: WeekGroup[] = [...byWeek.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([week, items]) => ({
+        week,
+        count: items.length,
+        body: [...items]
+          .sort((a, b) => (b.executed_at ?? "").localeCompare(a.executed_at ?? ""))
+          .map((t) => (
             <TxRow
               key={t.transaction_id}
               glyph={txGlyph(t)}
@@ -401,22 +427,47 @@ function TransactionsCard({ teamId }: { teamId: number }) {
               label={transactionLabel(t.transaction_type)}
               title={formatTransactionDateTime(t.executed_at)}
             />
-          ))}
-        </ol>
-        {rows.length > TX_PREVIEW && (
-          <ShowAllButton expanded={expanded} total={rows.length} onToggle={() => setExpanded((v) => !v)} />
-        )}
+          )),
+      }));
+    return (
+      <Card>
+        <CardHeader
+          eyebrow="recorded log"
+          title="Transactions"
+          action={<span className="text-[var(--fs-xs)] text-faint">{exactRows.length}</span>}
+        />
+        <WeekAccordion groups={groups} />
       </Card>
     );
   }
 
-  // Fallback path: derive adds/drops from roster snapshots, flagged once.
+  // Fallback path: derive adds/drops from roster snapshots, flagged once and
+  // grouped by the week the change first shows up.
   const md = moves.data;
-  const adds = md?.moves.filter((m) => m.action === "add") ?? [];
-  const drops = md?.moves.filter((m) => m.action === "drop") ?? [];
-  const churn = [...adds, ...drops].sort((a, b) => a.week - b.week);
+  const churn = (md?.moves ?? []).filter((m) => m.action === "add" || m.action === "drop");
   const retained = md?.moves.filter((m) => m.action === "retain") ?? [];
-  const shownChurn = expanded ? churn : churn.slice(0, TX_PREVIEW);
+  const byWeek = new Map<number, typeof churn>();
+  for (const m of churn) {
+    const bucket = byWeek.get(m.week);
+    if (bucket) bucket.push(m);
+    else byWeek.set(m.week, [m]);
+  }
+  const groups: WeekGroup[] = [...byWeek.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([week, items]) => ({
+      week,
+      count: items.length,
+      body: items.map((m) => (
+        <TxRow
+          key={`${m.action}-${m.player_id}-${m.week}`}
+          glyph={m.action === "add" ? "+" : "−"}
+          tone={m.action === "add" ? "win" : "loss"}
+          primary={m.player_name ?? "—"}
+          meta={m.position ?? ""}
+          label={m.action}
+        />
+      )),
+    }));
 
   return (
     <Card>
@@ -438,21 +489,7 @@ function TransactionsCard({ teamId }: { teamId: number }) {
       )}
       {md && md.available && churn.length > 0 && (
         <>
-          <ol className="divide-y divide-[var(--hairline)]">
-            {shownChurn.map((m) => (
-              <TxRow
-                key={`${m.action}-${m.player_id}-${m.week}`}
-                glyph={m.action === "add" ? "+" : "−"}
-                tone={m.action === "add" ? "win" : "loss"}
-                primary={m.player_name ?? "—"}
-                meta={`wk ${m.week}${m.position ? ` · ${m.position}` : ""}`}
-                label={m.action}
-              />
-            ))}
-          </ol>
-          {churn.length > TX_PREVIEW && (
-            <ShowAllButton expanded={expanded} total={churn.length} onToggle={() => setExpanded((v) => !v)} />
-          )}
+          <WeekAccordion groups={groups} />
           {retained.length > 0 && (
             <div className="border-t border-[var(--hairline)] px-5 py-3 text-[var(--fs-xs)] text-faint">
               {retained.length} player{retained.length === 1 ? "" : "s"} retained all season
