@@ -141,6 +141,66 @@ describe("DraftPage", () => {
     expect(screen.getAllByText("-13.67").length).toBeGreaterThan(0);
   });
 
+  it("ranks busts by composite impact and surfaces the weighting breakdown", async () => {
+    const comp = (over: Partial<Record<string, number | boolean>> = {}) => ({
+      base_value: -40,
+      cost_weight: 1,
+      opportunity_weight: 1,
+      bench_weeks: 0,
+      ir_weeks: 0,
+      opportunity_available: true,
+      ...over,
+    });
+    // Same value (-40) and slot, but the bench-carried bust has the more negative
+    // impact and must rank ahead of the IR-carried one.
+    const benchBust = {
+      ...pick(2, "Bench Bust", "Iceman", 0, -40, 1, 2),
+      impact: -71.6,
+      impact_components: comp({ opportunity_weight: 1.79, bench_weeks: 11 }),
+    };
+    const irBust = {
+      ...pick(3, "IR Bust", "Goose", 0, -40, 1, 3),
+      impact: -50,
+      impact_components: comp({ opportunity_weight: 1.25, ir_weeks: 14 }),
+    };
+    const steal = {
+      ...CMC,
+      impact: 8.33,
+      impact_components: comp({ base_value: 8.33 }),
+    };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(
+          envelope({ ...BOARD, rounds: [{ round: 1, picks: [steal, benchBust, irBust] }] }),
+        );
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            impact_definition: "Draft impact = pick value scaled by how the pick was spent and carried.",
+            weights: { cost_floor: 0.3, cost_curve: 1, opp_bench_weight: 1, opp_ir_weight: 0.25 },
+            picks: [steal, benchBust, irBust],
+            steals: [steal],
+            busts: [benchBust, irBust],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    await screen.findByText("Busts");
+    // Headline ranking number is the composite impact, with the honest value alongside.
+    expect(screen.getAllByText("-71.60").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/val -40/).length).toBeGreaterThan(0);
+    // The bench bust lists before the IR bust (more negative impact).
+    const bench = screen.getByText("Bench Bust");
+    const ir = screen.getByText("IR Bust");
+    expect(bench.compareDocumentPosition(ir) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The weighting is legible: the carry multiplier and weeks ride in a tooltip.
+    expect(screen.getAllByTitle(/carry 1\.79 \(11 bench/).length).toBeGreaterThan(0);
+    // And the composite definition is shown to the reader.
+    expect(screen.getByText(/scaled by how the pick was spent and carried/)).toBeInTheDocument();
+  });
+
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {
     const cruz = {
       ...pick(3, "Victor Cruz", "Slider", 0, -50, 1, 3),

@@ -6,10 +6,12 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.draft import (
+    IMPACT_DEFINITION,
     VALUE_SLOT_WINDOW,
     _classify_pick_scoring,
     _did_not_play_detail,
     _expected_by_slot,
+    _pick_impact,
     best_worst_picks,
     draft_board,
     draft_value,
@@ -150,6 +152,83 @@ def test_expected_by_slot_empty() -> None:
     assert VALUE_SLOT_WINDOW == 2
 
 
+# --- The pure composite impact scorer (no DB) ------------------------------
+
+
+def test_impact_none_iff_value_none() -> None:
+    out = _pick_impact(value=None, overall=1, total_picks=12, reg_weeks=14, carry=None)
+    assert out["impact"] is None
+    assert out["impact_components"] is None
+
+
+def test_impact_draft_cost_amplifies_early_busts_and_late_steals() -> None:
+    early_bust = _pick_impact(value=-10.0, overall=1, total_picks=12, reg_weeks=14, carry=None)
+    late_bust = _pick_impact(value=-10.0, overall=12, total_picks=12, reg_weeks=14, carry=None)
+    # Same deficit, but wasting an early pick hurts more.
+    assert early_bust["impact"] < late_bust["impact"] < 0
+
+    early_steal = _pick_impact(value=10.0, overall=1, total_picks=12, reg_weeks=14, carry=None)
+    late_steal = _pick_impact(value=10.0, overall=12, total_picks=12, reg_weeks=14, carry=None)
+    # Same surplus, but a late-round steal is the bigger coup.
+    assert late_steal["impact"] > early_steal["impact"] > 0
+
+
+def test_impact_opportunity_applies_to_busts_only() -> None:
+    # A steal that produced never wasted its slot — no opportunity penalty even
+    # when it sat on the bench for weeks.
+    steal = _pick_impact(
+        value=8.0,
+        overall=6,
+        total_picks=12,
+        reg_weeks=14,
+        carry={"bench": 14, "ir": 0, "weeks": 14},
+    )
+    assert steal["impact_components"]["opportunity_weight"] == 1.0
+    assert steal["impact_components"]["bench_weeks"] == 14  # still reported, just not applied
+
+
+def test_impact_bench_carry_costs_more_than_ir_than_dropped() -> None:
+    common = {"value": -8.0, "overall": 3, "total_picks": 12, "reg_weeks": 14}
+    bench = _pick_impact(**common, carry={"bench": 11, "ir": 0, "weeks": 11})
+    ir = _pick_impact(**common, carry={"bench": 0, "ir": 14, "weeks": 14})
+    dropped = _pick_impact(**common, carry=None)
+    # Same value and slot → carrying it on the active bench is the most expensive
+    # bust, IR cheaper, and a dropped/never-rostered bust cheapest.
+    assert bench["impact"] < ir["impact"] < dropped["impact"] < 0
+    assert dropped["impact_components"]["opportunity_weight"] == 1.0
+
+
+def test_impact_degrades_honestly_when_roster_history_missing() -> None:
+    # No roster rows → opportunity is unknown, not zero: the weight defaults to
+    # 1.0 and impact is exactly value * cost_weight (never fabricated).
+    out = _pick_impact(value=-12.0, overall=4, total_picks=12, reg_weeks=14, carry=None)
+    c = out["impact_components"]
+    assert c["opportunity_available"] is False
+    assert c["opportunity_weight"] == 1.0
+    assert out["impact"] == round(-12.0 * c["cost_weight"], 2)
+    assert out["impact"] is not None  # honest degrade, not a null
+
+
+def test_impact_motivating_case_cruz_outranks_gordon() -> None:
+    # Equal value and slot: 2015 Cruz (11 weeks on the active bench) is a more
+    # expensive bust than 2016 Gordon (a full season stashed on IR / reserve).
+    cruz = _pick_impact(
+        value=-40.0,
+        overall=24,
+        total_picks=120,
+        reg_weeks=14,
+        carry={"bench": 11, "ir": 0, "weeks": 11},
+    )
+    gordon = _pick_impact(
+        value=-40.0,
+        overall=24,
+        total_picks=120,
+        reg_weeks=14,
+        carry={"bench": 0, "ir": 14, "weeks": 14},
+    )
+    assert cruz["impact"] < gordon["impact"] < 0
+
+
 # --- Board over the fixture ------------------------------------------------
 
 
@@ -216,6 +295,35 @@ def test_value_identifies_steal_and_bust(session: Session) -> None:
     # Full pick list is sorted by value, highest first.
     values = [p["value"] for p in value["picks"]]
     assert values == sorted(values, reverse=True)
+
+
+def test_value_carries_composite_impact(session: Session) -> None:
+    value = draft_value(session, KNOWN["season_id"][2016])
+    assert value is not None
+    # The composite is exposed alongside the honest per-slot value.
+    assert value["impact_definition"] == IMPACT_DEFINITION
+    assert value["weights"]["opp_bench_weight"] == 1.0
+    assert value["weights"]["cost_floor"] == 0.30
+
+    # Every scored pick carries an impact + a legible component breakdown.
+    for p in value["picks"]:
+        if p["value"] is None:
+            assert p["impact"] is None
+        else:
+            assert p["impact"] is not None
+            comp = p["impact_components"]
+            assert comp["base_value"] == p["value"]
+            assert 0.0 <= comp["cost_weight"] <= 1.0
+
+    # Steals are ranked by descending impact, busts by ascending impact.
+    steal_impacts = [p["impact"] for p in value["steals"]]
+    bust_impacts = [p["impact"] for p in value["busts"]]
+    assert steal_impacts == sorted(steal_impacts, reverse=True)
+    assert bust_impacts == sorted(bust_impacts)
+    # The fixture's headline steal/bust sit at the extreme slots, so impact keeps
+    # them on top: McCaffrey (last pick) the steal, Kelce (first pick) the bust.
+    assert value["steals"][0]["player_name"] == KNOWN["draft_top_steal"]["player"]
+    assert value["busts"][0]["player_name"] == KNOWN["draft_top_bust"]["player"]
 
 
 # --- Records book best/worst ever ------------------------------------------

@@ -40,6 +40,40 @@ function ValueTag({ value }: { value: number | null | undefined }) {
   );
 }
 
+/** Tooltip spelling out how a pick's composite impact was built. */
+function impactTitle(pick: Pick): string | undefined {
+  const c = pick.impact_components;
+  if (!c || pick.impact == null) return undefined;
+  let t = `Impact ${num(pick.impact)} = value ${num(c.base_value)} × cost ${c.cost_weight.toFixed(2)}`;
+  if (c.opportunity_weight !== 1) {
+    t += ` × carry ${c.opportunity_weight.toFixed(2)} (${c.bench_weeks} bench / ${c.ir_weeks} IR wks)`;
+  } else if (!c.opportunity_available) {
+    t += " (carry cost unknown)";
+  }
+  return t;
+}
+
+/** Composite draft-impact badge: the headline ranking number, steal/bust coloured,
+ *  with the honest per-slot value shown alongside when the two differ. Falls back
+ *  to value when the BFF hasn't supplied an impact (e.g. uncomputable picks). */
+function ImpactTag({ pick }: { pick: Pick }) {
+  const impact = pick.impact ?? pick.value;
+  if (impact == null) return null;
+  const tone = impact > 0 ? "win" : impact < 0 ? "loss" : "default";
+  const showValue = pick.impact != null && pick.value != null && pick.impact !== pick.value;
+  return (
+    <span className="flex items-center gap-1.5" title={impactTitle(pick)}>
+      {showValue && pick.value != null && (
+        <span className="num text-[var(--fs-xs)] text-faint">val {num(pick.value)}</span>
+      )}
+      <Badge variant={tone}>
+        {impact > 0 ? "+" : ""}
+        {num(impact)}
+      </Badge>
+    </span>
+  );
+}
+
 /** Marks a genuine season-long 0 — drafted but never played (injury / IR / ineligible).
  *  The points really are 0 (not missing); the tooltip carries the why. */
 function DnpMark({ detail }: { detail?: string | null }) {
@@ -124,7 +158,7 @@ function PickLine({ pick, rank, onFocus }: { pick: Pick; rank: number; onFocus: 
           #{pick.overall} · {pick.team_name ?? pick.owner_name ?? "—"}
         </span>
       </span>
-      <ValueTag value={pick.value} />
+      <ImpactTag pick={pick} />
     </button>
   );
 }
@@ -205,6 +239,7 @@ export function DraftPage() {
       {board.data?.available && (
         <>
           {value.data?.available && (value.data.steals.length > 0 || value.data.busts.length > 0) && (
+            <div className="space-y-2">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader eyebrow="outperformed their slot" title="Steals" />
@@ -228,6 +263,12 @@ export function DraftPage() {
                   ))}
                 </div>
               </Card>
+            </div>
+            {value.data.impact_definition && (
+              <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">
+                {value.data.impact_definition}
+              </p>
+            )}
             </div>
           )}
 
