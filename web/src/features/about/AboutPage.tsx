@@ -10,6 +10,12 @@ async function fetchMeta() {
   return data.data;
 }
 
+async function fetchCoverage() {
+  const { data, error } = await api.GET("/v1/meta/coverage");
+  if (error || !data) throw new Error("Failed to load integrity coverage");
+  return data.data;
+}
+
 function yearRange(years: number[]): string {
   if (years.length === 0) return "—";
   const lo = Math.min(...years);
@@ -45,6 +51,7 @@ function GapRow({
  *  reliability map, and the source attribution Phase 1 obliges us to surface. */
 export function AboutPage() {
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: qk.meta, queryFn: fetchMeta });
+  const { data: matrix } = useQuery({ queryKey: qk.coverage, queryFn: fetchCoverage });
 
   return (
     <div className="dz-rise space-y-4">
@@ -167,6 +174,24 @@ export function AboutPage() {
                       data.coverage.dst_scoring_complete
                         ? "Team defense is scored from nflverse rollups; a missing team/week row still shows as a gap, never a 0."
                         : "Team-defense rollups still backfilling; affected DST slots are marked as a known gap."
+                    }
+                  />
+                  <GapRow
+                    domain="Player identity"
+                    status={
+                      matrix?.relevance.source_identity_mismatch_count
+                        ? `${matrix.relevance.source_identity_mismatch_count} mismatch${
+                            matrix.relevance.source_identity_mismatch_count === 1 ? "" : "es"
+                          }`
+                        : "verified"
+                    }
+                    tone={
+                      matrix?.relevance.source_identity_mismatch_count ? "loss" : "win"
+                    }
+                    note={
+                      matrix?.relevance.source_identity_mismatch_count
+                        ? "NFL.com records are attached to player identities that conflict with their NFL career era or fantasy position."
+                        : "NFL.com roster and transaction identities pass the source-ownership integrity audit."
                     }
                   />
                 </tbody>

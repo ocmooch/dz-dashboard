@@ -89,6 +89,22 @@ class IdentitySplitCandidate(BaseModel):
     members: list[IdentitySplitMember]
 
 
+class SourceIdentityMismatch(BaseModel):
+    player_id: int
+    name_full: str
+    position: str | None = None
+    rookie_year: int | None = None
+    last_season: int | None = None
+    first_observed_season: int
+    last_observed_season: int
+    nfl_com_player_id: str
+    gsis_id: str | None = None
+    roster_row_count: int
+    transaction_row_count: int
+    draft_pick_count: int
+    reason: str
+
+
 class CoverageRelevance(BaseModel):
     total_players: int
     league_rostered_players: int
@@ -96,6 +112,8 @@ class CoverageRelevance(BaseModel):
     excluded_players: int
     identity_split_candidate_count: int
     identity_split_candidates: list[IdentitySplitCandidate]
+    source_identity_mismatch_count: int
+    source_identity_mismatches: list[SourceIdentityMismatch]
 
 
 class CoverageFeedCell(BaseModel):

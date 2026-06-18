@@ -106,6 +106,10 @@ status-update counts), then fix or document the residuals upstream. Current real
   crosswalk scaffolding is implemented on `feature/player-identity-crosswalk`. Still required
   upstream: curate/seed the league-relevant links (including Mike Williams 1032 ↔ 25239) and make
   ingestion consult canonical identity before creating new player stubs.
+- NFL.com source-ID ownership leakage is now closed: an authenticated 2010–2025 draft/transaction
+  sweep found and repaired 34 misassignments, the strict upstream audit reports zero, and the
+  dashboard coverage matrix exposes any recurrence. Remaining F-25 work is metadata/scope cleanup,
+  not roster/transaction identity ownership.
 - Coordinated dashboard add: expose `last_season` on `PlayerOut` once D1 is fully populated
   (additive; run `gen:api` drift check in the same cycle).
 (See memory `player-stub-duplicates`.)

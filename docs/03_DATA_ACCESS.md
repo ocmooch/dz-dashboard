@@ -66,8 +66,10 @@ do.
 
 `/v1/meta/coverage` is the runtime source of truth for the coverage envelope above. It exposes
 the feed-by-season/week matrix, relevance/exclusion tallies, and diagnostic identity-split
-candidates so views can render self-explaining gaps instead of bare absence. The prose table is
-orientation; the matrix and its contract tests are authoritative for current DB truth.
+candidates so views can render self-explaining gaps instead of bare absence. It also reports
+strong NFL.com source-identity mismatches supplied by Phase 1; repairs remain upstream while the
+dashboard exposes the read-only integrity state. The prose table is orientation; the matrix and
+its contract tests are authoritative for current DB truth.
 
 ### Important reconstruction caveat (timing)
 
