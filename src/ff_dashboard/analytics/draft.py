@@ -56,6 +56,7 @@ from sqlalchemy import distinct, func, select
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import BENCH_SLOTS, IR_SLOTS
+from ff_dashboard.analytics.weighting import positional_weight, weighted_impact
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -70,6 +71,25 @@ VALUE_DEFINITION = (
     "league-wide average for players drafted within "
     f"±{VALUE_SLOT_WINDOW} of the same overall slot (computed from every "
     "captured draft). Positive = a steal (outscored its slot); negative = a bust."
+)
+
+# --- Composite "draft impact" weighting -------------------------------------
+# impact = value * cost_weight * opportunity_weight. These are an *editable
+# proposal* — named, documented knobs, not opaque magic numbers; tune them
+# freely. See docs/plans/P-draft-impact-model.md for the rationale and a worked
+# example (2015 Cruz the bench bust vs 2016 Gordon the IR bust).
+COST_FLOOR = 0.30  # capital still "spent" on the very last pick (late picks aren't free)
+COST_CURVE = 1.0  # curvature of the capital decay (1 = linear, >1 = front-loaded)
+OPP_BENCH_WEIGHT = 1.0  # max bust amplification for a full season carried on the active bench
+OPP_IR_WEIGHT = 0.25  # max bust amplification for a full season stashed on IR / reserve
+
+IMPACT_DEFINITION = (
+    "Draft impact = pick value scaled by how the pick was spent and carried. An "
+    "early-round bust (or a late-round steal) weighs more than the same value late "
+    "(or early); and a bust carried all year on the active bench costs more than "
+    "one stashed on IR / reserve. Opportunity cost amplifies busts only — a steal "
+    "that produced was never a wasted roster slot. Sign matches value: positive = "
+    "steal, negative = bust."
 )
 
 
@@ -133,6 +153,110 @@ def _drafted_roster_slots(
         if slot:
             slots.setdefault(int(pid), set()).add(slot)
     return slots
+
+
+def _drafted_roster_weeks(
+    session: Session, season: Season, player_ids: set[int]
+) -> dict[int, dict[str, int]]:
+    """Per drafted player, distinct-week counts of how they were carried that season.
+
+    ``{"bench": n, "ir": m, "weeks": total}`` from ``team_rosters`` (week 0
+    excluded; rows are week-end snapshots — see roster-snapshot-semantics). Feeds
+    the opportunity-cost factor of the draft impact model: bench weeks occupy an
+    active roster slot, IR / reserve weeks do not. A player never rostered after
+    the draft is simply absent from the result, so opportunity degrades to
+    neutral (we never fabricate a carry cost). Roster-slot history is sparse in
+    early seasons, so absence here is a real "unknown", not zero.
+    """
+    if not player_ids:
+        return {}
+    rows = session.execute(
+        select(TeamRoster.player_id, TeamRoster.week, TeamRoster.roster_slot).where(
+            TeamRoster.season_year == season.year,
+            TeamRoster.week > 0,
+            TeamRoster.player_id.in_(player_ids),
+        )
+    ).all()
+    bench: dict[int, set[int]] = {}
+    ir: dict[int, set[int]] = {}
+    weeks: dict[int, set[int]] = {}
+    for pid, week, slot in rows:
+        p, wk = int(pid), int(week)
+        weeks.setdefault(p, set()).add(wk)
+        if slot in BENCH_SLOTS:
+            bench.setdefault(p, set()).add(wk)
+        elif slot in IR_SLOTS:
+            ir.setdefault(p, set()).add(wk)
+    return {
+        p: {"bench": len(bench.get(p, set())), "ir": len(ir.get(p, set())), "weeks": len(wk)}
+        for p, wk in weeks.items()
+    }
+
+
+def _pick_impact(
+    *,
+    value: float | None,
+    overall: int,
+    total_picks: int,
+    reg_weeks: int,
+    carry: dict[str, int] | None,
+) -> dict[str, Any]:
+    """Composite draft impact for one pick (pure).
+
+    ``impact = value * cost_weight * opportunity_weight``:
+
+    * ``cost_weight`` is the draft-capital curve — an early bust and a late steal
+      weigh near ``1.0``; the opposite ends decay toward :data:`COST_FLOOR`.
+    * ``opportunity_weight`` amplifies *busts* by how expensively they were
+      carried — a full season on the active bench costs more than one on IR. It
+      is ``1.0`` for steals (a producing pick never wasted its slot) and ``1.0``
+      when roster history is missing, so impact degrades honestly to
+      ``value * cost_weight`` rather than inventing a carry cost.
+
+    ``impact`` is ``None`` exactly when ``value`` is ``None`` — never a composite
+    over a gap. The component breakdown travels with the pick so the UI (and the
+    user tuning the weights) can see how the number was built.
+    """
+    if value is None:
+        return {"impact": None, "impact_components": None}
+
+    is_steal = value > 0
+    cost_weight = positional_weight(
+        overall, total_picks, floor=COST_FLOOR, curve=COST_CURVE, invert=is_steal
+    )
+
+    bench_weeks = carry["bench"] if carry else 0
+    ir_weeks = carry["ir"] if carry else 0
+    opportunity_available = carry is not None
+    if value < 0 and opportunity_available and reg_weeks > 0:
+        bench_frac = min(bench_weeks / reg_weeks, 1.0)
+        ir_frac = min(ir_weeks / reg_weeks, 1.0)
+        opportunity_weight = 1.0 + OPP_BENCH_WEIGHT * bench_frac + OPP_IR_WEIGHT * ir_frac
+    else:
+        opportunity_weight = 1.0
+
+    impact = weighted_impact(value, cost_weight=cost_weight, opportunity_weight=opportunity_weight)
+    return {
+        "impact": round(impact, 2),
+        "impact_components": {
+            "base_value": round(value, 2),
+            "cost_weight": round(cost_weight, 4),
+            "opportunity_weight": round(opportunity_weight, 4),
+            "bench_weeks": bench_weeks,
+            "ir_weeks": ir_weeks,
+            "opportunity_available": opportunity_available,
+        },
+    }
+
+
+def _impact_weights() -> dict[str, float]:
+    """The tunable impact weights, echoed in the payload for transparency."""
+    return {
+        "cost_floor": COST_FLOOR,
+        "cost_curve": COST_CURVE,
+        "opp_bench_weight": OPP_BENCH_WEIGHT,
+        "opp_ir_weight": OPP_IR_WEIGHT,
+    }
 
 
 def _did_not_play_detail(roster_slots: set[str]) -> str:
@@ -227,6 +351,8 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
     played = _players_with_raw(session, season)
     drafted_ids = {player.player_id for _, player, _ in rows}
     roster_slots = _drafted_roster_slots(session, season, drafted_ids)
+    roster_weeks = _drafted_roster_weeks(session, season, drafted_ids)
+    reg_weeks = regular_season_weeks(session, season)
     num_teams = len({team.team_id for _, _, team in rows}) or 1
 
     picks: list[dict[str, Any]] = []
@@ -253,6 +379,9 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
                 "position": player.position,
                 "season_year": season.year,
                 "num_teams": num_teams,
+                # Transient inputs for the impact composite; popped in _with_values.
+                "_reg_weeks": reg_weeks,
+                "_carry": roster_weeks.get(player.player_id),
                 **scoring,
             }
         )
@@ -296,19 +425,23 @@ def _value_history(session: Session) -> list[tuple[int, float]]:
 
 
 def _with_values(picks: list[dict[str, Any]], expected: dict[int, float]) -> list[dict[str, Any]]:
-    """Annotate picks with ``value`` in place-safe copies.
+    """Annotate picks with ``value`` and the composite ``impact`` in place-safe copies.
 
     Score-state (``season_points`` / ``available`` / ``reason`` / ``zero_*``) is
-    already set by :func:`_classify_pick_scoring`; this only layers on ``value``.
-    A pick with no score keeps its gap reason. A scored pick (a real total *or* a
-    genuine ``0.0``) gets ``value = season_points - expected`` when its slot has a
-    historical anchor, otherwise ``insufficient_history`` for value only — its
-    ``zero_reason`` note is preserved either way.
+    already set by :func:`_classify_pick_scoring`; this layers on ``value`` and
+    then the composite ``impact`` (see :func:`_pick_impact`). A pick with no score
+    keeps its gap reason. A scored pick (a real total *or* a genuine ``0.0``) gets
+    ``value = season_points - expected`` when its slot has a historical anchor,
+    otherwise ``insufficient_history`` for value only — its ``zero_reason`` note is
+    preserved either way. ``impact`` is ``None`` whenever ``value`` is.
     """
+    total_picks = len(picks)
     out: list[dict[str, Any]] = []
     for pick in picks:
         p = dict(pick)
         p.pop("num_teams", None)
+        reg_weeks = p.pop("_reg_weeks", 0)
+        carry = p.pop("_carry", None)
         season_points = p["season_points"]
         if season_points is None:
             # Unavailable with a reason already set by _classify_pick_scoring.
@@ -321,6 +454,15 @@ def _with_values(picks: list[dict[str, Any]], expected: dict[int, float]) -> lis
                 p["reason"] = "insufficient_history"
             else:
                 p["value"] = round(season_points - exp, 2)
+        p.update(
+            _pick_impact(
+                value=p["value"],
+                overall=p["overall"],
+                total_picks=total_picks,
+                reg_weeks=reg_weeks,
+                carry=carry,
+            )
+        )
         out.append(p)
     return out
 
@@ -378,6 +520,8 @@ def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
             "reason": "draft_not_captured",
             "definition": VALUE_DEFINITION,
             "slot_window": VALUE_SLOT_WINDOW,
+            "impact_definition": IMPACT_DEFINITION,
+            "weights": _impact_weights(),
             "picks": [],
             "steals": [],
             "busts": [],
@@ -385,12 +529,14 @@ def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
 
     valued = _with_values(picks, _expected_by_slot(_value_history(session)))
     scored = [p for p in valued if p["value"] is not None]
-    # Sort the full list by value (computable ones first, highest value on top).
+    # The full list stays sorted by the honest per-slot value (highest first);
+    # steals/busts are ranked by the composite impact (sign matches value).
     scored.sort(key=lambda p: p["value"], reverse=True)
     unscored = [p for p in valued if p["value"] is None]
-    steals = [p for p in scored if p["value"] > 0][:3]
-    busts = [p for p in scored if p["value"] < 0]
-    busts = sorted(busts, key=lambda p: p["value"])[:3]
+    steals = sorted(
+        [p for p in scored if p["impact"] > 0], key=lambda p: p["impact"], reverse=True
+    )[:3]
+    busts = sorted([p for p in scored if p["impact"] < 0], key=lambda p: p["impact"])[:3]
     return {
         "season_id": season_id,
         "season_year": season.year,
@@ -398,6 +544,8 @@ def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
         "reason": None,
         "definition": VALUE_DEFINITION,
         "slot_window": VALUE_SLOT_WINDOW,
+        "impact_definition": IMPACT_DEFINITION,
+        "weights": _impact_weights(),
         "picks": scored + unscored,
         "steals": steals,
         "busts": busts,

@@ -19,6 +19,23 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**In progress (2026-06-18):** `feature/draft-impact-model` builds the deferred "Part C" of the
+draft genuine-zero work (#85): a composite **draft impact** = `value × cost_weight ×
+opportunity_weight` that ranks steals/busts by more than raw points-over-expected. PLAN is
+`docs/plans/P-draft-impact-model.md`. New reusable primitive `analytics/weighting.py`
+(`weighted_impact` + `positional_weight`); `analytics/draft.py` gains tunable weight constants
+(`COST_FLOOR`/`COST_CURVE`/`OPP_BENCH_WEIGHT`/`OPP_IR_WEIGHT` — an editable proposal), a
+`_drafted_roster_weeks` helper (distinct bench/IR weeks from `team_rosters`), a pure
+`_pick_impact` scorer, and `draft_value()` ranks steals/busts by impact (records book stays on raw
+value by decision). Opportunity cost amplifies busts only and degrades honestly to
+`value × cost_weight` when roster history is missing; `impact` is null iff `value` is. API:
+`ImpactComponents`/`ImpactWeights` + `impact`/`impact_components` on `DraftPick`,
+`impact_definition`/`weights` on `DraftValue`; client regenerated. Frontend: `ImpactTag` (headline
+impact + secondary value + breakdown tooltip) on the steal/bust leaderboard. Gate green: backend
+423 tests + ruff + mypy; frontend 185 tests, typecheck, `gen:api` drift in sync. **Next:** manual
+click-through on the real DB (Cruz vs Gordon ordering) in a VERIFY session, then PR to `dev`. The
+weights are an editable proposal — the user may tune them before the PR.
+
 **In progress (2026-06-18):** `feature/matchup-superlative-flags` now uses a data-calibrated
 60-point blowout threshold. Across 1,501 completed 2010–2025 matchups, the prior 40-point cutoff
 flagged 27.0% of games; 60 points is approximately the historical 90th percentile and flags

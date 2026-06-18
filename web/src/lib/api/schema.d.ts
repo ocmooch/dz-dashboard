@@ -1257,6 +1257,9 @@ export interface components {
             season_points?: number | null;
             /** Value */
             value?: number | null;
+            /** Impact */
+            impact?: number | null;
+            impact_components?: components["schemas"]["ImpactComponents"] | null;
             /**
              * Available
              * @default true
@@ -1303,6 +1306,9 @@ export interface components {
             definition: string;
             /** Slot Window */
             slot_window: number;
+            /** Impact Definition */
+            impact_definition: string;
+            weights: components["schemas"]["ImpactWeights"];
             /** Picks */
             picks: components["schemas"]["DraftPick"][];
             /** Steals */
@@ -1690,6 +1696,39 @@ export interface components {
              * @default false
              */
             injured: boolean;
+        };
+        /**
+         * ImpactComponents
+         * @description How a pick's composite ``impact`` was built, so the UI (and the user
+         *     tuning the weights) can read the number rather than trust it blindly.
+         */
+        ImpactComponents: {
+            /** Base Value */
+            base_value: number;
+            /** Cost Weight */
+            cost_weight: number;
+            /** Opportunity Weight */
+            opportunity_weight: number;
+            /** Bench Weeks */
+            bench_weeks: number;
+            /** Ir Weeks */
+            ir_weeks: number;
+            /** Opportunity Available */
+            opportunity_available: boolean;
+        };
+        /**
+         * ImpactWeights
+         * @description The tunable weights behind the impact composite, echoed for transparency.
+         */
+        ImpactWeights: {
+            /** Cost Floor */
+            cost_floor: number;
+            /** Cost Curve */
+            cost_curve: number;
+            /** Opp Bench Weight */
+            opp_bench_weight: number;
+            /** Opp Ir Weight */
+            opp_ir_weight: number;
         };
         /** LatestRun */
         LatestRun: {

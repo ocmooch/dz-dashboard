@@ -805,6 +805,27 @@ class ChampionshipHistory(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ImpactComponents(BaseModel):
+    """How a pick's composite ``impact`` was built, so the UI (and the user
+    tuning the weights) can read the number rather than trust it blindly."""
+
+    base_value: float  # the honest per-slot value the composite scales
+    cost_weight: float  # draft-capital curve (early bust / late steal weigh more)
+    opportunity_weight: float  # bust carry amplification (active bench > IR); 1.0 otherwise
+    bench_weeks: int  # distinct weeks carried in an active bench slot
+    ir_weeks: int  # distinct weeks stashed on IR / reserve
+    opportunity_available: bool  # False when roster history was missing (weight defaulted to 1.0)
+
+
+class ImpactWeights(BaseModel):
+    """The tunable weights behind the impact composite, echoed for transparency."""
+
+    cost_floor: float
+    cost_curve: float
+    opp_bench_weight: float
+    opp_ir_weight: float
+
+
 class DraftPick(BaseModel):
     overall: int
     round: int
@@ -819,6 +840,11 @@ class DraftPick(BaseModel):
     season_year: int | None = None
     season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable
+    # Composite "draft impact" = value scaled by draft cost and carry opportunity
+    # cost. Null exactly when value is null; sign matches value. Components travel
+    # alongside so the weighting is legible. See analytics/draft.py IMPACT_DEFINITION.
+    impact: float | None = None
+    impact_components: ImpactComponents | None = None
     available: bool = True
     reason: str | None = None
     # When the player was drafted but never played all season (season-long
@@ -849,9 +875,11 @@ class DraftValue(BaseModel):
     reason: str | None = None
     definition: str
     slot_window: int
+    impact_definition: str
+    weights: ImpactWeights
     picks: list[DraftPick]
-    steals: list[DraftPick]
-    busts: list[DraftPick]
+    steals: list[DraftPick]  # ranked by composite impact (descending)
+    busts: list[DraftPick]  # ranked by composite impact (ascending)
 
 
 class DraftRecords(BaseModel):
