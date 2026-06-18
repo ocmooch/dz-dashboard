@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.draft import (
     VALUE_SLOT_WINDOW,
+    _classify_pick_scoring,
+    _did_not_play_detail,
     _expected_by_slot,
     best_worst_picks,
     draft_board,
@@ -15,6 +18,106 @@ from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+
+
+# --- The pure pick-scoring classifier (no DB) ------------------------------
+
+
+def _player(position: str = "WR", gsis_id: str | None = "00-0000001") -> SimpleNamespace:
+    return SimpleNamespace(position=position, gsis_id=gsis_id)
+
+
+def test_classify_scored_pick_passes_through() -> None:
+    out = _classify_pick_scoring(
+        player=_player(),
+        scored_points=123.456,
+        season_is_scored=True,
+        played=True,
+        roster_slots={"WR"},
+    )
+    assert out["season_points"] == 123.46  # rounded
+    assert out["available"] is True
+    assert out["reason"] is None
+    assert out["zero_reason"] is None
+
+
+def test_classify_unscored_season_is_a_gap() -> None:
+    out = _classify_pick_scoring(
+        player=_player(),
+        scored_points=None,
+        season_is_scored=False,
+        played=False,
+        roster_slots=set(),
+    )
+    assert out["season_points"] is None
+    assert out["available"] is False
+    assert out["reason"] == "season_unscored"
+
+
+def test_classify_defense_without_stats_is_always_a_gap() -> None:
+    # A DST can never have a legitimate season-long 0 — even with a raw line it
+    # is a scoring gap, never a real zero, so DEF takes precedence over "played".
+    out = _classify_pick_scoring(
+        player=_player(position="DEF", gsis_id=None),
+        scored_points=None,
+        season_is_scored=True,
+        played=True,
+        roster_slots={"DEF"},
+    )
+    assert out["season_points"] is None
+    assert out["available"] is False
+    assert out["reason"] == "team_defense_not_scored"
+    assert out["zero_reason"] is None
+
+
+def test_classify_played_but_unscored_is_a_gap() -> None:
+    out = _classify_pick_scoring(
+        player=_player(),
+        scored_points=None,
+        season_is_scored=True,
+        played=True,
+        roster_slots={"WR"},
+    )
+    assert out["reason"] == "player_unscored"
+    assert out["available"] is False
+
+
+def test_classify_never_played_weak_identity_is_unresolved() -> None:
+    for gsis in (None, "", "   "):
+        out = _classify_pick_scoring(
+            player=_player(gsis_id=gsis),
+            scored_points=None,
+            season_is_scored=True,
+            played=False,
+            roster_slots={"BN"},
+        )
+        assert out["reason"] == "player_identity_unresolved"
+        assert out["available"] is False
+
+
+def test_classify_never_played_real_player_is_a_genuine_zero() -> None:
+    # Drafted, fully identified, scored season, no game stats all year (a torn
+    # ACL in camp): a real 0.0 the board shows with a note, not a hidden gap.
+    out = _classify_pick_scoring(
+        player=_player(gsis_id="00-0032054"),
+        scored_points=None,
+        season_is_scored=True,
+        played=False,
+        roster_slots={"BN"},
+    )
+    assert out["season_points"] == 0.0
+    assert out["available"] is True
+    assert out["reason"] is None
+    assert out["zero_reason"] == "did_not_play_season"
+    assert "active bench" in (out["zero_detail"] or "")
+
+
+def test_did_not_play_detail_distinguishes_reserve_from_bench() -> None:
+    assert "reserve / IR" in _did_not_play_detail({"RES"})
+    assert "active bench" in _did_not_play_detail({"BN"})
+    # No roster rows after the draft → just the base note, no carry phrasing.
+    base = _did_not_play_detail(set())
+    assert "reserve / IR" not in base and "active bench" not in base
 
 
 # --- The pure expectation helper (no DB) -----------------------------------

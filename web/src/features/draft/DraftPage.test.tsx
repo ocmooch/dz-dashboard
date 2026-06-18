@@ -141,6 +141,30 @@ describe("DraftPage", () => {
     expect(screen.getAllByText("-13.67").length).toBeGreaterThan(0);
   });
 
+  it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {
+    const cruz = {
+      ...pick(3, "Victor Cruz", "Slider", 0, -50, 1, 3),
+      zero_reason: "did_not_play_season",
+      zero_detail:
+        "Drafted but recorded no game stats all season — a season-long injury or " +
+        "ineligibility, not missing data. Carried on the active bench.",
+    };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [cruz] }] }));
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(envelope({ ...VALUE, picks: [cruz], steals: [], busts: [cruz] }));
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    await screen.findByText("Round 1");
+    // The 0 reads as a real total with a DNP marker explaining it — not a DataGap.
+    expect(screen.getAllByText("DNP").length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle(/season-long injury or ineligibility/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/0 pts/)).toBeInTheDocument();
+    expect(screen.queryByText(/value unavailable/i)).not.toBeInTheDocument();
+  });
+
   it("labels a season whose draft was never captured, never inventing picks", async () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")

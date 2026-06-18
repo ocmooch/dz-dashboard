@@ -225,6 +225,7 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     team_defense_not_scored: "Team defense not scored (known gap)",
     draft_not_captured: "Draft not captured for this season",
     player_unscored: "Player not scored — value unavailable",
+    player_identity_unresolved: "Player couldn't be matched to a stat record",
     insufficient_history: "Not enough draft history to value this slot",
     player_bio_unavailable: "Biographical data unavailable",
     unscored_tenure:

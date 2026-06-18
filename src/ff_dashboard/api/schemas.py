@@ -817,10 +817,15 @@ class DraftPick(BaseModel):
     player_name: str | None = None
     position: str | None = None
     season_year: int | None = None
-    season_points: float | None = None  # null (not 0) when the player has no scored rows
+    season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable
     available: bool = True
     reason: str | None = None
+    # When the player was drafted but never played all season (season-long
+    # injury / IR), season_points is a real 0.0 and zero_reason explains the
+    # zero so the UI annotates it instead of hiding it as a gap.
+    zero_reason: str | None = None
+    zero_detail: str | None = None
 
 
 class DraftRound(BaseModel):
