@@ -1193,6 +1193,10 @@ export interface components {
             identity_split_candidate_count: number;
             /** Identity Split Candidates */
             identity_split_candidates: components["schemas"]["IdentitySplitCandidate"][];
+            /** Source Identity Mismatch Count */
+            source_identity_mismatch_count: number;
+            /** Source Identity Mismatches */
+            source_identity_mismatches: components["schemas"]["SourceIdentityMismatch"][];
         };
         /** DataCaveat */
         DataCaveat: {
@@ -2677,6 +2681,35 @@ export interface components {
             position?: string | null;
             /** Totals */
             totals: components["schemas"]["SeasonTotal"][];
+        };
+        /** SourceIdentityMismatch */
+        SourceIdentityMismatch: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Position */
+            position?: string | null;
+            /** Rookie Year */
+            rookie_year?: number | null;
+            /** Last Season */
+            last_season?: number | null;
+            /** First Observed Season */
+            first_observed_season: number;
+            /** Last Observed Season */
+            last_observed_season: number;
+            /** Nfl Com Player Id */
+            nfl_com_player_id: string;
+            /** Gsis Id */
+            gsis_id?: string | null;
+            /** Roster Row Count */
+            roster_row_count: number;
+            /** Transaction Row Count */
+            transaction_row_count: number;
+            /** Draft Pick Count */
+            draft_pick_count: number;
+            /** Reason */
+            reason: string;
         };
         /** StandingRow */
         StandingRow: {

@@ -53,6 +53,8 @@ def test_meta_coverage_matrix_endpoint(client: TestClient) -> None:
     data = body["data"]
     assert data["relevance"]["identity_split_candidate_count"] == 1
     assert data["relevance"]["identity_split_candidates"][0]["name_full"] == "Split Sam"
+    assert data["relevance"]["source_identity_mismatch_count"] == 0
+    assert data["relevance"]["source_identity_mismatches"] == []
     projection_cells = {
         (cell["season_year"], cell["week"]): cell for cell in data["feeds"]["projections"]
     }

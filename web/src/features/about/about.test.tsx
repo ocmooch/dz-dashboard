@@ -29,6 +29,21 @@ const META = {
   },
 };
 
+const COVERAGE = {
+  relevance: {
+    total_players: 10,
+    league_rostered_players: 8,
+    league_relevant_players: 8,
+    excluded_players: 2,
+    identity_split_candidate_count: 0,
+    identity_split_candidates: [],
+    source_identity_mismatch_count: 0,
+    source_identity_mismatches: [],
+  },
+  feeds: {},
+  reason_codes: {},
+};
+
 function renderAbout() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -42,7 +57,9 @@ function renderAbout() {
 
 beforeEach(() => {
   get.mockReset();
-  get.mockResolvedValue(envelope(META));
+  get.mockImplementation((path: string) =>
+    Promise.resolve(envelope(path === "/v1/meta/coverage" ? COVERAGE : META)),
+  );
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -65,6 +82,12 @@ describe("AboutPage", () => {
     renderAbout();
     expect(await screen.findByText("current season only")).toBeInTheDocument();
     expect(screen.getByText("scored")).toBeInTheDocument(); // DST scored, no longer a gap
+  });
+
+  it("reports source player identity integrity", async () => {
+    renderAbout();
+    expect(await screen.findByText("Player identity")).toBeInTheDocument();
+    expect(screen.getByText("verified")).toBeInTheDocument();
   });
 
   it("shows nflverse + Sleeper attribution", async () => {
