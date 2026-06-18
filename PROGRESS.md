@@ -19,7 +19,7 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
-**BUILD complete (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
+**VERIFIED (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
 dead-conferences raw-SQL repair with BFF-owned weekly historical division standings. PLAN is
 recorded in `docs/plans/bff-weekly-division-standings.md`: a reviewed NFL.com 2010–2019 division
 artifact, exact matchup-derived weekly division records, source-ranked completed-season tables,
@@ -27,10 +27,11 @@ synchronized Record-lens week navigation, stacked historical tables, and full ba
 e2e/visual verification. The authenticated source capture is normalized and pinned (120 rows);
 artifact validation, weekly analytics, mapping gaps, API query/schema, generated client, stacked
 Record-lens UI, synchronized week requests, fixture-only e2e divisions, and backend/component/e2e
-coverage are implemented. Authenticated read-only source audit passes all ten seasons; scoped
-backend tests (70), component tests (10), and Playwright journeys/visuals (15) are green. Real-DB
-inspection confirms complete 12-team tables at early/middle/final weeks for 2010, 2011, 2018,
-and 2019, with 2020 consistently ungrouped. **Ready for VERIFY/full gate.**
+coverage are implemented. Full gate green: backend pytest **387**, ruff check/format, mypy, and
+write-safety; generated API no-drift; frontend typecheck + **176** Vitest tests; **15** Playwright
+journey/visual tests. Authenticated read-only source audit passes all ten seasons. Real-DB
+early/middle/final inspection confirms complete 12-team tables and rank semantics for 2010, 2011,
+2018, and 2019, with 2020 consistently ungrouped. **Ready to PR → `dev`.**
 
 **In progress (2026-06-17):** `feature/teams-menu-and-page-refinements` surfaces the team pages and
 reshapes their content. New top-level **Teams** nav → `TeamsIndexPage` (a flat `/v1/teams` index,
@@ -197,21 +198,18 @@ All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
    for the recurring data-gap / wrong-`player_id` whack-a-mole. Three handoff prompts under
    `docs/handoffs/`: start at `00-data-integrity-program.md`, then `player-identity-resolution.md`
    and `data-coverage-matrix.md` (paramount). `docs/ACTIVE_WORK.md` §0.
-1. **VERIFY BFF-owned weekly division standings** from
-   `docs/plans/bff-weekly-division-standings.md`: run the full green gate, repeat the real-page
-   click-through for 2010/2011/2018/2019/2020, then finalize the branch.
-2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
+1. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
    F-49 playoff/consolation metadata, F-27 reconstructed-scoring trust check, F-25 player-identity
    residuals, F-37 FAAB, and F-06 ownership succession (⊘ blocked — needs a source ledger you
    supply). `docs/ACTIVE_WORK.md` §2.
-3. **League-history expansion** (dashboard, last) — gated on the UP outputs (per-season config
+2. **League-history expansion** (dashboard, last) — gated on the UP outputs (per-season config
    ledger). `docs/ACTIVE_WORK.md` §3.
 
 ## Open items / deviations
 
-- **Historical divisions repaired in BUILD.** The presumed Phase 1 conference tables/columns do
-  not exist in the live schema; the dashboard now owns the reviewed source artifact and returns
-  exact weekly division tables. Full-gate VERIFY remains before merge.
+- **Historical divisions repaired and verified.** The presumed Phase 1 conference tables/columns
+  do not exist in the live schema; the dashboard now owns the reviewed source artifact and returns
+  exact weekly division tables. Branch is ready to PR.
 - **Phantom week-1-only teams (identity artifact).** 1–2 phantom week-1-only teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   F-53 roster-churn corruption; belongs with owner/team-identity research (F-06).
