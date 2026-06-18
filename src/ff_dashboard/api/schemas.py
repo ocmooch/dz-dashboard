@@ -572,6 +572,21 @@ class OwnerSeasons(BaseModel):
     seasons: list[OwnerSeasonRow]
 
 
+class TeamsIndexRow(OwnerSeasonRow):
+    """One team (an owner's season entry) for the Teams browser.
+
+    The owner-season row plus owner identity, so the SPA can group the flat list
+    by season or by owner without further lookups or math.
+    """
+
+    owner_id: int
+    owner_name: str | None = None
+
+
+class TeamsIndex(BaseModel):
+    teams: list[TeamsIndexRow]
+
+
 class TrajectoryPoint(BaseModel):
     season_year: int | None = None
     final_rank: int | None = None

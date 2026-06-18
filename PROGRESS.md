@@ -19,6 +19,19 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**In progress (2026-06-17):** `feature/teams-menu-and-page-refinements` surfaces the team pages and
+reshapes their content. New top-level **Teams** nav → `TeamsIndexPage` (a flat `/v1/teams` index,
+backed by `owners.teams_index()` reusing the standings/owner-season helpers) grouped collapsibly
+**By season** (current season open by default) or **By owner**. Team page: the schedule gains a
+horizontal W/L `ResultTimeline` (green/red cells, postseason set off by a subtle "PLAYOFFS" divider
++ accent ring) and its list collapses to one line per game; the redundant Transactions + "Roster-diff
+fallback" cards merge into **one** compact, collapsible feed (acquisitions only — backend
+`team_transactions` now drops `lineup_change`/`setting_change`), with the actor/device `notes`
+suppressed and the derived roster-diff used only when no exact log exists, behind a single clear
+"derived" flag. A starters-only week (the one upstream final-week snapshot gap) gets an honest
+roster note. Full gate green (backend 373, frontend 170, typecheck, ruff, mypy, build) + manual
+click-through. **Ready to PR → `dev`.**
+
 **In progress (2026-06-17):** `feature/power-into-standings` retires `/power` as a top-level space
 and folds it into **Standings** as a `?lens=power` toggle (`Tabs`) with a `WeekStepper` so power is
 viewable for any week of any season — the backend already supported `through_week`, so this was

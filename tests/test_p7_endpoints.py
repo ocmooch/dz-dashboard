@@ -84,13 +84,27 @@ def test_team_scoring_trend_endpoint(client: TestClient) -> None:
 def test_team_transactions_endpoint(client: TestClient) -> None:
     tid = KNOWN["team_id"][(2017, "ice")]
     data = _envelope(client.get(f"/v1/teams/{tid}/transactions"))
-    assert [t["transaction_type"] for t in data["transactions"]] == [
-        "waiver_add",
-        "lineup_change",
-    ]
+    # Acquisitions only — the fixture's lineup_change is filtered out.
+    assert [t["transaction_type"] for t in data["transactions"]] == ["waiver_add"]
     assert data["transactions"][0]["waiver_priority_used"] == 4
     assert data["transactions"][0]["faab_bid"] is None
-    assert data["transactions"][1]["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}
+
+
+# --- Teams index -----------------------------------------------------------
+
+
+def test_teams_index_endpoint(client: TestClient) -> None:
+    data = _envelope(client.get("/v1/teams"))
+    teams = data["teams"]
+    # Three played seasons x four teams; the hidden upcoming season is excluded.
+    assert len(teams) == 12
+    assert {t["season_year"] for t in teams} == {2015, 2016, 2017}
+    # Each row carries owner identity for the by-owner grouping.
+    ice_2017 = next(t for t in teams if t["team_id"] == KNOWN["team_id"][(2017, "ice")])
+    assert ice_2017["owner_name"] == "Iceman"
+    assert ice_2017["wins"] == 2
+    # Newest season first.
+    assert teams[0]["season_year"] == 2017
 
 
 # --- 503 when the pipeline never ran (empty DB) ----------------------------
@@ -99,6 +113,7 @@ def test_team_transactions_endpoint(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "path",
     [
+        "/v1/teams",
         "/v1/teams/1",
         "/v1/teams/1/roster",
         "/v1/teams/1/schedule",

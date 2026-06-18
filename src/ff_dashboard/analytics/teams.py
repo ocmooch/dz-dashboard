@@ -310,8 +310,19 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
     }
 
 
+# Acquisition transactions — what changed the roster's makeup. Start/sit
+# (`lineup_change`, ~25k rows DB-wide) and league `setting_change` are not
+# acquisitions and would bury the feed, so the team-transactions view drops them.
+ACQUISITION_TXN_TYPES = frozenset({"free_agent_add", "waiver_add", "drop", "trade", "draft"})
+
+
 def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
-    """The season's recorded transactions involving this team (as actor or counterpart)."""
+    """The season's roster-acquisition transactions involving this team.
+
+    Scoped to adds / drops / trades / draft (the moves that changed the roster);
+    lineup changes and league setting changes are excluded — see
+    :data:`ACQUISITION_TXN_TYPES`.
+    """
     require_league(session)
     team = get_team(session, team_id)
     if team is None:
@@ -322,6 +333,8 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
 
     items: list[dict[str, Any]] = []
     for t in transactions_for_team(session, team_id):
+        if t.transaction_type not in ACQUISITION_TXN_TYPES:
+            continue
         player = get_player(session, t.player_id) if t.player_id is not None else None
         counterpart = (
             get_team(session, t.counterpart_team_id) if t.counterpart_team_id is not None else None

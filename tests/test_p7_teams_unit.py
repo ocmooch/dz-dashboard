@@ -161,14 +161,14 @@ def test_scoring_trend_works_for_unscored_season(session: Session) -> None:
 # --- Transactions ----------------------------------------------------------
 
 
-def test_transactions_include_exact_recorded_rows(session: Session) -> None:
+def test_transactions_are_acquisitions_only(session: Session) -> None:
+    # The team-transactions feed is scoped to roster acquisitions; the fixture's
+    # `lineup_change` (a start/sit move) must be filtered out.
     ice_2017 = KNOWN["team_id"][(2017, "ice")]
     data = team_transactions(session, ice_2017)
     assert data is not None
-    assert [t["transaction_type"] for t in data["transactions"]] == [
-        "waiver_add",
-        "lineup_change",
-    ]
+    assert [t["transaction_type"] for t in data["transactions"]] == ["waiver_add"]
+    assert all(t["transaction_type"] != "lineup_change" for t in data["transactions"])
 
     waiver = data["transactions"][0]
     assert waiver["executed_at"] == "2017-09-12T10:15:00"
@@ -178,6 +178,3 @@ def test_transactions_include_exact_recorded_rows(session: Session) -> None:
     assert waiver["waiver_priority_used"] == 4
     assert waiver["faab_bid"] is None
     assert waiver["notes"] == "Iceman"
-
-    lineup = data["transactions"][1]
-    assert lineup["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}
