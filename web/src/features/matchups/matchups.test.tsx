@@ -44,10 +44,10 @@ const WEEK_GAMES = {
     {
       matchup_id: 713,
       is_playoff: false,
-      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
+      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 180.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
-      margin: 40.4,
-      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "40.4-point margin" }],
+      margin: 60.4,
+      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" }],
       winner_team_id: 12,
     },
   ],

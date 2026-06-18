@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 # Tunable thresholds. Kept backend-side; the frontend reads the resulting flags.
 CLOSE_MARGIN = 5.0  # nailbiter: a decided game within 5 points
-BLOWOUT_MARGIN = 40.0  # blowout: a margin of 40+ points
+BLOWOUT_MARGIN = 60.0  # blowout: a top-decile margin of 60+ points
 UPSET_RECORD_GAP = 3  # upset: loser entered with >= this many more wins than the winner
 MIN_ENTERING_GAMES = 3  # ignore upset/record gaps before each side has played this many
 MONSTER_TOP_N = 3  # a game is a "monster game" if it held one of the top-N starter weeks

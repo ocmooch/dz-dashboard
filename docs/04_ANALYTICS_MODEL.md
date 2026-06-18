@@ -114,7 +114,8 @@ Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored
   `box_score`) — a list of `{kind, label, tone, team_id, detail}` per game describing what made
   it memorable, so the grid and the box score never disagree. Thresholds are documented module
   constants; the frontend does **no** math, only renders the list. Kinds: `blowout`
-  (`margin >= BLOWOUT_MARGIN`, 40) / `nailbiter` (`margin <= CLOSE_MARGIN`, 5); `season_high` /
+  (`margin >= BLOWOUT_MARGIN`, 60 — approximately the historical top decile) / `nailbiter`
+  (`margin <= CLOSE_MARGIN`, 5); `season_high` /
   `dud` (a team's score is the season's highest / lowest, byes excluded); `shootout` /
   `cold_snap` (combined score is the season's highest / coldest); `tough_luck` (the loser
   outscored every other team that played that week); `upset` (winner entered with `>=

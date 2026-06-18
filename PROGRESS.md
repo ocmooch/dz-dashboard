@@ -19,6 +19,12 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**In progress (2026-06-18):** `feature/matchup-superlative-flags` now uses a data-calibrated
+60-point blowout threshold. Across 1,501 completed 2010–2025 matchups, the prior 40-point cutoff
+flagged 27.0% of games; 60 points is approximately the historical 90th percentile and flags
+10.6%, with similar rates across eras and regular-season/playoff games. Boundary coverage pins
+60.0 as inclusive and rejects 59.99 and the retired 40-point cutoff.
+
 **VERIFIED (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
 dead-conferences raw-SQL repair with BFF-owned weekly historical division standings. PLAN is
 recorded in `docs/plans/bff-weekly-division-standings.md`: a reviewed NFL.com 2010–2019 division

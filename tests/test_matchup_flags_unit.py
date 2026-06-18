@@ -57,6 +57,20 @@ def test_blowout_not_nailbiter() -> None:
     assert "blowout" in kinds and "nailbiter" not in kinds
 
 
+def test_blowout_threshold_is_inclusive_and_rejects_old_cutoff() -> None:
+    common = {
+        "team_a": _side(1, 160.0),
+        "team_b": _side(2, 100.0),
+        "winner_team_id": 1,
+        "week": 1,
+        "season_ctx": _ctx(),
+        "week_ctx": {},
+    }
+    assert "blowout" in _kinds(margin=60.0, **common)
+    assert "blowout" not in _kinds(margin=59.99, **common)
+    assert "blowout" not in _kinds(margin=40.0, **common)
+
+
 def test_nailbiter_not_blowout() -> None:
     kinds = _kinds(
         team_a=_side(1, 100.0),
