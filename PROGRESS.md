@@ -19,6 +19,13 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**Planned (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
+dead-conferences raw-SQL repair with BFF-owned weekly historical division standings. PLAN is
+recorded in `docs/plans/bff-weekly-division-standings.md`: a reviewed NFL.com 2010–2019 division
+artifact, exact matchup-derived weekly division records, source-ranked completed-season tables,
+synchronized Record-lens week navigation, stacked historical tables, and full backend/component/
+e2e/visual verification. No implementation has started.
+
 **In progress (2026-06-17):** `feature/teams-menu-and-page-refinements` surfaces the team pages and
 reshapes their content. New top-level **Teams** nav → `TeamsIndexPage` (a flat `/v1/teams` index,
 backed by `owners.teams_index()` reusing the standings/owner-season helpers) grouped collapsibly
@@ -184,9 +191,10 @@ All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
    for the recurring data-gap / wrong-`player_id` whack-a-mole. Three handoff prompts under
    `docs/handoffs/`: start at `00-data-integrity-program.md`, then `player-identity-resolution.md`
    and `data-coverage-matrix.md` (paramount). `docs/ACTIVE_WORK.md` §0.
-1. **Repair the silently-dead conferences feature** (dashboard, do first; see Open items). The gate
-   is green but `analytics/conferences.py` returns empty for the entire 2010–2019 conference era.
-   Fix = the raw-SQL rewrite `standings.py` already uses. `docs/ACTIVE_WORK.md` §6.1.
+1. **Build BFF-owned weekly division standings** from
+   `docs/plans/bff-weekly-division-standings.md`. This supersedes the narrow dead-conferences
+   raw-SQL repair with a reviewed historical artifact because the live Phase 1 schema has no
+   conference tables/columns.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
    F-49 playoff/consolation metadata, F-27 reconstructed-scoring trust check, F-25 player-identity
    residuals, F-37 FAAB, and F-06 ownership succession (⊘ blocked — needs a source ledger you
