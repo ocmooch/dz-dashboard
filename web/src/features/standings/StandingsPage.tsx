@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -173,6 +174,14 @@ export function StandingsPage() {
   const powerRegWeeks = power.data?.regular_season_weeks;
   const effectiveWeek = week ?? regWeeks ?? powerRegWeeks;
 
+  useEffect(() => {
+    const maxWeek = lens === "power" ? powerRegWeeks : regWeeks;
+    if (week == null || maxWeek == null || week <= maxWeek) return;
+    const p = new URLSearchParams(params);
+    p.set("week", String(maxWeek));
+    setParams(p, { replace: true });
+  }, [lens, params, powerRegWeeks, regWeeks, setParams, week]);
+
   function setLens(next: Lens) {
     const p = new URLSearchParams(params);
     if (next === "power") p.set("lens", "power");
@@ -296,8 +305,18 @@ export function StandingsPage() {
             <div className="dz-eyebrow">regular season divisions</div>
             {regWeeks && <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />}
           </div>
-          {isLoading && <Card><div className="space-y-2 p-5">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div></Card>}
-          {isError && <Card><ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} /></Card>}
+          {(isLoading || conferences.isLoading) && <Card><div className="space-y-2 p-5">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div></Card>}
+          {(isError || conferences.isError) && (
+            <Card>
+              <ErrorState
+                message="Could not reach the analytics service."
+                onRetry={() => {
+                  void refetch();
+                  void conferences.refetch();
+                }}
+              />
+            </Card>
+          )}
           {conferences.data?.available && conferences.data.conferences.map((conf) => (
             <DivisionTable key={conf.conference_id} conf={conf} showFinalPlacement={showFinalPlacement} />
           ))}

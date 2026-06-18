@@ -31,7 +31,10 @@ coverage are implemented. Full gate green: backend pytest **387**, ruff check/fo
 write-safety; generated API no-drift; frontend typecheck + **176** Vitest tests; **15** Playwright
 journey/visual tests. Authenticated read-only source audit passes all ten seasons. Real-DB
 early/middle/final inspection confirms complete 12-team tables and rank semantics for 2010, 2011,
-2018, and 2019, with 2020 consistently ungrouped. **Ready to PR → `dev`.**
+2018, and 2019, with 2020 consistently ungrouped. **Post-review fixes:** historical division-query
+failures now own a visible retryable error state, and a stale URL week is normalized when switching
+to a shorter season (for example 2010 W14 → 2011 W13). Frontend gate remains green at **178**
+Vitest tests plus the historical Playwright journey. **Ready to PR → `dev`.**
 
 **In progress (2026-06-17):** `feature/teams-menu-and-page-refinements` surfaces the team pages and
 reshapes their content. New top-level **Teams** nav → `TeamsIndexPage` (a flat `/v1/teams` index,

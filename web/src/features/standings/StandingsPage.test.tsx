@@ -166,6 +166,8 @@ const POWER_TIMELINE = {
 
 let insightsResponse: unknown = INSIGHTS;
 let conferencesResponse: unknown = { available: false, reason: "no_conferences_this_season", conferences: [] };
+let conferencesError = false;
+let regularSeasonWeeks = 14;
 
 const DIVISION_TEAM = {
   ...STANDINGS.rows[0],
@@ -198,14 +200,24 @@ const CONFERENCES = {
 function routeByPath(path: string, options?: { params?: { query?: { through_week?: number } } }) {
   const throughWeek = options?.params?.query?.through_week;
   if (path === "/v1/seasons/{season_id}/standings") {
-    return envelope(throughWeek ? { ...STANDINGS, through_week: throughWeek, rank_basis: "computed" } : STANDINGS);
+    return envelope({
+      ...STANDINGS,
+      through_week: throughWeek ? Math.min(throughWeek, regularSeasonWeeks) : regularSeasonWeeks,
+      regular_season_weeks: regularSeasonWeeks,
+      rank_basis: throughWeek ? "computed" : STANDINGS.rank_basis,
+    });
   }
   if (path === "/v1/seasons/{season_id}/standings/timeline") return envelope(TIMELINE);
   if (path === "/v1/seasons/{season_id}/standings/insights") return envelope(insightsResponse);
   if (path === "/v1/seasons/{season_id}/conferences") {
+    if (conferencesError) return { data: undefined, error: { detail: "offline" } };
     return envelope(
       throughWeek && typeof conferencesResponse === "object" && conferencesResponse
-        ? { ...conferencesResponse, through_week: throughWeek }
+        ? {
+            ...conferencesResponse,
+            through_week: Math.min(throughWeek, regularSeasonWeeks),
+            regular_season_weeks: regularSeasonWeeks,
+          }
         : conferencesResponse,
     );
   }
@@ -229,6 +241,8 @@ beforeEach(() => {
   currentSeason = { season_id: 2, season_year: 2020, is_scored: true };
   insightsResponse = INSIGHTS;
   conferencesResponse = { available: false, reason: "no_conferences_this_season", conferences: [] };
+  conferencesError = false;
+  regularSeasonWeeks = 14;
   get.mockReset();
   get.mockImplementation((path: string, options?: { params?: { query?: { through_week?: number } } }) =>
     Promise.resolve(routeByPath(path, options)),
@@ -340,5 +354,40 @@ describe("StandingsPage", () => {
     expect(await screen.findByText("Champion")).toBeInTheDocument();
     expect(screen.getAllByRole("table")).toHaveLength(2); // standings + Robbed & Blessed
     expect(screen.queryByRole("heading", { name: "Westeros" })).not.toBeInTheDocument();
+  });
+
+  it("shows an error when historical division loading fails", async () => {
+    currentSeason = { season_id: 2, season_year: 2018, is_scored: true };
+    conferencesError = true;
+    renderPage();
+    expect(await screen.findByText("Could not reach the analytics service.")).toBeInTheDocument();
+    const beforeRetry = get.mock.calls.filter(
+      (call) => call[0] === "/v1/seasons/{season_id}/conferences",
+    ).length;
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      const afterRetry = get.mock.calls.filter(
+        (call) => call[0] === "/v1/seasons/{season_id}/conferences",
+      ).length;
+      expect(afterRetry).toBeGreaterThan(beforeRetry);
+    });
+  });
+
+  it("clamps a stale URL week when switching to a shorter season", async () => {
+    currentSeason = { season_id: 2, season_year: 2011, is_scored: true };
+    regularSeasonWeeks = 13;
+    conferencesResponse = { ...CONFERENCES, season_year: 2011, regular_season_weeks: 13 };
+    renderPage("/standings?week=14");
+    await screen.findByLabelText("Select week");
+    await waitFor(() => expect(screen.getByLabelText("Select week")).toHaveValue("13"));
+    await waitFor(() => {
+      expect(
+        get.mock.calls.some(
+          (call) =>
+            call[0] === "/v1/seasons/{season_id}/conferences" &&
+            call[1]?.params?.query?.through_week === 13,
+        ),
+      ).toBe(true);
+    });
   });
 });
