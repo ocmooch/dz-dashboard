@@ -40,6 +40,16 @@ function ValueTag({ value }: { value: number | null | undefined }) {
   );
 }
 
+/** Marks a genuine season-long 0 — drafted but never played (injury / IR / ineligible).
+ *  The points really are 0 (not missing); the tooltip carries the why. */
+function DnpMark({ detail }: { detail?: string | null }) {
+  return (
+    <span className="dz-eyebrow ml-1 align-middle text-faint" title={detail ?? "Did not play all season"}>
+      DNP
+    </span>
+  );
+}
+
 function compactPlayerName(name: string | null | undefined) {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);
@@ -79,7 +89,10 @@ function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
         </div>
         <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
           <span>{pick.position ?? "—"}</span>
-          <span className="num block truncate">{compactPoints(pick.season_points)}</span>
+          <span className="num block truncate">
+            {compactPoints(pick.season_points)}
+            {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
+          </span>
         </div>
       </div>
       <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
@@ -106,6 +119,7 @@ function PickLine({ pick, rank, onFocus }: { pick: Pick; rank: number; onFocus: 
       <span className="flex items-center gap-2 truncate">
         <span className="num w-4 text-[var(--fs-xs)] text-faint">{rank}</span>
         <span className="truncate font-medium text-text">{pick.player_name ?? "—"}</span>
+        {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
         <span className="text-[var(--fs-xs)] text-faint">
           #{pick.overall} · {pick.team_name ?? pick.owner_name ?? "—"}
         </span>

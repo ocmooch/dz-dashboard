@@ -1264,6 +1264,10 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            /** Zero Reason */
+            zero_reason?: string | null;
+            /** Zero Detail */
+            zero_detail?: string | null;
         };
         /** DraftRecords */
         DraftRecords: {
