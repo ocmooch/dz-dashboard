@@ -28,3 +28,15 @@ for (const p of PAGES) {
     });
   });
 }
+
+test("visual: standings-historical-mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/standings");
+  await expect(page.getByRole("heading", { name: "Westeros" })).toBeVisible();
+  await settle(page);
+  await expect(page).toHaveScreenshot("standings-historical-mobile.png", {
+    fullPage: true,
+    mask: [page.locator(".dz-data-status")],
+    animations: "disabled",
+  });
+});

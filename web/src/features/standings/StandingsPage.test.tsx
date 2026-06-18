@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,10 +8,12 @@ import { StandingsPage } from "./StandingsPage";
 const get = vi.fn();
 vi.mock("@/lib/api/client", () => ({ api: { GET: (...args: unknown[]) => get(...args) } }));
 
+let currentSeason = { season_id: 2, season_year: 2020, is_scored: true };
+
 vi.mock("@/app/shell/SeasonContext", () => ({
   useSeasons: () => ({
-    current: { season_id: 2, season_year: 2016, is_scored: true },
-    seasons: [{ season_id: 2, season_year: 2016, is_scored: true }],
+    current: currentSeason,
+    seasons: [currentSeason],
     setSeasonId: vi.fn(),
     isLoading: false,
   }),
@@ -163,12 +165,50 @@ const POWER_TIMELINE = {
 };
 
 let insightsResponse: unknown = INSIGHTS;
+let conferencesResponse: unknown = { available: false, reason: "no_conferences_this_season", conferences: [] };
 
-function routeByPath(path: string) {
-  if (path === "/v1/seasons/{season_id}/standings") return envelope(STANDINGS);
+const DIVISION_TEAM = {
+  ...STANDINGS.rows[0],
+  overall_rank: 1,
+  conference_rank: 1,
+  division_wins: 6,
+  division_losses: 1,
+  division_ties: 0,
+};
+
+const CONFERENCES = {
+  season_id: 2,
+  season_year: 2018,
+  through_week: 14,
+  regular_season_weeks: 14,
+  available: true,
+  reason: null,
+  mapping_issues: [],
+  conferences: [
+    { conference_id: 20181, division_number: 1, name: "Westeros", teams: [DIVISION_TEAM] },
+    {
+      conference_id: 20182,
+      division_number: 2,
+      name: "Essos",
+      teams: [{ ...DIVISION_TEAM, ...STANDINGS.rows[1], overall_rank: 2, conference_rank: 1, division_wins: 4, division_losses: 3 }],
+    },
+  ],
+};
+
+function routeByPath(path: string, options?: { params?: { query?: { through_week?: number } } }) {
+  const throughWeek = options?.params?.query?.through_week;
+  if (path === "/v1/seasons/{season_id}/standings") {
+    return envelope(throughWeek ? { ...STANDINGS, through_week: throughWeek, rank_basis: "computed" } : STANDINGS);
+  }
   if (path === "/v1/seasons/{season_id}/standings/timeline") return envelope(TIMELINE);
   if (path === "/v1/seasons/{season_id}/standings/insights") return envelope(insightsResponse);
-  if (path === "/v1/seasons/{season_id}/conferences") return envelope({ available: false, conferences: [] });
+  if (path === "/v1/seasons/{season_id}/conferences") {
+    return envelope(
+      throughWeek && typeof conferencesResponse === "object" && conferencesResponse
+        ? { ...conferencesResponse, through_week: throughWeek }
+        : conferencesResponse,
+    );
+  }
   if (path === "/v1/seasons/{season_id}/power") return envelope(POWER);
   if (path === "/v1/seasons/{season_id}/power/timeline") return envelope(POWER_TIMELINE);
   throw new Error(`unexpected path ${path}`);
@@ -186,9 +226,13 @@ function renderPage(initialPath = "/standings") {
 }
 
 beforeEach(() => {
+  currentSeason = { season_id: 2, season_year: 2020, is_scored: true };
   insightsResponse = INSIGHTS;
+  conferencesResponse = { available: false, reason: "no_conferences_this_season", conferences: [] };
   get.mockReset();
-  get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
+  get.mockImplementation((path: string, options?: { params?: { query?: { through_week?: number } } }) =>
+    Promise.resolve(routeByPath(path, options)),
+  );
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -241,5 +285,60 @@ describe("StandingsPage", () => {
     await screen.findByText("Champion");
     const paths = get.mock.calls.map((c) => c[0]);
     expect(paths).not.toContain("/v1/seasons/{season_id}/power");
+  });
+
+  it("renders historical divisions as stacked full-width tables with DIV and OVR", async () => {
+    currentSeason = { season_id: 2, season_year: 2018, is_scored: true };
+    conferencesResponse = CONFERENCES;
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Westeros" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Essos" })).toBeInTheDocument();
+    expect(screen.getAllByText("OVR")).toHaveLength(2);
+    expect(screen.getAllByText("DIV")).toHaveLength(2);
+    expect(screen.queryByText("Conference Standings")).not.toBeInTheDocument();
+  });
+
+  it("renders 2010 as three source-ordered divisions", async () => {
+    currentSeason = { season_id: 2, season_year: 2010, is_scored: true };
+    conferencesResponse = {
+      ...CONFERENCES,
+      season_year: 2010,
+      conferences: [1, 2, 3].map((division) => ({
+        conference_id: 20100 + division,
+        division_number: division,
+        name: null,
+        teams: [{ ...DIVISION_TEAM, team_id: 10 + division, conference_rank: 1 }],
+      })),
+    };
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Division 1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Division 2" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Division 3" })).toBeInTheDocument();
+  });
+
+  it("sends one Record week to standings, insights, and divisions and hides Finish", async () => {
+    currentSeason = { season_id: 2, season_year: 2018, is_scored: true };
+    conferencesResponse = CONFERENCES;
+    renderPage();
+    const select = await screen.findByLabelText("Select week");
+    fireEvent.change(select, { target: { value: "7" } });
+    await waitFor(() => {
+      const weeklyCalls = get.mock.calls.filter((call) =>
+        [
+          "/v1/seasons/{season_id}/standings",
+          "/v1/seasons/{season_id}/standings/insights",
+          "/v1/seasons/{season_id}/conferences",
+        ].includes(call[0]),
+      );
+      expect(weeklyCalls.some((call) => call[1]?.params?.query?.through_week === 7)).toBe(true);
+    });
+    expect(screen.queryByText("Finish")).not.toBeInTheDocument();
+  });
+
+  it("keeps the modern season on one overall table", async () => {
+    renderPage();
+    expect(await screen.findByText("Champion")).toBeInTheDocument();
+    expect(screen.getAllByRole("table")).toHaveLength(2); // standings + Robbed & Blessed
+    expect(screen.queryByRole("heading", { name: "Westeros" })).not.toBeInTheDocument();
   });
 });

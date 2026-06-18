@@ -118,8 +118,12 @@ def get_season_bracket(season_id: int, session: SessionDep) -> Envelope[SeasonBr
 
 
 @router.get("/v1/seasons/{season_id}/conferences", response_model=Envelope[SeasonConferences])
-def get_season_conferences(season_id: int, session: SessionDep) -> Envelope[SeasonConferences]:
-    data = season_conferences(session, season_id)
+def get_season_conferences(
+    season_id: int,
+    session: SessionDep,
+    through_week: int | None = Query(None, ge=1),
+) -> Envelope[SeasonConferences]:
+    data = season_conferences(session, season_id, through_week)
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=SeasonConferences(**data), meta=build_meta(session))

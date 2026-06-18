@@ -1087,6 +1087,8 @@ export interface components {
         ConferenceTeam: {
             /** Rank */
             rank: number;
+            /** Overall Rank */
+            overall_rank: number;
             /** Team Id */
             team_id: number;
             /** Team Name */
@@ -1112,6 +1114,12 @@ export interface components {
             final_rank?: number | null;
             /** Conference Rank */
             conference_rank: number;
+            /** Division Wins */
+            division_wins: number;
+            /** Division Losses */
+            division_losses: number;
+            /** Division Ties */
+            division_ties: number;
         };
         /**
          * Coverage
@@ -2597,10 +2605,19 @@ export interface components {
             season_id: number;
             /** Season Year */
             season_year: number;
+            /** Through Week */
+            through_week: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
             /** Available */
             available: boolean;
             /** Reason */
             reason?: string | null;
+            /**
+             * Mapping Issues
+             * @default []
+             */
+            mapping_issues: string[];
             /** Conferences */
             conferences: components["schemas"]["ConferenceSection"][];
         };
@@ -3479,7 +3496,9 @@ export interface operations {
     };
     get_season_conferences_v1_seasons__season_id__conferences_get: {
         parameters: {
-            query?: never;
+            query?: {
+                through_week?: number | null;
+            };
             header?: never;
             path: {
                 season_id: number;

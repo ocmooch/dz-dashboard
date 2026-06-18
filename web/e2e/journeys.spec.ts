@@ -25,6 +25,18 @@ test("nav → standings renders a populated table", async ({ page }) => {
   expect(await rows.count()).toBeGreaterThanOrEqual(4);
 });
 
+test("historical standings week stepper keeps division views synchronized", async ({ page }) => {
+  await page.goto("/standings");
+  await expect(page.getByRole("heading", { name: "Westeros" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Essos" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "OVR" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "DIV" }).first()).toBeVisible();
+  await page.getByLabel("Select week").selectOption("1");
+  await expect(page).toHaveURL(/week=1/);
+  await expect(page.getByRole("columnheader", { name: "Finish" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Westeros" })).toBeVisible();
+});
+
 test("records book shows the known highest team score", async ({ page }) => {
   await page.goto("/records");
   await expect(page.getByRole("heading", { name: "Records Book" })).toBeVisible();

@@ -56,17 +56,16 @@ feature branches.** Remaining work, in priority order:
 
 ---
 
-## 1. Conferences feature repair (dashboard · do first) ☐
+## 1. Conferences feature repair (dashboard) ☑
 
 > Detailed root cause and fix path are in §6.1. This is the only buildable *dashboard* work that is
 > not gated on the upstream program; do it before anything else so the bracket/conference surfaces
 > are honest for the 2010–2019 era.
 
-Cut a `feature/*` branch from `dev`, rewrite the two query sites in `analytics/conferences.py` to
-the raw-SQL pattern `analytics/standings.py` already uses, add a known-answer conferences test
-(none exists today, which is why the feature rotted unnoticed), and verify a 2010–2019 season's
-`GET /v1/seasons/{id}/conferences` returns real divisions while a 2020+ season still returns
-`available=false`.
+Superseded by `docs/plans/bff-weekly-division-standings.md`: the live Phase 1 schema does not
+actually contain the presumed conference table/column. The dashboard now owns a reviewed
+2010–2019 NFL.com artifact, exact weekly in-division records, final source ranks, and the complete
+historical division-table UI. 2020+ remains explicitly ungrouped.
 
 ---
 
@@ -184,7 +183,7 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 
 ## 6. Housekeeping & baseline tech-debt
 
-### 6.1 Conferences feature silently dead (functional bug; gate is green) ☐
+### 6.1 Conferences feature silently dead (functional bug; gate is green) ☑
 
 PRs #63/#64 cleared the gate-red part of this debt (stale matchups-test assertions removed;
 `conferences.py` mypy/ruff silenced via `type: ignore`; e2e/format debt fixed). **But the silencing
@@ -210,9 +209,11 @@ only fixed the types — the feature is still dead at runtime** (verified 2026-0
   `_CONFERENCE_MODELS_AVAILABLE` guard (keep a defensive `try/except` around the SQL). Keep the public
   function signatures unchanged. **Add a known-answer conferences test** (none exists today — `git grep
   -l conference -- tests/` returns nothing) so the feature cannot silently die again.
-- **Done when:** a 2010–2019 season's conferences endpoint returns real divisions; a 2020+ season
-  still returns `available=false`; the bracket page for a conference-era season renders; gate green
-  (`gen:api` drift expected clean — schema shape unchanged).
+- **Resolution (2026-06-17):** the proposed raw-SQL repair was based on tables/columns absent from
+  the live Phase 1 schema. `feature/bff-weekly-division-standings` instead commits and validates
+  NFL.com's historical regular-standings divisions/ranks, maps through `teams.team_abbrev`, and
+  returns an honest mapping gap on any mismatch. The endpoint now supports weekly division records
+  and the Standings page renders complete historical division tables.
 
 ### 6.2 `pyproject.toml` git-fallback tag ☑
 

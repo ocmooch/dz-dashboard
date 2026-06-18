@@ -53,9 +53,11 @@ The landing view; a glanceable cockpit for the current season.
 
 A two-lens view (`?lens=record|power`), toggled with `Tabs`:
 
-- **Record lens (default):** full standings table (rank, manager/team, W-L-T, PF, PA,
-  completed-season finish, streak); schedule-luck/all-play insight; a standings-over-time
-  chart with rank-ordered Week N tooltips.
+- **Record lens (default):** a URL-backed `WeekStepper` drives standings, schedule-luck insight,
+  and historical divisions together. For 2010–2019, full-width source-ordered division tables
+  stack vertically with division rank, overall rank, exact in-division W-L-T, team record,
+  Win%, PF, PA, streak, and Finish only at the completed-season view. For 2020 onward, the
+  existing single overall table remains. The standings-over-time chart remains full-season.
 - **Power lens:** the power ranking re-sorts the table by a model score (PF/g, all-play win
   pct, actual win pct, recent PF/g, model weights) with a model-vs-record delta and a
   "how this is computed" explainer; a `WeekStepper` (`?week=`) drives the as-of-week table
@@ -63,7 +65,8 @@ A two-lens view (`?lens=record|power`), toggled with `Tabs`:
   data as Standings, re-sorted by strength* — which is why it lives here rather than as its own
   top-level space. (`/power` redirects to `/standings?lens=power`.)
 - **Endpoints:** `/v1/seasons/{id}/standings?through_week=`,
-  `/v1/seasons/{id}/standings/insights`, `/v1/seasons/{id}/standings/timeline`,
+  `/v1/seasons/{id}/standings/insights?through_week=`,
+  `/v1/seasons/{id}/conferences?through_week=`, `/v1/seasons/{id}/standings/timeline`,
   `/v1/seasons/{id}/power?through_week=`, `/v1/seasons/{id}/power/timeline`.
 - **Components/charts:** `Tabs`, `WeekStepper`, `Table`, `RankFlow`, `RecordLine`, `Trophy`,
   `PowerTable`.
