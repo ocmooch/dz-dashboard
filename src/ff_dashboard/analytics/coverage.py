@@ -23,6 +23,7 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
+from ff_pipeline.repository.queries import player_source_identity_mismatches
 from sqlalchemy import Integer, and_, distinct, func, select
 from sqlalchemy import cast as sql_cast
 
@@ -263,6 +264,7 @@ def compute_coverage_matrix(session: Session) -> dict[str, object]:
             "unscored_season": "Season has no per-player scored-stat rows.",
             "current_season_only": "Source only records the current season.",
             "identity_split_candidate": "A rostered player has a same-name stats/injury twin.",
+            "source_identity_mismatch": "An NFL.com external ID is attached to a player from an impossible career era or position.",
             "genuine_zero": "A real zero, not a missing-data gap.",
         },
     }
@@ -349,6 +351,7 @@ def _relevance_summary(session: Session) -> dict[str, object]:
         if pid is not None
     }
     candidates = _identity_split_candidates(session)
+    source_mismatches = player_source_identity_mismatches(session)
     candidate_member_ids = set()
     for candidate in candidates:
         for member in candidate["members"]:
@@ -361,6 +364,8 @@ def _relevance_summary(session: Session) -> dict[str, object]:
         "excluded_players": max(total_players - len(relevant_ids), 0),
         "identity_split_candidate_count": len(candidates),
         "identity_split_candidates": candidates,
+        "source_identity_mismatch_count": len(source_mismatches),
+        "source_identity_mismatches": source_mismatches,
     }
 
 

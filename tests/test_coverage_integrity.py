@@ -221,3 +221,4 @@ def test_coverage_matrix_reports_relevance_feeds_and_identity_splits(session: Se
     candidate = relevance["identity_split_candidates"][0]  # type: ignore[index]
     assert candidate["name_full"] == "Split Sam"
     assert {m["rostered"] for m in candidate["members"]} == {True, False}
+    assert relevance["source_identity_mismatch_count"] == 0  # type: ignore[index]

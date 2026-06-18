@@ -25,6 +25,21 @@ flagged 27.0% of games; 60 points is approximately the historical 90th percentil
 10.6%, with similar rates across eras and regular-season/playoff games. Boundary coverage pins
 60.0 as inclusive and rejects 59.99 and the retired 40-point cutoff.
 
+**VERIFIED (2026-06-18):** the residual NFL.com source-identity misassignment class is repaired
+across Phase 1 + dashboard observability. An authenticated sweep of all 2010–2025 draft and
+transaction pages identified **34 true external-ID ownership mistakes** (excluding aliases,
+renames, and legitimate position evolution). The reviewed upstream ledger re-homes NFL.com
+rosters/transactions/availability, transfers IDs, seeds overrides, and recomputes spans
+idempotently; the live DB repair completed from a timestamped backup and the maintained strict
+audit now reports **0** mismatches. Resolver hardening rejects impossible direct-ID matches and
+ambiguous abbreviated fuzzy matches. `/v1/meta/coverage` now exposes source-identity mismatch
+diagnostics and Coverage & About reports the verified state. Live checks: 2016 pick 8 =
+Lamar Miller/RB/158.0 regular-season points; pick 12 = Adrian Peterson/RB/7.7; Rob’s team
+transaction feed names Lamar Miller; invalid unscored defensive-position draft picks = 0.
+Full verification: Phase 1 pytest/ruff/format/mypy green; dashboard backend **387** tests plus
+ruff/format/mypy/write-safety; frontend **179** tests, typecheck, production build, and regenerated
+OpenAPI client.
+
 **VERIFIED (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
 dead-conferences raw-SQL repair with BFF-owned weekly historical division standings. PLAN is
 recorded in `docs/plans/bff-weekly-division-standings.md`: a reviewed NFL.com 2010–2019 division
