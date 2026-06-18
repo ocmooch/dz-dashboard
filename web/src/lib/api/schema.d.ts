@@ -1315,6 +1315,12 @@ export interface components {
             steals: components["schemas"]["DraftPick"][];
             /** Busts */
             busts: components["schemas"]["DraftPick"][];
+            /** Points Steals */
+            points_steals: components["schemas"]["DraftPick"][];
+            /** Points Busts */
+            points_busts: components["schemas"]["DraftPick"][];
+            /** Leaderboard Limit */
+            leaderboard_limit: number;
         };
         /**
          * EnteringRecord
@@ -1705,6 +1711,16 @@ export interface components {
         ImpactComponents: {
             /** Base Value */
             base_value: number;
+            /** Normalized Value */
+            normalized_value: number | null;
+            /** Position Mean */
+            position_mean: number;
+            /** Position Stddev */
+            position_stddev: number;
+            /** Weighted Eligible */
+            weighted_eligible: boolean;
+            /** Weighted Reason */
+            weighted_reason?: string | null;
             /** Cost Weight */
             cost_weight: number;
             /** Opportunity Weight */

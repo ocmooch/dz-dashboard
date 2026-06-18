@@ -9,9 +9,11 @@ from ff_dashboard.analytics.draft import (
     IMPACT_DEFINITION,
     VALUE_SLOT_WINDOW,
     _classify_pick_scoring,
+    _clean_rounded,
     _did_not_play_detail,
     _expected_by_slot,
     _pick_impact,
+    _resolved_cluster_points,
     best_worst_picks,
     draft_board,
     draft_value,
@@ -152,6 +154,20 @@ def test_expected_by_slot_empty() -> None:
     assert VALUE_SLOT_WINDOW == 2
 
 
+def test_value_rounding_normalizes_negative_zero() -> None:
+    assert _clean_rounded(83.3 - 83.30425) == 0.0
+    assert str(_clean_rounded(83.3 - 83.30425)) == "0.0"
+
+
+def test_identity_cluster_points_prefer_drafted_id_without_double_counting() -> None:
+    rows = [
+        (1032, 1, 10.0),
+        (25239, 1, 11.0),  # duplicate source member: canonical row wins
+        (25239, 2, 20.0),  # member-only week fills the canonical player's total
+    ]
+    assert _resolved_cluster_points(rows, {1032: [1032, 25239]}, 2) == {1032: 30.0}
+
+
 # --- The pure composite impact scorer (no DB) ------------------------------
 
 
@@ -227,6 +243,31 @@ def test_impact_motivating_case_cruz_outranks_gordon() -> None:
         carry={"bench": 0, "ir": 14, "weeks": 14},
     )
     assert cruz["impact"] < gordon["impact"] < 0
+
+
+def test_impact_uses_position_normalized_value_and_excludes_defense() -> None:
+    weighted = _pick_impact(
+        value=110.0,
+        overall=100,
+        total_picks=180,
+        reg_weeks=14,
+        carry=None,
+        position_mean=70.0,
+        position_stddev=20.0,
+    )
+    assert weighted["impact_components"]["normalized_value"] == 2.0
+    assert weighted["impact"] != 110.0
+
+    defense = _pick_impact(
+        value=60.0,
+        overall=170,
+        total_picks=180,
+        reg_weeks=14,
+        carry=None,
+        weighted_eligible=False,
+    )
+    assert defense["impact"] is None
+    assert defense["impact_components"]["weighted_reason"] == "position_not_weighted"
 
 
 # --- Board over the fixture ------------------------------------------------

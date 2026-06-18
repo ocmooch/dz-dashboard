@@ -19,6 +19,16 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**VERIFIED (2026-06-18):** draft-impact integrity follow-up is implemented on `dev`
+(`docs/plans/P-draft-impact-integrity.md`). Draft scoring now resolves canonical identity
+clusters (2019 Mike Williams receives the linked member stats), rounds tiny differentials to
+positive `0.0` (2025 Elic Ayomanor), and standardizes weighted impact within QB/RB/WR/TE so raw
+QB point scale no longer monopolizes the headline; K/DEF remain in the board and points lens.
+The page has synchronized Weighted/Points leaderboards and chart, independent 3→6→9 expansion,
+position/round/team filters, metric/draft ordering, and robust dotted-initial/long-team labels.
+Gate green: backend **426** tests plus ruff/mypy/write-safety; frontend **187** tests and
+typecheck; generated OpenAPI client verified against the current app.
+
 **In progress (2026-06-18):** `feature/draft-impact-model` builds the deferred "Part C" of the
 draft genuine-zero work (#85): a composite **draft impact** = `value × cost_weight ×
 opportunity_weight` that ranks steals/busts by more than raw points-over-expected. PLAN is

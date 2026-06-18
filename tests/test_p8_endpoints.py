@@ -39,6 +39,9 @@ def test_draft_value_endpoint(client: TestClient) -> None:
     data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2016]}/draft/value"))
     assert data["steals"][0]["player_name"] == KNOWN["draft_top_steal"]["player"]
     assert data["busts"][0]["player_name"] == KNOWN["draft_top_bust"]["player"]
+    assert data["points_steals"][0]["player_name"] == KNOWN["draft_top_steal"]["player"]
+    assert data["points_busts"][0]["player_name"] == KNOWN["draft_top_bust"]["player"]
+    assert data["leaderboard_limit"] == 9
     assert data["slot_window"] == 2
     assert data["definition"]
 

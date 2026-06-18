@@ -810,6 +810,11 @@ class ImpactComponents(BaseModel):
     tuning the weights) can read the number rather than trust it blindly."""
 
     base_value: float  # the honest per-slot value the composite scales
+    normalized_value: float | None  # within-position standardized value; null when ineligible
+    position_mean: float
+    position_stddev: float
+    weighted_eligible: bool
+    weighted_reason: str | None = None
     cost_weight: float  # draft-capital curve (early bust / late steal weigh more)
     opportunity_weight: float  # bust carry amplification (active bench > IR); 1.0 otherwise
     bench_weeks: int  # distinct weeks carried in an active bench slot
@@ -840,9 +845,9 @@ class DraftPick(BaseModel):
     season_year: int | None = None
     season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable
-    # Composite "draft impact" = value scaled by draft cost and carry opportunity
-    # cost. Null exactly when value is null; sign matches value. Components travel
-    # alongside so the weighting is legible. See analytics/draft.py IMPACT_DEFINITION.
+    # Composite "draft impact" = position-normalized value scaled by draft cost
+    # and carry opportunity cost. Null for gaps and positions outside QB/RB/WR/TE.
+    # Components travel alongside so the weighting is legible.
     impact: float | None = None
     impact_components: ImpactComponents | None = None
     available: bool = True
@@ -880,6 +885,9 @@ class DraftValue(BaseModel):
     picks: list[DraftPick]
     steals: list[DraftPick]  # ranked by composite impact (descending)
     busts: list[DraftPick]  # ranked by composite impact (ascending)
+    points_steals: list[DraftPick]  # ranked by raw points-over-expectation
+    points_busts: list[DraftPick]  # ranked by raw points-under-expectation
+    leaderboard_limit: int
 
 
 class DraftRecords(BaseModel):
