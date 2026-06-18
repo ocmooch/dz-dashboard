@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ff_pipeline.repository.models import TeamRoster
+from sqlalchemy import func, select
+
 from ff_dashboard.analytics.teams import (
     team_overview,
     team_roster,
@@ -115,6 +118,36 @@ def test_roster_unknown_team_is_none(session: Session) -> None:
     assert team_roster(session, 999999, week=1) is None
 
 
+def test_roster_pads_short_week_with_empty_slots(session: Session) -> None:
+    # Snapshots record the week-end roster, so a week where players were dropped
+    # and not replaced carries fewer rows. That week should pad up to the team's
+    # usual size with dashed empty slots rather than shrinking. (The fixture has
+    # one team that is full one week and nearly empty the next.)
+    counts: dict[int, dict[int, int]] = {}
+    for tid, wk, n in session.execute(
+        select(TeamRoster.team_id, TeamRoster.week, func.count())
+        .where(TeamRoster.week > 0)
+        .group_by(TeamRoster.team_id, TeamRoster.week)
+    ).all():
+        counts.setdefault(int(tid), {})[int(wk)] = int(n)
+
+    team_id, weeks = next(
+        (tid, wks)
+        for tid, wks in counts.items()
+        if len(wks) > 1 and min(wks.values()) < max(wks.values())
+    )
+    expected = max(weeks.values())
+    short_week = min(weeks, key=lambda w: weeks[w])
+
+    data = team_roster(session, team_id, week=short_week)
+    assert data is not None
+    assert len(data["players"]) == expected  # padded to the team's usual size
+    empties = [p for p in data["players"] if p["is_empty"]]
+    assert len(empties) == expected - weeks[short_week]
+    assert all(p["player_name"] is None and p["league_points"] is None for p in empties)
+    assert any(p["is_empty"] is False for p in data["players"])  # real players remain
+
+
 # --- Schedule --------------------------------------------------------------
 
 
@@ -161,14 +194,14 @@ def test_scoring_trend_works_for_unscored_season(session: Session) -> None:
 # --- Transactions ----------------------------------------------------------
 
 
-def test_transactions_include_exact_recorded_rows(session: Session) -> None:
+def test_transactions_are_acquisitions_only(session: Session) -> None:
+    # The team-transactions feed is scoped to roster acquisitions; the fixture's
+    # `lineup_change` (a start/sit move) must be filtered out.
     ice_2017 = KNOWN["team_id"][(2017, "ice")]
     data = team_transactions(session, ice_2017)
     assert data is not None
-    assert [t["transaction_type"] for t in data["transactions"]] == [
-        "waiver_add",
-        "lineup_change",
-    ]
+    assert [t["transaction_type"] for t in data["transactions"]] == ["waiver_add"]
+    assert all(t["transaction_type"] != "lineup_change" for t in data["transactions"])
 
     waiver = data["transactions"][0]
     assert waiver["executed_at"] == "2017-09-12T10:15:00"
@@ -178,6 +211,3 @@ def test_transactions_include_exact_recorded_rows(session: Session) -> None:
     assert waiver["waiver_priority_used"] == 4
     assert waiver["faab_bid"] is None
     assert waiver["notes"] == "Iceman"
-
-    lineup = data["transactions"][1]
-    assert lineup["extra_data"] == {"from_slot": "BN", "to_slot": "WR"}

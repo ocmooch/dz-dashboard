@@ -19,10 +19,10 @@ Phase 1 facts:
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup
+from ff_pipeline.repository.models import Matchup, TeamRoster
 from ff_pipeline.repository.queries import (
     get_player,
     get_season,
@@ -99,6 +99,33 @@ def team_overview(session: Session, team_id: int) -> dict[str, Any] | None:
         "is_champion": season.champion_team_id == team_id,
         "is_scored": season.year in set(seasons_scored(session)),
     }
+
+
+def _expected_roster_size(session: Session, team_id: int) -> int:
+    """The team-season's usual roster size — its most common week-end row count.
+
+    Roster snapshots record the *week-end* roster, so a week where players were
+    dropped and not replaced carries fewer rows. We pad such weeks up to this
+    size with empty slots (rather than letting them vanish). Derived from the
+    snapshots themselves, not league settings (which drift over time); ties
+    resolve to the larger count so a partly-empty week never sets the bar low.
+    Week 0 (the draft snapshot) is excluded — it isn't a played week.
+    """
+    counts = (
+        session.execute(
+            select(func.count())
+            .select_from(TeamRoster)
+            .where(TeamRoster.team_id == team_id, TeamRoster.week > 0)
+            .group_by(TeamRoster.week)
+        )
+        .scalars()
+        .all()
+    )
+    if not counts:
+        return 0
+    freq = Counter(int(c) for c in counts)
+    top = max(freq.values())
+    return max(c for c, f in freq.items() if f == top)
 
 
 def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, Any] | None:
@@ -188,6 +215,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
                 "roster_slot": roster_row.roster_slot,
                 "is_starter": bool(roster_row.is_starter),
+                "is_empty": False,
                 "league_points": league_points,
                 "zero_reason": zero_reason,
                 "zero_detail": zero_detail,
@@ -198,6 +226,31 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 ),
             }
         )
+
+    # Pad a short week's roster up to the team's usual size with dashed, empty
+    # slots so a week where players were dropped (e.g. a pre-championship purge)
+    # reads as open spots rather than a smaller roster. Negative ids keep the
+    # frontend's per-row keys unique; every other field is null.
+    if players:
+        expected = _expected_roster_size(session, team_id)
+        for i in range(max(0, expected - len(players))):
+            players.append(
+                {
+                    "player_id": -(i + 1),
+                    "player_name": None,
+                    "position": None,
+                    "nfl_team": None,
+                    "roster_slot": None,
+                    "is_starter": False,
+                    "league_points": None,
+                    "zero_reason": None,
+                    "zero_detail": None,
+                    "acquisition_type": None,
+                    "acquisition_week": None,
+                    "is_empty": True,
+                    **injury_fields(None),
+                }
+            )
 
     return {
         "team_id": team_id,
@@ -310,8 +363,19 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
     }
 
 
+# Acquisition transactions — what changed the roster's makeup. Start/sit
+# (`lineup_change`, ~25k rows DB-wide) and league `setting_change` are not
+# acquisitions and would bury the feed, so the team-transactions view drops them.
+ACQUISITION_TXN_TYPES = frozenset({"free_agent_add", "waiver_add", "drop", "trade", "draft"})
+
+
 def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
-    """The season's recorded transactions involving this team (as actor or counterpart)."""
+    """The season's roster-acquisition transactions involving this team.
+
+    Scoped to adds / drops / trades / draft (the moves that changed the roster);
+    lineup changes and league setting changes are excluded — see
+    :data:`ACQUISITION_TXN_TYPES`.
+    """
     require_league(session)
     team = get_team(session, team_id)
     if team is None:
@@ -322,6 +386,8 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
 
     items: list[dict[str, Any]] = []
     for t in transactions_for_team(session, team_id):
+        if t.transaction_type not in ACQUISITION_TXN_TYPES:
+            continue
         player = get_player(session, t.player_id) if t.player_id is not None else None
         counterpart = (
             get_team(session, t.counterpart_team_id) if t.counterpart_team_id is not None else None

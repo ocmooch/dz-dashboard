@@ -684,6 +684,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Teams
+         * @description Every team across all played seasons — the Teams browser's flat index.
+         */
+        get: operations["list_teams_v1_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/teams/{team_id}": {
         parameters: {
             query?: never;
@@ -1506,6 +1526,11 @@ export interface components {
         /** Envelope[TeamTransactions] */
         Envelope_TeamTransactions_: {
             data: components["schemas"]["TeamTransactions"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[TeamsIndex] */
+        Envelope_TeamsIndex_: {
+            data: components["schemas"]["TeamsIndex"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[TopScorers] */
@@ -2878,6 +2903,11 @@ export interface components {
             roster_slot?: string | null;
             /** Is Starter */
             is_starter: boolean;
+            /**
+             * Is Empty
+             * @default false
+             */
+            is_empty: boolean;
             /** League Points */
             league_points?: number | null;
             /** Zero Reason */
@@ -2960,6 +2990,48 @@ export interface components {
             season_year: number;
             /** Transactions */
             transactions: components["schemas"]["TeamTransaction"][];
+        };
+        /** TeamsIndex */
+        TeamsIndex: {
+            /** Teams */
+            teams: components["schemas"]["TeamsIndexRow"][];
+        };
+        /**
+         * TeamsIndexRow
+         * @description One team (an owner's season entry) for the Teams browser.
+         *
+         *     The owner-season row plus owner identity, so the SPA can group the flat list
+         *     by season or by owner without further lookups or math.
+         */
+        TeamsIndexRow: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year?: number | null;
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Wins */
+            wins: number;
+            /** Losses */
+            losses: number;
+            /** Ties */
+            ties: number;
+            /** Points For */
+            points_for: number;
+            /** Final Rank */
+            final_rank?: number | null;
+            /** Made Playoffs */
+            made_playoffs?: boolean | null;
+            /** Result */
+            result?: string | null;
+            /** Is Champion */
+            is_champion: boolean;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
         };
         /** TimelinePoint */
         TimelinePoint: {
@@ -4157,6 +4229,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_teams_v1_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_TeamsIndex_"];
                 };
             };
         };

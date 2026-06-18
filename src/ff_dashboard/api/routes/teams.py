@@ -14,6 +14,8 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.models import Asset, Team
 
+from ff_dashboard.analytics.common import require_league
+from ff_dashboard.analytics.owners import teams_index
 from ff_dashboard.analytics.teams import (
     team_overview,
     team_roster,
@@ -34,10 +36,19 @@ from ff_dashboard.api.schemas import (
     TeamRosterOut,
     TeamSchedule,
     TeamScoringTrend,
+    TeamsIndex,
     TeamTransactions,
 )
 
 router = APIRouter(tags=["teams"])
+
+
+@router.get("/v1/teams", response_model=Envelope[TeamsIndex])
+def list_teams(session: SessionDep, cache: CacheDep) -> Envelope[TeamsIndex]:
+    """Every team across all played seasons — the Teams browser's flat index."""
+    require_league(session)
+    rows = cache.get_or_compute(session, "teams_index", lambda: teams_index(session))
+    return Envelope(data=TeamsIndex(teams=rows), meta=build_meta(session))
 
 
 @router.get("/v1/teams/{team_id}/avatar", include_in_schema=False)

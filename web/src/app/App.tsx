@@ -19,6 +19,7 @@ import { RivalriesPage } from "@/features/rivalries/RivalriesPage";
 import { StandingsPage } from "@/features/standings/StandingsPage";
 import { StatsPage } from "@/features/stats/StatsPage";
 import { TeamPage } from "@/features/teams/TeamPage";
+import { TeamsIndexPage } from "@/features/teams/TeamsIndexPage";
 
 import { AppShell } from "./shell/AppShell";
 import { SeasonProvider } from "./shell/SeasonContext";
@@ -49,6 +50,7 @@ export function App() {
             <Route path="players" element={<PlayersPage />} />
             <Route path="players/:playerId" element={<PlayerDetailPage />} />
             <Route path="stats" element={<StatsPage />} />
+            <Route path="teams" element={<TeamsIndexPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<DraftPage />} />
             <Route path="about" element={<AboutPage />} />

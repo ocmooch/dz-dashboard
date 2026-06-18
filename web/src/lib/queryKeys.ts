@@ -39,6 +39,7 @@ export const qk = {
   topScorers: (filters: Record<string, unknown>) => ["stats", "top-scorers", filters] as const,
   seasonTotals: (filters: Record<string, unknown>) =>
     ["stats", "season-totals", filters] as const,
+  teams: ["teams"] as const,
   team: (teamId: number) => ["team", teamId] as const,
   teamRoster: (teamId: number, week: number | null) => ["team", teamId, "roster", week] as const,
   teamSchedule: (teamId: number) => ["team", teamId, "schedule"] as const,

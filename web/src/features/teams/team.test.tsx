@@ -65,6 +65,8 @@ const TREND = {
   ],
 };
 
+// Acquisitions only — the backend filters out lineup/setting changes, so the
+// feed carries adds / drops / trades / draft.
 const TRANSACTIONS = {
   team_id: 10,
   season_year: 2017,
@@ -81,26 +83,28 @@ const TRANSACTIONS = {
       faab_bid: null,
       counterpart_team_id: null,
       counterpart_team_name: null,
-      notes: "Iceman",
+      notes: "Iceman via Mobile Device",
       extra_data: null,
     },
     {
       transaction_id: 2,
-      transaction_type: "lineup_change",
+      transaction_type: "trade",
       executed_at: "2017-09-17T09:05:00+00:00",
       effective_week: 2,
-      player_id: 1,
-      player_name: "Kept Player",
+      player_id: 5,
+      player_name: "Traded Tom",
       direction: null,
       waiver_priority_used: null,
       faab_bid: null,
-      counterpart_team_id: null,
-      counterpart_team_name: null,
+      counterpart_team_id: 9,
+      counterpart_team_name: "Maverick 2017",
       notes: "Iceman",
-      extra_data: { from_slot: "BN", to_slot: "WR" },
+      extra_data: null,
     },
   ],
 };
+
+const NO_TRANSACTIONS = { team_id: 10, season_year: 2017, transactions: [] };
 
 const ROSTER_MOVES = {
   team_id: 10,
@@ -125,6 +129,7 @@ const OWNER_SEASONS = {
 };
 
 let rosterMoves: unknown = ROSTER_MOVES;
+let transactions: unknown = TRANSACTIONS;
 
 function LocationProbe() {
   const location = useLocation();
@@ -136,7 +141,7 @@ function routeByPath(path: string) {
   if (path === "/v1/teams/{team_id}/roster") return envelope(ROSTER);
   if (path === "/v1/teams/{team_id}/schedule") return envelope(SCHEDULE);
   if (path === "/v1/teams/{team_id}/scoring-trend") return envelope(TREND);
-  if (path === "/v1/teams/{team_id}/transactions") return envelope(TRANSACTIONS);
+  if (path === "/v1/teams/{team_id}/transactions") return envelope(transactions);
   if (path === "/v1/teams/{team_id}/roster-moves") return envelope(rosterMoves);
   if (path === "/v1/owners/{owner_id}/seasons") return envelope(OWNER_SEASONS);
   throw new Error(`unexpected path ${path}`);
@@ -160,6 +165,7 @@ function renderPage() {
 beforeEach(() => {
   get.mockReset();
   rosterMoves = ROSTER_MOVES;
+  transactions = TRANSACTIONS;
   get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
 });
 
@@ -246,27 +252,34 @@ describe("TeamPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders exact recorded transactions with dates and waiver details", async () => {
+  it("renders the exact log with type labels and trades, hiding actor/device noise", async () => {
     renderPage();
     expect(await screen.findByText("Transactions")).toBeInTheDocument();
-    expect((await screen.findAllByText("Waiver Wendell")).length).toBeGreaterThan(0);
-    expect(screen.getByText("waiver add")).toBeInTheDocument();
-    expect(screen.getByText(/waiver priority 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/BN to WR/i)).toBeInTheDocument();
+    expect(await screen.findByText("Waiver Wendell")).toBeInTheDocument();
+    expect(screen.getByText("Waiver")).toBeInTheDocument();
+    expect(screen.getByText(/waiver #4/i)).toBeInTheDocument();
+    // The trade is interleaved with its counterpart team.
+    expect(screen.getByText("Traded Tom")).toBeInTheDocument();
+    expect(screen.getByText("Trade")).toBeInTheDocument();
+    expect(screen.getByText(/with Maverick 2017/i)).toBeInTheDocument();
+    // The actor/device note is suppressed (the owner is implied).
+    expect(screen.queryByText(/Mobile Device/i)).not.toBeInTheDocument();
   });
 
-  it("renders in-season add/drop rows with action pills and a retained count", async () => {
+  it("falls back to the derived roster diff, flagged, only when no exact log exists", async () => {
+    transactions = NO_TRANSACTIONS;
     renderPage();
-    await screen.findByText("Waiver Wendell");
+    // The single derived flag makes the fallback's provenance explicit.
+    expect(await screen.findByText(/Derived from week-to-week rosters/i)).toBeInTheDocument();
+    expect(await screen.findByText("Waiver Wendell")).toBeInTheDocument();
     expect(screen.getByText("Dropped D/ST")).toBeInTheDocument();
     expect(screen.getByText("add")).toBeInTheDocument();
     expect(screen.getByText("drop")).toBeInTheDocument();
-    // Retained roster-diff players are a de-emphasised secondary count, not full rows.
     expect(screen.getByText(/1 player retained all season/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Kept Player")).toHaveLength(1);
   });
 
-  it("renders the roster-history gap (not zeros) when moves are unavailable", async () => {
+  it("renders the roster-history gap (not zeros) when no log and moves are unavailable", async () => {
+    transactions = NO_TRANSACTIONS;
     rosterMoves = {
       team_id: 10,
       season_year: 2017,
@@ -281,7 +294,8 @@ describe("TeamPage", () => {
     expect(gap.textContent).not.toMatch(/\b0\b/);
   });
 
-  it("shows no roster churn when there is retain-only history", async () => {
+  it("shows no roster churn when there is no log and retain-only history", async () => {
+    transactions = NO_TRANSACTIONS;
     rosterMoves = {
       team_id: 10,
       season_year: 2017,
@@ -292,5 +306,82 @@ describe("TeamPage", () => {
     };
     renderPage();
     expect(await screen.findByText(/No roster churn detected/i)).toBeInTheDocument();
+  });
+
+  it("renders an open roster spot as a dashed empty slot, not a player", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/teams/{team_id}/roster") {
+        return Promise.resolve(
+          envelope({
+            ...ROSTER,
+            players: [
+              ROSTER.players[0],
+              {
+                player_id: -1,
+                player_name: null,
+                position: null,
+                nfl_team: null,
+                roster_slot: null,
+                is_starter: false,
+                league_points: null,
+                is_empty: true,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    expect(await screen.findByText("empty slot")).toBeInTheDocument();
+    expect(screen.getByText("Ice QB One")).toBeInTheDocument();
+  });
+
+  it("groups transactions by week with a collapsible Draft bucket", async () => {
+    transactions = {
+      team_id: 10,
+      season_year: 2017,
+      transactions: [
+        {
+          transaction_id: 10,
+          transaction_type: "draft",
+          executed_at: "2017-08-01T00:00:00+00:00",
+          effective_week: 0,
+          player_id: 7,
+          player_name: "Drafted Dan",
+          direction: null,
+          waiver_priority_used: null,
+          faab_bid: null,
+          counterpart_team_id: null,
+          counterpart_team_name: null,
+          notes: null,
+          extra_data: null,
+        },
+        {
+          transaction_id: 11,
+          transaction_type: "free_agent_add",
+          executed_at: "2017-09-25T00:00:00+00:00",
+          effective_week: 3,
+          player_id: 8,
+          player_name: "Week3 Willie",
+          direction: "in",
+          waiver_priority_used: null,
+          faab_bid: null,
+          counterpart_team_id: null,
+          counterpart_team_name: null,
+          notes: null,
+          extra_data: null,
+        },
+      ],
+    };
+    renderPage();
+    // The latest week is open; the Draft bucket exists but starts collapsed.
+    expect(await screen.findByText("Week 3")).toBeInTheDocument();
+    expect(screen.getByText("Week3 Willie")).toBeInTheDocument();
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+    expect(screen.queryByText("Drafted Dan")).not.toBeInTheDocument();
+    // Expanding the Draft bucket reveals the pick.
+    await userEvent.click(screen.getByText("Draft"));
+    expect(await screen.findByText("Drafted Dan")).toBeInTheDocument();
   });
 });
