@@ -316,6 +316,7 @@ class SeasonBracket(BaseModel):
 
 class ConferenceTeam(BaseModel):
     rank: int
+    overall_rank: int
     team_id: int
     team_name: str | None = None
     owner_id: int
@@ -329,6 +330,9 @@ class ConferenceTeam(BaseModel):
     streak: Streak
     final_rank: int | None = None
     conference_rank: int
+    division_wins: int
+    division_losses: int
+    division_ties: int
 
 
 class ConferenceSection(BaseModel):
@@ -341,8 +345,11 @@ class ConferenceSection(BaseModel):
 class SeasonConferences(BaseModel):
     season_id: int
     season_year: int
+    through_week: int
+    regular_season_weeks: int
     available: bool
     reason: str | None = None
+    mapping_issues: list[str] = []
     conferences: list[ConferenceSection]
 
 

@@ -52,6 +52,14 @@ the records era split, week-capped season totals, and matchup entering-records a
   team's score against every other played team's score. `standings_insights()` exposes all-play
   win pct, expected wins, and `luck_delta = actual_wins - expected_wins`. This is team-total
   only and works for any season with matchup scores.
+- **Historical divisions (2010–2019)** — `analytics/conferences.py` joins the reviewed
+  `data/historical_divisions.json` artifact to `teams.team_abbrev` (NFL.com team ID). Weekly
+  W-L-T, PF, PA, Win%, and streak still come from `compute_standings()`; in-division W-L-T counts
+  opponent-linked regular-season matchup rows where both teams map to the same source division.
+  Midseason division order is the existing weekly overall order filtered into each division.
+  At the completed regular-season week, division and overall ranks come directly from NFL.com's
+  captured regular-standings ranks. Missing, duplicate, extra, or multi-division mappings return
+  `historical_division_mapping_gap`; no partial table is fabricated.
 
 ## 2. Power ranking (`analytics/power.py`)
 

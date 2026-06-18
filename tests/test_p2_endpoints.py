@@ -100,6 +100,17 @@ def test_conferences_endpoint_reports_real_season_year(client: TestClient) -> No
     assert isinstance(data["available"], bool)
 
 
+def test_conferences_endpoint_accepts_week_and_reports_mapping_gap(client: TestClient) -> None:
+    data = _envelope(
+        client.get(f"/v1/seasons/{KNOWN['season_id'][2017]}/conferences?through_week=1")
+    )
+    assert data["through_week"] == 1
+    assert data["regular_season_weeks"] == 2
+    assert data["available"] is False
+    assert data["reason"] == "historical_division_mapping_gap"
+    assert data["mapping_issues"]
+
+
 def test_conferences_not_found(client: TestClient) -> None:
     resp = client.get("/v1/seasons/99999/conferences")
     assert resp.status_code == 404

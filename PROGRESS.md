@@ -19,6 +19,23 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
 
+**VERIFIED (2026-06-17):** `feature/bff-weekly-division-standings` supersedes the narrow
+dead-conferences raw-SQL repair with BFF-owned weekly historical division standings. PLAN is
+recorded in `docs/plans/bff-weekly-division-standings.md`: a reviewed NFL.com 2010–2019 division
+artifact, exact matchup-derived weekly division records, source-ranked completed-season tables,
+synchronized Record-lens week navigation, stacked historical tables, and full backend/component/
+e2e/visual verification. The authenticated source capture is normalized and pinned (120 rows);
+artifact validation, weekly analytics, mapping gaps, API query/schema, generated client, stacked
+Record-lens UI, synchronized week requests, fixture-only e2e divisions, and backend/component/e2e
+coverage are implemented. Full gate green: backend pytest **387**, ruff check/format, mypy, and
+write-safety; generated API no-drift; frontend typecheck + **176** Vitest tests; **15** Playwright
+journey/visual tests. Authenticated read-only source audit passes all ten seasons. Real-DB
+early/middle/final inspection confirms complete 12-team tables and rank semantics for 2010, 2011,
+2018, and 2019, with 2020 consistently ungrouped. **Post-review fixes:** historical division-query
+failures now own a visible retryable error state, and a stale URL week is normalized when switching
+to a shorter season (for example 2010 W14 → 2011 W13). Frontend gate remains green at **178**
+Vitest tests plus the historical Playwright journey. **Ready to PR → `dev`.**
+
 **In progress (2026-06-17):** `feature/teams-menu-and-page-refinements` surfaces the team pages and
 reshapes their content. New top-level **Teams** nav → `TeamsIndexPage` (a flat `/v1/teams` index,
 backed by `owners.teams_index()` reusing the standings/owner-season helpers) grouped collapsibly
@@ -184,25 +201,18 @@ All remaining work is tracked in **`docs/ACTIVE_WORK.md`**. In priority order:
    for the recurring data-gap / wrong-`player_id` whack-a-mole. Three handoff prompts under
    `docs/handoffs/`: start at `00-data-integrity-program.md`, then `player-identity-resolution.md`
    and `data-coverage-matrix.md` (paramount). `docs/ACTIVE_WORK.md` §0.
-1. **Repair the silently-dead conferences feature** (dashboard, do first; see Open items). The gate
-   is green but `analytics/conferences.py` returns empty for the entire 2010–2019 conference era.
-   Fix = the raw-SQL rewrite `standings.py` already uses. `docs/ACTIVE_WORK.md` §6.1.
-2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
+1. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
    F-49 playoff/consolation metadata, F-27 reconstructed-scoring trust check, F-25 player-identity
    residuals, F-37 FAAB, and F-06 ownership succession (⊘ blocked — needs a source ledger you
    supply). `docs/ACTIVE_WORK.md` §2.
-3. **League-history expansion** (dashboard, last) — gated on the UP outputs (per-season config
+2. **League-history expansion** (dashboard, last) — gated on the UP outputs (per-season config
    ledger). `docs/ACTIVE_WORK.md` §3.
 
 ## Open items / deviations
 
-- **Conferences feature is silently dead (functional, not a gate failure).** `analytics/conferences.py`
-  still imports non-existent Phase-1 ORM models (`SeasonConference`, `Team.conference_id`), so
-  `_CONFERENCE_MODELS_AVAILABLE` is `False` at runtime (verified 2026-06-15). Every season wrongly
-  returns `no_conferences_this_season` and `conference_map()` (used by `analytics/bracket.py`)
-  returns `{}` — the 2010–2019 conference era is invisible. The data is fine: `standings.py` already
-  reads the same `teams` / `season_conferences` tables via raw SQL. **Fix:** rewrite
-  `conferences.py` to use the same raw SQL. Full handoff: `docs/ACTIVE_WORK.md` §6.1.
+- **Historical divisions repaired and verified.** The presumed Phase 1 conference tables/columns
+  do not exist in the live schema; the dashboard now owns the reviewed source artifact and returns
+  exact weekly division tables. Branch is ready to PR.
 - **Phantom week-1-only teams (identity artifact).** 1–2 phantom week-1-only teams per season with
   duplicate/garbled names, present 2010–2018 and absent 2019/2023/2025. Separate from the repaired
   F-53 roster-churn corruption; belongs with owner/team-identity research (F-06).

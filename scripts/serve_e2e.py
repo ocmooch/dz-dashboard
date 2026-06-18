@@ -37,9 +37,59 @@ def main() -> None:
     os.environ["DASHBOARD_STATIC_DIR"] = str(PROJECT_ROOT / "web" / "dist")
     os.environ["DASHBOARD_PORT"] = str(PORT)
 
+    # The compact e2e fixture intentionally has four teams per season, while
+    # the reviewed production artifact has twelve. Supply a deterministic
+    # fixture-only source so browser tests exercise the real grouping, weekly
+    # record, API, and presentation path without weakening production mapping.
+    from ff_pipeline.repository.models import Team
+    from sqlalchemy import select
+
+    from ff_dashboard.analytics import conferences
+    from ff_dashboard.analytics.historical_divisions import (
+        HistoricalDivision,
+        HistoricalDivisionSeason,
+        HistoricalDivisionTeam,
+    )
+    from ff_dashboard.api.main import create_app
+
+    def fixture_source(session, season_id: int, year: int):  # type: ignore[no-untyped-def]
+        if year >= 2020:
+            return None, {}, []
+        team_ids = list(
+            session.execute(
+                select(Team.team_id).where(Team.season_id == season_id).order_by(Team.team_id)
+            ).scalars()
+        )
+        mapping = {index: int(team_id) for index, team_id in enumerate(team_ids, start=1)}
+        source = HistoricalDivisionSeason(
+            season=year,
+            source_url="fixture://historical-divisions",
+            captured_at="2026-06-17",
+            divisions=(
+                HistoricalDivision(
+                    division_number=1,
+                    name="Westeros",
+                    teams=tuple(
+                        HistoricalDivisionTeam(index, rank, index)
+                        for rank, index in enumerate((1, 2), start=1)
+                    ),
+                ),
+                HistoricalDivision(
+                    division_number=2,
+                    name="Essos",
+                    teams=tuple(
+                        HistoricalDivisionTeam(index, rank, index)
+                        for rank, index in enumerate((3, 4), start=1)
+                    ),
+                ),
+            ),
+        )
+        return source, mapping, []
+
+    conferences._mapped_source = fixture_source
+    app = create_app()
     uvicorn.run(
-        "ff_dashboard.api.main:create_app",
-        factory=True,
+        app,
         host="127.0.0.1",
         port=PORT,
         log_level="warning",
