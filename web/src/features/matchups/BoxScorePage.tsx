@@ -5,6 +5,7 @@ import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -191,17 +192,35 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   );
 }
 
-function TeamColumn({ team, isWinner }: { team: BoxTeam; isWinner: boolean }) {
+function TeamColumn({
+  team,
+  isWinner,
+  margin,
+}: {
+  team: BoxTeam;
+  isWinner: boolean;
+  margin: number | null | undefined;
+}) {
   const starters = team.lineup.filter((p) => p.is_starter);
   const { rows, series } = breakdownChart(starters);
+  // Signed margin beside the total, mirroring the weekly grid: winner +, loser −.
+  const signedMargin = margin == null ? null : isWinner ? margin : -margin;
   return (
     <Card>
       <CardHeader
         eyebrow={team.owner_name ?? undefined}
         title={team.team_name ?? "—"}
         action={
-          <span className={`num text-[var(--fs-h1)] font-bold ${isWinner ? "text-win" : "text-muted"}`}>
-            {num(team.total_score)}
+          <span className="flex flex-col items-end">
+            <span className={`num text-[var(--fs-h1)] font-bold ${isWinner ? "text-win" : "text-muted"}`}>
+              {num(team.total_score)}
+            </span>
+            {signedMargin != null && (
+              <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+                {signedMargin > 0 ? "+" : ""}
+                {num(signedMargin)}
+              </span>
+            )}
           </span>
         }
       />
@@ -307,11 +326,23 @@ export function BoxScorePage() {
         </div>
       )}
 
+      {data && data.available && data.flags && data.flags.length > 0 && (
+        <MatchupFlags flags={data.flags} />
+      )}
+
       {data && data.available && data.home && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <TeamColumn team={data.home} isWinner={data.winner_team_id === data.home.team_id} />
+          <TeamColumn
+            team={data.home}
+            isWinner={data.winner_team_id === data.home.team_id}
+            margin={data.margin}
+          />
           {data.away && (
-            <TeamColumn team={data.away} isWinner={data.winner_team_id === data.away.team_id} />
+            <TeamColumn
+              team={data.away}
+              isWinner={data.winner_team_id === data.away.team_id}
+              margin={data.margin}
+            />
           )}
         </div>
       )}

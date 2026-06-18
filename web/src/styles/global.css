@@ -120,6 +120,53 @@
     background: color-mix(in oklab, var(--warn) 12%, transparent);
   }
 
+  /* ===================== MATCHUP FLAGS (superlatives) =====================
+     A flag is a superlative about a game — what made it memorable. Styled as a
+     tag with a small rotated marker so it reads distinctly from the rounded data
+     Badges above. Tone (win/loss/accent/warn/muted) is driven by --flag-color. */
+  .dz-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .dz-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    color: var(--flag-color, var(--text-muted));
+    border: 1px solid color-mix(in srgb, var(--flag-color, var(--text-muted)) 35%, transparent);
+    background: color-mix(in srgb, var(--flag-color, var(--text-muted)) 10%, transparent);
+  }
+  .dz-flag__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--flag-color, var(--text-muted));
+    transform: rotate(45deg);
+  }
+  .dz-flag--win {
+    --flag-color: var(--win);
+  }
+  .dz-flag--loss {
+    --flag-color: var(--loss);
+  }
+  .dz-flag--accent {
+    --flag-color: var(--accent);
+  }
+  .dz-flag--warn {
+    --flag-color: var(--warn);
+  }
+  .dz-flag--muted {
+    --flag-color: var(--text-muted);
+  }
+
   /* ===================== DATA GAP (honest, quiet-but-unmistakable) =====================
      The single most important behavioral affordance: never a fake 0.
      Dashed border + 135deg hatch + amber rotated-square diamond. */

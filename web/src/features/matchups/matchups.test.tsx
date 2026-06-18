@@ -38,18 +38,16 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
-      is_close: false,
-      is_blowout: false,
+      flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
       winner_team_id: 10,
     },
     {
       matchup_id: 713,
       is_playoff: false,
-      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
+      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 180.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
-      margin: 40.4,
-      is_close: false,
-      is_blowout: true,
+      margin: 60.4,
+      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" }],
       winner_team_id: 12,
     },
   ],
@@ -62,6 +60,8 @@ const BOX = {
   available: true,
   is_playoff: false,
   winner_team_id: 10,
+  margin: 5,
+  flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
   home: {
     team_id: 10,
     team_name: "Iceman 2017",
@@ -180,10 +180,12 @@ describe("MatchupsPage", () => {
     expect(screen.getByText("130.00")).toBeInTheDocument();
   });
 
-  it("shows the blowout margin badge on a lopsided game", async () => {
+  it("shows the blowout superlative flag on a lopsided game", async () => {
     renderWithProviders(<MatchupsPage />);
     await screen.findByText("Mav 2017");
-    expect(screen.getByText(/blowout/i)).toBeInTheDocument();
+    const flag = screen.getByText("Blowout");
+    expect(flag).toBeInTheDocument();
+    expect(flag.closest(".dz-flag")).toHaveClass("dz-flag--loss");
   });
 
   it("colors each side's margin with a signed winner and loser value", async () => {
@@ -593,5 +595,14 @@ describe("BoxScorePage", () => {
     expect(winnerScore).toHaveClass("text-win");
     // The loser's total appears muted (other 125.00s are stat values, not the header).
     expect(screen.getAllByText("125.00").some((el) => el.classList.contains("text-muted"))).toBe(true);
+  });
+
+  it("shows the same superlative flags and a signed margin as the weekly grid", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Iceman 2017");
+    expect(screen.getByText("Nailbiter")).toBeInTheDocument();
+    // Winner +5, loser −5 beside each total.
+    expect(screen.getByText("+5.00")).toHaveClass("text-win");
+    expect(screen.getByText("-5.00")).toHaveClass("text-loss");
   });
 });

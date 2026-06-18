@@ -1,4 +1,4 @@
-"""fix-P1 / F-13 + F-17 — week-matchup close/blowout flags + entering record."""
+"""fix-P1 / F-13 + F-17 — week-matchup superlative flags + entering record."""
 
 from __future__ import annotations
 
@@ -33,30 +33,37 @@ def _game_with(games: list[dict[str, Any]], team_id: int) -> dict[str, Any]:
     raise AssertionError(f"game for team {team_id} not found")
 
 
+def _kinds(game: dict[str, Any]) -> set[str]:
+    return {f["kind"] for f in game["flags"]}
+
+
 def test_blowout_flag(session: Session) -> None:
     games = _games(session, 2016, 1)
-    # Maverick 150 - Iceman 80 = 70-pt margin → blowout, not close.
+    # Maverick 150 - Iceman 80 = 70-pt margin → blowout, not nailbiter.
     g = _game_with(games, KNOWN["team_id"][(2016, "mav")])
     assert g["margin"] == 70.0
-    assert g["is_blowout"] is True
-    assert g["is_close"] is False
+    kinds = _kinds(g)
+    assert "blowout" in kinds
+    assert "nailbiter" not in kinds
 
 
 def test_close_flag(session: Session) -> None:
     games = _games(session, 2016, 1)
-    # Goose 100.5 - Slider 99.5 = 1-pt margin → close, not blowout.
+    # Goose 100.5 - Slider 99.5 = 1-pt margin → nailbiter, not blowout.
     g = _game_with(games, KNOWN["team_id"][(2016, "goose")])
     assert g["margin"] == 1.0
-    assert g["is_close"] is True
-    assert g["is_blowout"] is False
+    kinds = _kinds(g)
+    assert "nailbiter" in kinds
+    assert "blowout" not in kinds
 
 
 def test_neither_flag(session: Session) -> None:
-    # Maverick 120 - Goose 110 in wk2 = 10-pt margin → neither close nor blowout.
+    # Maverick 120 - Goose 110 in wk2 = 10-pt margin → neither blowout nor nailbiter.
     g = _game_with(_games(session, 2016, 2), KNOWN["team_id"][(2016, "mav")])
     assert g["margin"] == 10.0
-    assert g["is_close"] is False
-    assert g["is_blowout"] is False
+    kinds = _kinds(g)
+    assert "blowout" not in kinds
+    assert "nailbiter" not in kinds
 
 
 def test_entering_record_week1_is_zero(session: Session) -> None:

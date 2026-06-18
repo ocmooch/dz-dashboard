@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, WeekStepper } from "@/design-system";
+import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -63,14 +64,9 @@ function GameCardView({ game }: { game: GameCard }) {
       to={`/matchups/${game.matchup_id}`}
       className="block rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] p-4 transition-colors hover:border-[var(--accent)]"
     >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="dz-eyebrow">{game.is_playoff ? "playoff" : "regular season"}</span>
-        {game.margin != null && (
-          <Badge variant={game.is_blowout ? "loss" : "default"}>
-            {game.is_blowout ? "blowout " : "margin "}
-            {num(game.margin)}
-          </Badge>
-        )}
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <span className="dz-eyebrow shrink-0 pt-1">{game.is_playoff ? "playoff" : "regular season"}</span>
+        <MatchupFlags flags={game.flags} className="justify-end" />
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <TeamSide team={game.team_a} align="left" margin={game.margin} />

@@ -42,6 +42,11 @@ from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.matchup_flags import (
+    flags_for_game,
+    season_score_context,
+    week_score_context,
+)
 from ff_dashboard.analytics.player_status import should_suppress_status
 from ff_dashboard.analytics.roster_snapshots import (
     is_reconstructed_week,
@@ -49,11 +54,6 @@ from ff_dashboard.analytics.roster_snapshots import (
     snapshot_kind,
 )
 from ff_dashboard.analytics.season_schedule import season_schedule
-
-# Margin thresholds for the week-matchup flags. Kept here (backend) rather than
-# in the SPA so "no metric math in web" holds; the frontend reads the booleans.
-CLOSE_MARGIN = 5.0  # a decided/tied game within 5 points
-BLOWOUT_MARGIN = 40.0  # a margin of 40+ points
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -899,10 +899,12 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
 
     away: dict[str, Any] | None = None
     winner_team_id: int | None = None
+    margin: float | None = None
     if m.opponent_team_id is not None:
         away = _team_box(session, m.opponent_team_id, season, m.week, m.opponent_score)
         # Winner from the authoritative team scores (the real game result).
         if m.team_score is not None and m.opponent_score is not None:
+            margin = round(abs(m.team_score - m.opponent_score), 2)
             if m.team_score > m.opponent_score:
                 winner_team_id = m.team_id
             elif m.opponent_score > m.team_score:
@@ -920,6 +922,30 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
                 sorted(shared),
             )
 
+    # Superlative flags — the same set the weekly grid shows, so the two views
+    # never disagree. Entering records (for the upset flag) come from the existing
+    # regular-season helper; bye/unscored games simply produce no flags.
+    entering = _entering_records(session, season, m.week)
+
+    def flag_side(team_id: int | None, score: float | None) -> dict[str, Any] | None:
+        if team_id is None:
+            return None
+        return {
+            "team_id": team_id,
+            "score": round(score, 2) if score is not None else None,
+            "entering_record": entering.get(team_id, {"wins": 0, "losses": 0, "ties": 0}),
+        }
+
+    flags = flags_for_game(
+        team_a=flag_side(m.team_id, m.team_score),
+        team_b=flag_side(m.opponent_team_id, m.opponent_score),
+        winner_team_id=winner_team_id,
+        margin=margin,
+        week=m.week,
+        season_ctx=season_score_context(session, season.season_id, season.year),
+        week_ctx=week_score_context(session, season.season_id, m.week),
+    )
+
     return {
         "matchup_id": matchup_id,
         "season_year": season.year,
@@ -931,6 +957,8 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,
+        "margin": margin,
+        "flags": flags,
     }
 
 
@@ -993,6 +1021,10 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
     owners = owner_name_map(session)
     teams: dict[int, Any] = {}
     entering = _entering_records(session, season, week)
+    # Computed once per call and shared across every game card; the route caches
+    # this whole function per (season, week).
+    season_ctx = season_score_context(session, season_id, season.year)
+    week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -1037,18 +1069,27 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         if m.team_score is not None and m.opponent_score is not None:
             margin = round(abs(m.team_score - m.opponent_score), 2)
 
+        team_a = team_ref(m.team_id, m.team_score, winner_team_id == m.team_id)
+        team_b = team_ref(
+            m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
+        )
         games.append(
             {
                 "matchup_id": m.matchup_id,
                 "is_playoff": bool(m.is_playoff),
-                "team_a": team_ref(m.team_id, m.team_score, winner_team_id == m.team_id),
-                "team_b": team_ref(
-                    m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
-                ),
+                "team_a": team_a,
+                "team_b": team_b,
                 "margin": margin,
-                "is_close": margin is not None and margin <= CLOSE_MARGIN,
-                "is_blowout": margin is not None and margin >= BLOWOUT_MARGIN,
                 "winner_team_id": winner_team_id,
+                "flags": flags_for_game(
+                    team_a=team_a,
+                    team_b=team_b,
+                    winner_team_id=winner_team_id,
+                    margin=margin,
+                    week=week,
+                    season_ctx=season_ctx,
+                    week_ctx=week_ctx,
+                ),
             }
         )
 

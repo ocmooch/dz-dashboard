@@ -59,8 +59,8 @@ document, so the contract is enforced at build time.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `is_close` / `is_blowout` (backend margin flags) and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
-| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual, team point share, lineup-value labels; a genuinely-missing DEF row flagged |
+| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `margin`, a `flags` list of superlative `MatchupFlag`s (`blowout`/`nailbiter`/`season_high`/`dud`/`shootout`/`cold_snap`/`tough_luck`/`upset`/`monster_game` — see `analytics/matchup_flags.py`), and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
+| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual, team point share, lineup-value labels; a genuinely-missing DEF row flagged. Also carries the same `margin` + `flags` as the game card so the box score and grid agree |
 
 ### Teams
 

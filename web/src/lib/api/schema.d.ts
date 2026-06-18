@@ -936,6 +936,13 @@ export interface components {
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
             winner_team_id?: number | null;
+            /** Margin */
+            margin?: number | null;
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["MatchupFlag"][];
         };
         /** BoxTeam */
         BoxTeam: {
@@ -1558,9 +1565,8 @@ export interface components {
         /**
          * GameCard
          * @description One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-         *     deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
-         *     margin flags (thresholds in ``analytics/matchups.py``); both False when the
-         *     game has no scores yet.
+         *     deep-links to the box score. ``margin`` drives the inline signed indicator;
+         *     ``flags`` are the superlatives (empty when the game has no scores yet).
          */
         GameCard: {
             /** Matchup Id */
@@ -1575,15 +1581,10 @@ export interface components {
             /** Margin */
             margin?: number | null;
             /**
-             * Is Close
-             * @default false
+             * Flags
+             * @default []
              */
-            is_close: boolean;
-            /**
-             * Is Blowout
-             * @default false
-             */
-            is_blowout: boolean;
+            flags: components["schemas"]["MatchupFlag"][];
             /** Winner Team Id */
             winner_team_id?: number | null;
         };
@@ -1937,6 +1938,26 @@ export interface components {
             seasons_managed: number;
             /** Identity Source */
             identity_source: string;
+        };
+        /**
+         * MatchupFlag
+         * @description A superlative about a game — what made it memorable, not bare margin.
+         *     Computed in ``analytics/matchup_flags.py``; the SPA only renders it.
+         *     ``team_id`` is set for one-sided flags (e.g. ``season_high``, ``upset``);
+         *     ``tone`` is a color hint (``win`` | ``loss`` | ``accent`` | ``warn`` |
+         *     ``muted``); ``detail`` is tooltip copy.
+         */
+        MatchupFlag: {
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Tone */
+            tone: string;
+            /** Team Id */
+            team_id?: number | null;
+            /** Detail */
+            detail?: string | null;
         };
         /**
          * Meta
