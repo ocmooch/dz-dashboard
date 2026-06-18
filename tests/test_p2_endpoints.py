@@ -91,6 +91,21 @@ def test_bracket_endpoint_gap(client: TestClient) -> None:
     assert data["consolation_bracket"] is None
 
 
+def test_conferences_endpoint_reports_real_season_year(client: TestClient) -> None:
+    # Regression: when the conference-aware ff_pipeline models aren't present the
+    # endpoint must still return the real season_year (an int) with
+    # available=False — not a None year, which 500s the int-typed schema.
+    data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2017]}/conferences"))
+    assert data["season_year"] == 2017
+    assert isinstance(data["available"], bool)
+
+
+def test_conferences_not_found(client: TestClient) -> None:
+    resp = client.get("/v1/seasons/99999/conferences")
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "not_found"
+
+
 def test_season_not_found(client: TestClient) -> None:
     resp = client.get("/v1/seasons/99999/standings")
     assert resp.status_code == 404

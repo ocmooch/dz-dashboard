@@ -10,10 +10,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+# ``get_season`` is a standard query that always exists; only the
+# conference-specific models/queries are gated behind the optional ff_pipeline
+# conference models.
+from ff_pipeline.repository.queries import get_season
+
 try:
     from ff_pipeline.repository.models import SeasonConference, Team  # type: ignore[attr-defined]
     from ff_pipeline.repository.queries import (  # type: ignore[attr-defined]
-        get_season,
         list_conferences_for_season,
     )
     from sqlalchemy import select
@@ -66,21 +70,24 @@ def season_conferences(session: Session, season_id: int) -> dict[str, Any] | Non
     for seasons without conference assignments (2020 and later) or when
     conference models are not yet available in ff_pipeline.
     """
-    if not _CONFERENCE_MODELS_AVAILABLE:
-        return {
-            "season_id": season_id,
-            "season_year": None,
-            "available": False,
-            "reason": "no_conferences_this_season",
-            "conferences": [],
-        }
     require_league(session)
     season = get_season(session, season_id)
     if season is None:
         return None
+    base: dict[str, Any] = {"season_id": season_id, "season_year": season.year}
+
+    # When the conference-aware models aren't present we still report the season
+    # honestly (available=False) with its real year — never a None year, which
+    # would fail the int-typed schema and 500 the endpoint.
+    if not _CONFERENCE_MODELS_AVAILABLE:
+        return {
+            **base,
+            "available": False,
+            "reason": "no_conferences_this_season",
+            "conferences": [],
+        }
 
     confs = list_conferences_for_season(session, season_id)
-    base: dict[str, Any] = {"season_id": season_id, "season_year": season.year}
 
     if not confs:
         return {
