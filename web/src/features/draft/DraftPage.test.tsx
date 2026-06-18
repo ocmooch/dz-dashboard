@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -84,6 +85,9 @@ const VALUE = {
   picks: [CMC, pick(2, "Lamar Jackson", "Goose", 48, 7.5), pick(3, "Justin Jefferson", "Slider", 37, -3.5), KELCE],
   steals: [CMC],
   busts: [KELCE],
+  points_steals: [CMC],
+  points_busts: [KELCE],
+  leaderboard_limit: 9,
 };
 
 function routeByPath(path: string) {
@@ -114,8 +118,8 @@ describe("DraftPage", () => {
   it("renders the draft board with picks deep-linking to players", async () => {
     renderPage();
     await screen.findByText("Round 1");
-    expect(screen.getByTitle("Christian McCaffrey")).toBeInTheDocument();
-    expect(screen.getByTitle("Lamar Jackson")).toBeInTheDocument();
+    expect(screen.getAllByTitle("Christian McCaffrey").length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle("Lamar Jackson").length).toBeGreaterThan(0);
     // Each pick card links to the drafted player.
     const links = screen.getAllByRole("link");
     expect(links.some((a) => a.getAttribute("href") === "/players/40")).toBe(true);
@@ -144,6 +148,10 @@ describe("DraftPage", () => {
   it("ranks busts by composite impact and surfaces the weighting breakdown", async () => {
     const comp = (over: Partial<Record<string, number | boolean>> = {}) => ({
       base_value: -40,
+      normalized_value: -2,
+      position_mean: 0,
+      position_stddev: 20,
+      weighted_eligible: true,
       cost_weight: 1,
       opportunity_weight: 1,
       bench_weeks: 0,
@@ -182,6 +190,9 @@ describe("DraftPage", () => {
             picks: [steal, benchBust, irBust],
             steals: [steal],
             busts: [benchBust, irBust],
+            points_steals: [steal],
+            points_busts: [benchBust, irBust],
+            leaderboard_limit: 9,
           }),
         );
       return Promise.resolve(routeByPath(path));
@@ -199,6 +210,87 @@ describe("DraftPage", () => {
     expect(screen.getAllByTitle(/carry 1\.79 \(11 bench/).length).toBeGreaterThan(0);
     // And the composite definition is shown to the reader.
     expect(screen.getByText(/scaled by how the pick was spent and carried/)).toBeInTheDocument();
+  });
+
+  it("switches leaderboards and chart together between weighted and points lenses", async () => {
+    const weightedThird = {
+      ...pick(40, "Terry McLaurin", "Fie", 80, -73.56, 4, 4),
+      impact: -2.1,
+      impact_components: {
+        base_value: -73.56,
+        normalized_value: -1.5,
+        position_mean: 0,
+        position_stddev: 50,
+        weighted_eligible: true,
+        weighted_reason: null,
+        cost_weight: 0.8,
+        opportunity_weight: 1.75,
+        bench_weeks: 10,
+        ir_weeks: 0,
+        opportunity_available: true,
+      },
+    };
+    const pointsThird = { ...pick(43, "James Conner", "Brigands", 60, -119.8, 4, 7), impact: -1 };
+    const bustOne = { ...KELCE, impact: -3 };
+    const bustTwo = { ...pick(2, "Mike Evans", "Fie", 40, -122.34), impact: -2.5 };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft") return Promise.resolve(envelope(BOARD));
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            picks: [CMC, bustOne, bustTwo, weightedThird, pointsThird],
+            steals: [CMC],
+            busts: [bustOne, bustTwo, weightedThird],
+            points_steals: [CMC],
+            points_busts: [bustOne, bustTwo, pointsThird],
+            impact_definition: "Draft impact = position-normalized value.",
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    expect(await screen.findByText("Terry McLaurin")).toBeInTheDocument();
+    expect(screen.queryByText("James Conner")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Points" }));
+    expect(await screen.findByText("James Conner")).toBeInTheDocument();
+    expect(screen.queryByText("Terry McLaurin")).not.toBeInTheDocument();
+    expect(screen.getByText("Pick value")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by team")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sort chart")).toHaveValue("metric");
+  });
+
+  it("expands each leaderboard three entries at a time and preserves dotted initials", async () => {
+    const steals = Array.from({ length: 9 }, (_, index) => ({
+      ...pick(index + 1, index === 3 ? "A.J. Green" : `Steal Player ${index + 1}`, "A Very Long Historical Team Name", 100, 20 - index),
+      impact: 3 - index / 10,
+    }));
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: steals }] }));
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            picks: steals,
+            steals,
+            busts: [],
+            points_steals: steals,
+            points_busts: [],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    await screen.findByText("Steal Player 3");
+    const stealsCard = screen.getByText("Steals").closest("section");
+    expect(stealsCard).not.toBeNull();
+    expect(within(stealsCard as HTMLElement).queryByText("A.J. Green")).not.toBeInTheDocument();
+
+    await userEvent.click(within(stealsCard as HTMLElement).getByRole("button", { name: "Show 3 more" }));
+    expect(within(stealsCard as HTMLElement).getByText("A.J. Green")).toBeInTheDocument();
+    expect(within(stealsCard as HTMLElement).getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {

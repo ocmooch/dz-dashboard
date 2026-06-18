@@ -207,6 +207,12 @@ season scored totals.
   low points, early pick. Define value as `season_points - expected_points_at_slot`, where
   expected is the league-wide average season points of players taken near that overall pick
   (computed from history). Document the definition in the UI.
+- **Weighted impact** — preserve pick value as the points-only lens, then standardize value
+  within QB/RB/WR/TE before applying draft-capital and bust carry-cost weights. This prevents
+  quarterback scoring scale from deciding every cross-position ranking. K/DEF stay available
+  in the board and points lens but are not eligible for the weighted headline. Draft scoring
+  reads canonical identity clusters and prefers the drafted id's weekly row before a linked
+  member, so source splits do not create false gaps or double totals.
 - **Best/worst draft picks ever** — top and bottom by pick value, for the records book.
 
 > Draft analytics depend on draft transactions existing in history. If a season's draft
