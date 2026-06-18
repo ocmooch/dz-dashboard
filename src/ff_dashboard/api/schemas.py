@@ -984,19 +984,31 @@ class GameTeam(BaseModel):
     entering_record: EnteringRecord | None = None
 
 
+class MatchupFlag(BaseModel):
+    """A superlative about a game — what made it memorable, not bare margin.
+    Computed in ``analytics/matchup_flags.py``; the SPA only renders it.
+    ``team_id`` is set for one-sided flags (e.g. ``season_high``, ``upset``);
+    ``tone`` is a color hint (``win`` | ``loss`` | ``accent`` | ``warn`` |
+    ``muted``); ``detail`` is tooltip copy."""
+
+    kind: str
+    label: str
+    tone: str
+    team_id: int | None = None
+    detail: str | None = None
+
+
 class GameCard(BaseModel):
     """One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-    deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
-    margin flags (thresholds in ``analytics/matchups.py``); both False when the
-    game has no scores yet."""
+    deep-links to the box score. ``margin`` drives the inline signed indicator;
+    ``flags`` are the superlatives (empty when the game has no scores yet)."""
 
     matchup_id: int
     is_playoff: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
-    is_close: bool = False
-    is_blowout: bool = False
+    flags: list[MatchupFlag] = []
     winner_team_id: int | None = None
 
 
@@ -1077,6 +1089,8 @@ class BoxScore(BaseModel):
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None
+    margin: float | None = None
+    flags: list[MatchupFlag] = []
 
 
 # ---------------------------------------------------------------------------

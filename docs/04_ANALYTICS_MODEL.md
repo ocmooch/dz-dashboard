@@ -108,12 +108,19 @@ Built on Phase 1's box-score data (`team_rosters` joined to `player_stats_scored
   that week's roster and the league's slot configuration (read slot rules from
   `scoring_rules`/roster config). `points_left = optimal_total - actual_starter_total`.
   This is a constrained max-assignment over slots; implement it explicitly and test it.
-- **Margin** — `team_score - opponent_score`.
-- **Close / blowout flags** (`week_matchups`) — per game card, `is_close` (`margin <=
-  CLOSE_MARGIN`, 5.0) and `is_blowout` (`margin >= BLOWOUT_MARGIN`, 40.0). Thresholds are
-  documented module constants in `analytics/matchups.py` — the frontend reads the booleans and
-  does **no** margin math (the hardcoded `>= 40` is removed in fix-pass P5). Both False when a
-  game has no scores yet.
+- **Margin** — `team_score - opponent_score`. Drives the inline signed `+/-` indicator beside
+  each team's score on both the weekly grid and the box score; margin alone is **not** a flag.
+- **Superlative flags** (`analytics/matchup_flags.py`, on both `week_matchups` *and*
+  `box_score`) — a list of `{kind, label, tone, team_id, detail}` per game describing what made
+  it memorable, so the grid and the box score never disagree. Thresholds are documented module
+  constants; the frontend does **no** math, only renders the list. Kinds: `blowout`
+  (`margin >= BLOWOUT_MARGIN`, 40) / `nailbiter` (`margin <= CLOSE_MARGIN`, 5); `season_high` /
+  `dud` (a team's score is the season's highest / lowest, byes excluded); `shootout` /
+  `cold_snap` (combined score is the season's highest / coldest); `tough_luck` (the loser
+  outscored every other team that played that week); `upset` (winner entered with `>=
+  UPSET_RECORD_GAP` fewer wins than the loser, after `MIN_ENTERING_GAMES`); `monster_game` (the
+  game held one of the season's top-`MONSTER_TOP_N` starter player-weeks). Empty when a game has
+  no scores yet. Every rule uses durable data only — **no projections** (coverage is uneven).
 - **Entering record** (`week_matchups`) — per side, the team's regular-season W-L-T from weeks
   *before* this week, that season (regular weeks per the season-schedule model; byes excluded).
   Computed in one query per request, folded per team — no N+1.
