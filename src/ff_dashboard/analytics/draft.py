@@ -89,6 +89,49 @@ OPP_IR_WEIGHT = 0.25  # max bust amplification for a full season stashed on IR /
 WEIGHTED_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
 LEADERBOARD_LIMIT = 9
 
+# The fantasy league's position universe. Every drafted pick is presented as one
+# of these; the position filter and the weighted-impact model both key off this
+# set. (The UI labels DEF as "DST".)
+FANTASY_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
+
+# Raw NFL roster positions fold onto that universe. Most are 1:1; a few NFL
+# positions have no fantasy slot of their own but a single clear fantasy home (a
+# fullback plays RB, a placekicker is K, a team defense is DEF). A two-way player
+# whose *listed* NFL position is defensive — e.g. Travis Hunter, listed CB but
+# drafted and scored entirely as a receiver — folds to the offensive position he
+# actually plays in this league. This is the one place that knows NFL→fantasy
+# position; extend the table when a new case appears rather than special-casing a
+# player by name downstream. A position with no fantasy home maps to ``None`` so
+# the pick is shown honestly (no invented position) and stays out of the filter
+# and the impact model.
+_NFL_TO_FANTASY: dict[str, str] = {
+    "QB": "QB",
+    "RB": "RB",
+    "FB": "RB",
+    "HB": "RB",
+    "WR": "WR",
+    "CB": "WR",  # two-way WR/CB (Travis Hunter); folds to his offensive role
+    "TE": "TE",
+    "K": "K",
+    "PK": "K",
+    "DEF": "DEF",
+    "DST": "DEF",
+    "D/ST": "DEF",
+}
+
+
+def fantasy_position(raw: str | None) -> str | None:
+    """Fold a raw NFL position onto the fantasy-league universe (or ``None``).
+
+    Returns ``None`` for a position with no fantasy home so the pick is presented
+    honestly rather than mislabeled — which also keeps it out of the position
+    filter and the position-normalized impact model. See ``_NFL_TO_FANTASY``.
+    """
+    if raw is None:
+        return None
+    return _NFL_TO_FANTASY.get(raw.strip().upper())
+
+
 IMPACT_DEFINITION = (
     "Draft impact = position-normalized pick value scaled by how the pick was spent "
     "and carried. QB, RB, WR, and TE are compared with their own position before "
@@ -495,7 +538,7 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
                 "owner_name": owners.get(team.owner_id),
                 "player_id": player.player_id,
                 "player_name": player.name_full,
-                "position": player.position,
+                "position": fantasy_position(player.position),
                 "season_year": season.year,
                 "num_teams": num_teams,
                 # Transient inputs for the impact composite; popped in _with_values.

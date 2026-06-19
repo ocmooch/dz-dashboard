@@ -273,33 +273,51 @@ export function DraftPage() {
     setFocusedOverall(null);
   }, [seasonId, lens]);
 
+  // Clear the chart filters when the season changes — a position/team/round
+  // present in one season may not exist in the next, and a stale filter would
+  // otherwise silently empty the chart.
+  useEffect(() => {
+    setPosition("");
+    setRound("");
+    setTeam("");
+  }, [seasonId]);
+
   const weightedSteals = value.data?.steals ?? [];
   const weightedBusts = value.data?.busts ?? [];
   const pointsSteals = value.data?.points_steals ?? [];
   const pointsBusts = value.data?.points_busts ?? [];
   const steals = lens === "weighted" ? weightedSteals : pointsSteals;
   const busts = lens === "weighted" ? weightedBusts : pointsBusts;
-  const filteredPicks = (value.data?.picks ?? [])
-    .filter((p) => {
-      if (position && p.position !== position) return false;
-      if (round && p.round !== Number(round)) return false;
-      if (team && p.team_id !== Number(team)) return false;
-      if (lens === "weighted" && p.impact == null) return false;
-      return true;
-    })
+  const metricOf = (p: Pick) => (lens === "weighted" ? p.impact : p.value);
+  // Picks matching the filter controls, independent of whether they have a
+  // value for the active lens. Kept separate from `chartRows` so the empty
+  // state can tell "nothing matched the filter" apart from "matched, but this
+  // lens has no number for them" (e.g. a kicker under the weighted lens).
+  const matchedPicks = (value.data?.picks ?? []).filter((p) => {
+    if (position && p.position !== position) return false;
+    if (round && p.round !== Number(round)) return false;
+    if (team && p.team_id !== Number(team)) return false;
+    return true;
+  });
+  const chartRows = matchedPicks
+    .filter((p) => metricOf(p) != null)
     .sort((a, b) => {
       if (chartOrder === "draft") return a.overall - b.overall;
-      const aMetric = lens === "weighted" ? a.impact : a.value;
-      const bMetric = lens === "weighted" ? b.impact : b.value;
-      return (bMetric ?? Number.NEGATIVE_INFINITY) - (aMetric ?? Number.NEGATIVE_INFINITY);
-    });
-  const chartRows = filteredPicks
-    .filter((p) => (lens === "weighted" ? p.impact : p.value) != null)
+      return (metricOf(b) ?? Number.NEGATIVE_INFINITY) - (metricOf(a) ?? Number.NEGATIVE_INFINITY);
+    })
     .map((p) => ({
       label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
-      metric: (lens === "weighted" ? p.impact : p.value) as number,
+      metric: metricOf(p) as number,
       __note: `${p.player_name ?? "Unknown"} · ${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"} · raw value ${num(p.value)}`,
     }));
+  const hasPicks = (value.data?.picks?.length ?? 0) > 0;
+  // Why the chart is empty under the current filter + lens, phrased honestly.
+  const emptyChartMessage =
+    matchedPicks.length === 0
+      ? "No picks match these filters."
+      : lens === "weighted"
+        ? "These picks aren’t part of the position-normalized impact model — kickers, defenses, and unscored picks are excluded. Switch to the Points lens to compare them."
+        : "These picks have no scored value yet.";
 
   return (
     <div className="dz-rise space-y-6">
@@ -387,7 +405,7 @@ export function DraftPage() {
             </div>
           )}
 
-          {chartRows.length > 0 && (
+          {hasPicks && (
             <Card>
               <CardHeader
                 eyebrow={lens === "weighted" ? "position-normalized weighted impact" : "points above / below slot expectation"}
@@ -424,14 +442,20 @@ export function DraftPage() {
                 </select>
               </div>
               <div className="p-5">
-                <BarCompare
-                  title={lens === "weighted" ? "Weighted impact by pick" : "Points value by pick"}
-                  data={chartRows}
-                  series={[{ key: "metric", label: lens === "weighted" ? "Weighted impact" : "Value (pts)" }]}
-                  xKey="label"
-                  xLabel="Pick"
-                  height={220}
-                />
+                {chartRows.length > 0 ? (
+                  <BarCompare
+                    title={lens === "weighted" ? "Weighted impact by pick" : "Points value by pick"}
+                    data={chartRows}
+                    series={[{ key: "metric", label: lens === "weighted" ? "Weighted impact" : "Value (pts)" }]}
+                    xKey="label"
+                    xLabel="Pick"
+                    height={220}
+                  />
+                ) : (
+                  <p className="max-w-prose py-8 text-center text-[var(--fs-sm)] text-faint">
+                    {emptyChartMessage}
+                  </p>
+                )}
                 {lens === "points" && value.data?.definition && (
                   <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">
                     {value.data.definition}
