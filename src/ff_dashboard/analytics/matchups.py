@@ -22,7 +22,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from ff_pipeline.repository.models import Matchup, PlayerStatsScored, Transaction
+from ff_pipeline.repository.models import (
+    Matchup,
+    PlayerIdentityLink,
+    PlayerStatsScored,
+    Transaction,
+)
 from ff_pipeline.repository.models import Projection as ProjectionModel
 from ff_pipeline.repository.models import ScoringRule as ScoringRuleModel
 from ff_pipeline.repository.queries import (
@@ -30,7 +35,6 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     injury_reports_for_week,
-    player_identity_cluster,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -596,19 +600,39 @@ def _scored_points(
 
 
 def _identity_cluster_members(session: Session, player_ids: list[int]) -> dict[int, list[int]]:
-    """Roster-player id -> member ids to read as the same canonical player."""
+    """Roster-player id -> member ids to read as the same canonical player.
+
+    Resolves the whole input set in two queries instead of the per-player
+    ``player_identity_cluster`` lookup (an N+1 that dominated the draft sweeps —
+    every drafted player triggered three round-trips). Semantics are unchanged:
+    each input id maps to its cluster's members with the input id listed first;
+    an id with no link row is its own singleton cluster.
+    """
+    ids = sorted({int(pid) for pid in player_ids})
+    if not ids:
+        return {}
+    # member -> canonical for the inputs (a missing row means the id is canonical).
+    canonical_of = {
+        int(member): int(canonical)
+        for member, canonical in session.execute(
+            select(
+                PlayerIdentityLink.member_player_id, PlayerIdentityLink.canonical_player_id
+            ).where(PlayerIdentityLink.member_player_id.in_(ids))
+        ).all()
+    }
+    canonicals = {canonical_of.get(pid, pid) for pid in ids}
+    members_by_canonical: dict[int, set[int]] = {}
+    for canonical, member in session.execute(
+        select(PlayerIdentityLink.canonical_player_id, PlayerIdentityLink.member_player_id).where(
+            PlayerIdentityLink.canonical_player_id.in_(canonicals)
+        )
+    ).all():
+        members_by_canonical.setdefault(int(canonical), set()).add(int(member))
     out: dict[int, list[int]] = {}
-    for player_id in player_ids:
-        cluster = player_identity_cluster(session, player_id)
-        if cluster is None:
-            out[player_id] = [player_id]
-            continue
-        members = [
-            int(member_id)
-            for member_id in cast("list[int]", cluster["member_player_ids"])
-            if member_id is not None
-        ]
-        out[player_id] = sorted({player_id, *members}, key=lambda member_id: member_id != player_id)
+    for pid in ids:
+        canonical = canonical_of.get(pid, pid)
+        members = members_by_canonical.get(canonical, set()) | {canonical, pid}
+        out[pid] = [pid, *sorted(member for member in members if member != pid)]
     return out
 
 

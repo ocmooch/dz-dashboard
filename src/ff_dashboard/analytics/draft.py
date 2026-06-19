@@ -63,6 +63,8 @@ from ff_dashboard.analytics.weighting import positional_weight, weighted_impact
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+    from ff_dashboard.cache import AnalyticsCache
+
 # How "near" an overall slot we pool historical picks when estimating the
 # expected points for that slot. A small symmetric window borrows strength from
 # neighbouring picks without smearing a 1st-rounder's bar into a 10th-rounder's.
@@ -98,18 +100,28 @@ IMPACT_DEFINITION = (
 )
 
 
-def _season_points(session: Session, season: Season, player_ids: set[int]) -> dict[int, float]:
+def _season_points(
+    session: Session,
+    season: Season,
+    player_ids: set[int],
+    cluster_members: dict[int, list[int]] | None = None,
+) -> dict[int, float]:
     """Drafted ``player_id -> regular-season points``, resolving identity clusters.
 
     A draft transaction owns the canonical/roster-side id, while scored rows can
     still live on a linked source member. For each week prefer the drafted id's
     row and otherwise take the first linked member row. This prevents both gaps
     (Mike Williams 2019) and double counting when both sides are populated.
+
+    ``cluster_members`` may be supplied by the caller (``_season_picks`` resolves
+    it once and shares it with :func:`_players_with_raw`) to avoid recomputing the
+    identity resolution per consumer.
     """
     if not player_ids:
         return {}
     reg = regular_season_weeks(session, season)
-    cluster_members = _identity_cluster_members(session, sorted(player_ids))
+    if cluster_members is None:
+        cluster_members = _identity_cluster_members(session, sorted(player_ids))
     lookup_ids = sorted({member for members in cluster_members.values() for member in members})
     rows = session.execute(
         select(
@@ -154,16 +166,25 @@ def _resolved_cluster_points(
     return out
 
 
-def _players_with_raw(session: Session, season: Season, player_ids: set[int]) -> set[int]:
+def _players_with_raw(
+    session: Session,
+    season: Season,
+    player_ids: set[int],
+    cluster_members: dict[int, list[int]] | None = None,
+) -> set[int]:
     """``player_id`` of everyone with at least one raw stat row that season.
 
     Presence of a raw line means the player suited up at least once; its absence
     across a *scored* season is what separates a genuine season-long non-play
     (a real 0) from a player who simply hasn't been scored yet.
+
+    ``cluster_members`` may be supplied to reuse a single identity resolution (see
+    :func:`_season_points`).
     """
     if not player_ids:
         return set()
-    cluster_members = _identity_cluster_members(session, sorted(player_ids))
+    if cluster_members is None:
+        cluster_members = _identity_cluster_members(session, sorted(player_ids))
     lookup_ids = sorted({member for members in cluster_members.values() for member in members})
     rows = (
         session.execute(
@@ -436,7 +457,10 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
         return None
 
     drafted_ids = {player.player_id for _, player, _ in rows}
-    points = _season_points(session, season, drafted_ids)
+    # Resolve identity clusters once and share across the points + raw-stat reads
+    # (each previously re-ran the per-player identity N+1 over the same ids).
+    cluster_members = _identity_cluster_members(session, sorted(drafted_ids))
+    points = _season_points(session, season, drafted_ids, cluster_members)
     season_is_scored = bool(
         session.execute(
             select(PlayerStatsScored.scored_id)
@@ -444,7 +468,7 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
             .limit(1)
         ).scalar_one_or_none()
     )
-    played = _players_with_raw(session, season, drafted_ids)
+    played = _players_with_raw(session, season, drafted_ids, cluster_members)
     roster_slots = _drafted_roster_slots(session, season, drafted_ids)
     roster_weeks = _drafted_roster_weeks(session, season, drafted_ids)
     reg_weeks = regular_season_weeks(session, season)
@@ -508,32 +532,47 @@ def _clean_rounded(value: float, digits: int = 2) -> float:
     return 0.0 if rounded == 0 else rounded
 
 
-def _value_history(session: Session) -> list[tuple[int, float]]:
-    """Every captured pick across all seasons as ``(overall, season_points)``.
+def _season_picks_cached(
+    session: Session, season: Season, cache: AnalyticsCache | None = None
+) -> list[dict[str, Any]] | None:
+    """:func:`_season_picks` memoized per season for the current pipeline run.
 
-    Only picks whose player has a scored season total contribute — unscored
-    picks can't anchor an expectation.
-    """
+    A season's picks are stable between Phase 1 runs, so the same board feeds
+    every consumer (its own endpoint, the all-seasons history sweep, the records
+    book) without recomputation. Without a cache it falls back to a direct call
+    (the unit tests drive the analytics layer with no app cache)."""
+    if cache is None:
+        return _season_picks(session, season)
+    return cache.get_or_compute(
+        session, f"draft_season_picks:{season.season_id}", lambda: _season_picks(session, season)
+    )
+
+
+def _build_history_model(session: Session, cache: AnalyticsCache | None) -> dict[str, Any]:
+    """Single all-seasons sweep → ``{"expected", "position_stats"}``.
+
+    Both league-wide anchors (the per-slot expectation and the per-position
+    value mean/stddev that standardizes impact) derive from one pass over every
+    captured draft. Previously ``_value_history`` and ``_position_value_stats``
+    each swept all seasons independently — two full passes, each re-running every
+    season's picks — so a single endpoint hit recomputed the whole draft history
+    twice. Here the per-season picks are gathered once (and cached) and the
+    position pass runs in memory off that gather."""
     history: list[tuple[int, float]] = []
+    gathered: list[list[dict[str, Any]]] = []
     for season in session.execute(select(Season)).scalars().all():
-        picks = _season_picks(session, season)
+        picks = _season_picks_cached(session, season, cache)
         if picks is None:
             continue
-        for pick in picks:
-            if pick["season_points"] is not None:
-                history.append((pick["overall"], pick["season_points"]))
-    return history
-
-
-def _position_value_stats(
-    session: Session, expected: dict[int, float]
-) -> dict[str, tuple[float, float]]:
-    """Historical raw-value mean/stddev for each weighted offensive position."""
+        gathered.append(picks)
+        history.extend(
+            (pick["overall"], pick["season_points"])
+            for pick in picks
+            if pick["season_points"] is not None
+        )
+    expected = _expected_by_slot(history)
     values: dict[str, list[float]] = defaultdict(list)
-    for season in session.execute(select(Season)).scalars().all():
-        picks = _season_picks(session, season)
-        if picks is None:
-            continue
+    for picks in gathered:
         for pick in picks:
             points = pick["season_points"]
             exp = expected.get(pick["overall"])
@@ -541,11 +580,25 @@ def _position_value_stats(
             if points is None or exp is None or position not in WEIGHTED_POSITIONS:
                 continue
             values[position].append(points - exp)
-    return {
+    position_stats = {
         position: (fmean(samples), pstdev(samples))
         for position, samples in values.items()
         if len(samples) >= 2 and pstdev(samples) > 0
     }
+    return {"expected": expected, "position_stats": position_stats}
+
+
+def _draft_history_model(session: Session, cache: AnalyticsCache | None = None) -> dict[str, Any]:
+    """The cached league-wide draft anchors (``expected`` + ``position_stats``).
+
+    Keyed only on the pipeline run, so it is computed once and shared by every
+    season's board/value response and the records book — not recomputed per
+    request as the prior two-sweep design did."""
+    if cache is None:
+        return _build_history_model(session, cache)
+    return cache.get_or_compute(
+        session, "draft_history_model", lambda: _build_history_model(session, cache)
+    )
 
 
 def _with_values(
@@ -604,7 +657,9 @@ def _with_values(
     return out
 
 
-def draft_board(session: Session, season_id: int) -> dict[str, Any] | None:
+def draft_board(
+    session: Session, season_id: int, cache: AnalyticsCache | None = None
+) -> dict[str, Any] | None:
     """Round-by-round draft board for a season, or ``None`` if no such season.
 
     Returns an ``available: false`` payload (never an invented grid) when the
@@ -615,7 +670,7 @@ def draft_board(session: Session, season_id: int) -> dict[str, Any] | None:
     if season is None:
         return None
 
-    picks = _season_picks(session, season)
+    picks = _season_picks_cached(session, season, cache)
     if picks is None:
         return {
             "season_id": season_id,
@@ -627,8 +682,8 @@ def draft_board(session: Session, season_id: int) -> dict[str, Any] | None:
         }
 
     num_teams = picks[0]["num_teams"]
-    expected = _expected_by_slot(_value_history(session))
-    valued = _with_values(picks, expected, _position_value_stats(session, expected))
+    model = _draft_history_model(session, cache)
+    valued = _with_values(picks, model["expected"], model["position_stats"])
     rounds: dict[int, list[dict[str, Any]]] = {}
     for pick in valued:
         rounds.setdefault(pick["round"], []).append(pick)
@@ -642,14 +697,16 @@ def draft_board(session: Session, season_id: int) -> dict[str, Any] | None:
     }
 
 
-def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
+def draft_value(
+    session: Session, season_id: int, cache: AnalyticsCache | None = None
+) -> dict[str, Any] | None:
     """Pick-value analysis for a season (steals/busts), or ``None`` if no season."""
     require_league(session)
     season = get_season(session, season_id)
     if season is None:
         return None
 
-    picks = _season_picks(session, season)
+    picks = _season_picks_cached(session, season, cache)
     if picks is None:
         return {
             "season_id": season_id,
@@ -668,8 +725,8 @@ def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
             "leaderboard_limit": LEADERBOARD_LIMIT,
         }
 
-    expected = _expected_by_slot(_value_history(session))
-    valued = _with_values(picks, expected, _position_value_stats(session, expected))
+    model = _draft_history_model(session, cache)
+    valued = _with_values(picks, model["expected"], model["position_stats"])
     scored = [p for p in valued if p["value"] is not None]
     # The full list stays sorted by the honest per-slot value (highest first);
     # Steals/busts are ranked by position-normalized composite impact.
@@ -711,12 +768,14 @@ def draft_value(session: Session, season_id: int) -> dict[str, Any] | None:
     }
 
 
-def best_worst_picks(session: Session, limit: int = 5) -> dict[str, Any]:
+def best_worst_picks(
+    session: Session, limit: int = 5, cache: AnalyticsCache | None = None
+) -> dict[str, Any]:
     """Best/worst draft picks ever, across every captured season (records book)."""
-    expected = _expected_by_slot(_value_history(session))
+    expected = _draft_history_model(session, cache)["expected"]
     all_valued: list[dict[str, Any]] = []
     for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
-        picks = _season_picks(session, season)
+        picks = _season_picks_cached(session, season, cache)
         if picks is None:
             continue
         all_valued.extend(p for p in _with_values(picks, expected) if p["value"] is not None)

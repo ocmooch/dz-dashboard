@@ -16,7 +16,7 @@ router = APIRouter(tags=["draft"])
 @router.get("/v1/seasons/{season_id}/draft", response_model=Envelope[DraftBoard])
 def get_draft_board(season_id: int, session: SessionDep, cache: CacheDep) -> Envelope[DraftBoard]:
     data = cache.get_or_compute(
-        session, f"draft_board:{season_id}", lambda: draft_board(session, season_id)
+        session, f"draft_board:{season_id}", lambda: draft_board(session, season_id, cache)
     )
     if data is None:
         raise not_found(f"No season with id {season_id}")
@@ -26,7 +26,7 @@ def get_draft_board(season_id: int, session: SessionDep, cache: CacheDep) -> Env
 @router.get("/v1/seasons/{season_id}/draft/value", response_model=Envelope[DraftValue])
 def get_draft_value(season_id: int, session: SessionDep, cache: CacheDep) -> Envelope[DraftValue]:
     data = cache.get_or_compute(
-        session, f"draft_value:{season_id}", lambda: draft_value(session, season_id)
+        session, f"draft_value:{season_id}", lambda: draft_value(session, season_id, cache)
     )
     if data is None:
         raise not_found(f"No season with id {season_id}")

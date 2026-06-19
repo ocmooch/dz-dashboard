@@ -26,5 +26,7 @@ def get_championships(session: SessionDep) -> Envelope[ChampionshipHistory]:
 
 @router.get("/v1/records/draft", response_model=Envelope[DraftRecords])
 def get_draft_records(session: SessionDep, cache: CacheDep) -> Envelope[DraftRecords]:
-    data = cache.get_or_compute(session, "draft_records", lambda: best_worst_picks(session))
+    data = cache.get_or_compute(
+        session, "draft_records", lambda: best_worst_picks(session, cache=cache)
+    )
     return Envelope(data=DraftRecords(**data), meta=build_meta(session))

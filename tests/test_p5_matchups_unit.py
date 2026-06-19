@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import ff_dashboard.analytics.matchups as matchups_module
+import ff_dashboard.analytics.players as players_module
 from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
     _roster_data_context_from_transactions,
@@ -204,20 +205,13 @@ def test_box_score_unions_canonical_identity_cluster(
     split_roster = KNOWN["player_id"]["split_roster"]
     split_stats = KNOWN["player_id"]["split_stats"]
 
-    def fake_cluster(_session: Session, player_id: int) -> dict[str, object] | None:
-        if player_id in {split_roster, split_stats}:
-            return {
-                "player_id": player_id,
-                "canonical_player_id": split_roster,
-                "member_player_ids": [split_roster, split_stats],
-            }
+    def fake_cluster_members(_session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+        cluster = {split_roster, split_stats}
         return {
-            "player_id": player_id,
-            "canonical_player_id": player_id,
-            "member_player_ids": [player_id],
+            pid: [pid, *sorted(cluster - {pid})] if pid in cluster else [pid] for pid in player_ids
         }
 
-    monkeypatch.setattr(matchups_module, "player_identity_cluster", fake_cluster)
+    monkeypatch.setattr(matchups_module, "_identity_cluster_members", fake_cluster_members)
 
     mid = KNOWN["matchup_id"][(2017, 1, "mav")]
     data = box_score(session, mid)
@@ -237,20 +231,15 @@ def test_player_scoring_unions_canonical_identity_cluster(
     split_roster = KNOWN["player_id"]["split_roster"]
     split_stats = KNOWN["player_id"]["split_stats"]
 
-    def fake_cluster(_session: Session, player_id: int) -> dict[str, object] | None:
-        if player_id in {split_roster, split_stats}:
-            return {
-                "player_id": player_id,
-                "canonical_player_id": split_roster,
-                "member_player_ids": [split_roster, split_stats],
-            }
+    def fake_cluster_members(_session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+        cluster = {split_roster, split_stats}
         return {
-            "player_id": player_id,
-            "canonical_player_id": player_id,
-            "member_player_ids": [player_id],
+            pid: [pid, *sorted(cluster - {pid})] if pid in cluster else [pid] for pid in player_ids
         }
 
-    monkeypatch.setattr(matchups_module, "player_identity_cluster", fake_cluster)
+    # player_scoring lives in analytics.players, which binds its own reference to
+    # the resolver, so patch it there rather than on the matchups module.
+    monkeypatch.setattr(players_module, "_identity_cluster_members", fake_cluster_members)
 
     data = player_scoring(session, split_roster, 2017)
     assert data is not None
