@@ -15,6 +15,24 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+**In progress (2026-06-19):** `feature/draft-perf` fixes the slow draft-page loads introduced by
+the draft-impact work — a BFF-only optimization, no behavior change. A cold draft request had
+exploded to **~24,000 queries / 3.5s** from two compounding issues: (1) `_value_history` and
+`_position_value_stats` each swept all 17 seasons, so `_season_picks` ran 33×/request, and (2) an
+identity-cluster N+1 (`_identity_cluster_members` called `player_identity_cluster` per drafted
+player, twice per season). Fixes: `_identity_cluster_members` (`analytics/matchups.py`) now batches
+the whole id set in two queries (helps box scores too; semantics unchanged); `_season_picks`
+resolves the cluster once and shares it with `_season_points`/`_players_with_raw`; the two history
+sweeps merge into one cached `_draft_history_model` (`expected` + `position_stats`); and per-season
+picks + the league-wide model are memoized via `AnalyticsCache` (keyed on pipeline run) so they are
+computed once and shared by every season's board/value response and the records book. Result:
+`draft_value(2025)` cold **0.41s / 167 q**, warm **~3 q**; `_season_picks` 727→9 q. Verified
+byte-identical no-cache/cold/warm output on the real DB (steals/busts/impact + records book). Two
+matchup unit tests repointed from the removed `player_identity_cluster` symbol to the batched seam.
+Gate green: backend **426** tests, ruff, mypy, write-safety. No schema/route-shape change → OpenAPI
+contract unchanged, frontend untouched. **PR open → `dev`.**
+
+
 **The dashboard application is functionally complete and fully merged.** All P0–P12 milestones,
 all P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev` and promoted
 to `main`.
