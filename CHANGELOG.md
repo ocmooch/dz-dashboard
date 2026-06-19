@@ -4,6 +4,24 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-19 — Draft chart: fantasy position taxonomy + resilient empty state
+
+- **Fold raw NFL positions onto the fantasy universe** (`{QB, RB, WR, TE, K, DEF}`) at the
+  single source (`analytics/draft.py:_season_picks`). A new `fantasy_position()` /
+  `_NFL_TO_FANTASY` table maps aliases and no-fantasy-slot positions to their clear home
+  (FB→RB, PK→K, DST→DEF) and folds a two-way player listed at a defensive position to the
+  offensive role he actually plays — Travis Hunter (2025), listed `CB` but drafted and
+  scored entirely as a receiver, now resolves to `WR` (and so earns a weighted impact
+  instead of being excluded). NFL-only positions with no fantasy home map to `None` rather
+  than being guessed. This removes `CB` from the 2025 position filter. No contract change
+  (`position` stays `str | null`).
+- **The weighted-impact chart card no longer unmounts itself.** Selecting an ineligible
+  position (K/DEF have no weighted impact) used to empty `chartRows` and unmount the whole
+  card — *including its own filter dropdowns* — stranding the user until a browser refresh.
+  The card now renders whenever there are picks; the chart area shows either the bars or an
+  honest empty state ("…switch to the Points lens to compare them"), so the selection stays
+  recoverable. Chart filters also reset on season change.
+
 ## 2026-06-17 — Fold Power into Standings (lens) + Playoffs snapshot
 
 - **Retired `/power` as a top-level space.** It duplicated Standings (both are

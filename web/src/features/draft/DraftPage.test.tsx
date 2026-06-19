@@ -293,6 +293,45 @@ describe("DraftPage", () => {
     expect(within(stealsCard as HTMLElement).getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 
+  it("keeps the chart filters mounted when an ineligible position empties the chart", async () => {
+    // A kicker has a points value but no weighted impact. Selecting K under the
+    // weighted lens used to unmount the whole chart card (filters included),
+    // stranding the user until a refresh. The controls must survive so the
+    // selection stays recoverable.
+    const wr = { ...CMC, impact: 8.33 };
+    const kicker = { ...pick(2, "Justin Tucker", "Goose", 130, 30, 1, 2), position: "K", impact: null };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr, kicker] }] }));
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            picks: [wr, kicker],
+            steals: [wr],
+            busts: [],
+            points_steals: [kicker],
+            points_busts: [],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderPage();
+    const positionFilter = await screen.findByLabelText("Filter by position");
+
+    await userEvent.selectOptions(positionFilter, "K");
+    // The card and its controls remain; an honest empty state replaces the bars.
+    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
+    expect(screen.getByText(/aren’t part of the position-normalized impact model/i)).toBeInTheDocument();
+
+    // Switching to the Points lens recovers a chart for the same selection.
+    await userEvent.click(screen.getByRole("tab", { name: "Points" }));
+    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
+    expect(
+      screen.queryByText(/aren’t part of the position-normalized impact model/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {
     const cruz = {
       ...pick(3, "Victor Cruz", "Slider", 0, -50, 1, 3),

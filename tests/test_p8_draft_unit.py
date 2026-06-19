@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.draft import (
+    FANTASY_POSITIONS,
     IMPACT_DEFINITION,
     VALUE_SLOT_WINDOW,
     _classify_pick_scoring,
@@ -17,11 +18,41 @@ from ff_dashboard.analytics.draft import (
     best_worst_picks,
     draft_board,
     draft_value,
+    fantasy_position,
 )
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+
+
+# --- NFL → fantasy position folding (no DB) --------------------------------
+
+
+def test_fantasy_position_folds_onto_the_league_universe() -> None:
+    # Skill positions pass through unchanged.
+    for pos in ("QB", "RB", "WR", "TE", "K", "DEF"):
+        assert fantasy_position(pos) == pos
+    # Aliases / no-fantasy-slot positions fold to their clear fantasy home.
+    assert fantasy_position("FB") == "RB"  # fullback plays RB
+    assert fantasy_position("PK") == "K"
+    assert fantasy_position("DST") == "DEF"
+    assert fantasy_position("D/ST") == "DEF"
+    # A two-way player listed at a defensive position folds to his offensive role
+    # (Travis Hunter, listed CB, drafted and scored as a receiver).
+    assert fantasy_position("CB") == "WR"
+    # Every fold lands inside the fantasy universe.
+    for pos in ("FB", "PK", "DST", "CB"):
+        assert fantasy_position(pos) in FANTASY_POSITIONS
+
+
+def test_fantasy_position_is_normalized_and_honest_about_unknowns() -> None:
+    assert fantasy_position("wr") == "WR"
+    assert fantasy_position(" QB ") == "QB"
+    # A position with no fantasy home is left unmapped rather than guessed, so it
+    # stays out of the filter and the impact model.
+    assert fantasy_position("LB") is None
+    assert fantasy_position(None) is None
 
 
 # --- The pure pick-scoring classifier (no DB) ------------------------------
