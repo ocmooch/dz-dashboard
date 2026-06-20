@@ -81,7 +81,7 @@ where a small additive consume-step is noted. Full finding text:
 | Input | Needed by | Status |
 |-------|-----------|--------|
 | Season-length switch year(s): regular 1–13 → 1–14; playoff week shift | F-32 (shipped, config-driven) | ☑ dashboard derives from DB columns; exact switch year still unconfirmed |
-| Waiver standard-order → **FAAB** switch point | F-37 | ◐ dated transaction rows exist + consumed; no FAAB bid rows found |
+| Waiver standard-order → **FAAB** switch point | F-37 | ◐ switch = 2021 (confirmed via `setting_change`); FAAB **bids absent upstream** — see `docs/handoffs/faab-bid-capture.md` |
 | Ownership-succession ledger (which owner held which team, which seasons) | F-06 | ⊘ still needs a source/table |
 | Pre-2016 scoring reconstruction trust check | F-27 | ☑ data landed (2010–2025); ◐ validation open |
 
@@ -122,9 +122,17 @@ before treating every reconstructed score as authoritative.
 ### F-37 — Exact transactions & FAAB ◐ ⤴ (partly landed)
 Upstream has dated, typed transaction rows (add/drop/waiver/free-agent/trade/draft/lineup) and the
 dashboard renders the derived roster-diff tier. **Open:** the dashboard hasn't consumed exact
-transaction dates/types as a richer tier, and **no FAAB bid rows were present** in the spot check.
-Determine whether historical FAAB bid amounts exist anywhere; if absent, document `faab_bid:null` as
-a true source gap. The waiver standard-order → FAAB switch point is still unresolved.
+transaction dates/types as a richer tier.
+
+**FAAB resolved as an upstream capture gap (2026-06-20).** Live-DB audit: FAAB bid amounts are
+**absent, not sparse** — all `waiver_add`/`free_agent_add` rows have `extra_data = null`,
+`waiver_priority_used` is NULL for all 41,870 rows, and the danger-zone parser never parses
+bid/budget. The switch year is **2021** (confirmed via the `setting_change` "Waiver Type → Waiver
+Budget ($100)" rows; a 2022 per-team bump also exists). Spend and remaining-budget both derive from
+the bid, so **no dashboard FAAB display is buildable until the bid lands upstream.** The dashboard is
+already wired to consume it (`_faab_bid()` / `TeamTransaction.faab_bid` / `"$X FAAB"` render). The
+upstream spec (source-availability check → parser capture into `extra_data.faab_bid` → re-crawl
+2021–2025) and the deferred dashboard follow-on are in **`docs/handoffs/faab-bid-capture.md`**.
 
 ### F-49 — Playoff / consolation metadata ☐ ⤴
 `Matchup.is_consolation` is `0` for all playoff rows and `is_playoff` is set on every post-season
