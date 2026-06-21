@@ -768,6 +768,44 @@ def _populate(session: Session) -> None:
                 notes="Iceman",
                 extra_data={"from_slot": "BN", "to_slot": "WR"},
             ),
+            # --- FAAB-era waiver claims (Goose 2017). The presence of `faab_bid`
+            #     makes this a FAAB-era season (data-driven, year-agnostic) so
+            #     team_faab_budget can be exercised. Spends $10, then a $0 free
+            #     claim (a real outcome — not "no bid"), then $5: remaining runs
+            #     100 -> 90 -> 90 -> 85.
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 13, 8, 0, 0, tzinfo=UTC),
+                effective_week=1,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["wendell"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 10},
+            ),
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 20, 8, 0, 0, tzinfo=UTC),
+                effective_week=2,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["vince"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 0},
+            ),
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 27, 8, 0, 0, tzinfo=UTC),
+                effective_week=3,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["lamar"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 5},
+            ),
         ]
     )
 

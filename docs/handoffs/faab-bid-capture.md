@@ -105,29 +105,28 @@ The consume path already exists; this is why upstream capture alone unblocks dis
 - `web/src/features/teams/TeamPage.tsx` — `transactionDetail()` renders `"$X FAAB"` when non-null,
   and never renders `0`/`$0` for a missing bid.
 
-## After data lands — deferred dashboard work (forward context only; not built yet)
+## After data lands — dashboard work (BUILT)
 
-Once `faab_bid` is populated, a separate dz-dashboard milestone can build:
-
-1. **Transactions log** — ✅ DONE (2026-06-21, PR #91): `_faab_bid()` reads `$0` as a real claim and
-   the bid renders as its own accent `"$X FAAB"` pill (`TeamPage.tsx` `TxRow`).
-2. **Remaining-budget analytic** (new pure fn in `analytics/teams.py`): per FAAB-era team,
-   `remaining(week) = season_budget − cumsum(faab_bid through week)` ordered by `effective_week`.
-   **Validated against the live DB (2026-06-21):** a flat **$100** season budget holds exactly for
-   2021/2023/2024/2025 (no team exceeds it; several land on $100). FAAB-era is data-driven on the
-   2021 waiver-type change event — never a hardcoded year.
-   - **The one per-team budget event is an anomalous refund, not a budget grant.** The lone
+1. **Transactions log** — ✅ DONE (PR #91): `_faab_bid()` reads `$0` as a real claim; the bid renders
+   as its own accent `"$X FAAB"` pill (`TeamPage.tsx` `TxRow`).
+2. **Remaining-budget analytic** — ✅ DONE (`feature/faab-remaining-budget`): `team_faab_budget()` in
+   `analytics/teams.py` derives per-week `remaining(week) = budget_at_week − cumulative spend` from
+   captured `faab_bid`s. Endpoint `GET /v1/teams/{team_id}/faab-budget`; `FaabBudgetCard` on the Team
+   page (self-hides for pre-FAAB seasons). FAAB-era is data-driven on the presence of captured bids —
+   never a hardcoded year.
+   - **Budget = flat $100 base + mid-season credits.** Validated against the live DB: the $100 base
+     holds exactly for 2021/2023/2024/2025 (no team exceeds it; several land on $100).
+   - **The one per-team budget event is an anomalous refund, not a grant.** The lone
      `waiver_budget_team` row ("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", 2022)
-     is a **+$37 refund**: Ice Station Zebra won Dameon Pierce on waivers for $37 (wk2,
-     `2022-09-16 00:22`), the claim was reversed ~12h later (dropped `12:52`), and the commissioner
-     restored the $37 (remaining `39 → 76`). Their raw bid-sum is **$137** but **effective** spend is
-     `137 − 37 = $100`. So model per-team adjustments as **timestamped credits** at their
-     `effective_week` (`budget_at_week = 100 + Σ credits ≤ week`), not a static season total — that
-     reproduces the `39 → 76` path exactly.
+     is a **+$37 refund**: Ice Station Zebra won Dameon Pierce for $37 (wk2, `2022-09-16 00:22`), the
+     claim was reversed ~12h later (dropped `12:52`), and the commissioner restored the $37
+     (`39 → 76`). Raw bid-sum **$137**, **effective** spend `137 − 37 = $100`. Modeled as
+     **timestamped credits** at the event's `effective_week` (`budget_at_week = 100 + Σ credits ≤
+     week`), so the `39 → 76` path reproduces exactly and remaining never goes negative.
    - **No structured team link.** Budget `setting_change` rows carry `team_id = NULL`; the only link
-     to the team is its name in the verbatim description. The Timeline now extracts and names it
-     (`_budget_target`, PR-this), so the analytic can reuse that to attribute the credit.
-   - **Guard:** if a team's running spend ever exceeds its computed budget, render the remaining
-     honestly as a `DataGap`, never a negative number.
-   - Expose via a new field/endpoint; render per-week on the roster card.
-3. **Honest gap** for any season/team still missing bids — `DataGap`, never `$0`.
+     to the team is its name in the description. `team_faab_budget` matches it by name (and the
+     Timeline names it too via `_budget_target`, PR #92).
+   - **Overspend guard:** an unattributable overspend renders honestly, never a negative balance.
+3. **Honest gap** — ✅ pre-FAAB seasons show no card (not-applicable, not `$0`); a `$0` spend week is a
+   real value; the card header shows the *effective* budget so a refunded team doesn't read as
+   overspent.

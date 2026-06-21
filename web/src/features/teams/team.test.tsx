@@ -158,8 +158,37 @@ const OWNER_SEASONS = {
   ],
 };
 
+// Default: pre-FAAB season, so the budget card self-hides and existing tests'
+// DOM is unaffected. The FAAB-era case is opted into per-test.
+const NO_FAAB_BUDGET = {
+  team_id: 10,
+  season_year: 2017,
+  is_faab_era: false,
+  available: false,
+  season_budget: null,
+  total_spent: null,
+  final_remaining: null,
+  weeks: [],
+};
+
+const FAAB_BUDGET = {
+  team_id: 10,
+  season_year: 2017,
+  is_faab_era: true,
+  available: true,
+  season_budget: 100,
+  total_spent: 47,
+  final_remaining: 90,
+  weeks: [
+    { week: 1, spent: 10, cumulative_spent: 10, budget: 100, remaining: 90, adjustment: null, note: null },
+    { week: 2, spent: 0, cumulative_spent: 10, budget: 100, remaining: 90, adjustment: null, note: null },
+    { week: 3, spent: 37, cumulative_spent: 47, budget: 137, remaining: 90, adjustment: 37, note: "Budget adjusted +$37" },
+  ],
+};
+
 let rosterMoves: unknown = ROSTER_MOVES;
 let transactions: unknown = TRANSACTIONS;
+let faabBudget: unknown = NO_FAAB_BUDGET;
 
 function LocationProbe() {
   const location = useLocation();
@@ -173,6 +202,7 @@ function routeByPath(path: string) {
   if (path === "/v1/teams/{team_id}/scoring-trend") return envelope(TREND);
   if (path === "/v1/teams/{team_id}/transactions") return envelope(transactions);
   if (path === "/v1/teams/{team_id}/roster-moves") return envelope(rosterMoves);
+  if (path === "/v1/teams/{team_id}/faab-budget") return envelope(faabBudget);
   if (path === "/v1/owners/{owner_id}/seasons") return envelope(OWNER_SEASONS);
   throw new Error(`unexpected path ${path}`);
 }
@@ -196,6 +226,7 @@ beforeEach(() => {
   get.mockReset();
   rosterMoves = ROSTER_MOVES;
   transactions = TRANSACTIONS;
+  faabBudget = NO_FAAB_BUDGET;
   get.mockImplementation((path: string) => Promise.resolve(routeByPath(path)));
 });
 
@@ -302,6 +333,28 @@ describe("TeamPage", () => {
     expect(await screen.findByText("$17 FAAB")).toBeInTheDocument();
     // $0 is a real outcome (a free claim) — it must render, never be hidden.
     expect(screen.getByText("$0 FAAB")).toBeInTheDocument();
+  });
+
+  it("renders the weekly FAAB budget card for a FAAB-era season", async () => {
+    faabBudget = FAAB_BUDGET;
+    renderPage();
+    expect(await screen.findByText("Waiver budget")).toBeInTheDocument();
+    // Effective budget reflects the mid-season +$37 credit, so the team doesn't
+    // read as overspent ("$137", not the $100 base).
+    expect(screen.getByText("Spent $47 of $137")).toBeInTheDocument();
+    expect(screen.getByText("Base $100, adjusted mid-season")).toBeInTheDocument();
+    // The mid-season budget adjustment surfaces as a labelled pill.
+    expect(screen.getByText("Budget adjusted +$37")).toBeInTheDocument();
+    // The weekly breakdown renders each week's spend as a deduction.
+    expect(screen.getByText("-$10")).toBeInTheDocument();
+    expect(screen.getByText("-$37")).toBeInTheDocument();
+  });
+
+  it("omits the FAAB budget card for pre-FAAB (waiver-priority) seasons", async () => {
+    // Default fixture is is_faab_era=false — not a gap, just not applicable.
+    renderPage();
+    expect(await screen.findByText("Transactions")).toBeInTheDocument();
+    expect(screen.queryByText("Waiver budget")).not.toBeInTheDocument();
   });
 
   it("falls back to the derived roster diff, flagged, only when no exact log exists", async () => {

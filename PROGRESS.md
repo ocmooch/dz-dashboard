@@ -15,6 +15,26 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+**In progress (2026-06-21):** `feature/faab-remaining-budget` builds the deferred remaining-budget
+milestone (F-37). New pure analytic `team_faab_budget()` (`analytics/teams.py`) derives per-week
+`remaining = budget_at_week − cumulative spend` from captured `faab_bid`s (NFL.com has no such view).
+FAAB-era is **data-driven** on the presence of captured bids in the season (pre-FAAB seasons return
+`is_faab_era=False` — not-applicable, not a `DataGap`). Season budget = flat **$100** base plus
+mid-season per-team **credits** parsed from the budget `setting_change` events (which carry
+`team_id=NULL` — matched by the team name in the description); reproduces Ice Station Zebra 2022's
++$37 refund (remaining never goes negative, lands at $0). Pure helpers `_faab_budget_weeks` /
+`_budget_credits_for_team` are unit-tested (flat, credit, overspend-guard); integration on a FAAB-era
+fixture team (Goose 2017, incl. a $0 free claim) + the pre-FAAB not-applicable path. New endpoint
+`GET /v1/teams/{team_id}/faab-budget` (`TeamFaabBudget`/`TeamFaabWeek`), client regenerated
+(additive, no drift). Frontend `FaabBudgetCard` on the Team page: spent-of-budget header (effective
+budget when credited, so a refund doesn't read as overspend), progress bar, and a per-week breakdown
+with the adjustment pill; self-hides for pre-FAAB seasons. Gate green: backend **438** + ruff + mypy
++ write-safety; frontend typecheck + **191** + `gen:api:check` in sync + production build. Verified
+live on the real DB and via a browser screenshot (team 1 / 2025 spends $100→$0; team 157 / 2022 shows
+$137 effective budget, +$37 pill, $0 left). Cut from `dev` (has #91; #92 still open). **Ready to PR →
+`dev`.**
+
+
 **In progress (2026-06-21):** `feature/faab-bid-display` lights up FAAB bids now that the upstream
 capture landed (danger-zone writes `extra_data.faab_bid` on 2021–2025 `waiver_add` legs;
 214/241/214/205/182 rows, pre-2021 null — `docs/handoffs/faab-bid-capture.md` STATUS: COMPLETE).

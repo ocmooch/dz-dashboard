@@ -81,7 +81,7 @@ where a small additive consume-step is noted. Full finding text:
 | Input | Needed by | Status |
 |-------|-----------|--------|
 | Season-length switch year(s): regular 1–13 → 1–14; playoff week shift | F-32 (shipped, config-driven) | ☑ dashboard derives from DB columns; exact switch year still unconfirmed |
-| Waiver standard-order → **FAAB** switch point | F-37 | ◐ switch = 2021; FAAB **bids landed upstream** (2026-06-21, 2021–2025) and now surface in the team transactions log; remaining-budget analytic deferred — see `docs/handoffs/faab-bid-capture.md` |
+| Waiver standard-order → **FAAB** switch point | F-37 | ✅ switch = 2021; bids landed upstream (2021–2025); team transactions log shows the bid; **weekly remaining-budget built** (`/v1/teams/{id}/faab-budget` + `FaabBudgetCard`) — see `docs/handoffs/faab-bid-capture.md` |
 | Ownership-succession ledger (which owner held which team, which seasons) | F-06 | ⊘ still needs a source/table |
 | Pre-2016 scoring reconstruction trust check | F-27 | ☑ data landed (2010–2025); ◐ validation open |
 
@@ -130,10 +130,16 @@ The dashboard half is done: `_faab_bid()` was hardened to read a **$0 bid as a r
 (394/1056 bids are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), and the winning bid is
 promoted from the faint detail line to its own accent `"$X FAAB"` pill in the team transactions log.
 Verified live on the real DB (team 1 / 2025: `$0` and positive bids both surface; draft/pre-FAAB rows
-stay null). **Deferred follow-on** (`docs/handoffs/faab-bid-capture.md` §"After data lands"): a
-remaining-budget analytic (`season_budget − cumsum(faab_bid)` per FAAB-era team) rendered per-week on
-the roster card — gated on the budget `setting_change` events ($100 league default + the 2022 per-team
-bump), whose per-team semantics are still ambiguous (only one such event exists).
+stay null). **Weekly remaining-budget is now built** (`feature/faab-remaining-budget`):
+`team_faab_budget()` derives per-week `remaining = budget_at_week − cumulative spend`;
+`GET /v1/teams/{id}/faab-budget`; `FaabBudgetCard` on the Team page. Season budget = flat **$100**
+base (validated: holds exactly for 2021/2023/2024/2025) + mid-season per-team **credits** parsed from
+the budget `setting_change` events (which carry `team_id=NULL` — matched by the name in the
+description), modeled as timestamped credits so Ice Station Zebra 2022's +$37 refund reproduces
+(remaining never negative). The per-team budget semantics that were "ambiguous" are resolved: the lone
+event is a refund of a reversed claim, attributed by name. **Remaining open (the original F-37 scope):**
+the dashboard still hasn't consumed the exact transaction dates/types as a *richer tier* beyond the
+acquisitions log.
 
 ### F-49 — Playoff / consolation metadata ☐ ⤴
 `Matchup.is_consolation` is `0` for all playoff rows and `is_playoff` is set on every post-season

@@ -17,6 +17,7 @@ from ff_pipeline.repository.models import Asset, Team
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.owners import teams_index
 from ff_dashboard.analytics.teams import (
+    team_faab_budget,
     team_overview,
     team_roster,
     team_schedule,
@@ -31,6 +32,7 @@ from ff_dashboard.api.deps import (  # noqa: TC001 — runtime deps for FastAPI
 )
 from ff_dashboard.api.schemas import (
     Envelope,
+    TeamFaabBudget,
     TeamOverview,
     TeamRosterMoves,
     TeamRosterOut,
@@ -155,3 +157,15 @@ def get_team_roster_moves(
     if data is None:
         raise not_found(f"No team with id {team_id}")
     return Envelope(data=TeamRosterMoves(**data), meta=build_meta(session))
+
+
+@router.get("/v1/teams/{team_id}/faab-budget", response_model=Envelope[TeamFaabBudget])
+def get_team_faab_budget(
+    team_id: int, session: SessionDep, cache: CacheDep
+) -> Envelope[TeamFaabBudget]:
+    data = cache.get_or_compute(
+        session, f"team_faab_budget:{team_id}", lambda: team_faab_budget(session, team_id)
+    )
+    if data is None:
+        raise not_found(f"No team with id {team_id}")
+    return Envelope(data=TeamFaabBudget(**data), meta=build_meta(session))
