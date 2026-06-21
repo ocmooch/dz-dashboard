@@ -49,5 +49,6 @@ export const qk = {
   teamScoringTrend: (teamId: number) => ["team", teamId, "scoring-trend"] as const,
   teamTransactions: (teamId: number) => ["team", teamId, "transactions"] as const,
   teamRosterMoves: (teamId: number) => ["team", teamId, "roster-moves"] as const,
+  teamFaabBudget: (teamId: number) => ["team", teamId, "faab-budget"] as const,
   search: (q: string) => ["search", q] as const,
 };

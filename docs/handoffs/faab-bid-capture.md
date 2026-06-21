@@ -105,16 +105,16 @@ The consume path already exists; this is why upstream capture alone unblocks dis
 - `web/src/features/teams/TeamPage.tsx` — `transactionDetail()` renders `"$X FAAB"` when non-null,
   and never renders `0`/`$0` for a missing bid.
 
-## After data lands — deferred dashboard work (forward context only; not built yet)
+## After data lands — dashboard work (BUILT)
 
-Once `faab_bid` is populated, a separate dz-dashboard milestone can build:
-
-1. **Transactions log** — verify the existing `"$X FAAB"` surfaces; consider promoting the bid to a
-   `Pill`/column rather than the buried detail meta line (`TeamPage.tsx` `TxRow`/`transactionDetail`).
-2. **Remaining-budget analytic** (new pure fn in `analytics/teams.py`): per FAAB-era team,
-   `remaining = season_budget − cumsum(faab_bid)` ordered by `effective_week`; the season budget
-   comes from the existing `setting_change` budget events (the $100 default + per-team adjustments
-   already surfaced by `analytics/league_changes.py`). Expose via a new field/endpoint; render
-   per-week on the roster card. Gate FAAB-era on the **data-driven** waiver-type change event, never
-   a hardcoded year.
-3. **Honest gap** for any season/team still missing bids — `DataGap`, never `$0`.
+1. **Transactions log** — ✅ DONE (PR #91): `$0` read as a real claim; bid renders as a `"$X FAAB"` pill.
+2. **Remaining-budget analytic** — ✅ DONE (`feature/faab-remaining-budget`): `team_faab_budget()` in
+   `analytics/teams.py` derives per-week `remaining = budget_at_week − cumulative spend` from captured
+   `faab_bid`s. FAAB-era is data-driven on the presence of captured bids (not a hardcoded year).
+   Season budget = flat **$100** base + mid-season per-team **credits** (the budget `setting_change`
+   events carry `team_id=NULL`, matched by the name in the description; modeled as timestamped credits
+   so Ice Station Zebra 2022's +$37 refund reproduces — remaining never negative). Endpoint
+   `GET /v1/teams/{team_id}/faab-budget`; `FaabBudgetCard` on the Team page (self-hides for pre-FAAB
+   seasons). Overspend guard renders honestly rather than a negative.
+3. **Honest gap** — ✅ pre-FAAB seasons show no card (not-applicable, not `$0`); a `$0` spend week is a
+   real value; an unattributable overspend is flagged, never a fake balance.

@@ -78,6 +78,14 @@ async function fetchRosterMoves(id: number) {
   return data.data;
 }
 
+async function fetchFaabBudget(id: number) {
+  const { data, error } = await api.GET("/v1/teams/{team_id}/faab-budget", {
+    params: { path: { team_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load FAAB budget");
+  return data.data;
+}
+
 async function fetchOwnerSeasons(ownerId: number): Promise<OwnerSeasonRow[]> {
   const { data, error } = await api.GET("/v1/owners/{owner_id}/seasons", {
     params: { path: { owner_id: ownerId } },
@@ -550,6 +558,89 @@ function transactionDetail(t: TeamTransaction) {
   return parts.join(" · ");
 }
 
+function money(value: number) {
+  return `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
+}
+
+/** Weekly FAAB budget remaining, derived from tracked spend (NFL.com exposes no
+ *  such view). Absent entirely for pre-FAAB (waiver-priority) seasons — that is
+ *  not-applicable, not a gap, so the card simply doesn't render. */
+function FaabBudgetCard({ teamId }: { teamId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.teamFaabBudget(teamId),
+    queryFn: () => fetchFaabBudget(teamId),
+  });
+
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
+  if (!data || !data.is_faab_era || !data.available) return null;
+
+  const baseBudget = data.season_budget ?? 100;
+  // The effective budget includes any mid-season credit (e.g. a +$37 refund), so
+  // a refunded team doesn't read as overspent ("$137 of $137", not "of $100").
+  const budget = data.weeks.length ? data.weeks[data.weeks.length - 1].budget : baseBudget;
+  const adjusted = budget !== baseBudget;
+  const remaining = data.final_remaining ?? budget;
+  const spent = data.total_spent ?? 0;
+  const overBudget = remaining < 0;
+  const pct = Math.max(0, Math.min(100, (remaining / budget) * 100));
+
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="FAAB budget"
+        title="Waiver budget"
+        action={
+          overBudget ? (
+            <span className="text-[var(--fs-sm)] font-semibold text-loss">over budget</span>
+          ) : (
+            <span className="num text-[var(--fs-sm)] text-text">
+              {money(remaining)} <span className="text-faint">left</span>
+            </span>
+          )
+        }
+      />
+      <div className="px-5 pb-3">
+        <div className="text-[var(--fs-sm)] text-muted">
+          Spent {money(spent)} of {money(budget)}
+        </div>
+        {adjusted && (
+          <div className="text-[var(--fs-xs)] text-faint">
+            Base {money(baseBudget)}, adjusted mid-season
+          </div>
+        )}
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+          <div
+            className={`h-full rounded-full ${overBudget ? "bg-loss" : "bg-accent"}`}
+            style={{ width: `${overBudget ? 100 : pct}%` }}
+          />
+        </div>
+        {overBudget && (
+          <div className="mt-2 text-[var(--fs-xs)] text-loss">
+            Tracked spend exceeds the recorded budget for this team.
+          </div>
+        )}
+      </div>
+      <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+        {data.weeks.map((w) => (
+          <li
+            key={w.week}
+            className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]"
+          >
+            <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {w.week}</span>
+            <span className="num shrink-0 text-text">
+              {w.spent > 0 ? `-${money(w.spent)}` : <span className="text-faint">—</span>}
+            </span>
+            {w.adjustment != null && w.note && <Pill tone="accent">{w.note}</Pill>}
+            <span className="num ml-auto shrink-0 text-muted">
+              {money(w.remaining)} <span className="text-faint">left</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 function formatTransactionDate(value: string | null | undefined) {
   if (!value) return null;
   const date = new Date(value);
@@ -670,6 +761,9 @@ export function TeamPage() {
             <ScoringTrendCard teamId={teamId} />
             <TransactionsCard teamId={teamId} />
           </div>
+
+          {/* FAAB budget — renders only for FAAB-era seasons (self-hiding). */}
+          <FaabBudgetCard teamId={teamId} />
         </>
       )}
     </div>

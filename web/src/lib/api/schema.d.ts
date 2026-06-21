@@ -806,6 +806,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams/{team_id}/faab-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Team Faab Budget */
+        get: operations["get_team_faab_budget_v1_teams__team_id__faab_budget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -1531,6 +1548,11 @@ export interface components {
         /** Envelope[Standings] */
         Envelope_Standings_: {
             data: components["schemas"]["Standings"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[TeamFaabBudget] */
+        Envelope_TeamFaabBudget_: {
+            data: components["schemas"]["TeamFaabBudget"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[TeamOverview] */
@@ -2928,6 +2950,45 @@ export interface components {
              * @default 0
              */
             length: number;
+        };
+        /** TeamFaabBudget */
+        TeamFaabBudget: {
+            /** Team Id */
+            team_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Is Faab Era */
+            is_faab_era: boolean;
+            /** Available */
+            available: boolean;
+            /** Season Budget */
+            season_budget?: number | null;
+            /** Total Spent */
+            total_spent?: number | null;
+            /** Final Remaining */
+            final_remaining?: number | null;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["TeamFaabWeek"][];
+        };
+        /** TeamFaabWeek */
+        TeamFaabWeek: {
+            /** Week */
+            week: number;
+            /** Spent */
+            spent: number;
+            /** Cumulative Spent */
+            cumulative_spent: number;
+            /** Budget */
+            budget: number;
+            /** Remaining */
+            remaining: number;
+            /** Adjustment */
+            adjustment?: number | null;
+            /** Note */
+            note?: string | null;
         };
         /** TeamOverview */
         TeamOverview: {
@@ -4560,6 +4621,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_TeamRosterMoves_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_team_faab_budget_v1_teams__team_id__faab_budget_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_TeamFaabBudget_"];
                 };
             };
             /** @description Validation Error */

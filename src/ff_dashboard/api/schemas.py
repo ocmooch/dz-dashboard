@@ -1270,6 +1270,27 @@ class TeamTransactions(BaseModel):
     transactions: list[TeamTransaction]
 
 
+class TeamFaabWeek(BaseModel):
+    week: int
+    spent: float  # FAAB spent this week (a genuine 0 is allowed)
+    cumulative_spent: float
+    budget: float  # budget available through this week (base + credits to date)
+    remaining: float
+    adjustment: float | None = None  # mid-season budget credit applied this week
+    note: str | None = None
+
+
+class TeamFaabBudget(BaseModel):
+    team_id: int
+    season_year: int
+    is_faab_era: bool  # False for pre-FAAB (waiver-priority) seasons — not a gap
+    available: bool
+    season_budget: float | None = None  # base season budget when FAAB-era
+    total_spent: float | None = None
+    final_remaining: float | None = None
+    weeks: list[TeamFaabWeek] = []
+
+
 class RosterMove(BaseModel):
     week: int
     player_id: int
