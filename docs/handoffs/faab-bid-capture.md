@@ -109,12 +109,25 @@ The consume path already exists; this is why upstream capture alone unblocks dis
 
 Once `faab_bid` is populated, a separate dz-dashboard milestone can build:
 
-1. **Transactions log** — verify the existing `"$X FAAB"` surfaces; consider promoting the bid to a
-   `Pill`/column rather than the buried detail meta line (`TeamPage.tsx` `TxRow`/`transactionDetail`).
+1. **Transactions log** — ✅ DONE (2026-06-21, PR #91): `_faab_bid()` reads `$0` as a real claim and
+   the bid renders as its own accent `"$X FAAB"` pill (`TeamPage.tsx` `TxRow`).
 2. **Remaining-budget analytic** (new pure fn in `analytics/teams.py`): per FAAB-era team,
-   `remaining = season_budget − cumsum(faab_bid)` ordered by `effective_week`; the season budget
-   comes from the existing `setting_change` budget events (the $100 default + per-team adjustments
-   already surfaced by `analytics/league_changes.py`). Expose via a new field/endpoint; render
-   per-week on the roster card. Gate FAAB-era on the **data-driven** waiver-type change event, never
-   a hardcoded year.
+   `remaining(week) = season_budget − cumsum(faab_bid through week)` ordered by `effective_week`.
+   **Validated against the live DB (2026-06-21):** a flat **$100** season budget holds exactly for
+   2021/2023/2024/2025 (no team exceeds it; several land on $100). FAAB-era is data-driven on the
+   2021 waiver-type change event — never a hardcoded year.
+   - **The one per-team budget event is an anomalous refund, not a budget grant.** The lone
+     `waiver_budget_team` row ("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", 2022)
+     is a **+$37 refund**: Ice Station Zebra won Dameon Pierce on waivers for $37 (wk2,
+     `2022-09-16 00:22`), the claim was reversed ~12h later (dropped `12:52`), and the commissioner
+     restored the $37 (remaining `39 → 76`). Their raw bid-sum is **$137** but **effective** spend is
+     `137 − 37 = $100`. So model per-team adjustments as **timestamped credits** at their
+     `effective_week` (`budget_at_week = 100 + Σ credits ≤ week`), not a static season total — that
+     reproduces the `39 → 76` path exactly.
+   - **No structured team link.** Budget `setting_change` rows carry `team_id = NULL`; the only link
+     to the team is its name in the verbatim description. The Timeline now extracts and names it
+     (`_budget_target`, PR-this), so the analytic can reuse that to attribute the credit.
+   - **Guard:** if a team's running spend ever exceeds its computed budget, render the remaining
+     honestly as a `DataGap`, never a negative number.
+   - Expose via a new field/endpoint; render per-week on the roster card.
 3. **Honest gap** for any season/team still missing bids — `DataGap`, never `$0`.

@@ -347,8 +347,9 @@ def _missing_sentence(c: ClassifiedChange) -> str:
             "but not what changed."
         ),
         "waiver_budget_team": (
-            f"{actor} adjusted a team's FAAB budget mid-season "
-            f"({c.before}→{c.after}); the reason isn't recorded — likely a correction."
+            f"{actor} adjusted {_budget_target(c.raw.description) or 'a team'}'s FAAB budget "
+            f"mid-season ({c.before}→{c.after}); the reason isn't recorded — likely a correction "
+            "(e.g. refunding a reversed waiver claim)."
         ),
     }
     return base.get(
@@ -438,9 +439,16 @@ def _member_detail(c: ClassifiedChange) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 def _emit_individual(c: ClassifiedChange) -> dict[str, Any]:
     if c.treatment == "MISSING":
+        title = c.human_label
+        if c.canonical_type == "waiver_budget_team":
+            # Name the specific team in the title too — this is an anomalous,
+            # team-specific event, not a generic per-team setting.
+            target = _budget_target(c.raw.description)
+            if target:
+                title = f"{target} — FAAB budget"
         return _detail(
             c,
-            title=c.human_label,
+            title=title,
             summary=_missing_sentence(c),
             tier=c.tier,
             certainty="source_limited",
@@ -575,6 +583,19 @@ def _emit_group(
 
 def _privilege_target(desc: str) -> str | None:
     m = re.search(r"Privileges (?:to|from) ([^.]+)\.?", desc)
+    return m.group(1).strip() if m else None
+
+
+def _budget_target(desc: str) -> str | None:
+    """The team named in a per-team FAAB budget change.
+
+    Per-team budget events carry no ``team_id`` (they are league-level rows keyed
+    only to a season); the only link to the affected team is its name embedded in
+    the verbatim description, e.g. ``"Dan changed Ice Station Zebra Waiver Budget
+    from '39' to '76'"`` -> ``"Ice Station Zebra"``. The league-wide default
+    (``"changed Waiver Budget to '100'"``) has no team and yields ``None``.
+    """
+    m = re.search(r"changed (.+?) Waiver Budget", desc)
     return m.group(1).strip() if m else None
 
 
