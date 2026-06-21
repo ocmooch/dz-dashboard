@@ -144,6 +144,28 @@ def test_per_team_budget_change_names_the_team() -> None:
     assert "39→76" in detail["summary"]
 
 
+def test_per_team_budget_change_states_verified_refund_context() -> None:
+    # The 2022 Ice Station Zebra event's reason is verified from the transaction
+    # log (a reversed Dameon Pierce claim), so the Timeline states it as fact and
+    # drops the "context not recorded" gap affordance.
+    c = classify(_raw("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", year=2022))
+    detail = _emit_individual(c)
+    assert "Dameon Pierce" in detail["summary"]
+    assert "refund" in detail["summary"].lower()
+    assert detail["missing_context"] is False
+    assert detail["certainty"] == "verified"
+
+
+def test_unknown_per_team_budget_change_keeps_the_honest_hedge() -> None:
+    # A per-team budget change with no verified context stays a documented gap.
+    c = classify(_raw("Dan changed Some Other Team Waiver Budget from '50' to '60'", year=2023))
+    detail = _emit_individual(c)
+    assert "Some Other Team" in detail["summary"]
+    assert "reason isn't recorded" in detail["summary"]
+    assert detail["missing_context"] is True
+    assert detail["certainty"] == "source_limited"
+
+
 def test_league_wide_budget_default_has_no_team_target() -> None:
     # The league default ("changed Waiver Budget to '100'") names no team and must
     # not be mis-parsed into a phantom target.
