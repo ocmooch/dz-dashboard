@@ -107,14 +107,26 @@ The consume path already exists; this is why upstream capture alone unblocks dis
 
 ## After data lands — dashboard work (BUILT)
 
-1. **Transactions log** — ✅ DONE (PR #91): `$0` read as a real claim; bid renders as a `"$X FAAB"` pill.
+1. **Transactions log** — ✅ DONE (PR #91): `_faab_bid()` reads `$0` as a real claim; the bid renders
+   as its own accent `"$X FAAB"` pill (`TeamPage.tsx` `TxRow`).
 2. **Remaining-budget analytic** — ✅ DONE (`feature/faab-remaining-budget`): `team_faab_budget()` in
-   `analytics/teams.py` derives per-week `remaining = budget_at_week − cumulative spend` from captured
-   `faab_bid`s. FAAB-era is data-driven on the presence of captured bids (not a hardcoded year).
-   Season budget = flat **$100** base + mid-season per-team **credits** (the budget `setting_change`
-   events carry `team_id=NULL`, matched by the name in the description; modeled as timestamped credits
-   so Ice Station Zebra 2022's +$37 refund reproduces — remaining never negative). Endpoint
-   `GET /v1/teams/{team_id}/faab-budget`; `FaabBudgetCard` on the Team page (self-hides for pre-FAAB
-   seasons). Overspend guard renders honestly rather than a negative.
+   `analytics/teams.py` derives per-week `remaining(week) = budget_at_week − cumulative spend` from
+   captured `faab_bid`s. Endpoint `GET /v1/teams/{team_id}/faab-budget`; `FaabBudgetCard` on the Team
+   page (self-hides for pre-FAAB seasons). FAAB-era is data-driven on the presence of captured bids —
+   never a hardcoded year.
+   - **Budget = flat $100 base + mid-season credits.** Validated against the live DB: the $100 base
+     holds exactly for 2021/2023/2024/2025 (no team exceeds it; several land on $100).
+   - **The one per-team budget event is an anomalous refund, not a grant.** The lone
+     `waiver_budget_team` row ("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", 2022)
+     is a **+$37 refund**: Ice Station Zebra won Dameon Pierce for $37 (wk2, `2022-09-16 00:22`), the
+     claim was reversed ~12h later (dropped `12:52`), and the commissioner restored the $37
+     (`39 → 76`). Raw bid-sum **$137**, **effective** spend `137 − 37 = $100`. Modeled as
+     **timestamped credits** at the event's `effective_week` (`budget_at_week = 100 + Σ credits ≤
+     week`), so the `39 → 76` path reproduces exactly and remaining never goes negative.
+   - **No structured team link.** Budget `setting_change` rows carry `team_id = NULL`; the only link
+     to the team is its name in the description. `team_faab_budget` matches it by name (and the
+     Timeline names it too via `_budget_target`, PR #92).
+   - **Overspend guard:** an unattributable overspend renders honestly, never a negative balance.
 3. **Honest gap** — ✅ pre-FAAB seasons show no card (not-applicable, not `$0`); a `$0` spend week is a
-   real value; an unattributable overspend is flagged, never a fake balance.
+   real value; the card header shows the *effective* budget so a refunded team doesn't read as
+   overspent.
