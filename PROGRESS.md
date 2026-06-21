@@ -15,6 +15,21 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+**In progress (2026-06-21):** `feature/faab-bid-display` lights up FAAB bids now that the upstream
+capture landed (danger-zone writes `extra_data.faab_bid` on 2021–2025 `waiver_add` legs;
+214/241/214/205/182 rows, pre-2021 null — `docs/handoffs/faab-bid-capture.md` STATUS: COMPLETE).
+Two dashboard changes: (1) `analytics/teams._faab_bid()` now reads a **$0 bid as a real free claim**
+— 394/1056 bids are exactly `$0`, and the prior `faab_bid or faab or bid` chain collapsed `0`→`None`;
+it now checks key *presence* and returns `0.0`; (2) the winning bid is promoted from the faint detail
+line to its own accent `"$X FAAB"` pill in the team transactions log (`web/.../TeamPage.tsx` `TxRow`).
+BFF-only contract is unchanged (`faab_bid` was already in the schema) → no OpenAPI drift, client
+untouched. Tests: backend `_faab_bid` unit cases (0 / missing / null / legacy-key fallback /
+non-numeric) in `test_p7_teams_unit.py`; frontend asserts the `$17` and `$0` pills render. Gate
+green: backend **431** tests + ruff + mypy + write-safety; frontend typecheck + **189** Vitest +
+live `gen:api:check` in sync. Verified live on the real DB (team 1 / 2025: `$0` Boswell/Shrader and
+positive bids surface; draft rows stay null). **Deferred** (its own milestone): the remaining-budget
+analytic. **Ready to PR → `dev`.**
+
 **In progress (2026-06-19):** `feature/draft-perf` fixes the slow draft-page loads introduced by
 the draft-impact work — a BFF-only optimization, no behavior change. A cold draft request had
 exploded to **~24,000 queries / 3.5s** from two compounding issues: (1) `_value_history` and

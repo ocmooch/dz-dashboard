@@ -81,7 +81,7 @@ where a small additive consume-step is noted. Full finding text:
 | Input | Needed by | Status |
 |-------|-----------|--------|
 | Season-length switch year(s): regular 1–13 → 1–14; playoff week shift | F-32 (shipped, config-driven) | ☑ dashboard derives from DB columns; exact switch year still unconfirmed |
-| Waiver standard-order → **FAAB** switch point | F-37 | ◐ switch = 2021 (confirmed via `setting_change`); FAAB **bids absent upstream** — see `docs/handoffs/faab-bid-capture.md` |
+| Waiver standard-order → **FAAB** switch point | F-37 | ◐ switch = 2021; FAAB **bids landed upstream** (2026-06-21, 2021–2025) and now surface in the team transactions log; remaining-budget analytic deferred — see `docs/handoffs/faab-bid-capture.md` |
 | Ownership-succession ledger (which owner held which team, which seasons) | F-06 | ⊘ still needs a source/table |
 | Pre-2016 scoring reconstruction trust check | F-27 | ☑ data landed (2010–2025); ◐ validation open |
 
@@ -124,15 +124,16 @@ Upstream has dated, typed transaction rows (add/drop/waiver/free-agent/trade/dra
 dashboard renders the derived roster-diff tier. **Open:** the dashboard hasn't consumed exact
 transaction dates/types as a richer tier.
 
-**FAAB resolved as an upstream capture gap (2026-06-20).** Live-DB audit: FAAB bid amounts are
-**absent, not sparse** — all `waiver_add`/`free_agent_add` rows have `extra_data = null`,
-`waiver_priority_used` is NULL for all 41,870 rows, and the danger-zone parser never parses
-bid/budget. The switch year is **2021** (confirmed via the `setting_change` "Waiver Type → Waiver
-Budget ($100)" rows; a 2022 per-team bump also exists). Spend and remaining-budget both derive from
-the bid, so **no dashboard FAAB display is buildable until the bid lands upstream.** The dashboard is
-already wired to consume it (`_faab_bid()` / `TeamTransaction.faab_bid` / `"$X FAAB"` render). The
-upstream spec (source-availability check → parser capture into `extra_data.faab_bid` → re-crawl
-2021–2025) and the deferred dashboard follow-on are in **`docs/handoffs/faab-bid-capture.md`**.
+**FAAB capture landed upstream + surfaced on the dashboard (2026-06-21).** Danger-zone now writes
+`extra_data.faab_bid` on `waiver_add` legs for 2021–2025 (214/241/214/205/182 rows; pre-2021 null).
+The dashboard half is done: `_faab_bid()` was hardened to read a **$0 bid as a real free claim**
+(394/1056 bids are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), and the winning bid is
+promoted from the faint detail line to its own accent `"$X FAAB"` pill in the team transactions log.
+Verified live on the real DB (team 1 / 2025: `$0` and positive bids both surface; draft/pre-FAAB rows
+stay null). **Deferred follow-on** (`docs/handoffs/faab-bid-capture.md` §"After data lands"): a
+remaining-budget analytic (`season_budget − cumsum(faab_bid)` per FAAB-era team) rendered per-week on
+the roster card — gated on the budget `setting_change` events ($100 league default + the 2022 per-team
+bump), whose per-team semantics are still ambiguous (only one such event exists).
 
 ### F-49 — Playoff / consolation metadata ☐ ⤴
 `Matchup.is_consolation` is `0` for all playoff rows and `is_playoff` is set on every post-season

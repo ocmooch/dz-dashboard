@@ -101,6 +101,36 @@ const TRANSACTIONS = {
       notes: "Iceman",
       extra_data: null,
     },
+    {
+      transaction_id: 3,
+      transaction_type: "waiver_add",
+      executed_at: "2017-09-19T11:00:00+00:00",
+      effective_week: 2,
+      player_id: 7,
+      player_name: "Bidder Bob",
+      direction: "in",
+      waiver_priority_used: null,
+      faab_bid: 17,
+      counterpart_team_id: null,
+      counterpart_team_name: null,
+      notes: "Iceman",
+      extra_data: null,
+    },
+    {
+      transaction_id: 4,
+      transaction_type: "waiver_add",
+      executed_at: "2017-09-20T11:00:00+00:00",
+      effective_week: 2,
+      player_id: 8,
+      player_name: "Freebie Fred",
+      direction: "in",
+      waiver_priority_used: null,
+      faab_bid: 0,
+      counterpart_team_id: null,
+      counterpart_team_name: null,
+      notes: "Iceman",
+      extra_data: null,
+    },
   ],
 };
 
@@ -256,7 +286,7 @@ describe("TeamPage", () => {
     renderPage();
     expect(await screen.findByText("Transactions")).toBeInTheDocument();
     expect(await screen.findByText("Waiver Wendell")).toBeInTheDocument();
-    expect(screen.getByText("Waiver")).toBeInTheDocument();
+    expect(screen.getAllByText("Waiver").length).toBeGreaterThan(0);
     expect(screen.getByText(/waiver #4/i)).toBeInTheDocument();
     // The trade is interleaved with its counterpart team.
     expect(screen.getByText("Traded Tom")).toBeInTheDocument();
@@ -264,6 +294,14 @@ describe("TeamPage", () => {
     expect(screen.getByText(/with Maverick 2017/i)).toBeInTheDocument();
     // The actor/device note is suppressed (the owner is implied).
     expect(screen.queryByText(/Mobile Device/i)).not.toBeInTheDocument();
+  });
+
+  it("surfaces the FAAB bid as its own pill, including a $0 free claim", async () => {
+    renderPage();
+    // A winning bid is promoted out of the faint detail line into a pill.
+    expect(await screen.findByText("$17 FAAB")).toBeInTheDocument();
+    // $0 is a real outcome (a free claim) — it must render, never be hidden.
+    expect(screen.getByText("$0 FAAB")).toBeInTheDocument();
   });
 
   it("falls back to the derived roster diff, flagged, only when no exact log exists", async () => {

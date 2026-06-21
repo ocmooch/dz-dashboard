@@ -1,5 +1,13 @@
 # Handoff → danger-zone (ff-pipeline): capture FAAB bid amounts
 
+> **STATUS: COMPLETE (2026-06-21).** Upstream capture landed — `extra_data.faab_bid` is populated
+> on `waiver_add` legs for 2021–2025 (214/241/214/205/182 rows; pre-2021 null). The dashboard
+> consume side shipped on `feature/faab-bid-display`: `_faab_bid()` now reads a `$0` bid as a real
+> free claim (the old `or`-chain dropped `0`), and the winning bid renders as its own `"$X FAAB"`
+> pill in the team transactions log. Verified live (team 1 / 2025). The remaining-budget analytic
+> in §"After data lands" remains the deferred follow-on milestone.
+
+
 **Repo:** `/home/mainuser/danger-zone`  ·  **DB:** `data/fantasy.db` (SQLite)
 **Authored:** 2026-06-20, against the live DB.  ·  **Tracks:** dz-dashboard `F-37`.
 **Context:** There is an underserved need to surface FAAB (Free Agent Acquisition Budget) data in

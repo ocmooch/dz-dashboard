@@ -416,13 +416,23 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
 
 
 def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
-    """Return a FAAB bid when Phase 1 records one; current DB rows generally do not."""
+    """Return a FAAB bid when Phase 1 records one (2021+ ``waiver_add`` legs).
+
+    A bid of ``0`` is a *real* outcome (a free waiver claim), distinct from a
+    missing bid — so we check key *presence* rather than truthiness; an ``or``
+    chain would wrongly collapse ``0`` to ``None``. Falls back to ``faab`` /
+    ``bid`` only if the canonical ``faab_bid`` key is absent.
+    """
     if not extra_data:
         return None
-    raw = extra_data.get("faab_bid") or extra_data.get("faab") or extra_data.get("bid")
-    if raw is None:
-        return None
-    try:
-        return float(raw)
-    except (TypeError, ValueError):
-        return None
+    for key in ("faab_bid", "faab", "bid"):
+        if key not in extra_data:
+            continue
+        raw = extra_data[key]
+        if raw is None:
+            continue
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
