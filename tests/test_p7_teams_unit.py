@@ -13,6 +13,7 @@ from ff_pipeline.repository.models import TeamRoster
 from sqlalchemy import func, select
 
 from ff_dashboard.analytics.teams import (
+    _faab_bid,
     team_overview,
     team_roster,
     team_schedule,
@@ -211,3 +212,30 @@ def test_transactions_are_acquisitions_only(session: Session) -> None:
     assert waiver["waiver_priority_used"] == 4
     assert waiver["faab_bid"] is None
     assert waiver["notes"] == "Iceman"
+
+
+# --- FAAB bid extraction ---------------------------------------------------
+
+
+def test_faab_bid_reads_zero_as_a_real_bid() -> None:
+    # A $0 bid is a legitimate free waiver claim, not a missing bid. The prior
+    # ``or``-chain collapsed 0 to None; presence-based lookup must keep it.
+    assert _faab_bid({"faab_bid": 0}) == 0.0
+    assert _faab_bid({"faab_bid": 10}) == 10.0
+    assert _faab_bid({"faab_bid": 100.0}) == 100.0
+
+
+def test_faab_bid_absent_or_null_is_none() -> None:
+    # Pre-FAAB rows (no key) and explicit-null keys both mean "no bid recorded".
+    assert _faab_bid(None) is None
+    assert _faab_bid({}) is None
+    assert _faab_bid({"snapshot_kind": "history"}) is None
+    assert _faab_bid({"faab_bid": None}) is None
+
+
+def test_faab_bid_falls_back_to_legacy_keys() -> None:
+    # Only when the canonical key is absent; a non-numeric value is skipped.
+    assert _faab_bid({"faab": 7}) == 7.0
+    assert _faab_bid({"bid": 3}) == 3.0
+    assert _faab_bid({"faab_bid": "not-a-number"}) is None
+    assert _faab_bid({"faab_bid": None, "faab": 5}) == 5.0

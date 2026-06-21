@@ -301,6 +301,7 @@ function TxRow({
   meta,
   label,
   title,
+  faabBid,
 }: {
   glyph: string;
   tone: "win" | "loss" | undefined;
@@ -308,6 +309,7 @@ function TxRow({
   meta: string;
   label: string;
   title?: string;
+  faabBid?: number | null;
 }) {
   const glyphColor = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-muted";
   return (
@@ -315,7 +317,12 @@ function TxRow({
       <span className={`num w-3 shrink-0 font-bold ${glyphColor}`}>{glyph}</span>
       <span className="shrink-0 text-text">{primary}</span>
       {meta && <span className="flex-1 truncate text-[var(--fs-xs)] text-faint">{meta}</span>}
-      <span className="ml-auto shrink-0">
+      <span className="ml-auto flex shrink-0 items-center gap-1.5">
+        {faabBid != null && (
+          <span title={`Winning FAAB bid: $${faabBid}`}>
+            <Pill tone="accent">${faabBid} FAAB</Pill>
+          </span>
+        )}
         <Pill tone={tone}>{label}</Pill>
       </span>
     </li>
@@ -426,6 +433,7 @@ function TransactionsCard({ teamId }: { teamId: number }) {
               meta={transactionDetail(t)}
               label={transactionLabel(t.transaction_type)}
               title={formatTransactionDateTime(t.executed_at)}
+              faabBid={t.faab_bid}
             />
           )),
       }));
@@ -532,11 +540,11 @@ function transactionTitle(t: TeamTransaction) {
 
 // Detail line — the actor/device note is deliberately omitted (the team page
 // already implies the owner made their own moves); keep only what's distinctive.
+// The FAAB bid is promoted to its own pill (see TxRow), so it is not repeated here.
 function transactionDetail(t: TeamTransaction) {
   const parts = [
     formatTransactionDate(t.executed_at),
     t.counterpart_team_name ? `with ${t.counterpart_team_name}` : null,
-    t.faab_bid != null ? `$${t.faab_bid} FAAB` : null,
     t.waiver_priority_used != null ? `waiver #${t.waiver_priority_used}` : null,
   ].filter(Boolean);
   return parts.join(" · ");
