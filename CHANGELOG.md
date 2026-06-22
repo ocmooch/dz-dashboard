@@ -4,6 +4,23 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-22 — Records-book accuracy & attribution (feature/records-accuracy)
+
+- **Corrected "Best player week."** It took the global `player_stats_scored` max, which (a) ranged
+  over the **whole NFL** the pipeline scores — not just league-rostered players — and (b) used the
+  nflverse reconstruction, which omits bonuses NFL.com applied (e.g. long-TD), under-scoring older
+  games. The result crowned **Jahmyr Gibbs (2025, 63.4 recon)** over the true record. It now scopes
+  to **started** roster rows and scores each the box-score way — preferring authoritative
+  `extra_data.nfl_com_points`, falling back to the reconstruction — yielding **Doug Martin, 67.2,
+  2012 wk9 (Sulladin's Salty Mujahideen)**, matching the NFL.com league-history page.
+- **Attributed the matchup records.** `biggest_blowout` / `narrowest_win` exposed only a bare
+  number plus a nested `winner` the grid never read, and `highest_scoring_matchup` carried only team
+  ids. Each now carries both sides' season-correct names; the grid renders "<winner> def. <loser>"
+  and "<team> vs <opponent>". `best_player_week` gains team/owner attribution. Records dict is
+  `extra="allow"` → no `gen:api` drift. Fixture/test guards the non-rostered-exclusion regression
+  (Lamar's higher unrostered 35.5 yields to McCaffrey's started 30.0). Gate green: backend 448,
+  frontend 192.
+
 ## 2026-06-22 — 2022 Hamlin no-contest championship resolution (#94)
 
 - **Corrected the 2022 fantasy championship.** The NFL Week-17 Bills@Bengals game was suspended

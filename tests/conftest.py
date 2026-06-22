@@ -471,7 +471,9 @@ def _populate(session: Session) -> None:
         breakdown={"sacks": 3.0, "interceptions": 2.0, "points_allowed": 2.0},
     )
 
-    # 2017: Jefferson is the season top scorer (58.0); Lamar's wk1 35.5 is the all-time best week.
+    # 2017: Jefferson is the season top scorer (58.0). Lamar's wk1 35.5 is the highest
+    # *scored* week in the fixture, but he is never placed in a roster lineup, so the
+    # started-player record (best_player_week) belongs to McCaffrey's 30.0 instead.
     _add_raw_and_scored(
         session,
         player_id=pid["lamar"],
@@ -1331,7 +1333,11 @@ KNOWN: dict[str, Any] = {
     # Records
     "highest_team_score": 160.4,  # Maverick, 2017 wk1
     "biggest_blowout_margin": 70.0,  # Maverick 150 - Iceman 80, 2016 wk1
-    "highest_player_week": 35.5,  # Lamar Jackson, 2017 wk1
+    # Best *started* player week. Lamar's 35.5 (2017 wk1) is the highest scored row
+    # but he is never in a roster lineup, so he cannot hold the record; McCaffrey's
+    # started 30.0 (2016 wk1) does. Guards the fix for the global-max bug that
+    # crowned a non-rostered player.
+    "highest_started_player_week": 30.0,  # Christian McCaffrey, 2016 wk1 (started)
     # Stats
     "top_scorer_2016_season_total": 55.0,  # McCaffrey
     "top_scorer_2017_season_total": 58.0,  # Jefferson

@@ -12,8 +12,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, Season, Team
-from sqlalchemy import distinct, select
+from ff_pipeline.repository.models import (
+    Matchup,
+    Player,
+    PlayerStatsScored,
+    Season,
+    Team,
+    TeamRoster,
+)
+from sqlalchemy import Float, cast, distinct, func, select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -136,24 +143,35 @@ def records_book(session: Session) -> dict[str, Any]:
         for m in matchups
         if m.team_score is not None and m.opponent_score is not None
     ]
+
+    def win_record(m: Matchup, margin: float) -> dict[str, Any]:
+        """A win-margin record carrying *both* sides' season-correct names, so the
+        UI can render "<winner> def. <loser>" rather than a bare number."""
+        winner = ctx(m.team_id, m.week)
+        loser = ctx(m.opponent_team_id, m.week) if m.opponent_team_id is not None else {}
+        return {
+            "available": True,
+            "value": round(margin, 2),
+            "matchup_id": m.matchup_id,
+            "season_year": winner.get("season_year"),
+            "week": m.week,
+            # ``winner``/``loser_team_id`` preserved for back-compat; the flat
+            # name fields below are what the records grid reads.
+            "winner": winner,
+            "winner_team_id": m.team_id,
+            "winner_name": winner.get("team_name"),
+            "winner_owner_name": winner.get("owner_name"),
+            "loser_team_id": m.opponent_team_id,
+            "loser_name": loser.get("team_name"),
+            "loser_owner_name": loser.get("owner_name"),
+        }
+
     wins = [(m, ts - os) for m, ts, os in decided if ts > os]
     if wins:
         blow_m, blow_margin = max(wins, key=lambda p: p[1])
         narrow_m, narrow_margin = min(wins, key=lambda p: p[1])
-        book["biggest_blowout"] = {
-            "available": True,
-            "value": round(blow_margin, 2),
-            "matchup_id": blow_m.matchup_id,
-            "winner": ctx(blow_m.team_id, blow_m.week),
-            "loser_team_id": blow_m.opponent_team_id,
-        }
-        book["narrowest_win"] = {
-            "available": True,
-            "value": round(narrow_margin, 2),
-            "matchup_id": narrow_m.matchup_id,
-            "winner": ctx(narrow_m.team_id, narrow_m.week),
-            "loser_team_id": narrow_m.opponent_team_id,
-        }
+        book["biggest_blowout"] = win_record(blow_m, blow_margin)
+        book["narrowest_win"] = win_record(narrow_m, narrow_margin)
 
     # Highest-scoring matchup: dedupe to one row per game (team_id < opponent).
     games = [
@@ -163,6 +181,8 @@ def records_book(session: Session) -> dict[str, Any]:
     ]
     if games:
         top_m, top_ts, top_os = max(games, key=lambda p: p[1] + p[2])
+        home = ctx(top_m.team_id, top_m.week)
+        away = ctx(top_m.opponent_team_id, top_m.week) if top_m.opponent_team_id is not None else {}
         book["highest_scoring_matchup"] = {
             "available": True,
             "value": round(top_ts + top_os, 2),
@@ -170,34 +190,62 @@ def records_book(session: Session) -> dict[str, Any]:
             "season_year": season_year.get(top_m.season_id),
             "week": top_m.week,
             "team_id": top_m.team_id,
+            "team_name": home.get("team_name"),
+            "owner_name": home.get("owner_name"),
             "opponent_team_id": top_m.opponent_team_id,
+            "opponent_name": away.get("team_name"),
+            "opponent_owner_name": away.get("owner_name"),
             "team_score": round(top_ts, 2),
             "opponent_score": round(top_os, 2),
         }
 
+    # Best player week: the highest single-week score the league actually awarded a
+    # *started* player. Two corrections over a naive global ``player_stats_scored``
+    # max (which crowned the wrong player — e.g. a 2025 RB over the real record):
+    #   1. Scope to rows the league rostered **and started** (``team_rosters``,
+    #      ``is_starter``). The nflverse scoring spans the whole NFL, so its global
+    #      max can be a player nobody in this league ever started.
+    #   2. Score each row the way the box score does — prefer NFL.com's authoritative
+    #      ``extra_data.nfl_com_points`` (it carries bonuses the reconstruction
+    #      omits, e.g. long-TD), fall back to the reconstruction only when absent.
+    # The result is the same number the player's source box score shows.
+    nfl_points = cast(func.json_extract(TeamRoster.extra_data, "$.nfl_com_points"), Float)
+    started_points = func.coalesce(nfl_points, PlayerStatsScored.total_points)
     best_player = session.execute(
         select(
-            PlayerStatsScored.player_id,
+            TeamRoster.team_id,
+            TeamRoster.player_id,
+            TeamRoster.week,
             Player.name_full,
             Player.position,
-            Season.year,
-            PlayerStatsScored.week,
-            PlayerStatsScored.total_points,
+            started_points.label("points"),
         )
-        .join(Player, Player.player_id == PlayerStatsScored.player_id)
-        .join(Season, Season.season_id == PlayerStatsScored.season_id)
-        .where(PlayerStatsScored.total_points.is_not(None))
-        .order_by(PlayerStatsScored.total_points.desc())
+        .join(Player, Player.player_id == TeamRoster.player_id)
+        .join(Season, Season.year == TeamRoster.season_year)
+        .outerjoin(
+            PlayerStatsScored,
+            (PlayerStatsScored.player_id == TeamRoster.player_id)
+            & (PlayerStatsScored.season_id == Season.season_id)
+            & (PlayerStatsScored.week == TeamRoster.week),
+        )
+        .where(TeamRoster.is_starter.is_(True))
+        .where(started_points.is_not(None))
+        .order_by(started_points.desc())
         .limit(1)
     ).first()
     if best_player is not None:
+        c = ctx(int(best_player.team_id), int(best_player.week))
         book["best_player_week"] = {
             "available": True,
-            "value": round(float(best_player.total_points), 2),
+            "value": round(float(best_player.points), 2),
             "player_id": int(best_player.player_id),
             "player_name": best_player.name_full,
             "position": best_player.position,
-            "season_year": int(best_player.year),
+            "team_id": c.get("team_id"),
+            "team_name": c.get("team_name"),
+            "owner_id": c.get("owner_id"),
+            "owner_name": c.get("owner_name"),
+            "season_year": c.get("season_year"),
             "week": int(best_player.week),
         }
 
