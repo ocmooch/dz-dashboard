@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { teamAvatarUrl } from "@/lib/format";
@@ -30,14 +30,6 @@ async function fetchEras(): Promise<components["schemas"]["LeagueEras"]> {
   const { data, error } = await api.GET("/v1/league/eras");
   if (error || !data) throw new Error("league eras");
   return data.data;
-}
-
-function provenanceLabel(value: string): string {
-  const labels: Record<string, string> = {
-    nfl_com_authoritative_total: "NFL.com team totals",
-    nflverse_reconstructed: "Reconstructed player scoring",
-  };
-  return labels[value] ?? value.replace(/_/g, " ");
 }
 
 function commissionerForYear(
@@ -88,44 +80,54 @@ function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
   );
 }
 
-// "Eras at a glance": the structural shape of the league over contiguous spans —
-// the unique lens the old /rules page carried, now folded above the timeline. Each
-// cell anchors to that era's most-recent season in the timeline below.
+// Eras: the league's playstyle history. Each era is a span of seasons sharing the
+// rules that define how the game is played — reception scoring (PPR), the starting
+// lineup's flex, and the waiver system. A new era begins only when one of those
+// highly-significant rules changes; the caption names that change. Each cell links
+// to that era's most-recent season below.
 function EraStrip({ eras }: { eras: LeagueEra[] }) {
   if (eras.length === 0) return null;
   return (
     <Card className="overflow-hidden">
-      <CardHeader eyebrow="structural shape" title="Eras at a Glance" />
-      <div className="flex min-w-0 flex-wrap gap-0 divide-x divide-[var(--hairline)]">
-        {eras.map((era) => {
+      <CardHeader eyebrow="playstyle history" title="Eras" />
+      <div className="grid gap-px bg-[var(--hairline)] sm:grid-cols-2 lg:grid-cols-4">
+        {eras.map((era, i) => {
           const span =
             era.start_year === era.end_year
               ? `${era.start_year}`
               : `${era.start_year}–${era.end_year}`;
-          const weeks =
-            era.regular_season_weeks != null
-              ? `${era.regular_season_weeks}${era.playoff_weeks != null ? `+${era.playoff_weeks}` : ""} wk`
-              : null;
+          const traits = [era.ppr, era.lineup, era.waiver_system].filter(Boolean) as string[];
+          const isCurrent = i === eras.length - 1;
           return (
             <a
               key={era.era_id}
               href={`#${era.era_id}`}
-              className="group flex-1 min-w-[8rem] px-4 py-3 text-center transition-colors hover:bg-[var(--surface-2)]"
+              className="group flex flex-col gap-2 bg-[var(--surface-1)] px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
             >
-              <div className="text-[var(--fs-sm)] font-semibold tabular-nums text-ink transition-colors group-hover:text-accent">
-                {span}
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-display text-[var(--fs-sm)] font-bold tabular-nums text-ink transition-colors group-hover:text-accent">
+                  {span}
+                </span>
+                {isCurrent && (
+                  <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                    current
+                  </span>
+                )}
               </div>
-              <div className="mt-0.5 text-[var(--fs-xs)] tabular-nums text-faint">
-                {era.league_size} teams{weeks ? ` · ${weeks}` : ""}
+              <div className="flex flex-wrap gap-1">
+                {traits.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[var(--fs-xs)] text-muted"
+                  >
+                    {t}
+                  </span>
+                ))}
               </div>
-              <div className="mt-1.5 text-[10px] uppercase tracking-wide text-faint">
-                {provenanceLabel(era.scoring_provenance)}
+              <div className="mt-auto text-[var(--fs-xs)] text-faint">
+                {i > 0 && <span className="text-[10px] uppercase tracking-wide">Shift: </span>}
+                {era.defining_change}
               </div>
-              {era.verification_status === "known_source_gap" && (
-                <div className="mt-1.5">
-                  <Badge variant="gap">source gap</Badge>
-                </div>
-              )}
             </a>
           );
         })}
@@ -289,10 +291,13 @@ function MemberRow({ detail }: { detail: LeagueChangeDetail }) {
   );
 }
 
-// One uniform row per change/event. T1 is highlighted, the in-season marker is
-// shown on in-season changes, aggregated events and the per-season routine
-// bucket expand to their member rows, and unrecoverable detail surfaces a
-// "context not recorded" affordance — never a fabricated value.
+// One row per change/event with a three-tier visual weight so the eye can triage:
+// T1 (Major) is highlighted and badged, T2 (Notable) is a clean mid-weight row, and
+// T3 (Routine) recedes — dim text, hairline rule. The in-season marker flags
+// post-kickoff changes; aggregated events and the per-season routine bucket expand
+// to their member rows; unrecoverable detail surfaces a "context not recorded"
+// affordance — never a fabricated value. Before/after chips show only when the
+// summary sentence doesn't already carry the change, so a row never says it twice.
 function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
   const [open, setOpen] = useState(false);
   const color = categoryColor(detail.category);
@@ -301,6 +306,7 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
   const hasMembers = members.length > 0;
   const tier = tierOf(detail);
   const isMajor = tier === "T1";
+  const isRoutine = tier === "T3";
   const inSeason = detail.phase === "in_season";
 
   const brief =
@@ -314,16 +320,29 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
     detail.description_gap;
   const expandable = hasMembers || provExpandable;
 
+  // Tier-driven weight. T1 shouts (fill + thick rule), T2 speaks (category rule),
+  // T3 whispers (thin hairline rule, muted text).
+  const borderWidth = isMajor ? 4 : isRoutine ? 2 : 3;
+  const borderColor = isRoutine ? "var(--hairline)" : color;
+  const titleClass = isMajor
+    ? "font-bold text-ink"
+    : isRoutine
+      ? "font-medium text-muted"
+      : "font-semibold text-ink";
+
   return (
     <div
       className="px-3 py-2.5 border-b border-[var(--hairline)] last:border-0"
       style={{
-        borderLeft: `${isMajor ? 4 : 3}px solid ${color}`,
+        borderLeft: `${borderWidth}px solid ${borderColor}`,
         background: isMajor ? "color-mix(in srgb, var(--surface-2) 60%, transparent)" : undefined,
       }}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-[var(--fs-xs)] font-semibold uppercase tracking-wide" style={{ color }}>
+        <span
+          className="text-[var(--fs-xs)] font-semibold uppercase tracking-wide"
+          style={{ color: isRoutine ? "var(--text-faint)" : color }}
+        >
           {categoryLabel(detail.category)}
         </span>
         {isMajor && (
@@ -334,7 +353,7 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
             Major
           </span>
         )}
-        <span className={`text-[var(--fs-sm)] text-ink ${isMajor ? "font-bold" : "font-semibold"}`}>
+        <span className={`text-[var(--fs-sm)] ${titleClass}`}>
           {detail.human_label ?? detail.title}
         </span>
         <ChangeTimestamp changedAt={detail.changed_at} />
@@ -352,10 +371,10 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
         )}
       </div>
 
-      {brief && <div className="mt-0.5 text-[var(--fs-xs)] text-muted">{brief}</div>}
-
       {isParticipant ? (
         <ParticipantList detail={detail} />
+      ) : brief ? (
+        <div className="mt-0.5 text-[var(--fs-xs)] text-muted">{brief}</div>
       ) : (
         <BeforeAfter before={detail.before} after={detail.after} />
       )}
@@ -448,10 +467,7 @@ function SeasonEntry({
   );
 
   return (
-    <article
-      id={anchorId}
-      className="grid scroll-mt-24 gap-5 p-5 lg:grid-cols-[5.5rem_1fr]"
-    >
+    <article id={anchorId} className="grid scroll-mt-24 gap-5 p-5 lg:grid-cols-[5.5rem_1fr]">
       {/* Left: year + quick meta */}
       <div className="shrink-0">
         <div className="font-display text-[var(--fs-h2)] font-bold tabular-nums text-accent">
@@ -529,12 +545,13 @@ export function LeagueHistoryPage() {
         <div className="dz-eyebrow mb-1">League museum</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League Timeline</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          Every season, newest first, with the structural <span className="font-semibold text-ink">eras</span>{" "}
-          that shape them. <span className="font-semibold text-ink">Major</span> rule changes are highlighted,
-          routine admin/draft-logistics edits collapse into one expandable group per season, and changes made
-          after kickoff carry an <span className="font-semibold text-ink">in-season</span> marker. Era labels
-          and scoring sources reflect only what the database can prove — gaps stay labelled, never filled in.
-          Nothing is dropped.
+          Every season, newest first, grouped into <span className="font-semibold text-ink">eras</span> — spans
+          of consistent playstyle bounded by the rules that matter most (PPR, lineup, waivers).{" "}
+          <span className="font-semibold text-ink">Major</span> changes are highlighted,{" "}
+          <span className="font-semibold text-ink">notable</span> ones sit below them, and routine admin edits
+          collapse into one group per season. Changes made after kickoff carry an{" "}
+          <span className="font-semibold text-ink">in-season</span> marker. Only what the database can prove —
+          gaps stay labelled, nothing is dropped.
         </p>
       </div>
 
@@ -558,18 +575,18 @@ export function LeagueHistoryPage() {
         )}
       </Card>
 
+      {/* Eras — playstyle history strip above the timeline */}
+      {erasQuery.isLoading ? (
+        <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
+      ) : (
+        <EraStrip eras={eras} />
+      )}
+
       {/* Commissioner strip */}
       {overview.isLoading ? (
         <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
       ) : (
         <CommissionerStrip terms={commissioners} />
-      )}
-
-      {/* Eras at a glance — reference strip above the timeline */}
-      {erasQuery.isLoading ? (
-        <Skeleton className="h-24 w-full rounded-[var(--radius)]" />
-      ) : (
-        <EraStrip eras={eras} />
       )}
 
       {/* Legend */}

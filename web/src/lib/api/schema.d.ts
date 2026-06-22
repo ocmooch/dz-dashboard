@@ -1872,12 +1872,23 @@ export interface components {
             era_id: string;
             /** Label */
             label: string;
+            /**
+             * Defining Change
+             * @default Earliest recorded ruleset
+             */
+            defining_change: string;
             /** Start Year */
             start_year: number;
             /** End Year */
             end_year: number;
             /** Season Years */
             season_years: number[];
+            /** Ppr */
+            ppr?: string | null;
+            /** Lineup */
+            lineup?: string | null;
+            /** Waiver System */
+            waiver_system?: string | null;
             /** League Size */
             league_size: number;
             /** Regular Season Weeks */

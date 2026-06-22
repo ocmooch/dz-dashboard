@@ -96,10 +96,14 @@ const ERAS = {
   eras: [
     {
       era_id: "era-1",
-      label: "4-team league / 2-week regular season / team-total-only era",
+      label: "Half PPR · No flex · Standings-order waivers",
+      defining_change: "Earliest recorded ruleset",
       start_year: 2015,
       end_year: 2015,
       season_years: [2015],
+      ppr: "Half PPR",
+      lineup: "No flex",
+      waiver_system: "Standings-order waivers",
       league_size: 4,
       regular_season_weeks: 2,
       playoff_weeks: 1,
@@ -109,10 +113,14 @@ const ERAS = {
     },
     {
       era_id: "era-2",
-      label: "4-team league / 2-week regular season / reconstructed player-scoring era",
+      label: "Full PPR · WR/RB flex · FAAB budget",
+      defining_change: "Full PPR scoring; FAAB budget",
       start_year: 2016,
       end_year: 2017,
       season_years: [2016, 2017],
+      ppr: "Full PPR",
+      lineup: "WR/RB flex",
+      waiver_system: "FAAB budget",
       league_size: 4,
       regular_season_weeks: 2,
       playoff_weeks: 1,
@@ -121,25 +129,7 @@ const ERAS = {
       certainty: "scraped",
     },
   ],
-  changes: [
-    {
-      season_year: 2016,
-      league_size_changed: false,
-      schedule_changed: false,
-      scoring_availability_changed: true,
-      details: [
-        {
-          category: "scoring_rules",
-          title: "Scoring rule changed",
-          summary: "Receptions: 1 point",
-          before: "Receptions: 1 point per 2 receptions",
-          after: "Receptions: 1 point",
-          source: "derived_from_db",
-          certainty: "verified",
-        },
-      ],
-    },
-  ],
+  changes: [],
 };
 
 const STORIES = {
@@ -180,15 +170,11 @@ beforeEach(() => {
 });
 
 describe("LeagueHistoryPage", () => {
-  it("renders seasons with champion, change detail, and the eras strip", async () => {
+  it("renders seasons with champion and change detail", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
     expect(await screen.findByText("League Timeline")).toBeInTheDocument();
-    // Structural shape lives in the eras strip, not repeated per season row.
-    expect(await screen.findByText("Eras at a Glance")).toBeInTheDocument();
-    expect(screen.getByText("NFL.com team totals")).toBeInTheDocument();
-    expect(screen.getByText("Reconstructed player scoring")).toBeInTheDocument();
-    // The rich timeline change detail is intact.
-    expect(screen.getByText("Scoring rule changed")).toBeInTheDocument();
+    // The rich timeline change detail is intact (await the async timeline query).
+    expect(await screen.findByText("Scoring rule changed")).toBeInTheDocument();
     expect(screen.getByText("Receptions: 1 point per 2 receptions")).toBeInTheDocument();
     expect(screen.getByText("Dynasty Crew")).toBeInTheDocument();
     expect(screen.getByText("Champion · Slider")).toBeInTheDocument();
@@ -276,17 +262,17 @@ describe("LeagueHistoryPage", () => {
   });
 });
 
-describe("eras strip (merged from the old Rules & Eras page)", () => {
-  it("shows era spans and folds rule changes into the timeline, not a separate log", async () => {
+describe("playstyle eras strip", () => {
+  it("renders eras defined by playstyle traits and the change that opens each", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
-    await screen.findByText("Eras at a Glance");
-    // Multi-season era span is rendered from /v1/league/eras (unique to the strip).
-    expect(screen.getByText("2016–2017")).toBeInTheDocument();
-    // The known source gap surfaces as a labelled badge, never a fabricated value.
-    expect(screen.getByText("source gap")).toBeInTheDocument();
-    // The old degraded "Before: …" material-changes list is gone; the timeline's
-    // before/after rendering owns this now.
-    expect(screen.queryByText("Before: Receptions: 1 point per 2 receptions")).not.toBeInTheDocument();
+    // Span label for a multi-season era.
+    expect(await screen.findByText("2016–2017")).toBeInTheDocument();
+    // The defining playstyle traits surface as chips (Full PPR appears once per era).
+    expect(screen.getByText("WR/RB flex")).toBeInTheDocument();
+    expect(screen.getByText("FAAB budget")).toBeInTheDocument();
+    // The boundary's defining change is named, not invented.
+    expect(screen.getByText(/Full PPR scoring; FAAB budget/)).toBeInTheDocument();
+    expect(screen.getByText("Earliest recorded ruleset")).toBeInTheDocument();
   });
 });
 

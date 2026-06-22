@@ -465,9 +465,15 @@ class LeagueTimeline(BaseModel):
 class LeagueEra(BaseModel):
     era_id: str
     label: str
+    # The highly-significant playstyle change that opens this era versus the prior one.
+    defining_change: str = "Earliest recorded ruleset"
     start_year: int
     end_year: int
     season_years: list[int]
+    # Playstyle traits that define the era (None when the DB can't prove one).
+    ppr: str | None = None
+    lineup: str | None = None
+    waiver_system: str | None = None
     league_size: int
     regular_season_weeks: int | None = None
     playoff_weeks: int | None = None

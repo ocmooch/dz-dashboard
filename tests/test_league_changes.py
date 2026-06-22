@@ -41,30 +41,33 @@ def _raw(
             "T1",
             "PASS",
         ),
-        ("harry updated playoff teams", "playoff_teams", "T2", "MISSING"),
+        # Unrecoverable + recurring -> folded into the routine bucket, not a notable row.
+        ("harry updated playoff teams", "playoff_teams", "T3", "COLLAPSE"),
         ("harry updated roster positions", "roster_positions", "T1", "STATE"),
         ("harry updated scoring settings", "scoring_settings", "T1", "STATE"),
+        # Minor mechanics tweaks -> routine bucket.
         (
             "harry changed Trade Reject Time from '2 days' to '1 day'",
             "trade_reject_time",
-            "T2",
-            "PASS",
+            "T3",
+            "COLLAPSE",
         ),
-        ("harry changed Waiver Period from '2 days' to '1 day'", "waiver_period", "T2", "PASS"),
+        ("harry changed Waiver Period from '2 days' to '1 day'", "waiver_period", "T3", "COLLAPSE"),
         ("harry changed Fee for Joining League from '100.00' to '125.00'", "fee", "T2", "PASS"),
+        # Set-and-forget originating defaults -> routine bucket.
         (
             "harry changed Post Draft Players from 'Follow Waiver Rules' to 'Free Agents'",
             "post_draft_players",
-            "T2",
-            "PASS",
+            "T3",
+            "COLLAPSE",
         ),
         (
             "harry changed Undroppable List from 'NFL.com Fantasy' to 'None'",
             "undroppable_list",
-            "T2",
-            "PASS",
+            "T3",
+            "COLLAPSE",
         ),
-        ("Jeff updated the Draft Board", "draft_board", "T2", "MISSING"),
+        ("Jeff updated the Draft Board", "draft_board", "T3", "COLLAPSE"),
         (
             "Dan changed Ice Station Zebra Waiver Budget from '39' to '76'",
             "waiver_budget_team",
@@ -112,7 +115,7 @@ def test_classify_splits() -> None:
     assert (early.tier, early.treatment) == ("T2", "PASS")
     assert (late.tier, late.treatment) == ("T3", "COLLAPSE")
 
-    # Trade deadline: first-ever (No Deadline -> date) is T1; net-zero shuffle is T3.
+    # Trade deadline: first-ever (No Deadline -> date) is notable T2; net-zero shuffle is T3.
     first = classify(
         _raw("Jeff changed Trade Deadline from 'No Deadline' to 'November 15, 2019'", year=2019)
     )
@@ -122,13 +125,13 @@ def test_classify_splits() -> None:
             year=2011,
         )
     )
-    assert first.tier == "T1"
+    assert first.tier == "T2"
     assert shuffle.tier == "T3"
 
-    # Time per pick: steady-state era (T2) vs reverted blip (T3).
+    # Time per pick: draft-clock logistics are routine regardless of value.
     era = classify(_raw("Chris changed Time Per Pick from '300' to '120'", year=2020))
     blip = classify(_raw("Chris changed Time Per Pick from '15' to '300'", year=2020))
-    assert era.tier == "T2"
+    assert era.tier == "T3"
     assert blip.tier == "T3"
 
 
@@ -270,7 +273,7 @@ def test_emit_group_division_realignment_counts() -> None:
     ]
     event, leftovers = _emit_group("div-2011-2011-08-06", items)
     assert leftovers == []
-    assert event["tier"] == "T1"
+    assert event["tier"] == "T2"
     assert "12 teams" in event["summary"]
     assert len(event["members"]) == 12
 
