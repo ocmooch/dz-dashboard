@@ -153,6 +153,7 @@ function categoryLabel(category: string) {
     commissioner: "Commissioner",
     transactions: "Transactions",
     divisions: "Divisions",
+    league_event: "League event",
   };
   return labels[category] ?? category.replace(/_/g, " ");
 }
@@ -175,6 +176,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   commissioner: "var(--series-2)",
   transactions: "var(--series-3)",
   divisions: "var(--warn)",
+  league_event: "var(--accent)",
 };
 
 function categoryColor(category: string): string {
@@ -235,6 +237,7 @@ const SOURCE_LABELS: Record<string, string> = {
   nfl_com_transaction_log: "NFL.com transaction log",
   nfl_com_authoritative_total: "NFL.com season totals",
   nflverse_reconstructed: "Reconstructed player scoring",
+  league_ruling: "League ruling (public record)",
 };
 
 const CERTAINTY_LABELS: Record<string, string> = {

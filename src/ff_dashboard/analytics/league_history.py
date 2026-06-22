@@ -29,6 +29,7 @@ from ff_dashboard.analytics.common import (
     played_season_ids,
     require_league,
 )
+from ff_dashboard.analytics.curated_events import curated_events_by_year
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
@@ -575,6 +576,12 @@ def league_timeline(session: Session) -> dict[str, Any]:
     events_by_year = setting_change_events(session, resolved_cats_by_year=resolved_cats_by_year)
     for r in rows:
         r["changes"]["details"].extend(events_by_year.get(int(r["season_year"]), []))
+
+    # Curated narrative events (e.g. the 2022 Hamlin no-contest) have no
+    # setting-change transaction; fold them in here so they render via ChangeRow.
+    curated_by_year = curated_events_by_year(session)
+    for r in rows:
+        r["changes"]["details"].extend(curated_by_year.get(int(r["season_year"]), []))
 
     _assign_era_ids(rows)
 

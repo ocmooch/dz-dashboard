@@ -121,6 +121,74 @@ def _extra_str(roster_row: Any, key: str) -> str | None:
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 
+# The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's
+# cardiac arrest and ruled a no-contest. Upstream (danger-zone) resolves it as a
+# per-player substitute `wk17_partial + wk19` (Week 18 skipped) and stamps each
+# affected wk17 roster slot with a ``hamlin_substitute`` provenance block. The
+# dashboard is display-only: it reads that flag, renders the corrected score with
+# the two-component breakdown, and suppresses the (now false) zero-classification
+# paths. All affordances key off the *presence* of the flag — never a hardcoded
+# matchup id or year.
+HAMLIN_CONTEXT_LABEL = "Wk17+19"
+HAMLIN_CONTEXT_DETAIL = (
+    "Game cancelled (Hamlin no-contest); the league counted this player's Week-17 "
+    "stats from before play stopped plus their Week-19 (Wild Card) game — Week 18 was skipped."
+)
+HAMLIN_RESOLUTION_NOTE = (
+    "The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's "
+    "cardiac arrest and ruled a no-contest by the NFL (never replayed). For each "
+    "affected player the league counted their Week-17 stats accrued before play "
+    "stopped plus their Week-19 (Wild Card) game; Week 18 was skipped. These "
+    "substitute scores are reconstructed from public data — the Week-17 box score "
+    "plus the Week-19 stat lines — and a recovered private league note corroborated "
+    "only the Week-19 component and was incomplete."
+)
+
+
+def _hamlin_substitute(roster_row: Any) -> dict[str, Any] | None:
+    """The ``hamlin_substitute`` provenance block for a roster row, if present.
+
+    Set upstream on every affected 2022-wk17 slot; its presence is the sole
+    trigger for every Hamlin no-contest affordance in the box score.
+    """
+    extra = roster_row.extra_data or {}
+    value = extra.get("hamlin_substitute")
+    return value if isinstance(value, dict) else None
+
+
+def _hamlin_component(block: Any) -> dict[str, Any] | None:
+    """One ``{points, raw_stats}`` component (wk17_partial or wk19) for the UI."""
+    if not isinstance(block, dict):
+        return None
+    points = block.get("points")
+    raw_stats = block.get("raw_stats")
+    return {
+        "points": float(points)
+        if isinstance(points, (int, float)) and not isinstance(points, bool)
+        else None,
+        "raw_stats": raw_stats if isinstance(raw_stats, dict) else {},
+    }
+
+
+def _hamlin_player_context(hamlin: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Shape the per-player no-contest substitution split for the box score.
+
+    Exposes the Week-17 partial and the Week-19 (Wild Card) add-on separately so
+    the UI can show the cancelled-game partial and the add-on as distinct rows.
+    """
+    if hamlin is None:
+        return None
+    league_points = hamlin.get("league_points")
+    return {
+        "basis": hamlin.get("basis"),
+        "league_points": float(league_points)
+        if isinstance(league_points, (int, float)) and not isinstance(league_points, bool)
+        else None,
+        "wk17_partial": _hamlin_component(hamlin.get("wk17_partial")),
+        "wk19": _hamlin_component(hamlin.get("wk19")),
+    }
+
+
 def _reserve_eligibility_status(
     roster_row: Any, injury: Any, injury_payload: InjuryFields, *, player_played: bool
 ) -> str | None:
@@ -706,6 +774,15 @@ def _team_box(
         scored_row = scored.get(player.player_id)
         breakdown = scored_row[1] if scored_row is not None else {}
 
+        # The 2022 wk17 no-contest substitution (Hamlin) carries its own
+        # combined points breakdown — surface it so passing yards / receptions /
+        # FGs render instead of the empty breakdown left by the voided wk17 game.
+        hamlin = _hamlin_substitute(roster_row)
+        if hamlin is not None:
+            hamlin_breakdown = hamlin.get("points_breakdown")
+            if isinstance(hamlin_breakdown, dict):
+                breakdown = hamlin_breakdown
+
         # Prefer NFL.com's authoritative per-player points (they sum to the team
         # score and cover players nflverse never scored — a real 0.0, not a gap);
         # fall back to the nflverse reconstruction only when the field is absent.
@@ -730,7 +807,14 @@ def _team_box(
         # flagged "unexpected" 0. Uses the per-week opponent ("Bye") + whether the
         # player has any nflverse stat line as evidence of having played.
         opponent = _extra_str(roster_row, "opponent")
-        zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
+        # Suppress the false zero-classification for a no-contest substitute:
+        # league_points is now > 0 but nflverse has no wk17 row, so
+        # classify_zero would misfire "did_not_play" / "unexpected". Branch on
+        # the provenance flag before classify_zero runs.
+        if hamlin is not None:
+            zero_reason, zero_detail = None, None
+        else:
+            zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
 
         # Projection vs actual. Use the authoritative projected_points when stored;
         # fall back to scoring projected_stats with the season's rules when the
@@ -784,20 +868,27 @@ def _team_box(
                 week=week,
             )
         )
-        context_label, context_detail = _score_context(
-            data_context=data_context,
-            league_points=league_points,
-            zero_reason=zero_reason,
-            zero_detail=zero_detail,
-            nfl_opponent=opponent,
-            nfl_game_status=_extra_str(roster_row, "game_status"),
-            roster_slot=slot,
-            roster_status=roster_status,
-            roster_status_label=roster_status_label,
-            reserve_eligibility_status=reserve_eligibility,
-            injury_payload=injury_payload,
-            player_played=player_played,
-        )
+        context_label: str | None
+        context_detail: str | None
+        if hamlin is not None:
+            # The no-contest substitution context takes precedence over every
+            # other badge (DNP/IR/injury) — the player's wk17 game was cancelled.
+            context_label, context_detail = HAMLIN_CONTEXT_LABEL, HAMLIN_CONTEXT_DETAIL
+        else:
+            context_label, context_detail = _score_context(
+                data_context=data_context,
+                league_points=league_points,
+                zero_reason=zero_reason,
+                zero_detail=zero_detail,
+                nfl_opponent=opponent,
+                nfl_game_status=_extra_str(roster_row, "game_status"),
+                roster_slot=slot,
+                roster_status=roster_status,
+                roster_status_label=roster_status_label,
+                reserve_eligibility_status=reserve_eligibility,
+                injury_payload=injury_payload,
+                player_played=player_played,
+            )
         entry = {
             "roster_slot": slot,
             "player_id": player.player_id,
@@ -822,6 +913,7 @@ def _team_box(
             "zero_detail": zero_detail,
             "context_label": context_label,
             "context_detail": context_detail,
+            "hamlin_substitute": _hamlin_player_context(hamlin),
             "lineup_value": None,
             **injury_payload,
         }
@@ -970,6 +1062,14 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         week_ctx=week_score_context(session, season.season_id, m.week),
     )
 
+    # Matchup-level no-contest banner: shown on every matchup that holds an
+    # affected player on either side, driven purely off the provenance flag.
+    sides = [home] + ([away] if away is not None else [])
+    has_substitute = any(
+        entry.get("hamlin_substitute") is not None for side in sides for entry in side["lineup"]
+    )
+    resolution_note = HAMLIN_RESOLUTION_NOTE if has_substitute else None
+
     return {
         "matchup_id": matchup_id,
         "season_year": season.year,
@@ -978,6 +1078,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "is_playoff": bool(m.is_playoff),
         "projections_available": projections_available,
         "projection_reason": projection_reason,
+        "resolution_note": resolution_note,
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,

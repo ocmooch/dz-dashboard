@@ -35,6 +35,7 @@ function contextTone(label: string | null | undefined): string {
   if (label === "DATA") return "border-[color:var(--loss)] text-loss";
   if (label === "INJ") return "border-[color:var(--warn)] text-[var(--warn)]";
   if (label === "RES") return "border-[color:var(--muted)] text-muted";
+  if (label === HAMLIN_LABEL) return "border-[color:var(--accent)] text-accent";
   return "border-[color:var(--hairline)] text-faint";
 }
 
@@ -42,12 +43,29 @@ function showRowContext(p: BoxPlayer): boolean {
   return !!p.context_label && !["Bye", "DNP", "Out", "Check"].includes(p.context_label);
 }
 
+const HAMLIN_LABEL = "Wk17+19";
+
+/** Tooltip for a no-contest substitute: the context note plus the wk17-partial +
+ *  Wild-Card (wk19) split that makes up the player's league points. */
+function hamlinTitle(p: BoxPlayer): string | undefined {
+  const sub = p.hamlin_substitute;
+  if (!sub) return p.context_detail ?? undefined;
+  const wk17 = sub.wk17_partial?.points;
+  const wk19 = sub.wk19?.points;
+  const split =
+    wk17 != null && wk19 != null
+      ? ` Week-17 partial ${num(wk17)} + Wild Card (Wk19) ${num(wk19)} = ${num(sub.league_points)}.`
+      : "";
+  return `${p.context_detail ?? ""}${split}`.trim() || undefined;
+}
+
 function ContextBadge({ p }: { p: BoxPlayer }) {
   if (!showRowContext(p)) return null;
+  const isHamlin = !!p.hamlin_substitute;
   return (
     <span
       className={`ml-1 rounded border px-1 py-0.5 align-middle text-[10px] font-bold leading-none ${contextTone(p.context_label)}`}
-      title={p.context_detail ?? undefined}
+      title={isHamlin ? hamlinTitle(p) : (p.context_detail ?? undefined)}
     >
       {p.context_label}
     </span>
@@ -323,6 +341,16 @@ export function BoxScorePage() {
           <span className="dz-eyebrow mr-1 text-faint">note</span>
           Projection data isn’t available for the {data.season_year} season, so the Proj and Value
           columns are blank. Scoring is unaffected.
+        </div>
+      )}
+
+      {data && data.available && data.resolution_note && (
+        <div
+          className="rounded border border-[color:var(--accent)] bg-[color:var(--surface-2)] px-4 py-3 text-[var(--fs-sm)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-accent">no-contest resolution</span>
+          {data.resolution_note}
         </div>
       )}
 
