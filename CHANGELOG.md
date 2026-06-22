@@ -4,7 +4,52 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
-## 2026-06-19 — Draft chart: fantasy position taxonomy + resilient empty state
+## 2026-06-22 — 2022 Hamlin no-contest championship resolution (#94)
+
+- **Corrected the 2022 fantasy championship.** The NFL Week-17 Bills@Bengals game was suspended
+  (Damar Hamlin) and ruled a permanent no-contest, so the four affected BUF/CIN starters had no
+  wk17 stat line and the DB stored the wrong champion. The box score now branches on the upstream
+  `hamlin_substitute` flag (league methodology `final = wk17_partial + wk19`, wk18 skipped) before
+  zero-classification — suppressing the false DNP, badging "Wk17+19" with the partial/wk19 split.
+- A matchup-level `resolution_note` banner explains the substitution, and a provenance-gated curated
+  `league_event` (`analytics/curated_events.py`) merges into the league timeline. Schema gains
+  `HamlinSubstitute` + `resolution_note` (`gen:api` regenerated). Corrected title game = Smokin Doubs
+  139.54 def. CMC 101.0; ranks swap (CMC 1→2, Doubs 2→1), only the championship flips. Pairs with
+  danger-zone PR #54 (idempotent `overrides/hamlin_2022_wk17.py`). Gate green: backend 448, frontend 192.
+
+## 2026-06-20 — 2026-06-21 — FAAB bids + weekly remaining-budget (#90–#93)
+
+- **FAAB bid-capture confirmed + handed off** (#90): recorded the upstream gap and plan
+  (`docs/handoffs/faab-bid-capture.md`); danger-zone then wrote `extra_data.faab_bid` on 2021–2025
+  `waiver_add` legs (214/241/214/205/182 rows; pre-2021 null) — F-37.
+- **Surface FAAB bids in the team transactions log** (#91): `analytics/teams._faab_bid()` now reads a
+  **$0 bid as a real free claim** (394/1056 bids are exactly `$0`; the old `faab_bid or faab or bid`
+  chain collapsed `0`→`None` by checking presence and returning `0.0`); the winning bid is promoted
+  from the faint detail line to its own accent `"$X FAAB"` pill. BFF contract unchanged → no drift.
+- **Weekly remaining-budget view** (#92/#93): pure `team_faab_budget()` derives per-week
+  `remaining = budget_at_week − cumulative spend`; `GET /v1/teams/{id}/faab-budget`; `FaabBudgetCard`
+  on the Team page. Season budget = flat **$100** base + mid-season per-team **credits** parsed from
+  budget `setting_change` events (`team_id=NULL`, matched by team name), modeled as timestamped credits
+  so the 2022 Ice Station Zebra **+$37 refund** reproduces (remaining never negative, lands at $0);
+  Timeline events name the affected team + refund context. FAAB-era is **data-driven** on captured bids
+  (pre-FAAB seasons return not-applicable, not a `DataGap`). Gate green: backend 438, frontend 191.
+
+## 2026-06-18 — 2026-06-19 — Draft suite: genuine-zero, impact, integrity, perf, taxonomy (#85–#89)
+
+- **Genuine-zero classification** (#85): drafted-but-never-played picks are real zeros with a DNP
+  note, not gaps; a 5-way pick classifier replaces the bare-zero treatment.
+- **Opportunity-cost-weighted draft impact** (#86): composite `value × cost_weight × opportunity_weight`
+  (new reusable `analytics/weighting.py`); steals/busts ranked by impact (records book stays on raw
+  value by decision); `ImpactTag` UI with a breakdown tooltip. Weights are an editable proposal.
+- **Draft impact integrity** (#87): scoring resolves canonical identity clusters (2019 Mike Williams),
+  rounds tiny differentials to positive `0.0`, and standardizes weighted impact within QB/RB/WR/TE so
+  raw QB scale no longer monopolizes the headline; synchronized Weighted/Points leaderboards + filters.
+- **Draft-page perf** (#88, BFF-only, byte-identical): a cold draft request had exploded to ~24k
+  queries / 3.5s; the league-wide history sweep + per-season picks are memoized via `AnalyticsCache`
+  and identity-cluster resolution is batched → `draft_value(2025)` cold 0.41s / 167 q, warm ~3 q.
+- **Fantasy position taxonomy + resilient empty state** (#89, below).
+
+## 2026-06-19 — Draft chart: fantasy position taxonomy + resilient empty state (#89)
 
 - **Fold raw NFL positions onto the fantasy universe** (`{QB, RB, WR, TE, K, DEF}`) at the
   single source (`analytics/draft.py:_season_picks`). A new `fantasy_position()` /
@@ -22,8 +67,29 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   honest empty state ("…switch to the Points lens to compare them"), so the selection stays
   recoverable. Chart filters also reset on season change.
 
-## 2026-06-17 — Fold Power into Standings (lens) + Playoffs snapshot
+## 2026-06-18 — Division standings, matchup flags, identity integrity, Teams page (#80–#84)
 
+- **BFF-owned weekly historical division standings** (#82): the presumed Phase 1 conference
+  tables/columns do not exist in the live schema, so the dashboard now owns a reviewed NFL.com
+  2010–2019 division artifact (120 rows) and returns exact matchup-derived weekly in-division records
+  + source ranks, mapped through `teams.team_abbrev` with an honest mapping gap on mismatch. The
+  Standings page renders complete historical division tables; 2020+ stays explicitly ungrouped. This
+  **replaces the silently-dead conferences feature** (former OPEN_QUESTIONS N6 / ACTIVE_WORK §6.1).
+- **Matchup superlative flags** (#83): a data-calibrated **60-pt blowout** threshold (≈ historical
+  90th percentile, flags 10.6%; the prior 40-pt cutoff flagged 27%); flags shown on the grid + box.
+- **Source player-identity integrity** (#84): an authenticated 2010–2025 draft/transaction sweep
+  identified + repaired **34 external-ID ownership mistakes** upstream (strict audit now 0);
+  `/v1/meta/coverage` exposes mismatch diagnostics and Coverage & About reports the verified state.
+- **Teams nav + team-page refinements** (#80): a top-level Teams index (`/v1/teams`, grouped by
+  season or owner); the schedule gains a W/L `ResultTimeline`; the Transactions + roster-diff cards
+  merge into one collapsible week-grouped acquisitions feed; short weeks pad to the usual roster size
+  with dashed empty slots (`is_empty`, derived from snapshots).
+- **Refreshed stale visual-regression baselines** (#81).
+
+## 2026-06-17 — Fold Power into Standings + merge Timeline space (#78, #79)
+
+- **Merged `/seasons` and `/rules` into one Timeline space** (#79): the season league-changes view and
+  the Rules & Eras view are unified into a single chronological surface.
 - **Retired `/power` as a top-level space.** It duplicated Standings (both are
   season-state-as-of-week with a "rank by week" `RankFlow`); power is now a Standings
   `?lens=power` toggle. Frontend-only — `power_ranking`/`power_timeline` already accepted
@@ -35,6 +101,33 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   ranking) linking to the week-by-week lens.
 - **Model unchanged** (0.40·PF/g + 0.25·all-play% + 0.20·win% + 0.15·last-3-PF/g); the
   explainer was reframed to state it is a points-dominant lens, not a forecast.
+
+## 2026-06-16 — Data Integrity & Coverage program + matchup context guards (#73–#77)
+
+- **Data Integrity & Coverage program** (#76 handoffs, #77 dashboard): a structural fix for the
+  recurring data-gap / wrong-`player_id` whack-a-mole. Adds `/v1/meta/coverage` (relevance vs feed
+  coverage + reason codes), self-explaining projection gaps, and cross-source identity-split
+  detection. Box-score / team-roster / player-scoring / player-insight reads consume canonical
+  identity clusters (paired with the upstream `player_identity_links` crosswalk + identity-aware
+  ingest). Hollow Sleeper projection rows (all-zero, pre-2018) render an honest gap, not a fake `0.0`
+  (upstream prune took the live DB 522,143 → 40,759 projection rows). Units A/D dashboard + B/C/E
+  upstream — see `docs/ACTIVE_WORK.md` §0.
+- **DATA roster-drift false-positive cleanup** (#75): the per-player "roster drift" badge now counts
+  a `draft` row (`direction=add`, week 0) as the first acquisition, clearing **800** false positives
+  (drafted-then-re-added players); the routine start/bench slot-conflict badge branch was retired.
+  **39** genuine flags remain in 2010 W2–W8 where the in-season transaction log starts at W6 (upstream).
+- **NFL.com current-state-drift status guard** (#74): NFL.com stamps a player's *current* roster status
+  onto historical weeks, so the box score showed IA/IR/SUS on players who clearly played. New
+  `analytics/player_status.py` drops an incompatible availability/roster status whenever the player
+  played; genuine DNPs keep their badge.
+- **Matchup context clues + reconstructed-week handling** (#73): the BFF emits `context_label` /
+  `context_detail`, roster/opponent/game status, and reserve eligibility; reconstructed audit-snapshot
+  weeks (centralized in `analytics/roster_snapshots.py`) get one team-level banner instead of per-player
+  noise and are excluded from week-over-week roster diffs.
+
+## 2026-06-15 — CI: disable setup-uv cache prune (#72)
+
+- Disabled the `setup-uv` cache prune to stop flaky post-job teardown failures.
 
 ## 2026-06-15 — Release v0.2.0 (dev → main promotion)
 
