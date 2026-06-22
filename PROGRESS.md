@@ -15,10 +15,15 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
-**The dashboard application is functionally complete and fully merged. There are no open feature
-branches.** All P0–P12 milestones, all P1–P6 review fix-passes, and every post-roadmap product
-slice are merged to `dev`; `dev` was promoted to `main` at **v0.2.0** (2026-06-15). The work merged
-to `dev` since v0.2.0 (PRs #72–#94, below) awaits the next `dev → main` promotion.
+**The dashboard application is functionally complete and fully merged.** All P0–P12 milestones, all
+P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev`; `dev` was
+promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
+below) awaits the next `dev → main` promotion.
+
+**In flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
+"Best player week" now uses authoritative `nfl_com_points` over **started** roster rows (Doug Martin
+2012 wk9, not a whole-NFL reconstruction max), and the matchup records (blowout/narrowest/highest-
+scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate green.
 
 **Merged since v0.2.0 (PRs #72–#94)** — reverse-chronological, prose detail in `CHANGELOG.md` /
 `docs/archive/COMPLETED_WORK.md`:
