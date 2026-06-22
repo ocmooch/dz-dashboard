@@ -373,6 +373,12 @@ def _populate(session: Session) -> None:
         "split_stats": Player(
             name_full="Split Sam", position="WR", nfl_team="LAC", gsis_id="GSIS-SPLIT"
         ),
+        # No-contest substitution scenario (mirrors the 2022 Hamlin ruling): two
+        # starters and a bench player whose game was cancelled, carrying the
+        # ``hamlin_substitute`` provenance the box score keys its affordances off.
+        "nc_qb": Player(name_full="No-Contest Nate", position="QB", nfl_team="CIN", gsis_id="G11"),
+        "nc_wr": Player(name_full="No-Contest Ned", position="WR", nfl_team="BUF", gsis_id="G12"),
+        "nc_zero": Player(name_full="No-Contest Zeb", position="RB", nfl_team="BUF", gsis_id="G13"),
     }
     session.add_all(players.values())
     session.flush()
@@ -1109,6 +1115,89 @@ def _populate(session: Session) -> None:
     session.add(run)
     session.flush()
     session.add(SourceHealth(run_id=run.run_id, source="nflverse", status="ok", rows_added=42))
+
+    # --- No-contest substitution (Hamlin) scenario. Three affected players, each
+    #     carrying the ``hamlin_substitute`` provenance the upstream override
+    #     stamps, added to the *away* (goose) side of the rendered 2017 wk1 Iceman
+    #     box score — the same edge-case side the DNP/bye rows live on, where no
+    #     KNOWN total is asserted, so no records / rivalry / schedule answer moves.
+    #     None has a player_stats_scored row, so the corrected points live only in
+    #     ``extra_data.nfl_com_points``; the box score must badge them "Wk17+19",
+    #     suppress the false DNP/unexpected zero classification, surface the
+    #     wk17+wk19 split, and show the matchup-level resolution note. The bench
+    #     players are deliberately not starters so the goose lineup totals (and the
+    #     box-vs-grid agreement) are untouched: the affordances are flag-driven and
+    #     do not depend on starter status.
+    def _hamlin_extra(
+        league_points: float, wk17: float, wk19: float, category: str
+    ) -> dict[str, Any]:
+        return {
+            "snapshot_kind": "history",
+            "nfl_com_points": league_points,
+            "game_status": "CAN,0-0",
+            "opponent": "@CIN",
+            "hamlin_substitute": {
+                "basis": "no_contest_wk17partial_plus_wk19",
+                "league_points": league_points,
+                "wk17_partial": {"raw_stats": {f"{category}_yards": 40.0}, "points": wk17},
+                "wk19": {"raw_stats": {f"{category}_yards": 200.0}, "points": wk19},
+                "points_breakdown": {category: league_points},
+            },
+        }
+
+    nc_goose = team_id[(2017, "goose")]
+    session.add_all(
+        [
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_qb"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data=_hamlin_extra(27.0, 6.0, 21.0, "passing"),
+            ),
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_wr"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data=_hamlin_extra(12.0, 2.0, 10.0, "receiving"),
+            ),
+            # An affected player whose substitute nets exactly 0.0 — the provenance
+            # flag must still suppress the "did_not_play" zero badge.
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_zero"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data={
+                    "snapshot_kind": "history",
+                    "nfl_com_points": 0.0,
+                    "game_status": "CAN,0-0",
+                    "opponent": "@CIN",
+                    "hamlin_substitute": {
+                        "basis": "no_contest_wk17partial_plus_wk19",
+                        "league_points": 0.0,
+                        "wk17_partial": {"raw_stats": {}, "points": 0.0},
+                        "wk19": {"raw_stats": {}, "points": 0.0},
+                        "points_breakdown": {},
+                    },
+                },
+            ),
+        ]
+    )
+    session.flush()
 
     # Materialize each player's rostered-season span from team_rosters, mirroring
     # the Phase 1 pipeline's derived first/last_rostered_season columns. The

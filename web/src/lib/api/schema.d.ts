@@ -916,6 +916,7 @@ export interface components {
             context_label?: string | null;
             /** Context Detail */
             context_detail?: string | null;
+            hamlin_substitute?: components["schemas"]["HamlinSubstitute"] | null;
             /** Injury Status */
             injury_status?: string | null;
             /** Injury Body Part */
@@ -949,6 +950,8 @@ export interface components {
             projections_available: boolean;
             /** Projection Reason */
             projection_reason?: string | null;
+            /** Resolution Note */
+            resolution_note?: string | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
@@ -1661,6 +1664,37 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HamlinComponent
+         * @description One scored component of a 2022 wk17 no-contest substitute.
+         */
+        HamlinComponent: {
+            /** Points */
+            points?: number | null;
+            /**
+             * Raw Stats
+             * @default {}
+             */
+            raw_stats: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * HamlinSubstitute
+         * @description Per-player provenance for the 2022 Week-17 Bills@Bengals no-contest.
+         *
+         *     The league counted ``wk17_partial + wk19`` (Week 18 skipped). Present only on
+         *     affected 2022-wk17 slots; its presence drives the box-score substitution
+         *     badge and resolution banner.
+         */
+        HamlinSubstitute: {
+            /** Basis */
+            basis?: string | null;
+            /** League Points */
+            league_points?: number | null;
+            wk17_partial?: components["schemas"]["HamlinComponent"] | null;
+            wk19?: components["schemas"]["HamlinComponent"] | null;
         };
         /** HeadToHead */
         HeadToHead: {

@@ -1079,6 +1079,27 @@ class WeekMatchups(BaseModel):
     games: list[GameCard]
 
 
+class HamlinComponent(BaseModel):
+    """One scored component of a 2022 wk17 no-contest substitute."""
+
+    points: float | None = None
+    raw_stats: dict[str, Any] = {}
+
+
+class HamlinSubstitute(BaseModel):
+    """Per-player provenance for the 2022 Week-17 Bills@Bengals no-contest.
+
+    The league counted ``wk17_partial + wk19`` (Week 18 skipped). Present only on
+    affected 2022-wk17 slots; its presence drives the box-score substitution
+    badge and resolution banner.
+    """
+
+    basis: str | None = None
+    league_points: float | None = None
+    wk17_partial: HamlinComponent | None = None
+    wk19: HamlinComponent | None = None
+
+
 class BoxPlayer(BaseModel):
     roster_slot: str | None = None
     player_id: int
@@ -1108,6 +1129,9 @@ class BoxPlayer(BaseModel):
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
     context_label: str | None = None  # concise UI flag: "DNP" | "Out" | "RES + pts" | etc.
     context_detail: str | None = None  # tooltip / row detail explaining the flag
+    # Set only for a 2022 wk17 no-contest substitute (Hamlin): the wk17-partial +
+    # wk19 split behind ``league_points``. Drives the "Wk17+19" badge.
+    hamlin_substitute: HamlinSubstitute | None = None
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
@@ -1145,6 +1169,9 @@ class BoxScore(BaseModel):
     # the machine code (e.g. ``projections_not_captured``) for the UI copy.
     projections_available: bool = True
     projection_reason: str | None = None
+    # Matchup-level banner for the 2022 Week-17 Hamlin no-contest resolution,
+    # shown when any slot on either side carries a substitution. Null otherwise.
+    resolution_note: str | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None

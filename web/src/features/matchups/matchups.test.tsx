@@ -254,6 +254,66 @@ describe("BoxScorePage", () => {
     expect(screen.getByText("bench")).toBeInTheDocument();
   });
 
+  it("shows the no-contest resolution banner and the Wk17+19 badge", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 555,
+          season_year: 2022,
+          week: 17,
+          available: true,
+          is_playoff: true,
+          winner_team_id: 20,
+          margin: 38.54,
+          resolution_note:
+            "The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's " +
+            "cardiac arrest and ruled a no-contest by the NFL (never replayed).",
+          home: {
+            team_id: 20,
+            team_name: "Smokin Doubs",
+            owner_name: "Jeff",
+            total_score: 139.54,
+            starter_points: 139.54,
+            bench_points: 0,
+            optimal_total: 139.54,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "QB",
+                player_id: 1,
+                player_name: "Joe Burrow",
+                position: "QB",
+                league_points: 27.34,
+                is_starter: true,
+                breakdown: { passing: 20.44, rushing: 6.9 },
+                projection: null,
+                projection_delta: null,
+                lineup_value: null,
+                available: true,
+                reason: null,
+                context_label: "Wk17+19",
+                context_detail: "Game cancelled (Hamlin no-contest).",
+                hamlin_substitute: {
+                  basis: "no_contest_wk17partial_plus_wk19",
+                  league_points: 27.34,
+                  wk17_partial: { points: 6.08, raw_stats: { passing_yards: 52 } },
+                  wk19: { points: 21.26, raw_stats: { passing_yards: 209 } },
+                },
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/555");
+    await screen.findByText("Smokin Doubs");
+    expect(screen.getByText(/no-contest resolution/i)).toBeInTheDocument();
+    expect(screen.getByText(/ruled a no-contest/i)).toBeInTheDocument();
+    expect(screen.getByText("Wk17+19")).toBeInTheDocument();
+  });
+
   it("shows an unscored-season box score as a gap, not zeros", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
