@@ -19,40 +19,28 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
-0. **Data Integrity & Coverage program** ◐ (cross-repo, heavy lift — the structural fix for the
-   recurring "works here but not there" / wrong-`player_id` reports). **This block is the single
-   cycle-state tracker** — the `docs/handoffs/*` files are reference specs, not status (their
-   checkboxes were stale and lied; ignore them for state). The program was re-cut (2026-06-16) from
-   3 cross-repo "workstreams" into **5 single-repo, session-sized units** because the old cut
-   crossed the repo boundary, smeared status across 5 docs, and bundled reachable with unreachable
-   "done when"s — which is exactly why fresh sessions kept reporting success while the symptom on
-   `/matchups/1823` survived. Units, in dependency order:
+0. **Data Integrity & Coverage program** ☑ **— COMPLETE & MERGED** (dashboard PR #77; upstream
+   crosswalk landed on `../danger-zone`). The structural fix for the recurring "works here but not
+   there" / wrong-`player_id` reports. All five units shipped (table kept as a record); the
+   merge-sequencing step is closed — danger-zone `player_identity_cluster` and dz-dashboard #77 both
+   landed.
 
-   | Unit | Repo | Phase | What | State |
-   |------|------|-------|------|-------|
-   | **A** | dz-dashboard | VERIFY ☑ | Coverage matrix slice: `/v1/meta/coverage`, self-explaining projection gaps, identity-split *detection* (Part B2). Full gate green; click-through done on `/matchups/1823` (uncovered) + `/matchups/193` (2025 W1 covered). | ☑ verified on `feature/data-coverage-matrix-dashboard`; **pending PR → `dev`** |
-   | **B** | ../danger-zone | VERIFY ☑ | Put `player_identity_links` on the **live DB**, seed the 18-group triage set (start Mike Williams `1032↔25239`), expose the read-only `player_identity_cluster()` helper. Applied to live DB 2026-06-16; curated seed links `25239 -> 1032` and records the other 17 duplicate-name triage decisions as no-link namesakes/ghosts. | ☑ verified |
-   | **C** | ../danger-zone | VERIFY ☑ | Identity-aware ingest: nflverse `gsis_id` and Sleeper projection maps resolve linked members to the canonical player before writing stats/projections, so reruns attach Mike Williams data to `1032` instead of extending the split. Focused idempotency/map tests pass. | ☑ verified for seeded links |
-   | **D** | dz-dashboard | VERIFY ☑ | Consume canonical (Part B1): box-score, team-roster, player-scoring, and player-insight stat reads route through the cluster helper. Live `/matchups/1823` Mike Williams now renders `league_points=0.0` and `projection=0.0` on roster id `1032`; W7 correctly still has no injury row. | ☑ verified |
-   | **E** | both | ◐ **corrected** | **Earlier "214/214 cells present" claim was wrong on values.** The backfill loaded rows for 2010–2025, but Sleeper returns *hollow* rows (all-zero stats, `projected_points=0`) for **2010–2017** — full row counts, **0% real**. Real Sleeper coverage **begins 2018** (probed: 2017=0 real, 2018=53, 2019=73, 2020+=~85 per RB-week; 2026 W1 is stats-only-real). Loading hollow rows was a *regression*: `/matchups/1823` (2017) rendered fake `0.0` projections instead of an honest gap. **Dashboard fix ✅** (commit on `feature/data-coverage-matrix-dashboard`): coverage + per-player projection require a *real* value (nonzero points, or stats-only) — 2017 renders `projections_not_captured`, 2018+ render real values (9/9 on a 2023 box score), current-season stats-only stays present; also fixed a latent `_batch_projections` cross-week join bug; regression tests pin hollow→absent / stats-only→present. **Upstream cleanup ✅** (`../danger-zone:feature/player-identity-crosswalk`): `_upsert_projections` now skips hollow rows on ingest + `scripts/prune_hollow_projections.py` deleted the existing ones — live DB **522,143 → 40,759** rows (92% were hollow), leaving only real 2018–2026 projections; 2010–2017 now have zero rows. **Display ✅:** box score carries one box-level `projections_available`/`projection_reason` → a single top-level note ("Projection data isn't available for the 2017 season…") instead of a gap chip per player; Proj/Value cells show plain dashes; layout identical when present. **Pre-2018 projections do not exist at the source — genuinely unclosable, now surfaced honestly + minimally.** | ☑ complete (dashboard + upstream) |
-
-   **⚠ Merge sequencing (the only open operational step).** Dashboard PR #77 (Units A+D) *imports*
-   `player_identity_cluster` from ff-pipeline, and dashboard CI resolves ff-pipeline at
-   `../danger-zone:dev`. The helper lives on danger-zone PR #49 (`feature/player-identity-crosswalk`),
-   not yet on danger-zone `dev`. **Land danger-zone #49 → `dev` before dz-dashboard #77 → `dev`**, or
-   #77's CI fails with an ImportError. Local gates pass only because the local `../danger-zone`
-   checkout is on the crosswalk branch. Unit-B triage was re-verified 2026-06-16: across all 18
-   league-relevant duplicate-name groups, **Mike Williams is the only one matching the stranded-split
-   signature** (rostered-but-dataless beside a non-rostered data twin) — the 17 `no_link` decisions
-   are correct, so Unit B is complete, not partial. Unit-C idempotency guard
-   (`test_reingest_does_not_restrand_linked_member`) added on #49.
+   | Unit | Repo | What | State |
+   |------|------|------|-------|
+   | **A** | dz-dashboard | Coverage matrix slice: `/v1/meta/coverage`, self-explaining projection gaps, identity-split *detection* (Part B2). | ☑ merged (#77) |
+   | **B** | ../danger-zone | `player_identity_links` on the live DB; seed the 18-group triage set (Mike Williams `1032↔25239`) + read-only `player_identity_cluster()` helper. Re-verified: Mike Williams is the only stranded-split; the other 17 are correct `no_link` decisions. | ☑ merged |
+   | **C** | ../danger-zone | Identity-aware ingest: nflverse `gsis_id` + Sleeper projection maps resolve linked members to the canonical player before writing, so reruns attach data to `1032` instead of re-stranding. Idempotency guard `test_reingest_does_not_restrand_linked_member`. | ☑ merged |
+   | **D** | dz-dashboard | Consume canonical (Part B1): box-score, team-roster, player-scoring, player-insight stat reads route through the cluster helper. `/matchups/1823` Mike Williams renders on roster id `1032`. | ☑ merged (#77) |
+   | **E** | both | Sleeper returns *hollow* rows (all-zero, `projected_points=0`) for **2010–2017** — real coverage begins **2018**. Dashboard requires a *real* projection value (2017 → `projections_not_captured`, 2018+ → real); upstream `_upsert_projections` skips hollow rows + a prune deleted them (live DB 522,143 → 40,759). Box score shows one top-level note, not a per-player chip. **Pre-2018 projections do not exist at the source — unclosable, surfaced honestly.** | ☑ complete |
 
    Reference framing: `docs/handoffs/00-data-integrity-program.md`.
-1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
-   *silently dead* for the 2010–2019 conference era. §6.1.
+1. **Conferences feature repair** ☑ **— DONE** (PR #82). Was silently dead for 2010–2019; replaced
+   by BFF-owned weekly historical division standings. §1 / §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.
 3. **League-history expansion**, once upstream identity/rules data exists. §3.
 4. **Deferred product decisions** — all shipped at reversible defaults. §4.
+5. **Phase 3 (exploratory)** — NL "league historian" early brainstorm; kept as a local working note,
+   not committed and not a milestone. A PLAN session promotes it if/when chosen.
 
 ---
 
@@ -124,22 +112,16 @@ Upstream has dated, typed transaction rows (add/drop/waiver/free-agent/trade/dra
 dashboard renders the derived roster-diff tier. **Open:** the dashboard hasn't consumed exact
 transaction dates/types as a richer tier.
 
-**FAAB capture landed upstream + surfaced on the dashboard (2026-06-21).** Danger-zone now writes
-`extra_data.faab_bid` on `waiver_add` legs for 2021–2025 (214/241/214/205/182 rows; pre-2021 null).
-The dashboard half is done: `_faab_bid()` was hardened to read a **$0 bid as a real free claim**
-(394/1056 bids are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), and the winning bid is
-promoted from the faint detail line to its own accent `"$X FAAB"` pill in the team transactions log.
-Verified live on the real DB (team 1 / 2025: `$0` and positive bids both surface; draft/pre-FAAB rows
-stay null). **Weekly remaining-budget is now built** (`feature/faab-remaining-budget`):
-`team_faab_budget()` derives per-week `remaining = budget_at_week − cumulative spend`;
-`GET /v1/teams/{id}/faab-budget`; `FaabBudgetCard` on the Team page. Season budget = flat **$100**
-base (validated: holds exactly for 2021/2023/2024/2025) + mid-season per-team **credits** parsed from
-the budget `setting_change` events (which carry `team_id=NULL` — matched by the name in the
-description), modeled as timestamped credits so Ice Station Zebra 2022's +$37 refund reproduces
-(remaining never negative). The per-team budget semantics that were "ambiguous" are resolved: the lone
-event is a refund of a reversed claim, attributed by name. **Remaining open (the original F-37 scope):**
-the dashboard still hasn't consumed the exact transaction dates/types as a *richer tier* beyond the
-acquisitions log.
+**FAAB capture landed upstream + surfaced on the dashboard — MERGED (PRs #90–#93, 2026-06-21).**
+Danger-zone writes `extra_data.faab_bid` on `waiver_add` legs for 2021–2025 (214/241/214/205/182
+rows; pre-2021 null). Dashboard: `_faab_bid()` reads a **$0 bid as a real free claim** (394/1056 bids
+are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), the winning bid is an accent `"$X FAAB"`
+pill in the team transactions log, and **weekly remaining-budget** shipped (`team_faab_budget()`,
+`GET /v1/teams/{id}/faab-budget`, `FaabBudgetCard`): $100 base (holds exactly for 2021/2023/2024/2025)
++ mid-season per-team **credits** parsed from the budget `setting_change` events (`team_id=NULL`,
+matched by name), modeled as timestamped credits so the 2022 Ice Station Zebra +$37 refund reproduces.
+**Remaining open (the original F-37 scope):** the dashboard still hasn't consumed the exact
+transaction dates/types as a *richer tier* beyond the acquisitions log.
 
 ### F-49 — Playoff / consolation metadata ☐ ⤴
 `Matchup.is_consolation` is `0` for all playoff rows and `is_playoff` is set on every post-season
@@ -148,6 +130,18 @@ game, so all 12 teams look like they advanced each season. The dashboard returns
 view stays caveated where it can't prove advancement. **Fix source-derived `is_consolation` /
 playoff-team metadata in ff-pipeline** (prefer fixing source flags over dashboard inference);
 `made_playoffs` then resolves with no contract change.
+
+### DST team-defense yards/sacks read low ☐ ⤴ (diagnosed; pipeline fix)
+Some DST box-score points under-render because nflverse team-defense stats are wrong upstream, not
+because of the dashboard (which renders `PlayerStatsScored.total_points` verbatim — read-only seam).
+Diagnosed 2026-06-02 on m2761 (2023 wk11): Cowboys DEF shows **24.0** vs NFL.com's **28.0**, off by
+exactly 4.00. Root cause in `danger-zone/.../crawlers/nflverse/team_defense.py`:
+`total_yards_allowed` is systematically inflated (crosses scoring brackets) and `def_sacks` slightly
+undercounts. **Fix belongs in the pipeline:** correct the yards/sacks derivation, add the game to the
+0.1-pt NFL.com scoring-verification gate, re-score + reload `data/fantasy.db` (AnalyticsCache
+auto-invalidates on the new `pipeline_run_id`; no dashboard change). User chose diagnosis-only so far.
+(See memory `dst-yards-sacks-pipeline-gap`. Distinct from fantasy *scoring* being end-to-end — this is
+the underlying box-score stat detail.)
 
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are ☑ via the regen, and **F-54** (season-correct player NFL team) is ☑

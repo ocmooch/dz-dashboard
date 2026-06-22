@@ -10,26 +10,32 @@ on earlier milestones. Two ordering rules are deliberate:
 
 ## Milestone summary
 
-**As-built status (2026-06-14):** P0–P12 are all complete and merged to `dev` (promoted to
-`main` via PRs #56/#58). P11 includes Makefile/runbook, `make dev`/`make serve`, CI jobs, e2e
-journeys, a visual-regression spec, committed Chromium/Linux screenshot baselines, and the
-visual spec in CI. **P12** (player injury reports: Phase-1 table upstream + BFF/UI badge) merged
-as PR #53.
+**As-built status (2026-06-22):** P0–P12 are all complete and merged to `dev`. `dev` was promoted
+to `main` at **v0.2.0** (2026-06-15); the post-v0.2.0 wave (PRs #72–#94) awaits the next promotion.
+P11 includes Makefile/runbook, `make dev`/`make serve`, CI jobs, e2e journeys, a visual-regression
+spec, committed Chromium/Linux screenshot baselines, and the visual spec in CI. **P12** (player
+injury reports: Phase-1 table upstream + BFF/UI badge) merged as PR #53. **There are no open
+dashboard feature branches.**
 
 **Post-roadmap slices — all merged.** Beyond P0–P12, the following shipped and are archived in
-`docs/archive/COMPLETED_WORK.md`:
+`docs/archive/COMPLETED_WORK.md` / `CHANGELOG.md`:
 - **League history** (`analytics/league_history.py` + `historical_team_names.py`, the
-  `/v1/league/*` endpoints, the Seasons / Rules & Eras / Stories pages + About Data nav).
+  `/v1/league/*` endpoints) and the **Timeline** space (`/seasons`+`/rules` merged, #79) + About
+  Data nav.
 - **Season-aware team names**, **player zero-week fix**, **records season-correct champion**,
-  **team avatars (Q11)**.
-- **Commissioner history** (upstream table + `/league` strip, per-season badge, manager card).
+  **team avatars (Q11)**, **commissioner history**, **season-correct player NFL team** (F-54, #51).
 - **Playoffs/Bracket** (F2.3): caveated endpoint → true bracket visualization (#55) → split
-  championship/consolation brackets (#60).
-- **Seasons/Rules redesign** (#54) + headline-only setting-edit resolution (#59).
-- **Season-correct player NFL team** (F-54, #51).
-
-The **only un-merged** dashboard work is the rivalries-insights branch (rivalry insight bands);
-see `PROGRESS.md`.
+  championship/consolation brackets (#60); **Power folded into Standings** as a `?lens=power` toggle
+  + Playoffs power-entry snapshot (#78).
+- **Rivalry insight bands** (#61), **tiered league-changes classifier** (#62), **injury enrichment**
+  (#65), **engagement / rivalries-strength** (#66).
+- **Data Integrity & Coverage program** (`/v1/meta/coverage`, self-explaining projection gaps,
+  identity-split detection; #77) + DATA roster-drift / status-drift guards (#73–#75).
+- **Weekly historical division standings** (#82, supersedes the dead conferences feature for
+  2010–2019), **matchup superlative flags** (#83), **source player-identity integrity** (#84).
+- **Teams nav + team-page refinements** (#80), the **draft suite** (genuine-zero, draft-impact,
+  perf, taxonomy — #85–#89), the **FAAB suite** (bids + weekly remaining-budget — #90–#93), and the
+  **2022 Hamlin no-contest championship resolution** (#94).
 
 | # | Milestone | Est. | Deliverable |
 |---|-----------|------|-------------|
@@ -289,7 +295,10 @@ Phase 2 — dz-dashboard repo (after Phase 1 lands):
 
 ## Deliberately NOT in this roadmap
 
-- **Phase 3** (predictions, trade/lineup advice) — separate effort; Phase 2 only *shows*.
+- **Phase 3** (NL "league historian" / insight querying; possibly predictions, trade/lineup advice)
+  — separate effort; Phase 2 only *shows*. An early, low-fidelity brainstorm exists (insight-primitive
+  library + tool-using agent over the BFF, "LLM narrates, analytics computes"), kept as a local
+  working note for now — not committed, not a milestone. Promote it into a real PLAN if/when chosen.
 - **Auth / multi-user / hosting** — localhost single-user; revisit only if you decide to host.
 - **Real-time in-game scoring** — out of scope, matches Phase 1.
 - **Writing to the DB or NFL.com** — never.
