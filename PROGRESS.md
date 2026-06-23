@@ -31,9 +31,15 @@ backfill_long_td_bonus.py` merged them + re-scored → Vick 2010 wk10 = 63.32. T
 `backfill_fumbles_lost.py` fixed the offensive over-count class (nflverse weekly `fumbles_lost`=0 where
 PBP shows a lost fumble → seeded -2 penalty never applied): offensive negatives 124→36. Combined
 total diverging rostered rows **2635→574** (backups `data/fantasy.db.bak-prelongtd-*`,
-`-prefumble-*`). Remaining upstream: ~500 DEF/DST rows — the deep dst-yards-sacks gap (D/ST TD
-undercount needs per-play classification; yards/PA relocation join failures). See
-`docs/plans/bonus-scoring-fidelity.md` §Resolution.
+`-prefumble-*`). *DST relocation join (2026-06-23, danger-zone `ea93b01`):* the schedule frame
+keeps relocated franchises' **era** codes (SD/OAK/STL) while team-stats/pbp use **current** codes
+(LAC/LV/LA), so the opponent join in `team_defense.py` silently dropped points_allowed/yards/sacks
+for those games. Fixed by folding every frame's code through `nfl_teams.canonical_franchise` +
+`scripts/backfill_dst_relocation_stats.py` re-ingest/re-score: **DST diverging 500→303**, total
+diverging rostered rows **574→368** (backup `data/fantasy.db.bak-predst-reloc-*`; Vick 63.32
+preserved). Remaining upstream: **303 DEF/DST rows** — the deep PBP-classification gap (D/ST TD
+undercount −6×172 needs per-play return/recovery classification; points-allowed bracket-boundary
++3×43/+1×49). See `docs/plans/bonus-scoring-fidelity.md` §Resolution addendum (2026-06-23 DST).
 
 **Prior in flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
 "Best player week" now uses authoritative `nfl_com_points` over **started** roster rows (Doug Martin

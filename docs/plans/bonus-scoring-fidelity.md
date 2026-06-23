@@ -208,3 +208,34 @@ stored stats exactly), so the divergence is genuine source-data shortfall, not s
 
 These remain the `dst-yards-sacks-pipeline-gap` (tracked). The BFF coalesce keeps every displayed
 DST number correct (it prefers `nfl_com_points` for the still-divergent rows).
+
+---
+
+## Resolution addendum (2026-06-23) — DST relocation join fixed upstream
+
+**Relocated-franchise join failure — RESOLVED upstream.** The largest single structural DST class
+was a code mismatch *between nflverse frames*, not a source shortfall: `load_team_stats` and
+`load_pbp` normalize every season to a franchise's **current** code (`LAC`/`LV`/`LA`), but
+`load_schedules` keeps the **era** code (`SD` pre-2017, `OAK` pre-2020, `STL` pre-2016). In
+`crawlers/nflverse/team_defense.py` the schedule-sourced opponent identity therefore never matched
+the team-stats index for those games, silently dropping `points_allowed`, `total_yards_allowed`
+**and** the opponent-sourced `sacks` for both the relocated team and its opponents (228 rows missing
+`total_yards_allowed`, 78 missing `points_allowed`). `franchises.py` had documented "nflverse keys
+every season under the current code — verified against `load_team_stats`", true for that frame but
+not for `schedules`.
+
+Fix (danger-zone `ea93b01`, branch `feature/bonus-scoring-fidelity`): fold every team code read from
+a frame through `nfl_teams.canonical_franchise` so both frames key on one stable code; idempotent
+`scripts/backfill_dst_relocation_stats.py` re-runs the corrected `run_team_defense` ingest + re-score.
+Applied to the live DB: **DST diverging 500 → 303**, total diverging rostered rows **574 → 368**;
+Vick offensive canary (63.32) preserved; the entire yards-bracket join-failure class (the −4/−7/−8/
+−10…−20 deltas) is gone. Backup `data/fantasy.db.bak-predst-reloc-*`.
+
+**Remaining DST (303 rows) — the genuinely deep PBP-classification gap, deferred:**
+- **−6.00 ×172 (the missing-TD class):** nflverse `def_tds`/`special_teams_tds` undercount real
+  defensive/return TDs. A naive PBP recount (`touchdown==1 AND td_team==defteam`) fixes ~100 but
+  breaks ~45 correct rows — return/recovery TDs need careful per-play classification.
+- **+3.00 ×43 / +1.00 ×49 (points-allowed bracket boundary):** the PBP-derived fantasy
+  `points_allowed` runs ~1 pt under NFL.com's at a bracket edge, awarding a better flat bracket
+  (the bracket steps are 3/1/3 pts, hence the +3 and +1 clusters). A points-allowed derivation
+  refinement, not a join fix.
