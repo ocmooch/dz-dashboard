@@ -1,7 +1,17 @@
 # Plan — DST deep-classification gap (the remaining 303 diverging rows)
 
-**Status:** PLAN (2026-06-23). The relocation join fix landed (danger-zone `ea93b01`): DST diverging
-500 → 303. This plan covers the two remaining classes, which need play-by-play and so were deferred.
+**Status:** TD CLASS RESOLVED (2026-06-23, danger-zone `4677d10`) — the 155 TD-undercount + 21
+TD-or-PA rows are fixed by a play-by-play TD recount in `team_defense.py` (`play_type`
+kickoff/punt/field_goal → special-teams half so kickoff-return TDs aren't dropped; `td_team!=posteam`
+→ defensive half; only ever raises the total). Validated on a DB copy then applied to the live DB:
+**DST diverging 303 → 127, 0 regressions / 0 worsened.** Remaining 127 = the points-allowed class
+(below) — investigation proved it a **false-positive class** (GB 2020 wk6 PA matches NFL.com exactly
+with the pick-six excluded; changing PA breaks correct rows), **deliberately left untouched** — plus
+~48 small one-off residuals. The PA plan below is retained as the record of why that class is not a
+safe fix.
+
+_Original plan (relocation join had just landed, danger-zone `ea93b01`): DST diverging
+500 → 303. This plan covered the two remaining classes, which need play-by-play and so were deferred._
 Live DB is `../danger-zone/data/fantasy.db`; ground truth is `team_rosters.extra_data.nfl_com_points`;
 the scoring is **correct** (an offline rule recompute reproduces stored `total_points` for all 303
 rows with **0** mismatches) — every remaining gap is in the **source stat values**, not the engine.

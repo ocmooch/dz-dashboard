@@ -37,9 +37,16 @@ keeps relocated franchises' **era** codes (SD/OAK/STL) while team-stats/pbp use 
 for those games. Fixed by folding every frame's code through `nfl_teams.canonical_franchise` +
 `scripts/backfill_dst_relocation_stats.py` re-ingest/re-score: **DST diverging 500→303**, total
 diverging rostered rows **574→368** (backup `data/fantasy.db.bak-predst-reloc-*`; Vick 63.32
-preserved). Remaining upstream: **303 DEF/DST rows** — the deep PBP-classification gap (D/ST TD
-undercount −6×172 needs per-play return/recovery classification; points-allowed bracket-boundary
-+3×43/+1×49). See `docs/plans/bonus-scoring-fidelity.md` §Resolution addendum (2026-06-23 DST).
+preserved). *DST missing-TD recount (2026-06-23, danger-zone `4677d10`):* nflverse's `def_tds`/
+`special_teams_tds` columns undercount real return/recovery TDs, so `team_defense.py` now recounts
+from play-by-play — `play_type` (kickoff/punt/field_goal) drives the special-teams half so
+kickoff-return TDs (which carry `td_team==posteam`) aren't dropped, `td_team!=posteam` drives the
+defensive half, and the count only ever *raises* the total. Validated on a DB copy (full re-ingest +
+rescore, row-by-row diff): **DST diverging 303→127**, the whole TD (155) + TD_or_PA (21) classes
+resolved, **0 regressions / 0 worsened**, then applied to the live DB. Remaining upstream:
+**127 DEF/DST rows** — 79 points-allowed bracket-boundary (proven false-positives; changing PA breaks
+correct rows like GB 2020 wk6, deliberately untouched) + ~48 small one-off residuals. See
+`docs/plans/bonus-scoring-fidelity.md` §Resolution addendum (2026-06-23 DST).
 
 **Prior in flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
 "Best player week" now uses authoritative `nfl_com_points` over **started** roster rows (Doug Martin
