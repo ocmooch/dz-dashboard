@@ -50,6 +50,7 @@ document, so the contract is enforced at build time.
 | `GET /v1/seasons/{season_id}/standings?through_week={n}` | Standings (current or as-of week n), with streaks; carries `rank_basis` + `tiebreak_caveat` |
 | `GET /v1/seasons/{season_id}/standings/insights?through_week={n}` | Schedule-luck insight: all-play win pct, expected wins, luck delta, PF rank |
 | `GET /v1/seasons/{season_id}/standings/timeline` | Rank (and points-for) per team per week — for the standings-over-time chart |
+| `GET /v1/seasons/{season_id}/conferences?through_week={n}` | 2010–2019 weekly division tables. Carries `through_week`, `regular_season_weeks`, source-backed `overall_rank`/`conference_rank`, exact `division_wins/losses/ties`, and `mapping_issues`; 2020+ returns `available:false` / `no_conferences_this_season` |
 | `GET /v1/seasons/{season_id}/power?through_week={n}` | Power ranking + components + weights per team, including all-play win pct |
 | `GET /v1/seasons/{season_id}/power/timeline` | Power score per team per week |
 | `GET /v1/seasons/{season_id}/bracket` | Caveated post-regular-season matchup groups by week; returns `available:false` / `bracket_unavailable` when no postseason rows exist, and labels consolation only when source flags distinguish it |
@@ -58,8 +59,8 @@ document, so the contract is enforced at build time.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `is_close` / `is_blowout` (backend margin flags) and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
-| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual, team point share, lineup-value labels; a genuinely-missing DEF row flagged |
+| `GET /v1/seasons/{season_id}/weeks/{week}/matchups` | All matchups for a week with scores + win/loss. Each game card carries `margin`, a `flags` list of superlative `MatchupFlag`s (`blowout`/`nailbiter`/`season_high`/`dud`/`shootout`/`cold_snap`/`tough_luck`/`upset`/`monster_game` — see `analytics/matchup_flags.py`), and each side a `entering_record` `{wins,losses,ties}` (regular-season record before that week) |
+| `GET /v1/matchups/{matchup_id}/box-score` | Both lineups, per-player points + breakdown (DST included), bench points, optimal-lineup + points-left-on-bench, projection-vs-actual, team point share, lineup-value labels; a genuinely-missing DEF row flagged. Also carries the same `margin` + `flags` as the game card so the box score and grid agree |
 
 ### Teams
 

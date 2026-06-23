@@ -226,9 +226,16 @@ def test_records_score_superlatives(session: Session) -> None:
     assert book["highest_team_score"]["value"] == KNOWN["highest_team_score"]  # 160.4
     assert book["highest_team_score"]["owner_name"] == "Maverick"
     assert book["biggest_blowout"]["value"] == KNOWN["biggest_blowout_margin"]  # 70.0
+    # Win-margin records name both sides (Maverick 150 def. Iceman 80, 2016 wk1).
+    assert book["biggest_blowout"]["winner_name"] == "Maverick 2016"
+    assert book["biggest_blowout"]["loser_name"] == "Iceman 2016"
     assert book["narrowest_win"]["value"] == 1.0
-    assert book["best_player_week"]["value"] == KNOWN["highest_player_week"]  # 35.5
-    assert book["best_player_week"]["player_name"] == "Lamar Jackson"
+    # Best player week is the highest *started* player's week, scored the box-score
+    # way. Lamar's higher scored row (35.5) is excluded — he was never in a lineup.
+    assert book["best_player_week"]["value"] == KNOWN["highest_started_player_week"]  # 30.0
+    assert book["best_player_week"]["player_name"] == "Christian McCaffrey"
+    assert book["best_player_week"]["team_name"] == "Maverick 2016"
+    assert book["best_player_week"]["owner_name"] == "Maverick"
 
 
 def test_records_record_only(session: Session) -> None:

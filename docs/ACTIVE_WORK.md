@@ -19,25 +19,41 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
-1. **Conferences feature repair** (dashboard, do first). The gate is green, but the feature is
-   *silently dead* for the 2010–2019 conference era. §6.1.
+0. **Data Integrity & Coverage program** ☑ **— COMPLETE & MERGED** (dashboard PR #77; upstream
+   crosswalk landed on `../danger-zone`). The structural fix for the recurring "works here but not
+   there" / wrong-`player_id` reports. All five units shipped (table kept as a record); the
+   merge-sequencing step is closed — danger-zone `player_identity_cluster` and dz-dashboard #77 both
+   landed.
+
+   | Unit | Repo | What | State |
+   |------|------|------|-------|
+   | **A** | dz-dashboard | Coverage matrix slice: `/v1/meta/coverage`, self-explaining projection gaps, identity-split *detection* (Part B2). | ☑ merged (#77) |
+   | **B** | ../danger-zone | `player_identity_links` on the live DB; seed the 18-group triage set (Mike Williams `1032↔25239`) + read-only `player_identity_cluster()` helper. Re-verified: Mike Williams is the only stranded-split; the other 17 are correct `no_link` decisions. | ☑ merged |
+   | **C** | ../danger-zone | Identity-aware ingest: nflverse `gsis_id` + Sleeper projection maps resolve linked members to the canonical player before writing, so reruns attach data to `1032` instead of re-stranding. Idempotency guard `test_reingest_does_not_restrand_linked_member`. | ☑ merged |
+   | **D** | dz-dashboard | Consume canonical (Part B1): box-score, team-roster, player-scoring, player-insight stat reads route through the cluster helper. `/matchups/1823` Mike Williams renders on roster id `1032`. | ☑ merged (#77) |
+   | **E** | both | Sleeper returns *hollow* rows (all-zero, `projected_points=0`) for **2010–2017** — real coverage begins **2018**. Dashboard requires a *real* projection value (2017 → `projections_not_captured`, 2018+ → real); upstream `_upsert_projections` skips hollow rows + a prune deleted them (live DB 522,143 → 40,759). Box score shows one top-level note, not a per-player chip. **Pre-2018 projections do not exist at the source — unclosable, surfaced honestly.** | ☑ complete |
+
+   Reference framing: `docs/handoffs/00-data-integrity-program.md`.
+1. **Conferences feature repair** ☑ **— DONE** (PR #82). Was silently dead for 2010–2019; replaced
+   by BFF-owned weekly historical division standings. §1 / §6.1.
 2. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs. §2.
 3. **League-history expansion**, once upstream identity/rules data exists. §3.
 4. **Deferred product decisions** — all shipped at reversible defaults. §4.
+5. **Phase 3 (exploratory)** — NL "league historian" early brainstorm; kept as a local working note,
+   not committed and not a milestone. A PLAN session promotes it if/when chosen.
 
 ---
 
-## 1. Conferences feature repair (dashboard · do first) ☐
+## 1. Conferences feature repair (dashboard) ☑
 
 > Detailed root cause and fix path are in §6.1. This is the only buildable *dashboard* work that is
 > not gated on the upstream program; do it before anything else so the bracket/conference surfaces
 > are honest for the 2010–2019 era.
 
-Cut a `feature/*` branch from `dev`, rewrite the two query sites in `analytics/conferences.py` to
-the raw-SQL pattern `analytics/standings.py` already uses, add a known-answer conferences test
-(none exists today, which is why the feature rotted unnoticed), and verify a 2010–2019 season's
-`GET /v1/seasons/{id}/conferences` returns real divisions while a 2020+ season still returns
-`available=false`.
+Superseded by `docs/plans/bff-weekly-division-standings.md`: the live Phase 1 schema does not
+actually contain the presumed conference table/column. The dashboard now owns a reviewed
+2010–2019 NFL.com artifact, exact weekly in-division records, final source ranks, and the complete
+historical division-table UI. 2020+ remains explicitly ungrouped.
 
 ---
 
@@ -53,7 +69,7 @@ where a small additive consume-step is noted. Full finding text:
 | Input | Needed by | Status |
 |-------|-----------|--------|
 | Season-length switch year(s): regular 1–13 → 1–14; playoff week shift | F-32 (shipped, config-driven) | ☑ dashboard derives from DB columns; exact switch year still unconfirmed |
-| Waiver standard-order → **FAAB** switch point | F-37 | ◐ dated transaction rows exist + consumed; no FAAB bid rows found |
+| Waiver standard-order → **FAAB** switch point | F-37 | ✅ switch = 2021; bids landed upstream (2021–2025); team transactions log shows the bid; **weekly remaining-budget built** (`/v1/teams/{id}/faab-budget` + `FaabBudgetCard`) — see `docs/handoffs/faab-bid-capture.md` |
 | Ownership-succession ledger (which owner held which team, which seasons) | F-06 | ⊘ still needs a source/table |
 | Pre-2016 scoring reconstruction trust check | F-27 | ☑ data landed (2010–2025); ◐ validation open |
 
@@ -73,6 +89,15 @@ status-update counts), then fix or document the residuals upstream. Current real
 - D4 never-rostered / never-scored "ghost" players = 400; scope-policy decision still open.
 - D5 duplicate same-player/season/week roster rows = **0** → resolved.
 - D3 `is_active` semantics + stale `nfl_team` — needs a documented, stable definition.
+- Cross-source `player_id` splits are now explicitly tracked by the Data Integrity program.
+  Dashboard detection is implemented on `feature/data-coverage-matrix-dashboard`; upstream
+  crosswalk scaffolding is implemented on `feature/player-identity-crosswalk`. Still required
+  upstream: curate/seed the league-relevant links (including Mike Williams 1032 ↔ 25239) and make
+  ingestion consult canonical identity before creating new player stubs.
+- NFL.com source-ID ownership leakage is now closed: an authenticated 2010–2025 draft/transaction
+  sweep found and repaired 34 misassignments, the strict upstream audit reports zero, and the
+  dashboard coverage matrix exposes any recurrence. Remaining F-25 work is metadata/scope cleanup,
+  not roster/transaction identity ownership.
 - Coordinated dashboard add: expose `last_season` on `PlayerOut` once D1 is fully populated
   (additive; run `gen:api` drift check in the same cycle).
 (See memory `player-stub-duplicates`.)
@@ -85,9 +110,18 @@ before treating every reconstructed score as authoritative.
 ### F-37 — Exact transactions & FAAB ◐ ⤴ (partly landed)
 Upstream has dated, typed transaction rows (add/drop/waiver/free-agent/trade/draft/lineup) and the
 dashboard renders the derived roster-diff tier. **Open:** the dashboard hasn't consumed exact
-transaction dates/types as a richer tier, and **no FAAB bid rows were present** in the spot check.
-Determine whether historical FAAB bid amounts exist anywhere; if absent, document `faab_bid:null` as
-a true source gap. The waiver standard-order → FAAB switch point is still unresolved.
+transaction dates/types as a richer tier.
+
+**FAAB capture landed upstream + surfaced on the dashboard — MERGED (PRs #90–#93, 2026-06-21).**
+Danger-zone writes `extra_data.faab_bid` on `waiver_add` legs for 2021–2025 (214/241/214/205/182
+rows; pre-2021 null). Dashboard: `_faab_bid()` reads a **$0 bid as a real free claim** (394/1056 bids
+are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), the winning bid is an accent `"$X FAAB"`
+pill in the team transactions log, and **weekly remaining-budget** shipped (`team_faab_budget()`,
+`GET /v1/teams/{id}/faab-budget`, `FaabBudgetCard`): $100 base (holds exactly for 2021/2023/2024/2025)
++ mid-season per-team **credits** parsed from the budget `setting_change` events (`team_id=NULL`,
+matched by name), modeled as timestamped credits so the 2022 Ice Station Zebra +$37 refund reproduces.
+**Remaining open (the original F-37 scope):** the dashboard still hasn't consumed the exact
+transaction dates/types as a *richer tier* beyond the acquisitions log.
 
 ### F-49 — Playoff / consolation metadata ☐ ⤴
 `Matchup.is_consolation` is `0` for all playoff rows and `is_playoff` is set on every post-season
@@ -96,6 +130,18 @@ game, so all 12 teams look like they advanced each season. The dashboard returns
 view stays caveated where it can't prove advancement. **Fix source-derived `is_consolation` /
 playoff-team metadata in ff-pipeline** (prefer fixing source flags over dashboard inference);
 `made_playoffs` then resolves with no contract change.
+
+### DST team-defense yards/sacks read low ☐ ⤴ (diagnosed; pipeline fix)
+Some DST box-score points under-render because nflverse team-defense stats are wrong upstream, not
+because of the dashboard (which renders `PlayerStatsScored.total_points` verbatim — read-only seam).
+Diagnosed 2026-06-02 on m2761 (2023 wk11): Cowboys DEF shows **24.0** vs NFL.com's **28.0**, off by
+exactly 4.00. Root cause in `danger-zone/.../crawlers/nflverse/team_defense.py`:
+`total_yards_allowed` is systematically inflated (crosses scoring brackets) and `def_sacks` slightly
+undercounts. **Fix belongs in the pipeline:** correct the yards/sacks derivation, add the game to the
+0.1-pt NFL.com scoring-verification gate, re-score + reload `data/fantasy.db` (AnalyticsCache
+auto-invalidates on the new `pipeline_run_id`; no dashboard change). User chose diagnosis-only so far.
+(See memory `dst-yards-sacks-pipeline-gap`. Distinct from fantasy *scoring* being end-to-end — this is
+the underlying box-score stat detail.)
 
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are ☑ via the regen, and **F-54** (season-correct player NFL team) is ☑
@@ -150,7 +196,7 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 
 ## 6. Housekeeping & baseline tech-debt
 
-### 6.1 Conferences feature silently dead (functional bug; gate is green) ☐
+### 6.1 Conferences feature silently dead (functional bug; gate is green) ☑
 
 PRs #63/#64 cleared the gate-red part of this debt (stale matchups-test assertions removed;
 `conferences.py` mypy/ruff silenced via `type: ignore`; e2e/format debt fixed). **But the silencing
@@ -176,9 +222,11 @@ only fixed the types — the feature is still dead at runtime** (verified 2026-0
   `_CONFERENCE_MODELS_AVAILABLE` guard (keep a defensive `try/except` around the SQL). Keep the public
   function signatures unchanged. **Add a known-answer conferences test** (none exists today — `git grep
   -l conference -- tests/` returns nothing) so the feature cannot silently die again.
-- **Done when:** a 2010–2019 season's conferences endpoint returns real divisions; a 2020+ season
-  still returns `available=false`; the bracket page for a conference-era season renders; gate green
-  (`gen:api` drift expected clean — schema shape unchanged).
+- **Resolution (2026-06-17):** the proposed raw-SQL repair was based on tables/columns absent from
+  the live Phase 1 schema. `feature/bff-weekly-division-standings` instead commits and validates
+  NFL.com's historical regular-standings divisions/ranks, maps through `teams.team_abbrev`, and
+  returns an honest mapping gap on any mismatch. The endpoint now supports weekly division records
+  and the Standings page renders complete historical division tables.
 
 ### 6.2 `pyproject.toml` git-fallback tag ☑
 

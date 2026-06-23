@@ -22,7 +22,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from ff_pipeline.repository.models import Matchup, PlayerStatsScored
+from ff_pipeline.repository.models import (
+    Matchup,
+    PlayerIdentityLink,
+    PlayerStatsScored,
+    Transaction,
+)
 from ff_pipeline.repository.models import Projection as ProjectionModel
 from ff_pipeline.repository.models import ScoringRule as ScoringRuleModel
 from ff_pipeline.repository.queries import (
@@ -38,15 +43,21 @@ from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, require_league
-from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.injuries import injury_fields
+from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.matchup_flags import (
+    flags_for_game,
+    season_score_context,
+    week_score_context,
+)
+from ff_dashboard.analytics.player_status import should_suppress_status
+from ff_dashboard.analytics.roster_snapshots import (
+    is_reconstructed_week,
+    reconstructed_note,
+    snapshot_kind,
+)
 from ff_dashboard.analytics.season_schedule import season_schedule
-
-# Margin thresholds for the week-matchup flags. Kept here (backend) rather than
-# in the SPA so "no metric math in web" holds; the frontend reads the booleans.
-CLOSE_MARGIN = 5.0  # a decided/tied game within 5 points
-BLOWOUT_MARGIN = 40.0  # a margin of 40+ points
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -104,6 +115,267 @@ def _authoritative_points(roster_row: Any) -> float | None:
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
+def _extra_str(roster_row: Any, key: str) -> str | None:
+    extra = roster_row.extra_data or {}
+    value = extra.get(key)
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+# The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's
+# cardiac arrest and ruled a no-contest. Upstream (danger-zone) resolves it as a
+# per-player substitute `wk17_partial + wk19` (Week 18 skipped) and stamps each
+# affected wk17 roster slot with a ``hamlin_substitute`` provenance block. The
+# dashboard is display-only: it reads that flag, renders the corrected score with
+# the two-component breakdown, and suppresses the (now false) zero-classification
+# paths. All affordances key off the *presence* of the flag — never a hardcoded
+# matchup id or year.
+HAMLIN_CONTEXT_LABEL = "Wk17+19"
+HAMLIN_CONTEXT_DETAIL = (
+    "Game cancelled (Hamlin no-contest); the league counted this player's Week-17 "
+    "stats from before play stopped plus their Week-19 (Wild Card) game — Week 18 was skipped."
+)
+HAMLIN_RESOLUTION_NOTE = (
+    "The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's "
+    "cardiac arrest and ruled a no-contest by the NFL (never replayed). For each "
+    "affected player the league counted their Week-17 stats accrued before play "
+    "stopped plus their Week-19 (Wild Card) game; Week 18 was skipped. These "
+    "substitute scores are reconstructed from public data — the Week-17 box score "
+    "plus the Week-19 stat lines — and a recovered private league note corroborated "
+    "only the Week-19 component and was incomplete."
+)
+
+
+def _hamlin_substitute(roster_row: Any) -> dict[str, Any] | None:
+    """The ``hamlin_substitute`` provenance block for a roster row, if present.
+
+    Set upstream on every affected 2022-wk17 slot; its presence is the sole
+    trigger for every Hamlin no-contest affordance in the box score.
+    """
+    extra = roster_row.extra_data or {}
+    value = extra.get("hamlin_substitute")
+    return value if isinstance(value, dict) else None
+
+
+def _hamlin_component(block: Any) -> dict[str, Any] | None:
+    """One ``{points, raw_stats}`` component (wk17_partial or wk19) for the UI."""
+    if not isinstance(block, dict):
+        return None
+    points = block.get("points")
+    raw_stats = block.get("raw_stats")
+    return {
+        "points": float(points)
+        if isinstance(points, (int, float)) and not isinstance(points, bool)
+        else None,
+        "raw_stats": raw_stats if isinstance(raw_stats, dict) else {},
+    }
+
+
+def _hamlin_player_context(hamlin: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Shape the per-player no-contest substitution split for the box score.
+
+    Exposes the Week-17 partial and the Week-19 (Wild Card) add-on separately so
+    the UI can show the cancelled-game partial and the add-on as distinct rows.
+    """
+    if hamlin is None:
+        return None
+    league_points = hamlin.get("league_points")
+    return {
+        "basis": hamlin.get("basis"),
+        "league_points": float(league_points)
+        if isinstance(league_points, (int, float)) and not isinstance(league_points, bool)
+        else None,
+        "wk17_partial": _hamlin_component(hamlin.get("wk17_partial")),
+        "wk19": _hamlin_component(hamlin.get("wk19")),
+    }
+
+
+def _reserve_eligibility_status(
+    roster_row: Any, injury: Any, injury_payload: InjuryFields, *, player_played: bool
+) -> str | None:
+    slot = (roster_row.roster_slot or "").upper()
+    if slot not in IR_SLOTS:
+        return None
+    # A reserve-slot player who actually played cannot truthfully carry a
+    # did-not-play roster status (NFL.com current-state drift); drop the
+    # anachronistic IR/IA/SUS and fall through to injury-report / slot context.
+    roster_status_label = _extra_str(roster_row, "player_status_label")
+    roster_status = _extra_str(roster_row, "player_status")
+    if should_suppress_status(roster_status_label, played=player_played):
+        roster_status_label = None
+    if should_suppress_status(roster_status, played=player_played):
+        roster_status = None
+    return (
+        roster_status_label
+        or roster_status
+        or injury_payload.get("injury_status")
+        or injury_payload.get("injury_practice_status")
+        or (injury.practice_status if injury is not None else None)
+        or roster_row.roster_slot
+    )
+
+
+def _roster_data_context(
+    session: Session,
+    *,
+    season_id: int,
+    team_id: int,
+    player_id: int,
+    week: int,
+) -> tuple[str, str] | None:
+    txns = list(
+        session.execute(
+            select(Transaction).where(
+                Transaction.season_id == season_id,
+                Transaction.player_id == player_id,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return _roster_data_context_from_transactions(
+        txns,
+        team_id=team_id,
+        week=week,
+    )
+
+
+def _roster_data_context_from_transactions(
+    txns: list[Any],
+    *,
+    team_id: int,
+    week: int,
+) -> tuple[str, str] | None:
+    # An acquisition is any inbound move onto this team. ``draft`` rows carry
+    # ``direction == "add"`` (effective_week 0), every other inbound type carries
+    # ``direction == "in"``; accept both. Excluding ``add`` here is the bug that
+    # made drafted-then-re-acquired players look like late additions: a player
+    # drafted in W0, dropped, and re-added via waiver/FA in W11 has a real W1
+    # roster row but no *in*-direction add until W11, so ``week < first_add``
+    # fired a false "Roster drift" badge. Counting the draft (W0) clears it.
+    team_add_weeks = [
+        int(t.effective_week)
+        for t in txns
+        if t.team_id == team_id
+        and t.direction in {"in", "add"}
+        and t.effective_week is not None
+        and t.transaction_type in {"add", "draft", "free_agent_add", "waiver_add", "trade"}
+    ]
+    if team_add_weeks:
+        first_add = min(team_add_weeks)
+        if week < first_add:
+            return (
+                "DATA",
+                f"Roster drift: snapshot shows this player on this team in W{week}, "
+                f"but transactions first add him in W{first_add}. Points/status are shown; "
+                "roster context is suspect.",
+            )
+
+    # NOTE: we deliberately do *not* flag a snapshot roster_slot that disagrees
+    # with that week's ``lineup_change`` ``to_slot`` values. Moving a player
+    # between starting slots and the bench (BN) is routine, allowed lineup
+    # management for any ownable player — he never entered or left the team, so
+    # it is not a data-integrity problem. A DB-wide audit found 38/40 such
+    # "slot conflict" firings were pure start/bench juggling (the snapshot is a
+    # point-in-time capture; the player simply moved within the week). The only
+    # genuinely notable slot case — a player parked in an IR/RES slot who has
+    # lost the status that made him eligible there — is surfaced separately by
+    # the reserve-eligibility path in ``_score_context`` (slot in ``IR_SLOTS``),
+    # which gives accurate RES context instead of a misleading "roster drift".
+    return None
+
+
+def _score_context(
+    *,
+    data_context: tuple[str, str] | None,
+    league_points: float | None,
+    zero_reason: str | None,
+    zero_detail: str | None,
+    nfl_opponent: str | None,
+    nfl_game_status: str | None,
+    roster_slot: str | None,
+    roster_status: str | None,
+    roster_status_label: str | None,
+    reserve_eligibility_status: str | None,
+    injury_payload: InjuryFields,
+    player_played: bool,
+) -> tuple[str | None, str | None]:
+    if data_context is not None:
+        return data_context
+
+    # NFL.com stamps a player's *current* status onto historical weeks, so a
+    # player who demonstrably played can carry a did-not-play badge (IA/IR/SUS).
+    # Suppress an incompatible roster status whenever there's proof the player
+    # played; keep game-time injury designations (Q/D/P) and genuine DNPs.
+    if should_suppress_status(roster_status, played=player_played):
+        roster_status = None
+
+    injury_status = injury_payload.get("injury_status")
+    injury_body = injury_payload.get("injury_body_part")
+    injury_practice = injury_payload.get("injury_practice_status")
+    slot = (roster_slot or "").upper()
+    matchup = " ".join(part for part in (nfl_opponent, nfl_game_status) if part)
+
+    if zero_reason == "bye":
+        return "Bye", "NFL team was on bye; zero is expected."
+
+    if zero_reason == "unexpected":
+        return "Check", zero_detail
+
+    if zero_reason == "did_not_play":
+        if injury_status == "Out":
+            detail = f"Ruled out{f' - {injury_body}' if injury_body else ''}."
+            return "Out", detail
+        if roster_status:
+            label = roster_status
+            detail = roster_status_label or "Roster badge captured from NFL.com."
+            return label, detail
+        if slot in IR_SLOTS:
+            detail = "Reserve slot; team played but no stat/scored row was recorded."
+            if matchup:
+                detail = f"{detail} Game: {matchup}."
+            if injury_practice:
+                detail = f"{detail} Injury report practice: {injury_practice}."
+                return "INJ", detail
+            return str(roster_slot), detail
+        reason = "Team played but no stat/scored row was recorded."
+        if matchup:
+            reason = f"{reason} Game: {matchup}."
+        if injury_practice:
+            reason = f"{reason} Injury report practice: {injury_practice}."
+        else:
+            reason = f"{reason} No injury designation was captured."
+        return "DNP", reason
+
+    if slot in IR_SLOTS:
+        if league_points is not None and league_points > 0:
+            reason = (
+                f"Recorded in {roster_slot} while also credited with points; "
+                "those points are real but excluded from bench/optimal totals. "
+                "The current data does not prove why the reserve slot and stat line coexist."
+            )
+            if reserve_eligibility_status:
+                reason = f"{reason} Eligibility context: {reserve_eligibility_status}."
+            else:
+                reason = f"{reason} No reserve eligibility designation was captured."
+            # A reserve-slot player who is *also* credited with points clearly
+            # played and scored, so we never escalate this to an "INJ" badge:
+            # an injury-report row for the same week does not prove the points
+            # were earned despite an injury, and labeling a 12-point line "INJ"
+            # is exactly the misleading-injury implication we want to avoid. The
+            # certain fact is the reserve slot; surface that and keep any injury
+            # nuance in the detail text only.
+            return "RES", reason
+        if reserve_eligibility_status:
+            return roster_slot, f"Reserve slot context: {reserve_eligibility_status}."
+        return roster_slot, "Reserve slot; no additional eligibility context captured."
+
+    if roster_status:
+        detail = roster_status_label or "Roster badge captured from NFL.com."
+        return roster_status, detail
+
+    return None, None
+
+
 def _season_scoring_rules(session: Any, season_id: int) -> ScoringRules:
     """Load scoring rules for a season as a ScoringRules dataclass (read-only)."""
     rows = session.execute(
@@ -145,13 +417,39 @@ def _projected_points_from_stats(
     return apply_rules(numeric, scoring_rules).total_points
 
 
+def _real_projection(*, proj_row: Any, rules: ScoringRules) -> float | None:
+    """A player's *real* projected points, or ``None`` when there isn't one.
+
+    Prefer the stored ``projected_points``; fall back to scoring the raw
+    ``projected_stats``. A zero result is treated as *no projection*: the source
+    (Sleeper) emits hollow all-zero rows for players it didn't project and for
+    entire pre-coverage seasons, and a bare ``0.0`` next to a player reads as a
+    real forecast of zero, which it isn't.
+    """
+    if proj_row is None:
+        return None
+    if proj_row.projected_points is not None and float(proj_row.projected_points) != 0.0:
+        return round(float(proj_row.projected_points), 2)
+    computed = _projected_points_from_stats(proj_row.projected_stats, rules)
+    if computed is not None and round(computed, 2) != 0.0:
+        return round(computed, 2)
+    return None
+
+
 def _batch_projections(
-    session: Any, player_ids: list[int], season_year: int, week: int
+    session: Any,
+    player_ids: list[int],
+    season_year: int,
+    week: int,
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, ProjectionModel]:
     """Latest projection row per player for a given season/week, in one query."""
     if not player_ids:
         return {}
     from sqlalchemy import func
+
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
 
     # Subquery: max fetched_at per player for this season/week.
     sub = (
@@ -160,7 +458,7 @@ def _batch_projections(
             func.max(ProjectionModel.fetched_at).label("latest"),
         )
         .where(
-            ProjectionModel.player_id.in_(player_ids),
+            ProjectionModel.player_id.in_(lookup_ids),
             ProjectionModel.season_year == season_year,
             ProjectionModel.week == week,
         )
@@ -169,16 +467,33 @@ def _batch_projections(
     )
     rows = (
         session.execute(
-            select(ProjectionModel).join(
+            select(ProjectionModel)
+            .join(
                 sub,
                 (ProjectionModel.player_id == sub.c.player_id)
                 & (ProjectionModel.fetched_at == sub.c.latest),
+            )
+            # The subquery's max(fetched_at) is scoped to this season/week, but the
+            # outer row match is on (player_id, fetched_at) — so without repeating
+            # the season/week filter here, a different week sharing the same
+            # fetched_at would join in and overwrite the right row.
+            .where(
+                ProjectionModel.season_year == season_year,
+                ProjectionModel.week == week,
             )
         )
         .scalars()
         .all()
     )
-    return {r.player_id: r for r in rows}
+    by_member = {int(r.player_id): r for r in rows}
+    out: dict[int, ProjectionModel] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
 
 
 # How much nflverse-credited production, while the league scored 0, counts as a
@@ -319,11 +634,17 @@ def solve_optimal(players: list[dict[str, Any]], slots: list[str]) -> float:
 
 
 def _scored_points(
-    session: Session, season_id: int, week: int, player_ids: list[int]
+    session: Session,
+    season_id: int,
+    week: int,
+    player_ids: list[int],
+    cluster_members: dict[int, list[int]] | None = None,
 ) -> dict[int, tuple[float, dict[str, Any]]]:
     """``player_id -> (total_points, breakdown)`` for one (season, week)."""
     if not player_ids:
         return {}
+    cluster_members = cluster_members or {pid: [pid] for pid in player_ids}
+    lookup_ids = sorted({member for members in cluster_members.values() for member in members})
     rows = session.execute(
         select(
             PlayerStatsScored.player_id,
@@ -332,10 +653,65 @@ def _scored_points(
         ).where(
             PlayerStatsScored.season_id == season_id,
             PlayerStatsScored.week == week,
-            PlayerStatsScored.player_id.in_(player_ids),
+            PlayerStatsScored.player_id.in_(lookup_ids),
         )
     ).all()
-    return {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    by_member = {int(pid): (float(pts), bd or {}) for pid, pts, bd in rows}
+    out: dict[int, tuple[float, dict[str, Any]]] = {}
+    for player_id in player_ids:
+        for member_id in cluster_members[player_id]:
+            row = by_member.get(member_id)
+            if row is not None:
+                out[player_id] = row
+                break
+    return out
+
+
+def _identity_cluster_members(session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+    """Roster-player id -> member ids to read as the same canonical player.
+
+    Resolves the whole input set in two queries instead of the per-player
+    ``player_identity_cluster`` lookup (an N+1 that dominated the draft sweeps —
+    every drafted player triggered three round-trips). Semantics are unchanged:
+    each input id maps to its cluster's members with the input id listed first;
+    an id with no link row is its own singleton cluster.
+    """
+    ids = sorted({int(pid) for pid in player_ids})
+    if not ids:
+        return {}
+    # member -> canonical for the inputs (a missing row means the id is canonical).
+    canonical_of = {
+        int(member): int(canonical)
+        for member, canonical in session.execute(
+            select(
+                PlayerIdentityLink.member_player_id, PlayerIdentityLink.canonical_player_id
+            ).where(PlayerIdentityLink.member_player_id.in_(ids))
+        ).all()
+    }
+    canonicals = {canonical_of.get(pid, pid) for pid in ids}
+    members_by_canonical: dict[int, set[int]] = {}
+    for canonical, member in session.execute(
+        select(PlayerIdentityLink.canonical_player_id, PlayerIdentityLink.member_player_id).where(
+            PlayerIdentityLink.canonical_player_id.in_(canonicals)
+        )
+    ).all():
+        members_by_canonical.setdefault(int(canonical), set()).add(int(member))
+    out: dict[int, list[int]] = {}
+    for pid in ids:
+        canonical = canonical_of.get(pid, pid)
+        members = members_by_canonical.get(canonical, set()) | {canonical, pid}
+        out[pid] = [pid, *sorted(member for member in members if member != pid)]
+    return out
+
+
+def _injury_for_player_cluster(
+    injuries: dict[int, Any], player_id: int, cluster_members: dict[int, list[int]]
+) -> Any | None:
+    for member_id in cluster_members.get(player_id, [player_id]):
+        injury = injuries.get(member_id)
+        if injury is not None:
+            return injury
+    return None
 
 
 def _team_box(
@@ -360,9 +736,22 @@ def _team_box(
             season.year,
         )
     roster = scoped
+    # When every known per-row snapshot is an audit reconstruction, the whole
+    # week's roster is reconstructed (not a live weekly capture). In that case
+    # per-player "roster drift" is systemic, not player-specific, so we suppress
+    # the per-player DATA badge and surface a single team-level caveat instead.
+    roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
-    scored = _scored_points(session, season.season_id, week, player_ids)
-    projections = _batch_projections(session, player_ids, season.year, week)
+    cluster_members = _identity_cluster_members(session, player_ids)
+    scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
+    projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
+    projection_coverage = coverage_status_for_projection_week(session, season.year, week)
+    projections_available_for_week = projection_coverage["status"] == "present"
+    projection_reason = (
+        str(projection_coverage["reason"])
+        if projection_coverage.get("reason") is not None
+        else None
+    )
     scoring_rules = _season_scoring_rules(session, season.season_id)
     injuries = injury_reports_for_week(session, season.year, week)
 
@@ -384,6 +773,15 @@ def _team_box(
         )
         scored_row = scored.get(player.player_id)
         breakdown = scored_row[1] if scored_row is not None else {}
+
+        # The 2022 wk17 no-contest substitution (Hamlin) carries its own
+        # combined points breakdown — surface it so passing yards / receptions /
+        # FGs render instead of the empty breakdown left by the voided wk17 game.
+        hamlin = _hamlin_substitute(roster_row)
+        if hamlin is not None:
+            hamlin_breakdown = hamlin.get("points_breakdown")
+            if isinstance(hamlin_breakdown, dict):
+                breakdown = hamlin_breakdown
 
         # Prefer NFL.com's authoritative per-player points (they sum to the team
         # score and cover players nflverse never scored — a real 0.0, not a gap);
@@ -408,50 +806,116 @@ def _team_box(
         # Explain a 0.0 result: a bye / DNP status reason, a plain played-0, or a
         # flagged "unexpected" 0. Uses the per-week opponent ("Bye") + whether the
         # player has any nflverse stat line as evidence of having played.
-        opponent = (roster_row.extra_data or {}).get("opponent")
-        zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
+        opponent = _extra_str(roster_row, "opponent")
+        # Suppress the false zero-classification for a no-contest substitute:
+        # league_points is now > 0 but nflverse has no wk17 row, so
+        # classify_zero would misfire "did_not_play" / "unexpected". Branch on
+        # the provenance flag before classify_zero runs.
+        if hamlin is not None:
+            zero_reason, zero_detail = None, None
+        else:
+            zero_reason, zero_detail = classify_zero(league_points, opponent, nflverse_points)
 
         # Projection vs actual. Use the authoritative projected_points when stored;
         # fall back to scoring projected_stats with the season's rules when the
-        # pipeline loaded raw stat projections but didn't apply scoring yet.
-        projection: float | None = None
-        proj_row = projections.get(player.player_id)
-        if proj_row is not None:
-            if proj_row.projected_points is not None:
-                projection = round(float(proj_row.projected_points), 2)
-            else:
-                computed = _projected_points_from_stats(proj_row.projected_stats, scoring_rules)
-                if computed is not None:
-                    projection = round(computed, 2)
+        # pipeline loaded raw stat projections but didn't apply scoring yet. A
+        # *zero* projection is not a real forecast — Sleeper returns hollow,
+        # all-zero rows for unprojected players (and entire pre-2018 seasons), so
+        # treat a 0 as "no projection" (renders a gap / dash) rather than a bogus
+        # 0.0 next to the player.
+        projection = _real_projection(
+            proj_row=projections.get(player.player_id), rules=scoring_rules
+        )
         projection_delta = (
             round(league_points - projection, 2)
             if league_points is not None and projection is not None
             else None
         )
+        projection_available = projections_available_for_week
+        player_projection_reason = None
+        if projection is None and not projections_available_for_week:
+            player_projection_reason = projection_reason
         team_point_share = (
             round(league_points / total_score, 4)
             if league_points is not None and total_score is not None and total_score > 0
             else None
         )
 
-        injury = injuries.get(player.player_id)
+        injury = _injury_for_player_cluster(injuries, player.player_id, cluster_members)
+        injury_payload = injury_fields(injury)
+        roster_status = _extra_str(roster_row, "player_status")
+        roster_status_label = _extra_str(roster_row, "player_status_label")
+        # "Played" = has a real nflverse stat line (an organic 0 counts) or a
+        # positive league score. Used to suppress NFL.com current-state-drift
+        # statuses (IA/IR/SUS) on players who clearly played that week.
+        player_played = nflverse_points is not None or (
+            league_points is not None and league_points > 0
+        )
+        reserve_eligibility = _reserve_eligibility_status(
+            roster_row, injury, injury_payload, player_played=player_played
+        )
+        # On a reconstructed (all-audit) week, skip the per-player drift check —
+        # the team-level caveat covers it, and a badge on every row would bury
+        # the genuinely player-specific context (DNP / Out / reserve+points).
+        data_context = (
+            None
+            if roster_reconstructed
+            else _roster_data_context(
+                session,
+                season_id=season.season_id,
+                team_id=team_id,
+                player_id=player.player_id,
+                week=week,
+            )
+        )
+        context_label: str | None
+        context_detail: str | None
+        if hamlin is not None:
+            # The no-contest substitution context takes precedence over every
+            # other badge (DNP/IR/injury) — the player's wk17 game was cancelled.
+            context_label, context_detail = HAMLIN_CONTEXT_LABEL, HAMLIN_CONTEXT_DETAIL
+        else:
+            context_label, context_detail = _score_context(
+                data_context=data_context,
+                league_points=league_points,
+                zero_reason=zero_reason,
+                zero_detail=zero_detail,
+                nfl_opponent=opponent,
+                nfl_game_status=_extra_str(roster_row, "game_status"),
+                roster_slot=slot,
+                roster_status=roster_status,
+                roster_status_label=roster_status_label,
+                reserve_eligibility_status=reserve_eligibility,
+                injury_payload=injury_payload,
+                player_played=player_played,
+            )
         entry = {
             "roster_slot": slot,
             "player_id": player.player_id,
             "player_name": player.name_full,
             "position": player.position,
+            "nfl_opponent": opponent,
+            "nfl_game_status": _extra_str(roster_row, "game_status"),
+            "roster_status": roster_status,
+            "roster_status_label": roster_status_label,
+            "reserve_eligibility_status": reserve_eligibility,
             "league_points": league_points,
             "is_starter": is_starter,
             "breakdown": breakdown,
             "projection": projection,
             "projection_delta": projection_delta,
+            "projection_available": projection_available,
+            "projection_reason": player_projection_reason,
             "team_point_share": team_point_share,
             "available": available,
             "reason": reason,
             "zero_reason": zero_reason,
             "zero_detail": zero_detail,
+            "context_label": context_label,
+            "context_detail": context_detail,
+            "hamlin_substitute": _hamlin_player_context(hamlin),
             "lineup_value": None,
-            **injury_fields(injury),
+            **injury_payload,
         }
         lineup.append(entry)
 
@@ -507,6 +971,8 @@ def _team_box(
         "beat_projection_by": round(beat_projection_by, 2)
         if beat_projection_by is not None
         else None,
+        "roster_reconstructed": roster_reconstructed,
+        "roster_reconstructed_note": reconstructed_note(week) if roster_reconstructed else None,
         "lineup": lineup,
     }
 
@@ -535,14 +1001,26 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
             "is_playoff": bool(m.is_playoff),
         }
 
+    # Projection coverage is a property of the (season, week), identical for both
+    # teams — surface it once at the box level so the UI can show a single
+    # top-level "no projections for this season" note instead of a gap chip on
+    # every player row.
+    projection_coverage = coverage_status_for_projection_week(session, season.year, m.week)
+    projections_available = projection_coverage["status"] == "present"
+    projection_reason = (
+        None if projections_available else str(projection_coverage.get("reason") or "")
+    ) or None
+
     home = _team_box(session, m.team_id, season, m.week, m.team_score)
 
     away: dict[str, Any] | None = None
     winner_team_id: int | None = None
+    margin: float | None = None
     if m.opponent_team_id is not None:
         away = _team_box(session, m.opponent_team_id, season, m.week, m.opponent_score)
         # Winner from the authoritative team scores (the real game result).
         if m.team_score is not None and m.opponent_score is not None:
+            margin = round(abs(m.team_score - m.opponent_score), 2)
             if m.team_score > m.opponent_score:
                 winner_team_id = m.team_id
             elif m.opponent_score > m.team_score:
@@ -560,15 +1038,52 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
                 sorted(shared),
             )
 
+    # Superlative flags — the same set the weekly grid shows, so the two views
+    # never disagree. Entering records (for the upset flag) come from the existing
+    # regular-season helper; bye/unscored games simply produce no flags.
+    entering = _entering_records(session, season, m.week)
+
+    def flag_side(team_id: int | None, score: float | None) -> dict[str, Any] | None:
+        if team_id is None:
+            return None
+        return {
+            "team_id": team_id,
+            "score": round(score, 2) if score is not None else None,
+            "entering_record": entering.get(team_id, {"wins": 0, "losses": 0, "ties": 0}),
+        }
+
+    flags = flags_for_game(
+        team_a=flag_side(m.team_id, m.team_score),
+        team_b=flag_side(m.opponent_team_id, m.opponent_score),
+        winner_team_id=winner_team_id,
+        margin=margin,
+        week=m.week,
+        season_ctx=season_score_context(session, season.season_id, season.year),
+        week_ctx=week_score_context(session, season.season_id, m.week),
+    )
+
+    # Matchup-level no-contest banner: shown on every matchup that holds an
+    # affected player on either side, driven purely off the provenance flag.
+    sides = [home] + ([away] if away is not None else [])
+    has_substitute = any(
+        entry.get("hamlin_substitute") is not None for side in sides for entry in side["lineup"]
+    )
+    resolution_note = HAMLIN_RESOLUTION_NOTE if has_substitute else None
+
     return {
         "matchup_id": matchup_id,
         "season_year": season.year,
         "week": m.week,
         "available": True,
         "is_playoff": bool(m.is_playoff),
+        "projections_available": projections_available,
+        "projection_reason": projection_reason,
+        "resolution_note": resolution_note,
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,
+        "margin": margin,
+        "flags": flags,
     }
 
 
@@ -631,6 +1146,10 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
     owners = owner_name_map(session)
     teams: dict[int, Any] = {}
     entering = _entering_records(session, season, week)
+    # Computed once per call and shared across every game card; the route caches
+    # this whole function per (season, week).
+    season_ctx = season_score_context(session, season_id, season.year)
+    week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -675,18 +1194,27 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         if m.team_score is not None and m.opponent_score is not None:
             margin = round(abs(m.team_score - m.opponent_score), 2)
 
+        team_a = team_ref(m.team_id, m.team_score, winner_team_id == m.team_id)
+        team_b = team_ref(
+            m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
+        )
         games.append(
             {
                 "matchup_id": m.matchup_id,
                 "is_playoff": bool(m.is_playoff),
-                "team_a": team_ref(m.team_id, m.team_score, winner_team_id == m.team_id),
-                "team_b": team_ref(
-                    m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
-                ),
+                "team_a": team_a,
+                "team_b": team_b,
                 "margin": margin,
-                "is_close": margin is not None and margin <= CLOSE_MARGIN,
-                "is_blowout": margin is not None and margin >= BLOWOUT_MARGIN,
                 "winner_team_id": winner_team_id,
+                "flags": flags_for_game(
+                    team_a=team_a,
+                    team_b=team_b,
+                    winner_team_id=winner_team_id,
+                    margin=margin,
+                    week=week,
+                    season_ctx=season_ctx,
+                    week_ctx=week_ctx,
+                ),
             }
         )
 

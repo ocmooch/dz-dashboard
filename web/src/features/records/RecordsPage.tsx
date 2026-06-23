@@ -27,6 +27,10 @@ type RecordValue = {
   owner_name?: string | null;
   team_name?: string | null;
   player_name?: string | null;
+  // matchup-scoped records carry both sides so the grid can name them.
+  winner_name?: string | null;
+  loser_name?: string | null;
+  opponent_name?: string | null;
   season_year?: number | null;
   week?: number | null;
   // deep-link context — each record carries enough to reach its source.
@@ -55,7 +59,10 @@ const RECORDS: { key: string; label: string; suffix?: string }[] = [
 function who(rec: RecordValue): string {
   const parts: string[] = [];
   if (rec.player_name) parts.push(rec.player_name);
-  if (rec.team_name) parts.push(rec.team_name);
+  if (rec.winner_name && rec.loser_name) parts.push(`${rec.winner_name} def. ${rec.loser_name}`);
+  else if (rec.team_name && rec.opponent_name)
+    parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
+  else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year)
     parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);

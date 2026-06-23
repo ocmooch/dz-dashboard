@@ -35,18 +35,34 @@ async function fetchStandings(seasonId: number) {
 async function fetchRecords() {
   const { data, error } = await api.GET("/v1/records");
   if (error || !data) throw new Error("records");
-  return data.data as Record<
-    string,
-    {
-      available?: boolean;
-      value?: number;
-      owner_name?: string | null;
-      team_name?: string | null;
-      player_name?: string | null;
-      season_year?: number | null;
-      reason?: string;
-    }
-  >;
+  return data.data as Record<string, HomeRecord>;
+}
+
+type HomeRecord = {
+  available?: boolean;
+  value?: number;
+  owner_name?: string | null;
+  team_name?: string | null;
+  player_name?: string | null;
+  // matchup-scoped records name both sides rather than a single team.
+  winner_name?: string | null;
+  loser_name?: string | null;
+  opponent_name?: string | null;
+  season_year?: number | null;
+  reason?: string;
+};
+
+/** The "who" line for a home record tile — matches the Records book: a player, a
+ *  "<winner> def. <loser>" / "<team> vs <opponent>" matchup, else a team/owner. */
+function recordWho(rec: HomeRecord): string {
+  const parts: string[] = [];
+  if (rec.player_name) parts.push(rec.player_name);
+  else if (rec.winner_name && rec.loser_name) parts.push(`${rec.winner_name} def. ${rec.loser_name}`);
+  else if (rec.team_name && rec.opponent_name) parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
+  else if (rec.team_name) parts.push(rec.team_name);
+  else if (rec.owner_name) parts.push(rec.owner_name);
+  if (rec.season_year) parts.push(String(rec.season_year));
+  return parts.join(" · ") || "—";
 }
 
 async function fetchTopScorers(season: number, week?: number) {
@@ -110,26 +126,16 @@ export function HomePage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Link to="/seasons">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Link to="/timeline">
           <Card hover className="h-full p-5">
-            <Badge variant="accent">League History</Badge>
+            <Badge variant="accent">Timeline</Badge>
             <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
-              Browse the archive by season
+              Browse the league by season &amp; era
             </h2>
             <p className="mt-2 text-[var(--fs-sm)] text-muted">
-              Champions, league size, schedule shape, and scoring provenance by year.
-            </p>
-          </Card>
-        </Link>
-        <Link to="/rules">
-          <Card hover className="h-full p-5">
-            <Badge variant="accent">Rules &amp; Eras</Badge>
-            <h2 className="mt-3 font-display text-[var(--fs-h3)] font-bold uppercase tracking-wide">
-              Compare seasons in context
-            </h2>
-            <p className="mt-2 text-[var(--fs-sm)] text-muted">
-              Era labels explain when league size, schedule, or scoring provenance changed.
+              Champions, league size, schedule shape, and scoring provenance by year — with the
+              structural eras and every material rule change in context.
             </p>
           </Card>
         </Link>
@@ -267,10 +273,7 @@ export function HomePage() {
                         <div className="num text-[var(--fs-h1)] font-semibold text-accent">
                           {num(rec.value, Number.isInteger(rec.value) ? 0 : 2)}
                         </div>
-                        <div className="text-[var(--fs-xs)] text-faint">
-                          {rec.player_name ?? rec.team_name ?? rec.owner_name ?? "—"}
-                          {rec.season_year ? ` · ${rec.season_year}` : ""}
-                        </div>
+                        <div className="text-[var(--fs-xs)] text-faint">{recordWho(rec)}</div>
                       </>
                     ) : (
                       <DataGap reason={rec?.reason} />

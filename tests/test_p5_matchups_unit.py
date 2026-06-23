@@ -7,11 +7,17 @@ solver and end-to-end through the hand-authored Iceman 2017 wk1 box score.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
+import ff_dashboard.analytics.matchups as matchups_module
+import ff_dashboard.analytics.players as players_module
+from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
+    _roster_data_context_from_transactions,
+    _score_context,
     box_score,
     classify_zero,
     roster_sort_key,
@@ -19,6 +25,7 @@ from ff_dashboard.analytics.matchups import (
     solve_optimal,
     week_matchups,
 )
+from ff_dashboard.analytics.players import player_scoring
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
@@ -150,6 +157,9 @@ def test_box_non_def_missing_row_is_did_not_play_zero(session: Session) -> None:
     assert row["league_points"] == 0.0
     assert row["reason"] is None
     assert row["zero_reason"] == "did_not_play"
+    assert row["context_label"] == "DNP"
+    assert row["context_detail"] is not None
+    assert "No injury designation" in row["context_detail"]
 
 
 def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Session) -> None:
@@ -163,6 +173,80 @@ def test_box_uses_authoritative_nfl_com_points_for_unscored_player(session: Sess
     assert viper["available"] is True
     assert viper["league_points"] == 7.0  # from extra_data.nfl_com_points, not nflverse
     assert viper["reason"] is None
+
+
+def test_box_projection_gap_is_week_coverage_not_player_math(session: Session) -> None:
+    covered_mid = KNOWN["matchup_id"][(2017, 1, "ice")]
+    covered = box_score(session, covered_mid)
+    assert covered is not None
+    projected = next(p for p in covered["home"]["lineup"] if p["player_name"] == "Ice QB One")
+    assert projected["projection"] == 20.0
+    assert projected["projection_delta"] == 4.0
+    assert projected["projection_available"] is True
+    assert projected["projection_reason"] is None
+
+    unprojected = next(p for p in covered["home"]["lineup"] if p["player_name"] == "Ice RB One")
+    assert unprojected["projection"] is None
+    assert unprojected["projection_available"] is True
+    assert unprojected["projection_reason"] is None
+
+    uncovered_mid = KNOWN["matchup_id"][(2017, 2, "goose")]
+    uncovered = box_score(session, uncovered_mid)
+    assert uncovered is not None
+    dnp = next(p for p in uncovered["home"]["lineup"] if p["player_name"] == "DNP Dana")
+    assert dnp["projection"] is None
+    assert dnp["projection_available"] is False
+    assert dnp["projection_reason"] == "projections_not_captured"
+
+
+def test_box_score_unions_canonical_identity_cluster(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    split_roster = KNOWN["player_id"]["split_roster"]
+    split_stats = KNOWN["player_id"]["split_stats"]
+
+    def fake_cluster_members(_session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+        cluster = {split_roster, split_stats}
+        return {
+            pid: [pid, *sorted(cluster - {pid})] if pid in cluster else [pid] for pid in player_ids
+        }
+
+    monkeypatch.setattr(matchups_module, "_identity_cluster_members", fake_cluster_members)
+
+    mid = KNOWN["matchup_id"][(2017, 1, "mav")]
+    data = box_score(session, mid)
+    assert data is not None
+    split = next(p for p in data["home"]["lineup"] if p["player_name"] == "Split Sam")
+
+    assert split["player_id"] == split_roster
+    assert split["league_points"] == 0.0
+    assert split["zero_reason"] is None
+    assert split["injury_status"] == "Out"
+    assert split["injury_body_part"] == "Back"
+
+
+def test_player_scoring_unions_canonical_identity_cluster(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    split_roster = KNOWN["player_id"]["split_roster"]
+    split_stats = KNOWN["player_id"]["split_stats"]
+
+    def fake_cluster_members(_session: Session, player_ids: list[int]) -> dict[int, list[int]]:
+        cluster = {split_roster, split_stats}
+        return {
+            pid: [pid, *sorted(cluster - {pid})] if pid in cluster else [pid] for pid in player_ids
+        }
+
+    # player_scoring lives in analytics.players, which binds its own reference to
+    # the resolver, so patch it there rather than on the matchups module.
+    monkeypatch.setattr(players_module, "_identity_cluster_members", fake_cluster_members)
+
+    data = player_scoring(session, split_roster, 2017)
+    assert data is not None
+    assert data["total_points"] == 0.0
+    assert data["weeks"] == [
+        {"week": 1, "points": 0.0, "breakdown": {}, "zero_reason": None, "zero_detail": None}
+    ]
 
 
 # --- Zero-point context classification --------------------------------------
@@ -210,11 +294,210 @@ def test_box_zero_context_is_wired_end_to_end(session: Session) -> None:
     assert bye["available"] is True
     assert bye["league_points"] == 0.0
     assert bye["zero_reason"] == "bye"
+    assert bye["context_label"] == "Bye"
 
     mismatch = next(p for p in away if p["player_name"] == "Mismatch Guy")
     assert mismatch["league_points"] == 0.0  # authoritative league value, not nflverse 8.0
     assert mismatch["zero_reason"] == "unexpected"
     assert mismatch["zero_detail"] is not None
+    assert mismatch["context_label"] == "Check"
+
+
+def test_box_reserve_points_are_explained(session: Session) -> None:
+    home = _ice_box(session)
+    row = next(p for p in home["lineup"] if p["player_name"] == "Ice IR Guy")
+    assert row["roster_slot"] == "IR"
+    assert row["league_points"] == 30.0
+    assert row["context_label"] == "RES"
+    assert row["context_detail"] is not None
+    assert "does not prove why" in row["context_detail"]
+    assert row["reserve_eligibility_status"] == "IR"
+
+
+def test_box_flags_roster_before_team_acquisition_as_data_drift() -> None:
+    context = _roster_data_context_from_transactions(
+        [
+            SimpleNamespace(
+                transaction_type="free_agent_add",
+                effective_week=3,
+                team_id=10,
+                direction="in",
+                extra_data=None,
+            )
+        ],
+        team_id=10,
+        week=1,
+    )
+    assert context is not None
+    assert context[0] == "DATA"
+    assert "first add him in W3" in context[1]
+
+
+def test_box_drafted_then_readded_player_is_not_data_drift() -> None:
+    # Drafted by the team in W0 (direction="add"), dropped, then re-acquired via
+    # waiver/FA in a later week. The W1 roster row is legitimate; the draft must
+    # count as the first acquisition so ``week < first_add`` never fires. Without
+    # counting the draft this was the dominant false positive (800 box rows,
+    # e.g. Dak Prescott / Keon Coleman / Washington DEF on matchup 195).
+    txns = [
+        SimpleNamespace(
+            transaction_type="draft",
+            effective_week=0,
+            team_id=10,
+            direction="add",
+            extra_data=None,
+        ),
+        SimpleNamespace(
+            transaction_type="waiver_add",
+            effective_week=11,
+            team_id=10,
+            direction="in",
+            extra_data=None,
+        ),
+    ]
+    assert _roster_data_context_from_transactions(txns, team_id=10, week=1) is None
+
+
+def test_box_late_add_without_draft_remains_data_drift() -> None:
+    # Genuine drift survives the draft fix: the player was never drafted by this
+    # team and the first acquisition is later than the snapshot week (the 2010
+    # residual class, where the in-season transaction log starts mid-season).
+    txns = [
+        SimpleNamespace(
+            transaction_type="free_agent_add",
+            effective_week=7,
+            team_id=10,
+            direction="in",
+            extra_data=None,
+        )
+    ]
+    context = _roster_data_context_from_transactions(txns, team_id=10, week=2)
+    assert context is not None
+    assert context[0] == "DATA"
+    assert "first add him in W7" in context[1]
+
+
+def test_box_lineup_slot_change_is_not_data_drift() -> None:
+    # Moving a player between a starting slot and the bench (or any start↔start /
+    # start↔BN shuffle) is routine, allowed lineup management — he never entered
+    # or left the team, so a snapshot slot that differs from that week's
+    # lineup_change target must NOT be flagged as roster drift. A DB-wide audit
+    # found 38/40 historical "slot conflict" firings were exactly this; the only
+    # notable slot case (an ineligible IR/RES occupant) is surfaced by the
+    # reserve-eligibility path, not here.
+    txns = [
+        SimpleNamespace(
+            transaction_type="lineup_change",
+            effective_week=1,
+            team_id=None,
+            direction="out",
+            extra_data={"from_slot": "BN", "to_slot": "WR"},
+        )
+    ]
+    assert _roster_data_context_from_transactions(txns, team_id=10, week=1) is None
+
+
+def test_reserve_slot_with_points_is_never_labeled_injured() -> None:
+    # A reserve-slot player credited with points clearly played and scored; an
+    # injury-report row for that week must not turn the badge into "INJ" — that
+    # would imply an injury the data doesn't prove (see Nabers/Hunter on m193).
+    injury = SimpleNamespace(
+        report_status="Questionable",
+        report_primary_injury="Knee",
+        report_secondary_injury=None,
+        practice_status="Did Not Participate In Practice",
+    )
+    label, detail = _score_context(
+        data_context=None,
+        league_points=12.1,
+        zero_reason=None,
+        zero_detail=None,
+        nfl_opponent="DAL",
+        nfl_game_status="Win,24-20",
+        roster_slot="RES",
+        roster_status=None,
+        roster_status_label=None,
+        reserve_eligibility_status="Questionable",
+        injury_payload=injury_fields(injury),
+        player_played=True,
+    )
+    assert label == "RES"
+    assert detail is not None
+    assert "does not prove why" in detail
+
+
+def _score_context_kwargs(**overrides: object) -> dict[str, object]:
+    """Minimal ``_score_context`` arguments with sane defaults, for badge tests."""
+    base: dict[str, object] = {
+        "data_context": None,
+        "league_points": 14.0,
+        "zero_reason": None,
+        "zero_detail": None,
+        "nfl_opponent": "DAL",
+        "nfl_game_status": "Win,24-20",
+        "roster_slot": "WR",
+        "roster_status": None,
+        "roster_status_label": None,
+        "reserve_eligibility_status": None,
+        "injury_payload": injury_fields(None),
+        "player_played": True,
+    }
+    base.update(overrides)
+    return base
+
+
+def test_score_context_suppresses_incompatible_status_when_played() -> None:
+    # NFL.com current-state drift: an "Inactive" stamped onto a week the player
+    # actually scored must not surface as a badge.
+    label, detail = _score_context(
+        **_score_context_kwargs(
+            roster_status="IA",
+            roster_status_label="Inactive",
+            league_points=20.0,
+            player_played=True,
+        )
+    )
+    assert label is None
+    assert detail is None
+
+
+def test_score_context_suppresses_injured_reserve_when_played() -> None:
+    label, _ = _score_context(
+        **_score_context_kwargs(
+            roster_status="IR",
+            roster_status_label="Injured Reserve",
+            player_played=True,
+        )
+    )
+    assert label is None
+
+
+def test_score_context_keeps_questionable_when_played() -> None:
+    # A game-time injury designation is compatible with playing — keep it.
+    label, detail = _score_context(
+        **_score_context_kwargs(
+            roster_status="Q",
+            roster_status_label="Questionable",
+            player_played=True,
+        )
+    )
+    assert label == "Q"
+    assert detail == "Questionable"
+
+
+def test_score_context_keeps_incompatible_status_when_did_not_play() -> None:
+    # An inactive player who genuinely did not play keeps the badge: it is the
+    # honest explanation of the 0, not drift.
+    label, _ = _score_context(
+        **_score_context_kwargs(
+            league_points=0.0,
+            zero_reason="did_not_play",
+            roster_status="IA",
+            roster_status_label="Inactive",
+            player_played=False,
+        )
+    )
+    assert label == "IA"
 
 
 def test_box_lineup_is_in_canonical_display_order(session: Session) -> None:

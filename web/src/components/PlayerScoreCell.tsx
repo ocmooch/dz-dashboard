@@ -4,6 +4,7 @@ type PlayerScoreCellProps = {
   points: number | null | undefined;
   zeroReason?: string | null;
   zeroDetail?: string | null;
+  zeroLabel?: string | null;
   injuryBodyPart?: string | null;
   muted?: boolean;
 };
@@ -12,17 +13,18 @@ export function PlayerScoreCell({
   points,
   zeroReason,
   zeroDetail,
+  zeroLabel,
   injuryBodyPart,
   muted = false,
 }: PlayerScoreCellProps) {
   const value = num(points);
   if (zeroReason === "bye" || zeroReason === "did_not_play") {
-    const label = zeroReason === "bye" ? "Bye" : "Out";
+    const label = zeroLabel ?? (zeroReason === "bye" ? "Bye" : "DNP");
     const injuryDetail = injuryBodyPart ? ` - ${injuryBodyPart}` : "";
     const title =
       zeroReason === "bye"
         ? "On bye - did not play"
-        : `Did not play (inactive / injury)${injuryDetail}`;
+        : `Did not play (inactive / injury / scratch)${injuryDetail}`;
     return (
       <span className="dz-eyebrow text-faint" title={title}>
         {label}

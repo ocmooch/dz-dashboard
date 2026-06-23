@@ -14,7 +14,7 @@ from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
-from ff_dashboard.analytics.common import played_season_ids
+from ff_dashboard.analytics.common import owner_name_map, played_season_ids
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -136,6 +136,59 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
             }
         )
     rows.sort(key=lambda r: r["season_year"] or 0)
+    return rows
+
+
+def teams_index(session: Session) -> list[dict[str, Any]]:
+    """Every team (one owner's season entry) across all played seasons, flat.
+
+    Powers the Teams browser. Carries the same per-season record / finish the
+    owner pages show, plus owner identity, so the SPA can group by season or by
+    owner without doing any math itself. One pass over ``teams`` reusing the
+    shared standings / playoff / finish helpers, so the numbers agree with the
+    standings and owner pages to the decimal.
+    """
+    index = _standings_index(session)
+    champions = {s.champion_team_id for s in session.execute(select(Season)).scalars().all()}
+    played = played_season_ids(session)
+    season_year: dict[int, int] = {
+        int(sid): int(yr)
+        for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
+    }
+    made_by_season, derivable_seasons = _playoff_participation(session)
+    owners = owner_name_map(session)
+
+    rows: list[dict[str, Any]] = []
+    for team in session.execute(select(Team)).scalars().all():
+        if int(team.season_id) not in played:
+            continue
+        srow = index.get(team.team_id, {})
+        is_champion = team.team_id in champions
+        if team.season_id in derivable_seasons:
+            made_playoffs: bool | None = team.team_id in made_by_season[team.season_id]
+        else:
+            made_playoffs = None
+        rows.append(
+            {
+                "owner_id": team.owner_id,
+                "owner_name": owners.get(team.owner_id),
+                "season_id": team.season_id,
+                "season_year": season_year.get(team.season_id),
+                "team_id": team.team_id,
+                "team_name": period_team_name(team, season_year.get(team.season_id)),
+                "wins": srow.get("wins", 0),
+                "losses": srow.get("losses", 0),
+                "ties": srow.get("ties", 0),
+                "points_for": srow.get("points_for", 0.0),
+                "final_rank": team.final_rank,
+                "made_playoffs": made_playoffs,
+                "result": _season_result(team.final_rank, is_champion),
+                "is_champion": is_champion,
+            }
+        )
+    # Newest season first, then by finish within a season; team_id breaks ties so
+    # the order is stable for an unranked / in-progress season.
+    rows.sort(key=lambda r: (-(r["season_year"] or 0), r["final_rank"] or 99, r["team_id"]))
     return rows
 
 

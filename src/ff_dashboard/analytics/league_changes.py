@@ -346,10 +346,7 @@ def _missing_sentence(c: ClassifiedChange) -> str:
             f"{actor} updated the draft board on {when}. NFL.com records the action "
             "but not what changed."
         ),
-        "waiver_budget_team": (
-            f"{actor} adjusted a team's FAAB budget mid-season "
-            f"({c.before}→{c.after}); the reason isn't recorded — likely a correction."
-        ),
+        # waiver_budget_team is handled by _emit_budget_team (verified context).
     }
     return base.get(
         c.canonical_type,
@@ -436,7 +433,53 @@ def _member_detail(c: ClassifiedChange) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Aggregation + emit
 # ---------------------------------------------------------------------------
+# Verified context for specific per-team FAAB budget events. NFL.com records the
+# budget change but not its reason; where the reason has been confirmed from the
+# transaction log it is stated here as fact (keyed by (year, team)). Absent an
+# entry, the event keeps the honest "reason not recorded" hedge.
+_BUDGET_EVENT_CONTEXT: dict[tuple[int, str], str] = {
+    (2022, "Ice Station Zebra"): (
+        "The $37 increase is a refund of a reversed waiver claim: the team won "
+        "Dameon Pierce for $37, the claim was undone about 12 hours later, and the "
+        "budget was restored — so its effective season spend stays at the $100 cap."
+    ),
+}
+
+
+def _emit_budget_team(c: ClassifiedChange) -> dict[str, Any]:
+    """Per-team FAAB budget change — name the team, and state the refund reason
+    when it has been verified from the transaction log (otherwise hedge)."""
+    target = _budget_target(c.raw.description)
+    actor = c.raw.actor or "A manager"
+    title = f"{target} — FAAB budget" if target else c.human_label
+    base = f"{actor} adjusted {target or 'a team'}'s FAAB budget mid-season ({c.before}→{c.after})."
+    context = _BUDGET_EVENT_CONTEXT.get((c.raw.year, target)) if target else None
+    if context:
+        return _detail(
+            c,
+            title=title,
+            summary=f"{base} {context}",
+            tier=c.tier,
+            certainty="verified",
+            missing_context=False,
+            before=c.before,
+            after=c.after,
+        )
+    return _detail(
+        c,
+        title=title,
+        summary=f"{base} The reason isn't recorded — likely a correction.",
+        tier=c.tier,
+        certainty="source_limited",
+        missing_context=True,
+        before=c.before,
+        after=c.after,
+    )
+
+
 def _emit_individual(c: ClassifiedChange) -> dict[str, Any]:
+    if c.canonical_type == "waiver_budget_team":
+        return _emit_budget_team(c)
     if c.treatment == "MISSING":
         return _detail(
             c,
@@ -575,6 +618,19 @@ def _emit_group(
 
 def _privilege_target(desc: str) -> str | None:
     m = re.search(r"Privileges (?:to|from) ([^.]+)\.?", desc)
+    return m.group(1).strip() if m else None
+
+
+def _budget_target(desc: str) -> str | None:
+    """The team named in a per-team FAAB budget change.
+
+    Per-team budget events carry no ``team_id`` (they are league-level rows keyed
+    only to a season); the only link to the affected team is its name embedded in
+    the verbatim description, e.g. ``"Dan changed Ice Station Zebra Waiver Budget
+    from '39' to '76'"`` -> ``"Ice Station Zebra"``. The league-wide default
+    (``"changed Waiver Budget to '100'"``) has no team and yields ``None``.
+    """
+    m = re.search(r"changed (.+?) Waiver Budget", desc)
     return m.group(1).strip() if m else None
 
 

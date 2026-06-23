@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-06-17",
+  "seasons": [
+    {
+      "season": 2010,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2010/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": null, "teams": [
+          {"nfl_team_id": 6, "final_division_rank": 1, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 12, "final_division_rank": 2, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 3, "final_division_rank": 3, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 9, "final_division_rank": 4, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": null, "teams": [
+          {"nfl_team_id": 10, "final_division_rank": 1, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 1, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 4, "final_division_rank": 3, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 7, "final_division_rank": 4, "final_overall_regular_season_rank": 11}
+        ]},
+        {"division_number": 3, "name": null, "teams": [
+          {"nfl_team_id": 11, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 5, "final_division_rank": 2, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 2, "final_division_rank": 3, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 8, "final_division_rank": 4, "final_overall_regular_season_rank": 10}
+        ]}
+      ]
+    },
+    {
+      "season": 2011,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2011/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "OT", "teams": [
+          {"nfl_team_id": 2, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 7, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 1, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 4, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 11, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 10, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "HP", "teams": [
+          {"nfl_team_id": 9, "final_division_rank": 1, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 6, "final_division_rank": 2, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 12, "final_division_rank": 3, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 8, "final_division_rank": 4, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 5, "final_division_rank": 5, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 3, "final_division_rank": 6, "final_overall_regular_season_rank": 10}
+        ]}
+      ]
+    },
+    {
+      "season": 2012,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2012/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "East", "teams": [
+          {"nfl_team_id": 11, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 4, "final_division_rank": 2, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 10, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 1, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 2, "final_division_rank": 5, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 7, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "West", "teams": [
+          {"nfl_team_id": 5, "final_division_rank": 1, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 6, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 3, "final_division_rank": 3, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 12, "final_division_rank": 4, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 8, "final_division_rank": 5, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 9, "final_division_rank": 6, "final_overall_regular_season_rank": 11}
+        ]}
+      ]
+    },
+    {
+      "season": 2013,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2013/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 5, "final_division_rank": 1, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 3, "final_division_rank": 2, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 8, "final_division_rank": 3, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 9, "final_division_rank": 4, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 6, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 12, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 11, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 2, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 10, "final_division_rank": 3, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 1, "final_division_rank": 4, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 4, "final_division_rank": 5, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 7, "final_division_rank": 6, "final_overall_regular_season_rank": 9}
+        ]}
+      ]
+    },
+    {
+      "season": 2014,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2014/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Israel", "teams": [
+          {"nfl_team_id": 3, "final_division_rank": 1, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 5, "final_division_rank": 2, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 6, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 8, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 9, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 12, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "Palestine", "teams": [
+          {"nfl_team_id": 1, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 7, "final_division_rank": 2, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 11, "final_division_rank": 3, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 2, "final_division_rank": 4, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 4, "final_division_rank": 5, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 10, "final_division_rank": 6, "final_overall_regular_season_rank": 10}
+        ]}
+      ]
+    },
+    {
+      "season": 2015,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2015/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 5, "final_division_rank": 1, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 8, "final_division_rank": 2, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 4, "final_division_rank": 3, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 10, "final_division_rank": 4, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 2, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 3, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 6, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 12, "final_division_rank": 2, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 11, "final_division_rank": 3, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 7, "final_division_rank": 4, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 9, "final_division_rank": 5, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 1, "final_division_rank": 6, "final_overall_regular_season_rank": 7}
+        ]}
+      ]
+    },
+    {
+      "season": 2016,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2016/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 8, "final_division_rank": 1, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 2, "final_division_rank": 2, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 5, "final_division_rank": 3, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 10, "final_division_rank": 4, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 3, "final_division_rank": 5, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 4, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 11, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 1, "final_division_rank": 2, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 12, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 9, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 6, "final_division_rank": 5, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 7, "final_division_rank": 6, "final_overall_regular_season_rank": 11}
+        ]}
+      ]
+    },
+    {
+      "season": 2017,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2017/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 8, "final_division_rank": 1, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 5, "final_division_rank": 2, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 3, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 4, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 2, "final_division_rank": 5, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 10, "final_division_rank": 6, "final_overall_regular_season_rank": 10}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 1, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 11, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 6, "final_division_rank": 3, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 9, "final_division_rank": 4, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 12, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 7, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]}
+      ]
+    },
+    {
+      "season": 2018,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2018/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 3, "final_division_rank": 1, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 2, "final_division_rank": 2, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 10, "final_division_rank": 3, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 5, "final_division_rank": 4, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 4, "final_division_rank": 5, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 8, "final_division_rank": 6, "final_overall_regular_season_rank": 9}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 11, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 6, "final_division_rank": 2, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 7, "final_division_rank": 3, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 9, "final_division_rank": 4, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 1, "final_division_rank": 5, "final_overall_regular_season_rank": 11},
+          {"nfl_team_id": 12, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]}
+      ]
+    },
+    {
+      "season": 2019,
+      "source_url": "https://fantasy.nfl.com/league/36271/history/2019/standings?historyStandingsType=regular",
+      "captured_at": "2026-06-17",
+      "divisions": [
+        {"division_number": 1, "name": "Westeros", "teams": [
+          {"nfl_team_id": 4, "final_division_rank": 1, "final_overall_regular_season_rank": 1},
+          {"nfl_team_id": 3, "final_division_rank": 2, "final_overall_regular_season_rank": 4},
+          {"nfl_team_id": 8, "final_division_rank": 3, "final_overall_regular_season_rank": 6},
+          {"nfl_team_id": 10, "final_division_rank": 4, "final_overall_regular_season_rank": 7},
+          {"nfl_team_id": 2, "final_division_rank": 5, "final_overall_regular_season_rank": 10},
+          {"nfl_team_id": 5, "final_division_rank": 6, "final_overall_regular_season_rank": 11}
+        ]},
+        {"division_number": 2, "name": "Essos", "teams": [
+          {"nfl_team_id": 6, "final_division_rank": 1, "final_overall_regular_season_rank": 2},
+          {"nfl_team_id": 1, "final_division_rank": 2, "final_overall_regular_season_rank": 3},
+          {"nfl_team_id": 9, "final_division_rank": 3, "final_overall_regular_season_rank": 5},
+          {"nfl_team_id": 11, "final_division_rank": 4, "final_overall_regular_season_rank": 8},
+          {"nfl_team_id": 12, "final_division_rank": 5, "final_overall_regular_season_rank": 9},
+          {"nfl_team_id": 7, "final_division_rank": 6, "final_overall_regular_season_rank": 12}
+        ]}
+      ]
+    }
+  ]
+}

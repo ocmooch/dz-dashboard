@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/meta/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Coverage Matrix */
+        get: operations["coverage_matrix_v1_meta_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/league/overview": {
         parameters: {
             query?: never;
@@ -667,6 +684,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Teams
+         * @description Every team across all played seasons — the Teams browser's flat index.
+         */
+        get: operations["list_teams_v1_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/teams/{team_id}": {
         parameters: {
             query?: never;
@@ -769,6 +806,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams/{team_id}/faab-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Team Faab Budget */
+        get: operations["get_team_faab_budget_v1_teams__team_id__faab_budget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -811,6 +865,16 @@ export interface components {
             player_name?: string | null;
             /** Position */
             position?: string | null;
+            /** Nfl Opponent */
+            nfl_opponent?: string | null;
+            /** Nfl Game Status */
+            nfl_game_status?: string | null;
+            /** Roster Status */
+            roster_status?: string | null;
+            /** Roster Status Label */
+            roster_status_label?: string | null;
+            /** Reserve Eligibility Status */
+            reserve_eligibility_status?: string | null;
             /** League Points */
             league_points?: number | null;
             /** Is Starter */
@@ -826,6 +890,13 @@ export interface components {
             projection?: number | null;
             /** Projection Delta */
             projection_delta?: number | null;
+            /**
+             * Projection Available
+             * @default true
+             */
+            projection_available: boolean;
+            /** Projection Reason */
+            projection_reason?: string | null;
             /** Team Point Share */
             team_point_share?: number | null;
             /** Lineup Value */
@@ -841,6 +912,11 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Context Label */
+            context_label?: string | null;
+            /** Context Detail */
+            context_detail?: string | null;
+            hamlin_substitute?: components["schemas"]["HamlinSubstitute"] | null;
             /** Injury Status */
             injury_status?: string | null;
             /** Injury Body Part */
@@ -867,10 +943,26 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /**
+             * Projections Available
+             * @default true
+             */
+            projections_available: boolean;
+            /** Projection Reason */
+            projection_reason?: string | null;
+            /** Resolution Note */
+            resolution_note?: string | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
             winner_team_id?: number | null;
+            /** Margin */
+            margin?: number | null;
+            /**
+             * Flags
+             * @default []
+             */
+            flags: components["schemas"]["MatchupFlag"][];
         };
         /** BoxTeam */
         BoxTeam: {
@@ -892,6 +984,13 @@ export interface components {
             points_left_on_bench: number;
             /** Beat Projection By */
             beat_projection_by?: number | null;
+            /**
+             * Roster Reconstructed
+             * @default false
+             */
+            roster_reconstructed: boolean;
+            /** Roster Reconstructed Note */
+            roster_reconstructed_note?: string | null;
             /** Lineup */
             lineup: components["schemas"]["BoxPlayer"][];
         };
@@ -1015,6 +1114,8 @@ export interface components {
         ConferenceTeam: {
             /** Rank */
             rank: number;
+            /** Overall Rank */
+            overall_rank: number;
             /** Team Id */
             team_id: number;
             /** Team Name */
@@ -1040,6 +1141,12 @@ export interface components {
             final_rank?: number | null;
             /** Conference Rank */
             conference_rank: number;
+            /** Division Wins */
+            division_wins: number;
+            /** Division Losses */
+            division_losses: number;
+            /** Division Ties */
+            division_ties: number;
         };
         /**
          * Coverage
@@ -1069,6 +1176,54 @@ export interface components {
              * @default false
              */
             dst_scoring_complete: boolean;
+        };
+        /** CoverageFeedCell */
+        CoverageFeedCell: {
+            /** Season Year */
+            season_year: number;
+            /** Week */
+            week: number;
+            /** Status */
+            status: string;
+            /** Reason */
+            reason?: string | null;
+            /** Row Count */
+            row_count: number;
+            /** Projected Points Count */
+            projected_points_count?: number | null;
+            /** Projected Stats Count */
+            projected_stats_count?: number | null;
+        };
+        /** CoverageMatrix */
+        CoverageMatrix: {
+            relevance: components["schemas"]["CoverageRelevance"];
+            /** Feeds */
+            feeds: {
+                [key: string]: components["schemas"]["CoverageFeedCell"][];
+            };
+            /** Reason Codes */
+            reason_codes: {
+                [key: string]: string;
+            };
+        };
+        /** CoverageRelevance */
+        CoverageRelevance: {
+            /** Total Players */
+            total_players: number;
+            /** League Rostered Players */
+            league_rostered_players: number;
+            /** League Relevant Players */
+            league_relevant_players: number;
+            /** Excluded Players */
+            excluded_players: number;
+            /** Identity Split Candidate Count */
+            identity_split_candidate_count: number;
+            /** Identity Split Candidates */
+            identity_split_candidates: components["schemas"]["IdentitySplitCandidate"][];
+            /** Source Identity Mismatch Count */
+            source_identity_mismatch_count: number;
+            /** Source Identity Mismatches */
+            source_identity_mismatches: components["schemas"]["SourceIdentityMismatch"][];
         };
         /** DataCaveat */
         DataCaveat: {
@@ -1122,6 +1277,9 @@ export interface components {
             season_points?: number | null;
             /** Value */
             value?: number | null;
+            /** Impact */
+            impact?: number | null;
+            impact_components?: components["schemas"]["ImpactComponents"] | null;
             /**
              * Available
              * @default true
@@ -1129,6 +1287,10 @@ export interface components {
             available: boolean;
             /** Reason */
             reason?: string | null;
+            /** Zero Reason */
+            zero_reason?: string | null;
+            /** Zero Detail */
+            zero_detail?: string | null;
         };
         /** DraftRecords */
         DraftRecords: {
@@ -1164,12 +1326,21 @@ export interface components {
             definition: string;
             /** Slot Window */
             slot_window: number;
+            /** Impact Definition */
+            impact_definition: string;
+            weights: components["schemas"]["ImpactWeights"];
             /** Picks */
             picks: components["schemas"]["DraftPick"][];
             /** Steals */
             steals: components["schemas"]["DraftPick"][];
             /** Busts */
             busts: components["schemas"]["DraftPick"][];
+            /** Points Steals */
+            points_steals: components["schemas"]["DraftPick"][];
+            /** Points Busts */
+            points_busts: components["schemas"]["DraftPick"][];
+            /** Leaderboard Limit */
+            leaderboard_limit: number;
         };
         /**
          * EnteringRecord
@@ -1200,6 +1371,11 @@ export interface components {
         /** Envelope[ChampionshipHistory] */
         Envelope_ChampionshipHistory_: {
             data: components["schemas"]["ChampionshipHistory"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[CoverageMatrix] */
+        Envelope_CoverageMatrix_: {
+            data: components["schemas"]["CoverageMatrix"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[DraftBoard] */
@@ -1377,6 +1553,11 @@ export interface components {
             data: components["schemas"]["Standings"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[TeamFaabBudget] */
+        Envelope_TeamFaabBudget_: {
+            data: components["schemas"]["TeamFaabBudget"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[TeamOverview] */
         Envelope_TeamOverview_: {
             data: components["schemas"]["TeamOverview"];
@@ -1407,6 +1588,11 @@ export interface components {
             data: components["schemas"]["TeamTransactions"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[TeamsIndex] */
+        Envelope_TeamsIndex_: {
+            data: components["schemas"]["TeamsIndex"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[TopScorers] */
         Envelope_TopScorers_: {
             data: components["schemas"]["TopScorers"];
@@ -1420,9 +1606,8 @@ export interface components {
         /**
          * GameCard
          * @description One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-         *     deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
-         *     margin flags (thresholds in ``analytics/matchups.py``); both False when the
-         *     game has no scores yet.
+         *     deep-links to the box score. ``margin`` drives the inline signed indicator;
+         *     ``flags`` are the superlatives (empty when the game has no scores yet).
          */
         GameCard: {
             /** Matchup Id */
@@ -1437,15 +1622,10 @@ export interface components {
             /** Margin */
             margin?: number | null;
             /**
-             * Is Close
-             * @default false
+             * Flags
+             * @default []
              */
-            is_close: boolean;
-            /**
-             * Is Blowout
-             * @default false
-             */
-            is_blowout: boolean;
+            flags: components["schemas"]["MatchupFlag"][];
             /** Winner Team Id */
             winner_team_id?: number | null;
         };
@@ -1485,6 +1665,37 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * HamlinComponent
+         * @description One scored component of a 2022 wk17 no-contest substitute.
+         */
+        HamlinComponent: {
+            /** Points */
+            points?: number | null;
+            /**
+             * Raw Stats
+             * @default {}
+             */
+            raw_stats: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * HamlinSubstitute
+         * @description Per-player provenance for the 2022 Week-17 Bills@Bengals no-contest.
+         *
+         *     The league counted ``wk17_partial + wk19`` (Week 18 skipped). Present only on
+         *     affected 2022-wk17 slots; its presence drives the box-score substitution
+         *     badge and resolution banner.
+         */
+        HamlinSubstitute: {
+            /** Basis */
+            basis?: string | null;
+            /** League Points */
+            league_points?: number | null;
+            wk17_partial?: components["schemas"]["HamlinComponent"] | null;
+            wk19?: components["schemas"]["HamlinComponent"] | null;
+        };
         /** HeadToHead */
         HeadToHead: {
             owner_a: components["schemas"]["OwnerRef"];
@@ -1508,6 +1719,88 @@ export interface components {
              * @default ok
              */
             status: string;
+        };
+        /** IdentitySplitCandidate */
+        IdentitySplitCandidate: {
+            /** Name Full */
+            name_full: string;
+            /** Reason */
+            reason: string;
+            /** Members */
+            members: components["schemas"]["IdentitySplitMember"][];
+        };
+        /** IdentitySplitMember */
+        IdentitySplitMember: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Position */
+            position?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
+            /** Gsis Id */
+            gsis_id?: string | null;
+            /** Nfl Com Player Id */
+            nfl_com_player_id?: string | null;
+            /**
+             * Rostered
+             * @default false
+             */
+            rostered: boolean;
+            /**
+             * Scored
+             * @default false
+             */
+            scored: boolean;
+            /**
+             * Injured
+             * @default false
+             */
+            injured: boolean;
+        };
+        /**
+         * ImpactComponents
+         * @description How a pick's composite ``impact`` was built, so the UI (and the user
+         *     tuning the weights) can read the number rather than trust it blindly.
+         */
+        ImpactComponents: {
+            /** Base Value */
+            base_value: number;
+            /** Normalized Value */
+            normalized_value: number | null;
+            /** Position Mean */
+            position_mean: number;
+            /** Position Stddev */
+            position_stddev: number;
+            /** Weighted Eligible */
+            weighted_eligible: boolean;
+            /** Weighted Reason */
+            weighted_reason?: string | null;
+            /** Cost Weight */
+            cost_weight: number;
+            /** Opportunity Weight */
+            opportunity_weight: number;
+            /** Bench Weeks */
+            bench_weeks: number;
+            /** Ir Weeks */
+            ir_weeks: number;
+            /** Opportunity Available */
+            opportunity_available: boolean;
+        };
+        /**
+         * ImpactWeights
+         * @description The tunable weights behind the impact composite, echoed for transparency.
+         */
+        ImpactWeights: {
+            /** Cost Floor */
+            cost_floor: number;
+            /** Cost Curve */
+            cost_curve: number;
+            /** Opp Bench Weight */
+            opp_bench_weight: number;
+            /** Opp Ir Weight */
+            opp_ir_weight: number;
         };
         /** LatestRun */
         LatestRun: {
@@ -1722,6 +2015,8 @@ export interface components {
             verification_status: string;
             /** Source */
             source: string;
+            /** Era Id */
+            era_id: string;
             changes: components["schemas"]["SeasonChangeFlags"];
         };
         /** ManagerDirectory */
@@ -1758,6 +2053,26 @@ export interface components {
             seasons_managed: number;
             /** Identity Source */
             identity_source: string;
+        };
+        /**
+         * MatchupFlag
+         * @description A superlative about a game — what made it memorable, not bare margin.
+         *     Computed in ``analytics/matchup_flags.py``; the SPA only renders it.
+         *     ``team_id`` is set for one-sided flags (e.g. ``season_high``, ``upset``);
+         *     ``tone`` is a color hint (``win`` | ``loss`` | ``accent`` | ``warn`` |
+         *     ``muted``); ``detail`` is tooltip copy.
+         */
+        MatchupFlag: {
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Tone */
+            tone: string;
+            /** Team Id */
+            team_id?: number | null;
+            /** Detail */
+            detail?: string | null;
         };
         /**
          * Meta
@@ -2430,10 +2745,19 @@ export interface components {
             season_id: number;
             /** Season Year */
             season_year: number;
+            /** Through Week */
+            through_week: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
             /** Available */
             available: boolean;
             /** Reason */
             reason?: string | null;
+            /**
+             * Mapping Issues
+             * @default []
+             */
+            mapping_issues: string[];
             /** Conferences */
             conferences: components["schemas"]["ConferenceSection"][];
         };
@@ -2493,6 +2817,35 @@ export interface components {
             position?: string | null;
             /** Totals */
             totals: components["schemas"]["SeasonTotal"][];
+        };
+        /** SourceIdentityMismatch */
+        SourceIdentityMismatch: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Position */
+            position?: string | null;
+            /** Rookie Year */
+            rookie_year?: number | null;
+            /** Last Season */
+            last_season?: number | null;
+            /** First Observed Season */
+            first_observed_season: number;
+            /** Last Observed Season */
+            last_observed_season: number;
+            /** Nfl Com Player Id */
+            nfl_com_player_id: string;
+            /** Gsis Id */
+            gsis_id?: string | null;
+            /** Roster Row Count */
+            roster_row_count: number;
+            /** Transaction Row Count */
+            transaction_row_count: number;
+            /** Draft Pick Count */
+            draft_pick_count: number;
+            /** Reason */
+            reason: string;
         };
         /** StandingRow */
         StandingRow: {
@@ -2632,6 +2985,45 @@ export interface components {
              */
             length: number;
         };
+        /** TeamFaabBudget */
+        TeamFaabBudget: {
+            /** Team Id */
+            team_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Is Faab Era */
+            is_faab_era: boolean;
+            /** Available */
+            available: boolean;
+            /** Season Budget */
+            season_budget?: number | null;
+            /** Total Spent */
+            total_spent?: number | null;
+            /** Final Remaining */
+            final_remaining?: number | null;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["TeamFaabWeek"][];
+        };
+        /** TeamFaabWeek */
+        TeamFaabWeek: {
+            /** Week */
+            week: number;
+            /** Spent */
+            spent: number;
+            /** Cumulative Spent */
+            cumulative_spent: number;
+            /** Budget */
+            budget: number;
+            /** Remaining */
+            remaining: number;
+            /** Adjustment */
+            adjustment?: number | null;
+            /** Note */
+            note?: string | null;
+        };
         /** TeamOverview */
         TeamOverview: {
             /** Team Id */
@@ -2692,6 +3084,11 @@ export interface components {
             available: boolean;
             /** Roster Weeks */
             roster_weeks: number[];
+            /**
+             * Reconstructed Weeks
+             * @default []
+             */
+            reconstructed_weeks: number[];
             /** Moves */
             moves: components["schemas"]["RosterMove"][];
         };
@@ -2707,6 +3104,13 @@ export interface components {
             weeks_available: number[];
             /** Is Scored */
             is_scored: boolean;
+            /**
+             * Roster Reconstructed
+             * @default false
+             */
+            roster_reconstructed: boolean;
+            /** Roster Reconstructed Note */
+            roster_reconstructed_note?: string | null;
             /** Players */
             players: components["schemas"]["TeamRosterPlayer"][];
         };
@@ -2724,12 +3128,21 @@ export interface components {
             roster_slot?: string | null;
             /** Is Starter */
             is_starter: boolean;
+            /**
+             * Is Empty
+             * @default false
+             */
+            is_empty: boolean;
             /** League Points */
             league_points?: number | null;
             /** Zero Reason */
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Context Label */
+            context_label?: string | null;
+            /** Context Detail */
+            context_detail?: string | null;
             /** Acquisition Type */
             acquisition_type?: string | null;
             /** Acquisition Week */
@@ -2802,6 +3215,48 @@ export interface components {
             season_year: number;
             /** Transactions */
             transactions: components["schemas"]["TeamTransaction"][];
+        };
+        /** TeamsIndex */
+        TeamsIndex: {
+            /** Teams */
+            teams: components["schemas"]["TeamsIndexRow"][];
+        };
+        /**
+         * TeamsIndexRow
+         * @description One team (an owner's season entry) for the Teams browser.
+         *
+         *     The owner-season row plus owner identity, so the SPA can group the flat list
+         *     by season or by owner without further lookups or math.
+         */
+        TeamsIndexRow: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year?: number | null;
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Wins */
+            wins: number;
+            /** Losses */
+            losses: number;
+            /** Ties */
+            ties: number;
+            /** Points For */
+            points_for: number;
+            /** Final Rank */
+            final_rank?: number | null;
+            /** Made Playoffs */
+            made_playoffs?: boolean | null;
+            /** Result */
+            result?: string | null;
+            /** Is Champion */
+            is_champion: boolean;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
         };
         /** TimelinePoint */
         TimelinePoint: {
@@ -2944,6 +3399,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_MetaResponse_"];
+                };
+            };
+        };
+    };
+    coverage_matrix_v1_meta_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CoverageMatrix_"];
                 };
             };
         };
@@ -3229,7 +3704,9 @@ export interface operations {
     };
     get_season_conferences_v1_seasons__season_id__conferences_get: {
         parameters: {
-            query?: never;
+            query?: {
+                through_week?: number | null;
+            };
             header?: never;
             path: {
                 season_id: number;
@@ -3983,6 +4460,26 @@ export interface operations {
             };
         };
     };
+    list_teams_v1_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_TeamsIndex_"];
+                };
+            };
+        };
+    };
     get_team_overview_v1_teams__team_id__get: {
         parameters: {
             query?: never;
@@ -4158,6 +4655,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_TeamRosterMoves_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_team_faab_budget_v1_teams__team_id__faab_budget_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_TeamFaabBudget_"];
                 };
             };
             /** @description Validation Error */

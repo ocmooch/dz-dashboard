@@ -31,8 +31,10 @@ from ff_pipeline.repository.models import (
     PipelineRun,
     Player,
     PlayerAvailability,
+    PlayerInjuryReport,
     PlayerStatsRaw,
     PlayerStatsScored,
+    Projection,
     Season,
     SourceHealth,
     Team,
@@ -362,6 +364,21 @@ def _populate(session: Session) -> None:
         "raider": Player(
             name_full="Relocation Reggie", position="WR", nfl_team="LV", gsis_id="G10"
         ),
+        # Cross-source identity split fixture: roster rows point at the NFL.com
+        # identity, while stats/injury live under the nflverse twin. The dashboard
+        # must detect this as a data-quality signal, not union it locally.
+        "split_roster": Player(
+            name_full="Split Sam", position="WR", nfl_team="LAC", nfl_com_player_id="NFL-SPLIT"
+        ),
+        "split_stats": Player(
+            name_full="Split Sam", position="WR", nfl_team="LAC", gsis_id="GSIS-SPLIT"
+        ),
+        # No-contest substitution scenario (mirrors the 2022 Hamlin ruling): two
+        # starters and a bench player whose game was cancelled, carrying the
+        # ``hamlin_substitute`` provenance the box score keys its affordances off.
+        "nc_qb": Player(name_full="No-Contest Nate", position="QB", nfl_team="CIN", gsis_id="G11"),
+        "nc_wr": Player(name_full="No-Contest Ned", position="WR", nfl_team="BUF", gsis_id="G12"),
+        "nc_zero": Player(name_full="No-Contest Zeb", position="RB", nfl_team="BUF", gsis_id="G13"),
     }
     session.add_all(players.values())
     session.flush()
@@ -454,7 +471,9 @@ def _populate(session: Session) -> None:
         breakdown={"sacks": 3.0, "interceptions": 2.0, "points_allowed": 2.0},
     )
 
-    # 2017: Jefferson is the season top scorer (58.0); Lamar's wk1 35.5 is the all-time best week.
+    # 2017: Jefferson is the season top scorer (58.0). Lamar's wk1 35.5 is the highest
+    # *scored* week in the fixture, but he is never placed in a roster lineup, so the
+    # started-player record (best_player_week) belongs to McCaffrey's 30.0 instead.
     _add_raw_and_scored(
         session,
         player_id=pid["lamar"],
@@ -570,6 +589,24 @@ def _populate(session: Session) -> None:
                 acquisition_type="draft",
                 acquisition_week=1,
             ),
+            # Relocation Reggie is a *rostered* league player (so the rostered-ever
+            # leaderboards include him and the season-era team fold has a subject),
+            # benched here so he holds no started record. His ``nfl_com_points``
+            # (10.0) diverges from the reconstruction's 6.0 for this week: the
+            # bonus-scoring canary that proves Top Scorers / Season Totals read the
+            # authoritative coalesce, not raw ``total_points``. See
+            # docs/plans/bonus-scoring-fidelity.md.
+            TeamRoster(
+                team_id=team_id[(2017, "mav")],
+                player_id=pid["raider"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="waiver",
+                acquisition_week=1,
+                extra_data={"nfl_com_points": 10.0},
+            ),
             TeamRoster(
                 team_id=team_id[(2016, "mav")],
                 player_id=pid["dst"],
@@ -658,7 +695,37 @@ def _populate(session: Session) -> None:
                     "opponent": "Bye",
                 },
             ),
+            TeamRoster(
+                team_id=team_id[(2017, "mav")],
+                player_id=pid["split_roster"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+            ),
         ]
+    )
+    _add_raw_and_scored(
+        session,
+        player_id=pid["split_stats"],
+        season_id=sid[2017],
+        season_year=2017,
+        week=1,
+        points=0.0,
+        breakdown={},
+    )
+    session.add(
+        PlayerInjuryReport(
+            player_id=pid["split_stats"],
+            season_year=2017,
+            week=1,
+            game_type="REG",
+            report_status="Out",
+            report_primary_injury="Back",
+            date_modified=NOW,
+        )
     )
 
     # --- Availability: only the latest season (2017) has it (the current-season-only gap).
@@ -726,6 +793,44 @@ def _populate(session: Session) -> None:
                 player_id=pid["jjet"],
                 notes="Iceman",
                 extra_data={"from_slot": "BN", "to_slot": "WR"},
+            ),
+            # --- FAAB-era waiver claims (Goose 2017). The presence of `faab_bid`
+            #     makes this a FAAB-era season (data-driven, year-agnostic) so
+            #     team_faab_budget can be exercised. Spends $10, then a $0 free
+            #     claim (a real outcome — not "no bid"), then $5: remaining runs
+            #     100 -> 90 -> 90 -> 85.
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 13, 8, 0, 0, tzinfo=UTC),
+                effective_week=1,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["wendell"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 10},
+            ),
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 20, 8, 0, 0, tzinfo=UTC),
+                effective_week=2,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["vince"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 0},
+            ),
+            Transaction(
+                season_id=sid[2017],
+                transaction_type="waiver_add",
+                executed_at=datetime(2017, 9, 27, 8, 0, 0, tzinfo=UTC),
+                effective_week=3,
+                team_id=team_id[(2017, "goose")],
+                player_id=pid["lamar"],
+                direction="in",
+                notes="Goose",
+                extra_data={"faab_bid": 5},
             ),
         ]
     )
@@ -800,6 +905,54 @@ def _populate(session: Session) -> None:
                 points=pts,
                 breakdown={"rushing": pts},
             )
+
+    # --- Projection coverage cells used by the coverage tests:
+    #   W1 = real scored projections (present);
+    #   W2 = no rows at all (absent / not captured);
+    #   W3 = HOLLOW rows — projected_points=0 + all-zero stats, the shape Sleeper
+    #        returns for pre-coverage seasons; must read as absent, never a 0.0;
+    #   W4 = stats-only — projected_points=None but real projected_stats, the
+    #        current-season not-yet-scored shape; must read as present.
+    session.add_all(
+        [
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=1,
+                source="fixture",
+                projected_stats=None,
+                projected_points=20.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_k1"],
+                season_year=2017,
+                week=1,
+                source="fixture",
+                projected_stats=None,
+                projected_points=3.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=3,
+                source="fixture",
+                projected_stats={"passing_yards": 0.0, "passing_tds": 0.0},
+                projected_points=0.0,
+                fetched_at=NOW,
+            ),
+            Projection(
+                player_id=bpid["ice_qb1"],
+                season_year=2017,
+                week=4,
+                source="fixture",
+                projected_stats={"passing_yards": 280.0, "passing_tds": 2.0},
+                projected_points=None,
+                fetched_at=NOW,
+            ),
+        ]
+    )
 
     # --- A genuinely-missing DEF row: Goose's 2017 wk1 DST is a starter with no
     #     scored row, so the box score still flags it (reason "team_defense_not_scored")
@@ -983,6 +1136,89 @@ def _populate(session: Session) -> None:
     session.flush()
     session.add(SourceHealth(run_id=run.run_id, source="nflverse", status="ok", rows_added=42))
 
+    # --- No-contest substitution (Hamlin) scenario. Three affected players, each
+    #     carrying the ``hamlin_substitute`` provenance the upstream override
+    #     stamps, added to the *away* (goose) side of the rendered 2017 wk1 Iceman
+    #     box score — the same edge-case side the DNP/bye rows live on, where no
+    #     KNOWN total is asserted, so no records / rivalry / schedule answer moves.
+    #     None has a player_stats_scored row, so the corrected points live only in
+    #     ``extra_data.nfl_com_points``; the box score must badge them "Wk17+19",
+    #     suppress the false DNP/unexpected zero classification, surface the
+    #     wk17+wk19 split, and show the matchup-level resolution note. The bench
+    #     players are deliberately not starters so the goose lineup totals (and the
+    #     box-vs-grid agreement) are untouched: the affordances are flag-driven and
+    #     do not depend on starter status.
+    def _hamlin_extra(
+        league_points: float, wk17: float, wk19: float, category: str
+    ) -> dict[str, Any]:
+        return {
+            "snapshot_kind": "history",
+            "nfl_com_points": league_points,
+            "game_status": "CAN,0-0",
+            "opponent": "@CIN",
+            "hamlin_substitute": {
+                "basis": "no_contest_wk17partial_plus_wk19",
+                "league_points": league_points,
+                "wk17_partial": {"raw_stats": {f"{category}_yards": 40.0}, "points": wk17},
+                "wk19": {"raw_stats": {f"{category}_yards": 200.0}, "points": wk19},
+                "points_breakdown": {category: league_points},
+            },
+        }
+
+    nc_goose = team_id[(2017, "goose")]
+    session.add_all(
+        [
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_qb"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data=_hamlin_extra(27.0, 6.0, 21.0, "passing"),
+            ),
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_wr"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data=_hamlin_extra(12.0, 2.0, 10.0, "receiving"),
+            ),
+            # An affected player whose substitute nets exactly 0.0 — the provenance
+            # flag must still suppress the "did_not_play" zero badge.
+            TeamRoster(
+                team_id=nc_goose,
+                player_id=pid["nc_zero"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="draft",
+                acquisition_week=1,
+                extra_data={
+                    "snapshot_kind": "history",
+                    "nfl_com_points": 0.0,
+                    "game_status": "CAN,0-0",
+                    "opponent": "@CIN",
+                    "hamlin_substitute": {
+                        "basis": "no_contest_wk17partial_plus_wk19",
+                        "league_points": 0.0,
+                        "wk17_partial": {"raw_stats": {}, "points": 0.0},
+                        "wk19": {"raw_stats": {}, "points": 0.0},
+                        "points_breakdown": {},
+                    },
+                },
+            ),
+        ]
+    )
+    session.flush()
+
     # Materialize each player's rostered-season span from team_rosters, mirroring
     # the Phase 1 pipeline's derived first/last_rostered_season columns. The
     # dashboard reads these directly (list_player_index scopes on
@@ -1115,7 +1351,11 @@ KNOWN: dict[str, Any] = {
     # Records
     "highest_team_score": 160.4,  # Maverick, 2017 wk1
     "biggest_blowout_margin": 70.0,  # Maverick 150 - Iceman 80, 2016 wk1
-    "highest_player_week": 35.5,  # Lamar Jackson, 2017 wk1
+    # Best *started* player week. Lamar's 35.5 (2017 wk1) is the highest scored row
+    # but he is never in a roster lineup, so he cannot hold the record; McCaffrey's
+    # started 30.0 (2016 wk1) does. Guards the fix for the global-max bug that
+    # crowned a non-rostered player.
+    "highest_started_player_week": 30.0,  # Christian McCaffrey, 2016 wk1 (started)
     # Stats
     "top_scorer_2016_season_total": 55.0,  # McCaffrey
     "top_scorer_2017_season_total": 58.0,  # Jefferson

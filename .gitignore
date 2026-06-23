@@ -36,6 +36,9 @@ web/test-results/
 web/.e2e/
 npm-debug.log*
 
+# Local runtime data (DB placeholder, dev-server logs)
+/data/
+
 # Editor / OS
 .DS_Store
 .idea/

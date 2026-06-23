@@ -91,6 +91,32 @@ def test_bracket_endpoint_gap(client: TestClient) -> None:
     assert data["consolation_bracket"] is None
 
 
+def test_conferences_endpoint_reports_real_season_year(client: TestClient) -> None:
+    # Regression: when the conference-aware ff_pipeline models aren't present the
+    # endpoint must still return the real season_year (an int) with
+    # available=False — not a None year, which 500s the int-typed schema.
+    data = _envelope(client.get(f"/v1/seasons/{KNOWN['season_id'][2017]}/conferences"))
+    assert data["season_year"] == 2017
+    assert isinstance(data["available"], bool)
+
+
+def test_conferences_endpoint_accepts_week_and_reports_mapping_gap(client: TestClient) -> None:
+    data = _envelope(
+        client.get(f"/v1/seasons/{KNOWN['season_id'][2017]}/conferences?through_week=1")
+    )
+    assert data["through_week"] == 1
+    assert data["regular_season_weeks"] == 2
+    assert data["available"] is False
+    assert data["reason"] == "historical_division_mapping_gap"
+    assert data["mapping_issues"]
+
+
+def test_conferences_not_found(client: TestClient) -> None:
+    resp = client.get("/v1/seasons/99999/conferences")
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "not_found"
+
+
 def test_season_not_found(client: TestClient) -> None:
     resp = client.get("/v1/seasons/99999/standings")
     assert resp.status_code == 404
@@ -236,8 +262,10 @@ def test_player_insights_endpoint(client: TestClient) -> None:
 def test_top_scorers_and_season_totals(client: TestClient) -> None:
     top = _envelope(client.get("/v1/stats/top-scorers?season=2016"))
     assert top["scorers"][0]["points"] == 30.0  # McCaffrey wk1
+    # Jefferson's 58.0 is the top scored line but he is never rostered; the
+    # rostered-ever leaderboard is led by McCaffrey (42.0, weeks 1-2).
     totals = _envelope(client.get("/v1/stats/season-totals?season=2017"))
-    assert totals["totals"][0]["total_points"] == 58.0  # Jefferson
+    assert totals["totals"][0]["total_points"] == 42.0  # McCaffrey
 
 
 def test_player_not_found(client: TestClient) -> None:

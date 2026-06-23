@@ -1,14 +1,16 @@
 // TanStack Query key factory — one place so caches dedupe and invalidate cleanly.
 export const qk = {
   meta: ["meta"] as const,
+  coverage: ["meta", "coverage"] as const,
   leagueOverview: ["league", "overview"] as const,
   leagueTimeline: ["league", "timeline"] as const,
   leagueEras: ["league", "eras"] as const,
   leagueStories: ["league", "stories"] as const,
   leagueManagers: ["league", "managers"] as const,
   seasons: ["seasons"] as const,
-  standings: (seasonId: number) => ["standings", seasonId] as const,
-  standingsInsights: (seasonId: number) => ["standings", seasonId, "insights"] as const,
+  standings: (seasonId: number, week?: number) => ["standings", seasonId, week ?? "latest"] as const,
+  standingsInsights: (seasonId: number, week?: number) =>
+    ["standings", seasonId, "insights", week ?? "latest"] as const,
   owners: ["owners"] as const,
   owner: (ownerId: number) => ["owners", ownerId] as const,
   ownerSeasons: (ownerId: number) => ["owners", ownerId, "seasons"] as const,
@@ -24,8 +26,9 @@ export const qk = {
   draftBoard: (seasonId: number) => ["draft", seasonId] as const,
   draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
   bracket: (seasonId: number) => ["bracket", seasonId] as const,
-  conferences: (seasonId: number) => ["conferences", seasonId] as const,
-  power: (seasonId: number) => ["power", seasonId] as const,
+  conferences: (seasonId: number, week?: number) =>
+    ["conferences", seasonId, week ?? "latest"] as const,
+  power: (seasonId: number, week?: number) => ["power", seasonId, week ?? "latest"] as const,
   powerTimeline: (seasonId: number) => ["power", seasonId, "timeline"] as const,
   standingsTimeline: (seasonId: number) => ["standings", seasonId, "timeline"] as const,
   players: (filters: Record<string, unknown>) => ["players", filters] as const,
@@ -39,11 +42,13 @@ export const qk = {
   topScorers: (filters: Record<string, unknown>) => ["stats", "top-scorers", filters] as const,
   seasonTotals: (filters: Record<string, unknown>) =>
     ["stats", "season-totals", filters] as const,
+  teams: ["teams"] as const,
   team: (teamId: number) => ["team", teamId] as const,
   teamRoster: (teamId: number, week: number | null) => ["team", teamId, "roster", week] as const,
   teamSchedule: (teamId: number) => ["team", teamId, "schedule"] as const,
   teamScoringTrend: (teamId: number) => ["team", teamId, "scoring-trend"] as const,
   teamTransactions: (teamId: number) => ["team", teamId, "transactions"] as const,
   teamRosterMoves: (teamId: number) => ["team", teamId, "roster-moves"] as const,
+  teamFaabBudget: (teamId: number) => ["team", teamId, "faab-budget"] as const,
   search: (q: string) => ["search", q] as const,
 };

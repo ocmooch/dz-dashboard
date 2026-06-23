@@ -24,9 +24,14 @@ from pydantic import BaseModel, ConfigDict
 
 __all__ = [
     "Coverage",
+    "CoverageFeedCell",
+    "CoverageMatrix",
+    "CoverageRelevance",
     "Envelope",
     "ErrorBody",
     "HealthResponse",
+    "IdentitySplitCandidate",
+    "IdentitySplitMember",
     "LatestRun",
     "Meta",
     "MetaResponse",
@@ -64,6 +69,67 @@ class Coverage(BaseModel):
     reconstruction_complete: bool
     availability_current_season_only: bool = True
     dst_scoring_complete: bool = False
+
+
+class IdentitySplitMember(BaseModel):
+    player_id: int
+    name_full: str
+    position: str | None = None
+    nfl_team: str | None = None
+    gsis_id: str | None = None
+    nfl_com_player_id: str | None = None
+    rostered: bool = False
+    scored: bool = False
+    injured: bool = False
+
+
+class IdentitySplitCandidate(BaseModel):
+    name_full: str
+    reason: str
+    members: list[IdentitySplitMember]
+
+
+class SourceIdentityMismatch(BaseModel):
+    player_id: int
+    name_full: str
+    position: str | None = None
+    rookie_year: int | None = None
+    last_season: int | None = None
+    first_observed_season: int
+    last_observed_season: int
+    nfl_com_player_id: str
+    gsis_id: str | None = None
+    roster_row_count: int
+    transaction_row_count: int
+    draft_pick_count: int
+    reason: str
+
+
+class CoverageRelevance(BaseModel):
+    total_players: int
+    league_rostered_players: int
+    league_relevant_players: int
+    excluded_players: int
+    identity_split_candidate_count: int
+    identity_split_candidates: list[IdentitySplitCandidate]
+    source_identity_mismatch_count: int
+    source_identity_mismatches: list[SourceIdentityMismatch]
+
+
+class CoverageFeedCell(BaseModel):
+    season_year: int
+    week: int
+    status: str
+    reason: str | None = None
+    row_count: int
+    projected_points_count: int | None = None
+    projected_stats_count: int | None = None
+
+
+class CoverageMatrix(BaseModel):
+    relevance: CoverageRelevance
+    feeds: dict[str, list[CoverageFeedCell]]
+    reason_codes: dict[str, str]
 
 
 class MetaResponse(BaseModel):
@@ -268,6 +334,7 @@ class SeasonBracket(BaseModel):
 
 class ConferenceTeam(BaseModel):
     rank: int
+    overall_rank: int
     team_id: int
     team_name: str | None = None
     owner_id: int
@@ -281,6 +348,9 @@ class ConferenceTeam(BaseModel):
     streak: Streak
     final_rank: int | None = None
     conference_rank: int
+    division_wins: int
+    division_losses: int
+    division_ties: int
 
 
 class ConferenceSection(BaseModel):
@@ -293,8 +363,11 @@ class ConferenceSection(BaseModel):
 class SeasonConferences(BaseModel):
     season_id: int
     season_year: int
+    through_week: int
+    regular_season_weeks: int
     available: bool
     reason: str | None = None
+    mapping_issues: list[str] = []
     conferences: list[ConferenceSection]
 
 
@@ -363,6 +436,7 @@ class LeagueTimelineSeason(BaseModel):
     scoring_provenance: str
     verification_status: str
     source: str
+    era_id: str
     changes: SeasonChangeFlags
 
 
@@ -521,6 +595,21 @@ class OwnerSeasons(BaseModel):
     owner_id: int
     display_name: str | None = None
     seasons: list[OwnerSeasonRow]
+
+
+class TeamsIndexRow(OwnerSeasonRow):
+    """One team (an owner's season entry) for the Teams browser.
+
+    The owner-season row plus owner identity, so the SPA can group the flat list
+    by season or by owner without further lookups or math.
+    """
+
+    owner_id: int
+    owner_name: str | None = None
+
+
+class TeamsIndex(BaseModel):
+    teams: list[TeamsIndexRow]
 
 
 class TrajectoryPoint(BaseModel):
@@ -716,6 +805,32 @@ class ChampionshipHistory(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ImpactComponents(BaseModel):
+    """How a pick's composite ``impact`` was built, so the UI (and the user
+    tuning the weights) can read the number rather than trust it blindly."""
+
+    base_value: float  # the honest per-slot value the composite scales
+    normalized_value: float | None  # within-position standardized value; null when ineligible
+    position_mean: float
+    position_stddev: float
+    weighted_eligible: bool
+    weighted_reason: str | None = None
+    cost_weight: float  # draft-capital curve (early bust / late steal weigh more)
+    opportunity_weight: float  # bust carry amplification (active bench > IR); 1.0 otherwise
+    bench_weeks: int  # distinct weeks carried in an active bench slot
+    ir_weeks: int  # distinct weeks stashed on IR / reserve
+    opportunity_available: bool  # False when roster history was missing (weight defaulted to 1.0)
+
+
+class ImpactWeights(BaseModel):
+    """The tunable weights behind the impact composite, echoed for transparency."""
+
+    cost_floor: float
+    cost_curve: float
+    opp_bench_weight: float
+    opp_ir_weight: float
+
+
 class DraftPick(BaseModel):
     overall: int
     round: int
@@ -728,10 +843,20 @@ class DraftPick(BaseModel):
     player_name: str | None = None
     position: str | None = None
     season_year: int | None = None
-    season_points: float | None = None  # null (not 0) when the player has no scored rows
+    season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable
+    # Composite "draft impact" = position-normalized value scaled by draft cost
+    # and carry opportunity cost. Null for gaps and positions outside QB/RB/WR/TE.
+    # Components travel alongside so the weighting is legible.
+    impact: float | None = None
+    impact_components: ImpactComponents | None = None
     available: bool = True
     reason: str | None = None
+    # When the player was drafted but never played all season (season-long
+    # injury / IR), season_points is a real 0.0 and zero_reason explains the
+    # zero so the UI annotates it instead of hiding it as a gap.
+    zero_reason: str | None = None
+    zero_detail: str | None = None
 
 
 class DraftRound(BaseModel):
@@ -755,9 +880,14 @@ class DraftValue(BaseModel):
     reason: str | None = None
     definition: str
     slot_window: int
+    impact_definition: str
+    weights: ImpactWeights
     picks: list[DraftPick]
-    steals: list[DraftPick]
-    busts: list[DraftPick]
+    steals: list[DraftPick]  # ranked by composite impact (descending)
+    busts: list[DraftPick]  # ranked by composite impact (ascending)
+    points_steals: list[DraftPick]  # ranked by raw points-over-expectation
+    points_busts: list[DraftPick]  # ranked by raw points-under-expectation
+    leaderboard_limit: int
 
 
 class DraftRecords(BaseModel):
@@ -913,19 +1043,31 @@ class GameTeam(BaseModel):
     entering_record: EnteringRecord | None = None
 
 
+class MatchupFlag(BaseModel):
+    """A superlative about a game — what made it memorable, not bare margin.
+    Computed in ``analytics/matchup_flags.py``; the SPA only renders it.
+    ``team_id`` is set for one-sided flags (e.g. ``season_high``, ``upset``);
+    ``tone`` is a color hint (``win`` | ``loss`` | ``accent`` | ``warn`` |
+    ``muted``); ``detail`` is tooltip copy."""
+
+    kind: str
+    label: str
+    tone: str
+    team_id: int | None = None
+    detail: str | None = None
+
+
 class GameCard(BaseModel):
     """One game, folded back from Phase 1's two perspective rows. ``matchup_id``
-    deep-links to the box score. ``is_close`` / ``is_blowout`` are backend
-    margin flags (thresholds in ``analytics/matchups.py``); both False when the
-    game has no scores yet."""
+    deep-links to the box score. ``margin`` drives the inline signed indicator;
+    ``flags`` are the superlatives (empty when the game has no scores yet)."""
 
     matchup_id: int
     is_playoff: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
-    is_close: bool = False
-    is_blowout: bool = False
+    flags: list[MatchupFlag] = []
     winner_team_id: int | None = None
 
 
@@ -937,16 +1079,44 @@ class WeekMatchups(BaseModel):
     games: list[GameCard]
 
 
+class HamlinComponent(BaseModel):
+    """One scored component of a 2022 wk17 no-contest substitute."""
+
+    points: float | None = None
+    raw_stats: dict[str, Any] = {}
+
+
+class HamlinSubstitute(BaseModel):
+    """Per-player provenance for the 2022 Week-17 Bills@Bengals no-contest.
+
+    The league counted ``wk17_partial + wk19`` (Week 18 skipped). Present only on
+    affected 2022-wk17 slots; its presence drives the box-score substitution
+    badge and resolution banner.
+    """
+
+    basis: str | None = None
+    league_points: float | None = None
+    wk17_partial: HamlinComponent | None = None
+    wk19: HamlinComponent | None = None
+
+
 class BoxPlayer(BaseModel):
     roster_slot: str | None = None
     player_id: int
     player_name: str | None = None
     position: str | None = None
+    nfl_opponent: str | None = None
+    nfl_game_status: str | None = None
+    roster_status: str | None = None
+    roster_status_label: str | None = None
+    reserve_eligibility_status: str | None = None
     league_points: float | None = None  # null (not 0) when unscored — see ``reason``
     is_starter: bool
     breakdown: dict[str, Any] = {}
     projection: float | None = None
     projection_delta: float | None = None
+    projection_available: bool = True
+    projection_reason: str | None = None
     team_point_share: float | None = None
     lineup_value: str | None = None
     available: bool = True
@@ -957,6 +1127,11 @@ class BoxPlayer(BaseModel):
     # attempted explanation in ``zero_detail``.
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None  # human-readable note, mainly for "unexpected"
+    context_label: str | None = None  # concise UI flag: "DNP" | "Out" | "RES + pts" | etc.
+    context_detail: str | None = None  # tooltip / row detail explaining the flag
+    # Set only for a 2022 wk17 no-contest substitute (Hamlin): the wk17-partial +
+    # wk19 split behind ``league_points``. Drives the "Wk17+19" badge.
+    hamlin_substitute: HamlinSubstitute | None = None
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
@@ -973,6 +1148,12 @@ class BoxTeam(BaseModel):
     optimal_total: float
     points_left_on_bench: float
     beat_projection_by: float | None = None
+    # True when this side's whole week is a reconstructed roster-audit snapshot
+    # (not a live weekly capture): roster→team attribution and slots are
+    # approximate. Per-player DATA drift badges are suppressed in this case in
+    # favor of the single ``roster_reconstructed_note`` caveat.
+    roster_reconstructed: bool = False
+    roster_reconstructed_note: str | None = None
     lineup: list[BoxPlayer]
 
 
@@ -983,9 +1164,19 @@ class BoxScore(BaseModel):
     available: bool
     reason: str | None = None
     is_playoff: bool = False
+    # Whether this (season, week) has real projection data — drives a single
+    # top-level note rather than a per-player gap. ``projection_reason`` carries
+    # the machine code (e.g. ``projections_not_captured``) for the UI copy.
+    projections_available: bool = True
+    projection_reason: str | None = None
+    # Matchup-level banner for the 2022 Week-17 Hamlin no-contest resolution,
+    # shown when any slot on either side carries a substitution. Null otherwise.
+    resolution_note: str | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None
+    margin: float | None = None
+    flags: list[MatchupFlag] = []
 
 
 # ---------------------------------------------------------------------------
@@ -1020,9 +1211,15 @@ class TeamRosterPlayer(BaseModel):
     nfl_team: str | None = None
     roster_slot: str | None = None
     is_starter: bool
+    # A placeholder for an open roster spot at week-end (a player was dropped and
+    # not replaced). Padded up to the team-season's usual roster size so the slot
+    # reads as empty/dashed rather than vanishing. All other fields are null.
+    is_empty: bool = False
     league_points: float | None = None  # null (not 0) for unscored slots/seasons
     zero_reason: str | None = None  # "bye" | "did_not_play" | "unexpected" | null
     zero_detail: str | None = None
+    context_label: str | None = None
+    context_detail: str | None = None
     acquisition_type: str | None = None
     acquisition_week: int | None = None
     injury_status: str | None = None  # e.g. "Out" | "Doubtful" | "Questionable"
@@ -1037,6 +1234,11 @@ class TeamRosterOut(BaseModel):
     week: int
     weeks_available: list[int]
     is_scored: bool
+    # True when the displayed week's whole roster is a reconstructed audit
+    # snapshot (not a live weekly capture): per-player attribution/slots are
+    # approximate. Shown as one caveat banner, mirroring the box score.
+    roster_reconstructed: bool = False
+    roster_reconstructed_note: str | None = None
     players: list[TeamRosterPlayer]
 
 
@@ -1095,6 +1297,27 @@ class TeamTransactions(BaseModel):
     transactions: list[TeamTransaction]
 
 
+class TeamFaabWeek(BaseModel):
+    week: int
+    spent: float  # FAAB spent this week (a genuine 0 is allowed)
+    cumulative_spent: float
+    budget: float  # budget available through this week (base + credits to date)
+    remaining: float
+    adjustment: float | None = None  # mid-season budget credit applied this week
+    note: str | None = None
+
+
+class TeamFaabBudget(BaseModel):
+    team_id: int
+    season_year: int
+    is_faab_era: bool  # False for pre-FAAB (waiver-priority) seasons — not a gap
+    available: bool
+    season_budget: float | None = None  # base season budget when FAAB-era
+    total_spent: float | None = None
+    final_remaining: float | None = None
+    weeks: list[TeamFaabWeek] = []
+
+
 class RosterMove(BaseModel):
     week: int
     player_id: int
@@ -1108,7 +1331,10 @@ class TeamRosterMoves(BaseModel):
     season_year: int
     is_scored: bool  # informational; moves are NOT gated on it
     available: bool  # False when <2 distinct roster snapshot weeks
-    roster_weeks: list[int]
+    roster_weeks: list[int]  # authoritative weeks used for the diff (audit weeks excluded)
+    # Weeks dropped from the diff because their whole roster is a reconstructed
+    # audit snapshot (non-authoritative); excluded to avoid fabricated churn.
+    reconstructed_weeks: list[int] = []
     moves: list[RosterMove]
 
 

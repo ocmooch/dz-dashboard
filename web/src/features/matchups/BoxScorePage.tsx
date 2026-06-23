@@ -5,6 +5,7 @@ import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -28,6 +29,47 @@ const IR_SLOT_NAMES = new Set(["IR", "IR2", "RES", "TAXI", "NA"]);
 
 function isIR(slot: string | null | undefined): boolean {
   return !!slot && IR_SLOT_NAMES.has(slot.toUpperCase());
+}
+
+function contextTone(label: string | null | undefined): string {
+  if (label === "DATA") return "border-[color:var(--loss)] text-loss";
+  if (label === "INJ") return "border-[color:var(--warn)] text-[var(--warn)]";
+  if (label === "RES") return "border-[color:var(--muted)] text-muted";
+  if (label === HAMLIN_LABEL) return "border-[color:var(--accent)] text-accent";
+  return "border-[color:var(--hairline)] text-faint";
+}
+
+function showRowContext(p: BoxPlayer): boolean {
+  return !!p.context_label && !["Bye", "DNP", "Out", "Check"].includes(p.context_label);
+}
+
+const HAMLIN_LABEL = "Wk17+19";
+
+/** Tooltip for a no-contest substitute: the context note plus the wk17-partial +
+ *  Wild-Card (wk19) split that makes up the player's league points. */
+function hamlinTitle(p: BoxPlayer): string | undefined {
+  const sub = p.hamlin_substitute;
+  if (!sub) return p.context_detail ?? undefined;
+  const wk17 = sub.wk17_partial?.points;
+  const wk19 = sub.wk19?.points;
+  const split =
+    wk17 != null && wk19 != null
+      ? ` Week-17 partial ${num(wk17)} + Wild Card (Wk19) ${num(wk19)} = ${num(sub.league_points)}.`
+      : "";
+  return `${p.context_detail ?? ""}${split}`.trim() || undefined;
+}
+
+function ContextBadge({ p }: { p: BoxPlayer }) {
+  if (!showRowContext(p)) return null;
+  const isHamlin = !!p.hamlin_substitute;
+  return (
+    <span
+      className={`ml-1 rounded border px-1 py-0.5 align-middle text-[10px] font-bold leading-none ${contextTone(p.context_label)}`}
+      title={isHamlin ? hamlinTitle(p) : (p.context_detail ?? undefined)}
+    >
+      {p.context_label}
+    </span>
+  );
 }
 
 
@@ -69,7 +111,7 @@ function LineupTable({ team }: { team: BoxTeam }) {
           <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
           <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
           <th className="dz-num" title="Actual vs projected (+/− delta).">Value</th>
-          <th className="dz-num" title="Fantasy points scored. Bye = player's NFL team on bye; Out = player did not dress/play.">Pts</th>
+          <th className="dz-num" title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores.">Pts</th>
         </tr>
       </thead>
       <tbody>
@@ -116,8 +158,14 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             practiceStatus={p.injury_practice_status}
           />
         )}
+        <ContextBadge p={p} />
       </td>
-      <td className="dz-num text-faint">{p.projection != null ? num(p.projection) : "—"}</td>
+      <td className="dz-num text-faint">
+        {/* A missing projection is a plain dash; when the whole season lacks
+            projection data the box score shows one top-level note instead of a
+            gap chip on every row. */}
+        {p.projection != null ? num(p.projection) : "—"}
+      </td>
       <td className="dz-num text-faint">
         {p.team_point_share != null ? pct(p.team_point_share) : "—"}
       </td>
@@ -136,7 +184,9 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
               : undefined
           }
         >
-          {p.projection_delta != null ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}` : "—"}
+          {p.projection_delta != null
+            ? `${p.projection_delta > 0 ? "+" : ""}${num(p.projection_delta)}`
+            : "—"}
         </span>
       </td>
       <td className="dz-num">
@@ -148,6 +198,7 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             points={p.league_points}
             zeroReason={p.zero_reason}
             zeroDetail={p.zero_detail}
+            zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
             injuryBodyPart={p.injury_body_part}
             muted={muted}
           />
@@ -159,17 +210,35 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   );
 }
 
-function TeamColumn({ team, isWinner }: { team: BoxTeam; isWinner: boolean }) {
+function TeamColumn({
+  team,
+  isWinner,
+  margin,
+}: {
+  team: BoxTeam;
+  isWinner: boolean;
+  margin: number | null | undefined;
+}) {
   const starters = team.lineup.filter((p) => p.is_starter);
   const { rows, series } = breakdownChart(starters);
+  // Signed margin beside the total, mirroring the weekly grid: winner +, loser −.
+  const signedMargin = margin == null ? null : isWinner ? margin : -margin;
   return (
     <Card>
       <CardHeader
         eyebrow={team.owner_name ?? undefined}
         title={team.team_name ?? "—"}
         action={
-          <span className={`num text-[var(--fs-h1)] font-bold ${isWinner ? "text-win" : "text-muted"}`}>
-            {num(team.total_score)}
+          <span className="flex flex-col items-end">
+            <span className={`num text-[var(--fs-h1)] font-bold ${isWinner ? "text-win" : "text-muted"}`}>
+              {num(team.total_score)}
+            </span>
+            {signedMargin != null && (
+              <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+                {signedMargin > 0 ? "+" : ""}
+                {num(signedMargin)}
+              </span>
+            )}
           </span>
         }
       />
@@ -185,6 +254,17 @@ function TeamColumn({ team, isWinner }: { team: BoxTeam; isWinner: boolean }) {
             {team.beat_projection_by >= 0 ? "beat projection by " : "under projection by "}
             {num(Math.abs(team.beat_projection_by))}
           </Badge>
+        </div>
+      )}
+      {team.roster_reconstructed && team.roster_reconstructed_note && (
+        <div className="px-5 pb-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">reconstructed</span>
+            {team.roster_reconstructed_note}
+          </div>
         </div>
       )}
       <div className="px-5 pb-2">
@@ -253,11 +333,44 @@ export function BoxScorePage() {
         </Card>
       )}
 
+      {data && data.available && data.projections_available === false && (
+        <div
+          className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-faint">note</span>
+          Projection data isn’t available for the {data.season_year} season, so the Proj and Value
+          columns are blank. Scoring is unaffected.
+        </div>
+      )}
+
+      {data && data.available && data.resolution_note && (
+        <div
+          className="rounded border border-[color:var(--accent)] bg-[color:var(--surface-2)] px-4 py-3 text-[var(--fs-sm)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-accent">no-contest resolution</span>
+          {data.resolution_note}
+        </div>
+      )}
+
+      {data && data.available && data.flags && data.flags.length > 0 && (
+        <MatchupFlags flags={data.flags} />
+      )}
+
       {data && data.available && data.home && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <TeamColumn team={data.home} isWinner={data.winner_team_id === data.home.team_id} />
+          <TeamColumn
+            team={data.home}
+            isWinner={data.winner_team_id === data.home.team_id}
+            margin={data.margin}
+          />
           {data.away && (
-            <TeamColumn team={data.away} isWinner={data.winner_team_id === data.away.team_id} />
+            <TeamColumn
+              team={data.away}
+              isWinner={data.winner_team_id === data.away.team_id}
+              margin={data.margin}
+            />
           )}
         </div>
       )}

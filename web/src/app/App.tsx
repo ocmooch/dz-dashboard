@@ -5,14 +5,12 @@ import { PlayoffsPage } from "@/features/playoffs/PlayoffsPage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { HomePage } from "@/features/home/HomePage";
 import { LeagueHistoryPage } from "@/features/league/LeagueHistoryPage";
-import { RulesErasPage } from "@/features/league/RulesErasPage";
 import { StoriesPage } from "@/features/league/StoriesPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
 import { MatchupsPage } from "@/features/matchups/MatchupsPage";
 import { ManagersPage } from "@/features/managers/ManagersPage";
 import { ManagerProfilePage } from "@/features/managers/ManagerProfilePage";
 import { PlaceholderPage } from "@/features/placeholder/PlaceholderPage";
-import { PowerPage } from "@/features/power/PowerPage";
 import { PlayerDetailPage } from "@/features/players/PlayerDetailPage";
 import { PlayersPage } from "@/features/players/PlayersPage";
 import { RecordsPage } from "@/features/records/RecordsPage";
@@ -21,6 +19,7 @@ import { RivalriesPage } from "@/features/rivalries/RivalriesPage";
 import { StandingsPage } from "@/features/standings/StandingsPage";
 import { StatsPage } from "@/features/stats/StatsPage";
 import { TeamPage } from "@/features/teams/TeamPage";
+import { TeamsIndexPage } from "@/features/teams/TeamsIndexPage";
 
 import { AppShell } from "./shell/AppShell";
 import { SeasonProvider } from "./shell/SeasonContext";
@@ -32,13 +31,15 @@ export function App() {
         <Routes>
           <Route element={<AppShell />}>
             <Route index element={<HomePage />} />
-            <Route path="seasons" element={<LeagueHistoryPage />} />
+            <Route path="timeline" element={<LeagueHistoryPage />} />
+            {/* Merged: /seasons + /rules now live in one Timeline space. */}
+            <Route path="seasons" element={<Navigate to="/timeline" replace />} />
+            <Route path="rules" element={<Navigate to="/timeline" replace />} />
             <Route path="standings" element={<StandingsPage />} />
-            <Route path="power" element={<PowerPage />} />
+            <Route path="power" element={<Navigate to="/standings?lens=power" replace />} />
             <Route path="playoffs" element={<PlayoffsPage />} />
             <Route path="bracket" element={<Navigate to="/playoffs" replace />} />
             <Route path="records" element={<RecordsPage />} />
-            <Route path="rules" element={<RulesErasPage />} />
             <Route path="stories" element={<StoriesPage />} />
             <Route path="rivalries" element={<RivalriesPage />} />
             <Route path="rivalries/:a/vs/:b" element={<PairwisePage />} />
@@ -49,6 +50,7 @@ export function App() {
             <Route path="players" element={<PlayersPage />} />
             <Route path="players/:playerId" element={<PlayerDetailPage />} />
             <Route path="stats" element={<StatsPage />} />
+            <Route path="teams" element={<TeamsIndexPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<DraftPage />} />
             <Route path="about" element={<AboutPage />} />

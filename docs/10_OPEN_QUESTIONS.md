@@ -19,7 +19,7 @@ rationale isn't lost; none needs further action unless you want to revisit.
 | Q3 | Visual direction | **"Danger Zone" HUD** — dark instrument-panel, afterburner-orange accent (`#ff6a1a`), mono/tabular numerics. Fonts: **Saira Condensed** (display), **IBM Plex Sans** (body), **IBM Plex Mono** (numbers) — not Inter. A future light token set is possible but not implemented (see Q10). |
 | Q4 | View priority | Built per default order, including Manager index/profile and the caveated Playoffs/Bracket view. |
 | Q5 | Standings tiebreaker | Prefer reconstructed `teams.final_rank`; else compute wins→points-for, exposing `rank_basis` + `tiebreak_caveat` (computed & pre-2019). Old best-of-3 not re-derived. (`04_ANALYTICS_MODEL.md` §1) |
-| Q6 | Power-ranking model | Z-score blend **0.5·PPG + 0.3·win% + 0.2·last-3-PPG**; weights in one constant and shipped in the payload's `weights`. (`analytics/power.py`) |
+| Q6 | Power-ranking model | Within-season z-score blend **0.40·PF/g + 0.25·all-play% + 0.20·win% + 0.15·last-3-PF/g**; weights in one constant and shipped in the payload's `weights`. A points-dominant lens (its terms correlate with scoring), not a forecast. Surfaced as the Standings `?lens=power` toggle + a Playoffs entry snapshot, not a top-level space. (`analytics/power.py`) |
 | Q7 | Optimal-lineup definition | Implemented in `analytics/matchups.py` (optimal-lineup / points-left-on-bench) reading the roster slot configuration; covered by a hand-solved unit test. |
 
 ---
@@ -126,34 +126,31 @@ closed for the supported CI platform.
 
 ### N5. Upstream data work is partially retired, not fully closed
 
-The dashboard fix-passes are merged, and **F-54 (season-correct player NFL team) is now closed**
-(persisted upstream + consumed, PR #51). Several UP items remain outside this repo:
-ownership-succession history (F-06), residual player-identity cleanup / roster-stat sanity checks
-(F-25/F-27), and playoff/consolation metadata (F-49). The exact transaction log is partly landed
-upstream (dated add/drop/waiver/trade/draft/lineup rows exist in `danger-zone`); the dashboard
-consumes the derived roster-diff tier but not yet the exact dates/types, and no FAAB/bid rows were
-present in the last real-DB spot check.
+The dashboard fix-passes are merged. **Closed since:** F-54 (season-correct player NFL team, PR #51);
+the **Data Integrity & Coverage program** (cross-source identity links + identity-aware ingest +
+`/v1/meta/coverage` — dashboard #77, upstream crosswalk); and **FAAB capture** (2021–2025
+`extra_data.faab_bid` landed upstream and is surfaced as bid pills + a weekly remaining-budget view,
+#90–#93). Several UP items remain outside this repo: ownership-succession history (F-06, ⊘ blocked on
+a source), residual player-identity metadata cleanup (F-25 D1/D2/D3/D4), pre-2016 reconstructed-
+scoring validation (F-27), playoff/consolation metadata (F-49), and consuming the **exact**
+transaction dates/types as a richer tier beyond the derived roster-diff log (F-37 remainder).
 
 New-session note: these are primarily `../danger-zone` tasks. For F-25, start from
 `docs/handoffs/players-audit-danger-zone.md` but use the status-update counts, not the original
 counts. For F-27, sanity-check reconstructed 2010-2015 scores against source NFL.com/team totals
 before calling them final. For F-49, prefer fixing source flags over adding dashboard inference.
 
-### N6. Conferences feature is silently dead at runtime (gate is green) — OPEN
+### N6. Conferences feature was silently dead at runtime — RESOLVED (PR #82)
 
-PRs #63/#64 cleared the gate-red part of this debt: the stale `tests/test_p5_matchups_unit.py`
-assertions (a removed `lineup_score_gap`/`score_gap_delta` box field) were removed, the
-`conferences.py` mypy/ruff drift was silenced with `type: ignore`, the `league_history.py`
-ambiguous-unicode error was fixed, and e2e/format debt was cleared. **The backend gate is green.**
-
-**But the silencing only fixed the types — the feature is still dead.** `analytics/conferences.py`
-imports `SeasonConference` and reads `Team.conference_id`, neither of which the Phase-1 ORM maps, so
-its `try/except` guard sets `_CONFERENCE_MODELS_AVAILABLE = False` at runtime. Every
-`GET /v1/seasons/{id}/conferences` returns `available=false, reason="no_conferences_this_season"`,
-and `conference_map()` (feeding `analytics/bracket.py`) returns `{}` — **the entire 2010–2019
-conference era is invisible.** The data is reachable: `standings.py` already reads the same tables
-via raw SQL (the approach PR #57 used). **Fix:** convert `conferences.py`'s two query sites to the
-same raw SQL and add a known-answer conferences test. Full handoff: `docs/ACTIVE_WORK.md` §6.1.
+The conferences feature was dead at runtime: `analytics/conferences.py` imported `SeasonConference`
+and read `Team.conference_id`, neither of which the Phase-1 ORM maps, so its guard set
+`_CONFERENCE_MODELS_AVAILABLE = False` and the 2010–2019 conference era was invisible. **The
+proposed raw-SQL repair turned out to be moot — the presumed conference tables/columns do not exist
+in the live Phase 1 schema at all.** Resolved instead by `feature/bff-weekly-division-standings`
+(PR #82): the dashboard now owns a reviewed NFL.com 2010–2019 division artifact, returns **exact
+weekly historical division standings** (records + source ranks) mapped through `teams.team_abbrev`,
+and renders complete historical division tables on Standings with an honest mapping gap on mismatch.
+2020+ remains explicitly ungrouped. (See `docs/ACTIVE_WORK.md` §1/§6.1.)
 
 ---
 

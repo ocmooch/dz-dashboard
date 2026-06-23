@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
+import { ResultTimeline } from "@/features/teams/ResultTimeline";
 import {
   Badge,
   Card,
@@ -76,6 +78,14 @@ async function fetchRosterMoves(id: number) {
   return data.data;
 }
 
+async function fetchFaabBudget(id: number) {
+  const { data, error } = await api.GET("/v1/teams/{team_id}/faab-budget", {
+    params: { path: { team_id: id } },
+  });
+  if (error || !data) throw new Error("Failed to load FAAB budget");
+  return data.data;
+}
+
 async function fetchOwnerSeasons(ownerId: number): Promise<OwnerSeasonRow[]> {
   const { data, error } = await api.GET("/v1/owners/{owner_id}/seasons", {
     params: { path: { owner_id: ownerId } },
@@ -129,6 +139,17 @@ function RosterCard({ teamId }: { teamId: number }) {
       {data && data.players.length === 0 && (
         <EmptyState title="No roster recorded" hint="No roster snapshot for this week." />
       )}
+      {data?.roster_reconstructed && data.roster_reconstructed_note && (
+        <div className="px-5 pt-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">reconstructed</span>
+            {data.roster_reconstructed_note}
+          </div>
+        </div>
+      )}
       {data && data.players.length > 0 && (
         <div className="overflow-x-auto">
           <table className="dz-table">
@@ -141,40 +162,52 @@ function RosterCard({ teamId }: { teamId: number }) {
               </tr>
             </thead>
             <tbody>
-              {data.players.map((p) => (
-                <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                  <td className="font-mono text-[var(--fs-xs)] text-muted">
-                    {p.roster_slot ?? "—"}
-                  </td>
-                  <td>
-                    <Link to={`/players/${p.player_id}`} className="hover:text-accent">
-                      <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
-                    </Link>
-                    {p.injury_status != null && (
-                      <InjuryBadge
-                        status={p.injury_status}
-                        bodyPart={p.injury_body_part}
-                        secondary={p.injury_secondary}
-                        practiceStatus={p.injury_practice_status}
-                      />
-                    )}
-                  </td>
-                  <td className="text-muted">{p.position ?? "—"}</td>
-                  <td className="dz-num">
-                    {p.league_points == null ? (
-                      <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
-                    ) : (
-                      <PlayerScoreCell
-                        points={p.league_points}
-                        zeroReason={p.zero_reason}
-                        zeroDetail={p.zero_detail}
-                        injuryBodyPart={p.injury_body_part}
-                        muted={!p.is_starter}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {data.players.map((p) =>
+                p.is_empty ? (
+                  // An open roster spot at week-end — fully dashed, no link. The
+                  // nearby transactions show the drop that left it empty.
+                  <tr key={p.player_id} className="text-faint opacity-50">
+                    <td className="font-mono text-[var(--fs-xs)]">—</td>
+                    <td>empty slot</td>
+                    <td>—</td>
+                    <td className="dz-num">—</td>
+                  </tr>
+                ) : (
+                  <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
+                    <td className="font-mono text-[var(--fs-xs)] text-muted">
+                      {p.roster_slot ?? "—"}
+                    </td>
+                    <td>
+                      <Link to={`/players/${p.player_id}`} className="hover:text-accent">
+                        <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
+                      </Link>
+                      {p.injury_status != null && (
+                        <InjuryBadge
+                          status={p.injury_status}
+                          bodyPart={p.injury_body_part}
+                          secondary={p.injury_secondary}
+                          practiceStatus={p.injury_practice_status}
+                        />
+                      )}
+                    </td>
+                    <td className="text-muted">{p.position ?? "—"}</td>
+                    <td className="dz-num">
+                      {p.league_points == null ? (
+                        <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
+                      ) : (
+                        <PlayerScoreCell
+                          points={p.league_points}
+                          zeroReason={p.zero_reason}
+                          zeroDetail={p.zero_detail}
+                          zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
+                          injuryBodyPart={p.injury_body_part}
+                          muted={!p.is_starter}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
@@ -194,36 +227,40 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
       {isLoading && <Skeleton className="m-5 h-40" />}
       {data && data.games.length === 0 && <EmptyState title="No games scheduled" />}
       {data && data.games.length > 0 && (
-        <ol className="divide-y divide-[var(--hairline)]">
-          {data.games.map((g) => {
-            const tone =
-              g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
-            return (
-              <li key={g.matchup_id} className="flex items-center justify-between gap-3 px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <span className={`num w-6 font-bold ${tone}`}>{g.result ?? "—"}</span>
-                  <div>
-                    <Link
-                      to={boxScoresAvailable ? `/matchups/${g.matchup_id}` : `/matchups?week=${g.week}`}
-                      className="text-text hover:text-accent"
-                    >
-                      vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
-                    </Link>
-                    <div className="text-[var(--fs-xs)] text-faint">
-                      wk {g.week}
-                      {g.is_playoff ? " · playoff" : ""}
-                    </div>
-                  </div>
-                </div>
-                <span className="num text-[var(--fs-sm)]">
-                  <span className={tone}>{num(g.team_score)}</span>
-                  <span className="text-faint"> – </span>
-                  <span className="text-muted">{num(g.opponent_score)}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          <div className="px-5 pb-3 pt-1">
+            <ResultTimeline games={data.games} />
+          </div>
+          <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+            {data.games.map((g) => {
+              const tone =
+                g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
+              return (
+                <li
+                  key={g.matchup_id}
+                  className="flex items-center gap-2 px-5 py-1.5 text-[var(--fs-sm)]"
+                >
+                  <span className={`num w-4 font-bold ${tone}`}>{g.result ?? "—"}</span>
+                  <span className="num w-10 text-faint">wk {g.week}</span>
+                  <Link
+                    to={boxScoresAvailable ? `/matchups/${g.matchup_id}` : `/matchups?week=${g.week}`}
+                    className="flex-1 truncate text-text hover:text-accent"
+                  >
+                    vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
+                  </Link>
+                  {g.is_playoff && (
+                    <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>
+                  )}
+                  <span className="num shrink-0">
+                    <span className={tone}>{num(g.team_score)}</span>
+                    <span className="text-faint"> – </span>
+                    <span className="text-muted">{num(g.opponent_score)}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </>
       )}
     </Card>
   );
@@ -262,79 +299,213 @@ function ScoringTrendCard({ teamId }: { teamId: number }) {
   );
 }
 
-function TransactionsCard({ teamId }: { teamId: number }) {
-  const { data, isLoading } = useQuery({
-    queryKey: qk.teamTransactions(teamId),
-    queryFn: () => fetchTransactions(teamId),
-  });
+/** One compact transaction line, shared by the exact log and the derived
+ *  fallback so both read identically: a +/−/⇄ glyph, the player, faint detail,
+ *  and the type pill. */
+function TxRow({
+  glyph,
+  tone,
+  primary,
+  meta,
+  label,
+  title,
+  faabBid,
+}: {
+  glyph: string;
+  tone: "win" | "loss" | undefined;
+  primary: string;
+  meta: string;
+  label: string;
+  title?: string;
+  faabBid?: number | null;
+}) {
+  const glyphColor = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-muted";
   return (
-    <Card>
-      <CardHeader eyebrow="recorded exact log" title="Transactions" />
-      {isLoading && <Skeleton className="m-5 h-32" />}
-      {data && data.transactions.length === 0 && (
-        <EmptyState title="No transactions recorded" hint="No exact transaction rows for this team's season." />
-      )}
-      {data && data.transactions.length > 0 && (
-        <ol className="divide-y divide-[var(--hairline)]">
-          {data.transactions.map((t) => (
-            <li key={t.transaction_id} className="flex items-center justify-between gap-3 px-5 py-3">
-              <div>
-                <span className="text-text">{transactionTitle(t)}</span>
-                <div className="text-[var(--fs-xs)] text-faint">
-                  {transactionDetail(t)}
-                </div>
-              </div>
-              <Pill tone={transactionTone(t)}>{transactionLabel(t.transaction_type)}</Pill>
-            </li>
-          ))}
-        </ol>
-      )}
-    </Card>
+    <li className="flex items-center gap-2 px-5 py-2 text-[var(--fs-sm)]" title={title}>
+      <span className={`num w-3 shrink-0 font-bold ${glyphColor}`}>{glyph}</span>
+      <span className="shrink-0 text-text">{primary}</span>
+      {meta && <span className="flex-1 truncate text-[var(--fs-xs)] text-faint">{meta}</span>}
+      <span className="ml-auto flex shrink-0 items-center gap-1.5">
+        {faabBid != null && (
+          <span title={`Winning FAAB bid: $${faabBid}`}>
+            <Pill tone="accent">${faabBid} FAAB</Pill>
+          </span>
+        )}
+        <Pill tone={tone}>{label}</Pill>
+      </span>
+    </li>
   );
 }
 
-function RosterMovesCard({ teamId }: { teamId: number }) {
-  const { data, isLoading } = useQuery({
+function weekLabel(week: number) {
+  // Draft (and any pre-week-0 rows) bucket together as the season's opening.
+  return week <= 0 ? "Draft" : `Week ${week}`;
+}
+
+type WeekGroup = { week: number; count: number; body: React.ReactNode };
+
+/** Collapsible week sections for the transactions feed — newest week first, and
+ *  the most recent week starts open so the latest moves are visible at a glance.
+ *  Users expand/collapse at the week boundary. */
+function WeekAccordion({ groups }: { groups: WeekGroup[] }) {
+  const [open, setOpen] = useState<Set<number>>(
+    () => new Set(groups.length ? [groups[0].week] : []),
+  );
+  const toggle = (w: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(w)) next.delete(w);
+      else next.add(w);
+      return next;
+    });
+  return (
+    <div className="divide-y divide-[var(--hairline)]">
+      {groups.map((g) => {
+        const isOpen = open.has(g.week);
+        return (
+          <div key={g.week}>
+            <button
+              type="button"
+              onClick={() => toggle(g.week)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center justify-between gap-3 px-5 py-2 text-left hover:text-accent"
+            >
+              <span className="dz-eyebrow text-text">{weekLabel(g.week)}</span>
+              <span className="flex items-center gap-2 text-[var(--fs-xs)] text-faint">
+                {g.count}
+                <span className="num text-muted">{isOpen ? "–" : "+"}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)] bg-[color:var(--surface-1)]">
+                {g.body}
+              </ol>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A team's roster acquisitions: the exact recorded log when present, otherwise
+ *  a single clearly-flagged fallback derived from week-to-week roster snapshots.
+ *  Grouped into collapsible weeks (the draft is its own opening bucket). */
+function TransactionsCard({ teamId }: { teamId: number }) {
+  const tx = useQuery({
+    queryKey: qk.teamTransactions(teamId),
+    queryFn: () => fetchTransactions(teamId),
+  });
+  const exactRows = tx.data?.transactions ?? [];
+  const hasExact = exactRows.length > 0;
+  const exactEmpty = tx.data != null && !hasExact;
+
+  // The derived diff is only fetched when the exact log is genuinely empty.
+  const moves = useQuery({
     queryKey: qk.teamRosterMoves(teamId),
     queryFn: () => fetchRosterMoves(teamId),
+    enabled: exactEmpty,
   });
 
-  const adds = data?.moves.filter((m) => m.action === "add") ?? [];
-  const drops = data?.moves.filter((m) => m.action === "drop") ?? [];
-  const churn = [...adds, ...drops].sort((a, b) => a.week - b.week);
-  const retained = data?.moves.filter((m) => m.action === "retain") ?? [];
+  if (tx.isLoading) {
+    return (
+      <Card>
+        <CardHeader eyebrow="recorded log" title="Transactions" />
+        <Skeleton className="m-5 h-32" />
+      </Card>
+    );
+  }
+
+  // Preferred path: the exact recorded log, grouped by effective week.
+  if (hasExact) {
+    const byWeek = new Map<number, typeof exactRows>();
+    for (const t of exactRows) {
+      const w = t.effective_week ?? 0;
+      const bucket = byWeek.get(w);
+      if (bucket) bucket.push(t);
+      else byWeek.set(w, [t]);
+    }
+    const groups: WeekGroup[] = [...byWeek.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([week, items]) => ({
+        week,
+        count: items.length,
+        body: [...items]
+          .sort((a, b) => (b.executed_at ?? "").localeCompare(a.executed_at ?? ""))
+          .map((t) => (
+            <TxRow
+              key={t.transaction_id}
+              glyph={txGlyph(t)}
+              tone={transactionTone(t)}
+              primary={transactionTitle(t)}
+              meta={transactionDetail(t)}
+              label={transactionLabel(t.transaction_type)}
+              title={formatTransactionDateTime(t.executed_at)}
+              faabBid={t.faab_bid}
+            />
+          )),
+      }));
+    return (
+      <Card>
+        <CardHeader
+          eyebrow="recorded log"
+          title="Transactions"
+          action={<span className="text-[var(--fs-xs)] text-faint">{exactRows.length}</span>}
+        />
+        <WeekAccordion groups={groups} />
+      </Card>
+    );
+  }
+
+  // Fallback path: derive adds/drops from roster snapshots, flagged once and
+  // grouped by the week the change first shows up.
+  const md = moves.data;
+  const churn = (md?.moves ?? []).filter((m) => m.action === "add" || m.action === "drop");
+  const retained = md?.moves.filter((m) => m.action === "retain") ?? [];
+  const byWeek = new Map<number, typeof churn>();
+  for (const m of churn) {
+    const bucket = byWeek.get(m.week);
+    if (bucket) bucket.push(m);
+    else byWeek.set(m.week, [m]);
+  }
+  const groups: WeekGroup[] = [...byWeek.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([week, items]) => ({
+      week,
+      count: items.length,
+      body: items.map((m) => (
+        <TxRow
+          key={`${m.action}-${m.player_id}-${m.week}`}
+          glyph={m.action === "add" ? "+" : "−"}
+          tone={m.action === "add" ? "win" : "loss"}
+          primary={m.player_name ?? "—"}
+          meta={m.position ?? ""}
+          label={m.action}
+        />
+      )),
+    }));
 
   return (
     <Card>
-      <CardHeader eyebrow="estimated from rosters" title="Roster-diff fallback" />
-      {isLoading && <Skeleton className="m-5 h-32" />}
-      {data && data.available === false && (
+      <CardHeader eyebrow="estimated from roster snapshots" title="Transactions" />
+      <div className="px-5 pb-1 pt-3">
+        <Badge variant="gap">
+          Derived from week-to-week rosters — the exact transaction log wasn&apos;t available for
+          this season.
+        </Badge>
+      </div>
+      {moves.isLoading && <Skeleton className="m-5 h-32" />}
+      {md && md.available === false && (
         <div className="p-5">
           <DataGap reason="roster_history_unavailable" size="sm" />
         </div>
       )}
-      {data && data.available && churn.length === 0 && (
+      {md && md.available && churn.length === 0 && (
         <EmptyState title="No roster churn detected" hint="Roster snapshots show no adds or drops." />
       )}
-      {data && data.available && churn.length > 0 && (
+      {md && md.available && churn.length > 0 && (
         <>
-          <ol className="divide-y divide-[var(--hairline)]">
-            {churn.map((m) => (
-              <li
-                key={`${m.action}-${m.player_id}-${m.week}`}
-                className="flex items-center justify-between gap-3 px-5 py-3"
-              >
-                <div>
-                  <span className="text-text">{m.player_name ?? "—"}</span>
-                  <div className="text-[var(--fs-xs)] text-faint">
-                    wk {m.week}
-                    {m.position ? ` · ${m.position}` : ""}
-                  </div>
-                </div>
-                <Pill tone={m.action === "add" ? "win" : "loss"}>{m.action}</Pill>
-              </li>
-            ))}
-          </ol>
+          <WeekAccordion groups={groups} />
           {retained.length > 0 && (
             <div className="border-t border-[var(--hairline)] px-5 py-3 text-[var(--fs-xs)] text-faint">
               {retained.length} player{retained.length === 1 ? "" : "s"} retained all season
@@ -346,34 +517,128 @@ function RosterMovesCard({ teamId }: { teamId: number }) {
   );
 }
 
+const TX_LABELS: Record<string, string> = {
+  free_agent_add: "Free agent",
+  waiver_add: "Waiver",
+  drop: "Drop",
+  trade: "Trade",
+  draft: "Draft",
+};
+
 function transactionLabel(type: string) {
-  return type.replaceAll("_", " ");
+  return TX_LABELS[type] ?? type.replaceAll("_", " ");
+}
+
+function txGlyph(t: TeamTransaction): string {
+  if (t.transaction_type === "trade") return "⇄";
+  if (t.transaction_type === "drop" || t.direction === "out") return "−";
+  return "+";
 }
 
 function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
-  if (t.direction === "in" || t.transaction_type.includes("add")) return "win";
-  if (t.direction === "out" || t.transaction_type === "drop") return "loss";
+  if (t.transaction_type === "trade") return undefined;
+  if (t.transaction_type === "drop" || t.direction === "out") return "loss";
+  if (t.transaction_type.includes("add") || t.direction === "in") return "win";
   return undefined;
 }
 
 function transactionTitle(t: TeamTransaction) {
-  if (t.player_name) return t.player_name;
-  if (t.transaction_type === "setting_change") return "League setting";
-  return "Transaction";
+  return t.player_name ?? "Transaction";
 }
 
+// Detail line — the actor/device note is deliberately omitted (the team page
+// already implies the owner made their own moves); keep only what's distinctive.
+// The FAAB bid is promoted to its own pill (see TxRow), so it is not repeated here.
 function transactionDetail(t: TeamTransaction) {
   const parts = [
     formatTransactionDate(t.executed_at),
-    t.effective_week != null ? `wk ${t.effective_week}` : null,
-    t.direction,
-    t.waiver_priority_used != null ? `waiver priority ${t.waiver_priority_used}` : null,
-    t.faab_bid != null ? `FAAB $${t.faab_bid}` : null,
-    slotMove(t.extra_data),
     t.counterpart_team_name ? `with ${t.counterpart_team_name}` : null,
-    t.notes,
+    t.waiver_priority_used != null ? `waiver #${t.waiver_priority_used}` : null,
   ].filter(Boolean);
   return parts.join(" · ");
+}
+
+function money(value: number) {
+  return `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
+}
+
+/** Weekly FAAB budget remaining, derived from tracked spend (NFL.com exposes no
+ *  such view). Absent entirely for pre-FAAB (waiver-priority) seasons — that is
+ *  not-applicable, not a gap, so the card simply doesn't render. */
+function FaabBudgetCard({ teamId }: { teamId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: qk.teamFaabBudget(teamId),
+    queryFn: () => fetchFaabBudget(teamId),
+  });
+
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
+  if (!data || !data.is_faab_era || !data.available) return null;
+
+  const baseBudget = data.season_budget ?? 100;
+  // The effective budget includes any mid-season credit (e.g. a +$37 refund), so
+  // a refunded team doesn't read as overspent ("$137 of $137", not "of $100").
+  const budget = data.weeks.length ? data.weeks[data.weeks.length - 1].budget : baseBudget;
+  const adjusted = budget !== baseBudget;
+  const remaining = data.final_remaining ?? budget;
+  const spent = data.total_spent ?? 0;
+  const overBudget = remaining < 0;
+  const pct = Math.max(0, Math.min(100, (remaining / budget) * 100));
+
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="FAAB budget"
+        title="Waiver budget"
+        action={
+          overBudget ? (
+            <span className="text-[var(--fs-sm)] font-semibold text-loss">over budget</span>
+          ) : (
+            <span className="num text-[var(--fs-sm)] text-text">
+              {money(remaining)} <span className="text-faint">left</span>
+            </span>
+          )
+        }
+      />
+      <div className="px-5 pb-3">
+        <div className="text-[var(--fs-sm)] text-muted">
+          Spent {money(spent)} of {money(budget)}
+        </div>
+        {adjusted && (
+          <div className="text-[var(--fs-xs)] text-faint">
+            Base {money(baseBudget)}, adjusted mid-season
+          </div>
+        )}
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+          <div
+            className={`h-full rounded-full ${overBudget ? "bg-loss" : "bg-accent"}`}
+            style={{ width: `${overBudget ? 100 : pct}%` }}
+          />
+        </div>
+        {overBudget && (
+          <div className="mt-2 text-[var(--fs-xs)] text-loss">
+            Tracked spend exceeds the recorded budget for this team.
+          </div>
+        )}
+      </div>
+      <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+        {data.weeks.map((w) => (
+          <li
+            key={w.week}
+            className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]"
+          >
+            <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {w.week}</span>
+            <span className="num shrink-0 text-text">
+              {w.spent > 0 ? `-${money(w.spent)}` : <span className="text-faint">—</span>}
+            </span>
+            {w.adjustment != null && w.note && <Pill tone="accent">{w.note}</Pill>}
+            <span className="num ml-auto shrink-0 text-muted">
+              {money(w.remaining)} <span className="text-faint">left</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
 }
 
 function formatTransactionDate(value: string | null | undefined) {
@@ -383,12 +648,17 @@ function formatTransactionDate(value: string | null | undefined) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function slotMove(extra: TeamTransaction["extra_data"]) {
-  if (!extra || typeof extra !== "object") return null;
-  const fromSlot = "from_slot" in extra ? extra.from_slot : null;
-  const toSlot = "to_slot" in extra ? extra.to_slot : null;
-  if (typeof fromSlot === "string" && typeof toSlot === "string") return `${fromSlot} to ${toSlot}`;
-  return null;
+function formatTransactionDateTime(value: string | null | undefined) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number }) {
@@ -487,11 +757,13 @@ export function TeamPage() {
             <ScheduleCard teamId={teamId} boxScoresAvailable={data.is_scored} />
           </div>
 
-          <ScoringTrendCard teamId={teamId} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <RosterMovesCard teamId={teamId} />
+            <ScoringTrendCard teamId={teamId} />
             <TransactionsCard teamId={teamId} />
           </div>
+
+          {/* FAAB budget — renders only for FAAB-era seasons (self-hiding). */}
+          <FaabBudgetCard teamId={teamId} />
         </>
       )}
     </div>

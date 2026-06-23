@@ -1,29 +1,34 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
+import { PowerTable } from "@/features/power/PowerTable";
+import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
+type Lens = "record" | "power";
+
 type ConferenceSection = components["schemas"]["ConferenceSection"];
 type StandingsInsightTeam = components["schemas"]["StandingsInsightTeam"];
 
-async function fetchConferences(seasonId: number) {
+async function fetchConferences(seasonId: number, week?: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/conferences", {
-    params: { path: { season_id: seasonId } },
+    params: { path: { season_id: seasonId }, query: { through_week: week } },
   });
   if (error || !data) throw new Error("Failed to load conferences");
   return data.data;
 }
 
-async function fetchStandings(seasonId: number) {
+async function fetchStandings(seasonId: number, week?: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/standings", {
-    params: { path: { season_id: seasonId } },
+    params: { path: { season_id: seasonId }, query: { through_week: week } },
   });
   if (error || !data) throw new Error("Failed to load standings");
   return data.data;
@@ -37,9 +42,9 @@ async function fetchTimeline(seasonId: number) {
   return data.data;
 }
 
-async function fetchInsights(seasonId: number) {
+async function fetchInsights(seasonId: number, week?: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/standings/insights", {
-    params: { path: { season_id: seasonId } },
+    params: { path: { season_id: seasonId }, query: { through_week: week } },
   });
   if (error || !data) throw new Error("Failed to load standings insights");
   return data.data;
@@ -82,46 +87,70 @@ function LuckCallout({ kind, team }: { kind: "robbed" | "blessed"; team: Standin
   );
 }
 
-function ConferenceTable({ conf }: { conf: ConferenceSection }) {
+function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; showFinalPlacement: boolean }) {
   const title = conf.name ?? `Division ${conf.division_number}`;
   return (
-    <div className="p-4">
-      <div className="mb-3 text-[var(--fs-xs)] font-semibold uppercase tracking-wider text-muted">{title}</div>
-      <table className="dz-table w-full">
-        <thead>
-          <tr>
-            <th className="num text-faint w-6">#</th>
-            <th>Team</th>
-            <th className="dz-num">W-L</th>
-            <th className="dz-num">PF</th>
-          </tr>
-        </thead>
-        <tbody>
-          {conf.teams.map((t) => (
-            <tr key={t.team_id}>
-              <td className="num text-faint">{t.conference_rank}</td>
-              <td>
-                <Chip name={t.team_name ?? t.owner_name} sub={t.owner_name ?? undefined} avatarUrl={teamAvatarUrl(t.team_id)} />
-              </td>
-              <td className="dz-num">
-                <RecordLine wins={t.wins} losses={t.losses} ties={t.ties} />
-              </td>
-              <td className="dz-num text-muted">{num(t.points_for)}</td>
+    <Card>
+      <CardHeader eyebrow="regular season division" title={title} />
+      <div className="overflow-x-auto">
+        <table className="dz-table w-full">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th className="dz-num">OVR</th>
+              <th>Team</th>
+              <th className="dz-num">Record</th>
+              <th className="dz-num">Win%</th>
+              <th className="dz-num">PF</th>
+              <th className="dz-num">PA</th>
+              <th className="dz-num">DIV</th>
+              {showFinalPlacement && <th className="dz-num">Finish</th>}
+              <th className="dz-num">Streak</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {conf.teams.map((t) => (
+              <tr key={t.team_id}>
+                <td className="num text-faint">{t.conference_rank}</td>
+                <td className="dz-num text-faint">{t.overall_rank}</td>
+                <td>
+                  <Link to={`/teams/${t.team_id}`} className="hover:text-accent">
+                    <Chip name={t.team_name ?? t.owner_name} sub={t.owner_name ?? undefined} avatarUrl={teamAvatarUrl(t.team_id)} />
+                  </Link>
+                </td>
+                <td className="dz-num">
+                  <RecordLine wins={t.wins} losses={t.losses} ties={t.ties} />
+                </td>
+                <td className="dz-num text-muted">{pct(t.win_pct)}</td>
+                <td className="dz-num">{num(t.points_for)}</td>
+                <td className="dz-num text-muted">{num(t.points_against)}</td>
+                <td className="dz-num text-muted">
+                  <RecordLine wins={t.division_wins} losses={t.division_losses} ties={t.division_ties} />
+                </td>
+                {showFinalPlacement && (
+                  <td className="dz-num"><PlacementCell finalRank={t.final_rank} /></td>
+                )}
+                <td className="dz-num"><StreakCell streak={t.streak} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
 export function StandingsPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
+  const [params, setParams] = useSearchParams();
+  const lens: Lens = params.get("lens") === "power" ? "power" : "record";
+  const weekParam = params.get("week");
+  const week = weekParam ? Math.max(1, Number(weekParam) || 1) : undefined;
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: seasonId ? qk.standings(seasonId) : ["standings", "none"],
-    queryFn: () => fetchStandings(seasonId as number),
-    enabled: seasonId != null,
+    queryKey: seasonId ? qk.standings(seasonId, week) : ["standings", "none"],
+    queryFn: () => fetchStandings(seasonId as number, week),
+    enabled: seasonId != null && lens === "record",
   });
   const timeline = useQuery({
     queryKey: seasonId ? qk.standingsTimeline(seasonId) : ["standings", "none", "timeline"],
@@ -129,18 +158,53 @@ export function StandingsPage() {
     enabled: seasonId != null,
   });
   const insights = useQuery({
-    queryKey: seasonId ? qk.standingsInsights(seasonId) : ["standings", "none", "insights"],
-    queryFn: () => fetchInsights(seasonId as number),
-    enabled: seasonId != null,
+    queryKey: seasonId ? qk.standingsInsights(seasonId, week) : ["standings", "none", "insights"],
+    queryFn: () => fetchInsights(seasonId as number, week),
+    enabled: seasonId != null && lens === "record",
   });
   const conferences = useQuery({
-    queryKey: seasonId ? qk.conferences(seasonId) : ["conferences", "none"],
-    queryFn: () => fetchConferences(seasonId as number),
-    enabled: seasonId != null,
+    queryKey: seasonId ? qk.conferences(seasonId, week) : ["conferences", "none"],
+    queryFn: () => fetchConferences(seasonId as number, week),
+    enabled: seasonId != null && lens === "record",
   });
 
+  const power = usePower(seasonId, week, lens === "power");
+  const powerTimeline = usePowerTimeline(seasonId, lens === "power");
+  const regWeeks = data?.regular_season_weeks;
+  const powerRegWeeks = power.data?.regular_season_weeks;
+  const effectiveWeek = week ?? regWeeks ?? powerRegWeeks;
+
+  useEffect(() => {
+    const maxWeek = lens === "power" ? powerRegWeeks : regWeeks;
+    if (week == null || maxWeek == null || week <= maxWeek) return;
+    const p = new URLSearchParams(params);
+    p.set("week", String(maxWeek));
+    setParams(p, { replace: true });
+  }, [lens, params, powerRegWeeks, regWeeks, setParams, week]);
+
+  function setLens(next: Lens) {
+    const p = new URLSearchParams(params);
+    if (next === "power") p.set("lens", "power");
+    else p.delete("lens");
+    setParams(p, { replace: true });
+  }
+  function setWeek(w: number) {
+    const p = new URLSearchParams(params);
+    p.set("week", String(w));
+    setParams(p, { replace: true });
+  }
+
   const flow = timeline.data ? toRankFlow(timeline.data.teams) : null;
-  const showFinalPlacement = data?.rows.some((r) => r.final_rank != null) ?? false;
+  const powerFlow = powerTimeline.data ? toRankFlow(powerTimeline.data.teams) : null;
+  const showFinalPlacement =
+    data != null &&
+    data.through_week === data.regular_season_weeks &&
+    data.rows.some((row) => row.final_rank != null);
+  const historical = current != null && current.season_year >= 2010 && current.season_year <= 2019;
+  const historicalCompleted =
+    historical &&
+    conferences.data?.available === true &&
+    conferences.data.through_week === conferences.data.regular_season_weeks;
 
   return (
     <div className="dz-rise space-y-4">
@@ -149,19 +213,38 @@ export function StandingsPage() {
           <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Standings</h1>
         </div>
-        {data && (
-          <Badge variant={data.rank_basis === "final_rank" ? "default" : "accent"}>
-            order: {data.rank_basis === "final_rank" ? "official (NFL.com)" : "computed · wins→PF"}
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          <Tabs<Lens>
+            tabs={[
+              { id: "record", label: "Record" },
+              { id: "power", label: "Power" },
+            ]}
+            value={lens}
+            onChange={setLens}
+          />
+          {lens === "record" && data && (
+            <Badge variant={historicalCompleted || data.rank_basis === "final_rank" ? "default" : "accent"}>
+              order: {historicalCompleted || data.rank_basis === "final_rank" ? "official (NFL.com)" : "computed · wins→PF"}
+            </Badge>
+          )}
+          {lens === "power" && power.data && (
+            <Badge variant="accent">through week {power.data.through_week}</Badge>
+          )}
+        </div>
       </div>
 
-      {data?.tiebreak_caveat && (
+      {lens === "record" && data?.tiebreak_caveat && !historicalCompleted && (
         <Badge variant="gap">historical tiebreak may differ from NFL.com for this era</Badge>
       )}
 
-      <Card>
-        <CardHeader eyebrow="regular season" title="Table" />
+      {lens === "record" && (
+        <>
+      {!historical && <Card>
+        <CardHeader
+          eyebrow="regular season"
+          title="Table"
+          action={regWeeks ? <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} /> : undefined}
+        />
         {isLoading && (
           <div className="space-y-2 p-5">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -214,7 +297,34 @@ export function StandingsPage() {
             </table>
           </div>
         )}
-      </Card>
+      </Card>}
+
+      {historical && (
+        <>
+          <div className="flex items-center justify-between">
+            <div className="dz-eyebrow">regular season divisions</div>
+            {regWeeks && <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />}
+          </div>
+          {(isLoading || conferences.isLoading) && <Card><div className="space-y-2 p-5">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div></Card>}
+          {(isError || conferences.isError) && (
+            <Card>
+              <ErrorState
+                message="Could not reach the analytics service."
+                onRetry={() => {
+                  void refetch();
+                  void conferences.refetch();
+                }}
+              />
+            </Card>
+          )}
+          {conferences.data?.available && conferences.data.conferences.map((conf) => (
+            <DivisionTable key={conf.conference_id} conf={conf} showFinalPlacement={showFinalPlacement} />
+          ))}
+          {conferences.data && !conferences.data.available && conferences.data.reason !== "no_conferences_this_season" && (
+            <Card><div className="p-5"><DataGap reason={conferences.data.reason ?? "historical_division_mapping_gap"} /></div></Card>
+          )}
+        </>
+      )}
 
       <Card>
         <CardHeader eyebrow="all-play expected wins vs actual" title="Robbed &amp; Blessed" />
@@ -267,17 +377,6 @@ export function StandingsPage() {
         )}
       </Card>
 
-      {conferences.data?.available && (
-        <Card>
-          <CardHeader eyebrow="legacy feature · 2010–2019" title="Conference Standings" />
-          <div className="grid grid-cols-1 gap-0 divide-y divide-[var(--border)] md:grid-cols-2 md:divide-x md:divide-y-0">
-            {conferences.data.conferences.map((conf) => (
-              <ConferenceTable key={conf.conference_id} conf={conf} />
-            ))}
-          </div>
-        </Card>
-      )}
-
       <Card>
         <CardHeader eyebrow="rank by week" title="Standings over time" />
         <div className="p-5">
@@ -299,6 +398,63 @@ export function StandingsPage() {
           )}
         </div>
       </Card>
+        </>
+      )}
+
+      {lens === "power" && (
+        <>
+          <Card>
+            <CardHeader
+              eyebrow="model · all-play adjusted · re-sorted by strength"
+              title="Power, as of the selected week"
+              action={
+                powerRegWeeks ? (
+                  <WeekStepper week={effectiveWeek ?? powerRegWeeks} min={1} max={powerRegWeeks} onChange={setWeek} />
+                ) : undefined
+              }
+            />
+            {power.isLoading && (
+              <div className="space-y-2 p-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            )}
+            {power.isError && (
+              <ErrorState message="Could not reach the analytics service." onRetry={() => power.refetch()} />
+            )}
+            {power.data && (power.data.rows.length > 0 ? (
+              <PowerTable data={power.data} />
+            ) : (
+              <div className="p-5">
+                <DataGap reason="no_standings_rows" />
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <CardHeader eyebrow="rank by week" title="Power over time" />
+            <div className="p-5">
+              {powerTimeline.isLoading && <Skeleton className="h-[280px] w-full" />}
+              {powerFlow && powerFlow.data.length > 0 ? (
+                <RankFlow
+                  title="Power ranking by week (rank 1 on top)"
+                  data={powerFlow.data}
+                  series={powerFlow.series}
+                  xKey="week"
+                  xLabel="Week"
+                  teamCount={powerFlow.teamCount}
+                  height={300}
+                />
+              ) : (
+                !powerTimeline.isLoading && (
+                  <p className="text-[var(--fs-sm)] text-faint">No weekly data for this season yet.</p>
+                )
+              )}
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

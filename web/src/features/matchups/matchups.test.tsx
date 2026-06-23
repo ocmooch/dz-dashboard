@@ -38,18 +38,16 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
-      is_close: false,
-      is_blowout: false,
+      flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
       winner_team_id: 10,
     },
     {
       matchup_id: 713,
       is_playoff: false,
-      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 160.4, is_winner: true },
+      team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 180.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
-      margin: 40.4,
-      is_close: false,
-      is_blowout: true,
+      margin: 60.4,
+      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" }],
       winner_team_id: 12,
     },
   ],
@@ -62,6 +60,8 @@ const BOX = {
   available: true,
   is_playoff: false,
   winner_team_id: 10,
+  margin: 5,
+  flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
   home: {
     team_id: 10,
     team_name: "Iceman 2017",
@@ -180,10 +180,12 @@ describe("MatchupsPage", () => {
     expect(screen.getByText("130.00")).toBeInTheDocument();
   });
 
-  it("shows the blowout margin badge on a lopsided game", async () => {
+  it("shows the blowout superlative flag on a lopsided game", async () => {
     renderWithProviders(<MatchupsPage />);
     await screen.findByText("Mav 2017");
-    expect(screen.getByText(/blowout/i)).toBeInTheDocument();
+    const flag = screen.getByText("Blowout");
+    expect(flag).toBeInTheDocument();
+    expect(flag.closest(".dz-flag")).toHaveClass("dz-flag--loss");
   });
 
   it("colors each side's margin with a signed winner and loser value", async () => {
@@ -252,6 +254,66 @@ describe("BoxScorePage", () => {
     expect(screen.getByText("bench")).toBeInTheDocument();
   });
 
+  it("shows the no-contest resolution banner and the Wk17+19 badge", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 555,
+          season_year: 2022,
+          week: 17,
+          available: true,
+          is_playoff: true,
+          winner_team_id: 20,
+          margin: 38.54,
+          resolution_note:
+            "The 2022 NFL Week-17 Bills@Bengals game was suspended after Damar Hamlin's " +
+            "cardiac arrest and ruled a no-contest by the NFL (never replayed).",
+          home: {
+            team_id: 20,
+            team_name: "Smokin Doubs",
+            owner_name: "Jeff",
+            total_score: 139.54,
+            starter_points: 139.54,
+            bench_points: 0,
+            optimal_total: 139.54,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            lineup: [
+              {
+                roster_slot: "QB",
+                player_id: 1,
+                player_name: "Joe Burrow",
+                position: "QB",
+                league_points: 27.34,
+                is_starter: true,
+                breakdown: { passing: 20.44, rushing: 6.9 },
+                projection: null,
+                projection_delta: null,
+                lineup_value: null,
+                available: true,
+                reason: null,
+                context_label: "Wk17+19",
+                context_detail: "Game cancelled (Hamlin no-contest).",
+                hamlin_substitute: {
+                  basis: "no_contest_wk17partial_plus_wk19",
+                  league_points: 27.34,
+                  wk17_partial: { points: 6.08, raw_stats: { passing_yards: 52 } },
+                  wk19: { points: 21.26, raw_stats: { passing_yards: 209 } },
+                },
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/555");
+    await screen.findByText("Smokin Doubs");
+    expect(screen.getByText(/no-contest resolution/i)).toBeInTheDocument();
+    expect(screen.getByText(/ruled a no-contest/i)).toBeInTheDocument();
+    expect(screen.getByText("Wk17+19")).toBeInTheDocument();
+  });
+
   it("shows an unscored-season box score as a gap, not zeros", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
@@ -278,7 +340,7 @@ describe("BoxScorePage", () => {
     );
   });
 
-  it("labels did-not-play zeroes as Out, not a data gap", async () => {
+  it("labels did-not-play zeroes as DNP unless the backend provides an Out context", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
         envelope({
@@ -313,6 +375,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "Out",
+                context_detail: "Ruled out - hamstring.",
               },
               {
                 roster_slot: "BN",
@@ -328,6 +392,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "DNP",
+                context_detail: "Team played but no stat/scored row was recorded.",
               },
             ],
           },
@@ -341,7 +407,7 @@ describe("BoxScorePage", () => {
     expect(irCells[irCells.length - 1]).toHaveTextContent("Out");
     const byeRow = screen.getByText("Bye Week Body").closest("tr")!;
     const byeCells = within(byeRow).getAllByRole("cell");
-    expect(byeCells[byeCells.length - 1]).toHaveTextContent("Out");
+    expect(byeCells[byeCells.length - 1]).toHaveTextContent("DNP");
     // Neither is the amber honesty/data-gap affordance.
     expect(screen.queryByText(/Data not available/i)).not.toBeInTheDocument();
   });
@@ -381,6 +447,25 @@ describe("BoxScorePage", () => {
     expect(screen.queryByText("miss")).not.toBeInTheDocument();
   });
 
+  it("shows one top-level note (not per-row gaps) when the season has no projections", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          season_year: 2017,
+          projections_available: false,
+          projection_reason: "projections_not_captured",
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+
+    // A single page-level note explains the blank columns…
+    expect(await screen.findByText(/Projection data isn.t available for the 2017 season/)).toBeInTheDocument();
+    // …and no per-player projection gap chip is rendered.
+    expect(screen.queryByText("Projections not captured for this season/week")).toBeNull();
+  });
+
   it("explains a 0 by context: bye / DNP label, an unexpected flag, or a bare 0", async () => {
     get.mockImplementation(() =>
       Promise.resolve(
@@ -415,6 +500,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "bye",
                 zero_detail: null,
+                context_label: "Bye",
+                context_detail: "NFL team was on bye; zero is expected.",
               },
               {
                 roster_slot: "WR",
@@ -429,6 +516,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "did_not_play",
                 zero_detail: null,
+                context_label: "DNP",
+                context_detail: "Team played but no stat/scored row was recorded.",
               },
               {
                 roster_slot: "WR",
@@ -443,6 +532,8 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: "unexpected",
                 zero_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
+                context_label: "Check",
+                context_detail: "nflverse credits 8 pts but the league scored 0 — likely a scratch.",
               },
               {
                 roster_slot: "WR",
@@ -457,6 +548,22 @@ describe("BoxScorePage", () => {
                 reason: null,
                 zero_reason: null,
                 zero_detail: null,
+              },
+              {
+                roster_slot: "RES",
+                player_id: 54,
+                player_name: "Reserve Scorer",
+                position: "WR",
+                league_points: 12.1,
+                is_starter: false,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+                context_label: "RES + pts",
+                context_detail: "Recorded in RES while also credited with points.",
               },
             ],
           },
@@ -473,12 +580,72 @@ describe("BoxScorePage", () => {
     };
 
     expect(await ptsCell("Bye Guy")).toHaveTextContent("Bye");
-    expect(await ptsCell("Scratch Guy")).toHaveTextContent("Out");
+    expect(await ptsCell("Scratch Guy")).toHaveTextContent("DNP");
     expect(await ptsCell("Mismatch Guy")).toHaveTextContent("!");
     // The clean played-0 shows a bare number with no status tag or warning.
     const clean = await ptsCell("Goose Egg");
     expect(clean).toHaveTextContent("0");
-    expect(clean).not.toHaveTextContent(/Bye|Out|!/);
+    expect(clean).not.toHaveTextContent(/Bye|DNP|Check|!/);
+    const reserve = await ptsCell("Reserve Scorer");
+    expect(reserve).toHaveTextContent("12.10");
+    const reserveRow = screen.getByText("Reserve Scorer").closest("tr")!;
+    expect(reserveRow).toHaveTextContent("RES");
+  });
+
+  it("shows one reconstruction caveat for an audit-snapshot week instead of per-player DATA badges", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 193,
+          season_year: 2025,
+          week: 1,
+          available: true,
+          is_playoff: false,
+          winner_team_id: 4,
+          home: {
+            team_id: 4,
+            team_name: "Reconstructed Squad",
+            owner_name: "Audit",
+            total_score: 100,
+            starter_points: 100,
+            bench_points: 0,
+            optimal_total: 100,
+            points_left_on_bench: 0,
+            beat_projection_by: null,
+            roster_reconstructed: true,
+            roster_reconstructed_note:
+              "Week-1 lineup is reconstructed from a roster-audit snapshot; " +
+              "player-to-team attribution and lineup slots are approximate.",
+            lineup: [
+              {
+                roster_slot: "QB",
+                player_id: 60,
+                player_name: "Drifted Starter",
+                position: "QB",
+                league_points: 20,
+                is_starter: true,
+                breakdown: {},
+                projection: null,
+                available: true,
+                reason: null,
+                zero_reason: null,
+                zero_detail: null,
+                // The backend suppresses DATA on reconstructed weeks; the row
+                // carries no context_label even though it drifts from txns.
+                context_label: null,
+                context_detail: null,
+              },
+            ],
+          },
+          away: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/193");
+
+    expect(await screen.findByText(/reconstructed from a roster-audit snapshot/i)).toBeInTheDocument();
+    // No per-player DATA badge anywhere on a reconstructed week.
+    expect(screen.queryByText("DATA")).not.toBeInTheDocument();
   });
 
   it("emphasizes the winning team's total score", async () => {
@@ -488,5 +655,14 @@ describe("BoxScorePage", () => {
     expect(winnerScore).toHaveClass("text-win");
     // The loser's total appears muted (other 125.00s are stat values, not the header).
     expect(screen.getAllByText("125.00").some((el) => el.classList.contains("text-muted"))).toBe(true);
+  });
+
+  it("shows the same superlative flags and a signed margin as the weekly grid", async () => {
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    await screen.findByText("Iceman 2017");
+    expect(screen.getByText("Nailbiter")).toBeInTheDocument();
+    // Winner +5, loser −5 beside each total.
+    expect(screen.getByText("+5.00")).toHaveClass("text-win");
+    expect(screen.getByText("-5.00")).toHaveClass("text-loss");
   });
 });

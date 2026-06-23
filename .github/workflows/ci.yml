@@ -40,6 +40,9 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          # Skip the post-job cache prune; its teardown intermittently exits 2
+          # and red-marks an otherwise-green run.
+          prune-cache: false
       - run: uv sync --extra dev
       - run: uv run ruff check
       - run: uv run ruff format --check

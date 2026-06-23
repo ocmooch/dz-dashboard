@@ -14,6 +14,7 @@ import pytest
 from ff_dashboard.analytics.league_changes import (
     RawSettingChange,
     _emit_group,
+    _emit_individual,
     classify,
     phase_for,
 )
@@ -129,6 +130,51 @@ def test_classify_splits() -> None:
     blip = classify(_raw("Chris changed Time Per Pick from '15' to '300'", year=2020))
     assert era.tier == "T2"
     assert blip.tier == "T3"
+
+
+def test_per_team_budget_change_names_the_team() -> None:
+    # The per-team FAAB budget event has no team_id — the only link is the team
+    # name in the description. The rendered title and summary must surface it so
+    # the Timeline doesn't show a generic "a team's budget" for an anomalous,
+    # team-specific event (here: Ice Station Zebra's 2022 refund).
+    c = classify(_raw("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", year=2022))
+    detail = _emit_individual(c)
+    assert "Ice Station Zebra" in detail["title"]
+    assert "Ice Station Zebra" in detail["summary"]
+    assert "39→76" in detail["summary"]
+
+
+def test_per_team_budget_change_states_verified_refund_context() -> None:
+    # The 2022 Ice Station Zebra event's reason is verified from the transaction
+    # log (a reversed Dameon Pierce claim), so the Timeline states it as fact and
+    # drops the "context not recorded" gap affordance.
+    c = classify(_raw("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", year=2022))
+    detail = _emit_individual(c)
+    assert "Dameon Pierce" in detail["summary"]
+    assert "refund" in detail["summary"].lower()
+    assert detail["missing_context"] is False
+    assert detail["certainty"] == "verified"
+
+
+def test_unknown_per_team_budget_change_keeps_the_honest_hedge() -> None:
+    # A per-team budget change with no verified context stays a documented gap.
+    c = classify(_raw("Dan changed Some Other Team Waiver Budget from '50' to '60'", year=2023))
+    detail = _emit_individual(c)
+    assert "Some Other Team" in detail["summary"]
+    assert "reason isn't recorded" in detail["summary"]
+    assert detail["missing_context"] is True
+    assert detail["certainty"] == "source_limited"
+
+
+def test_league_wide_budget_default_has_no_team_target() -> None:
+    # The league default ("changed Waiver Budget to '100'") names no team and must
+    # not be mis-parsed into a phantom target.
+    from ff_dashboard.analytics.league_changes import _budget_target
+
+    assert _budget_target("Chris changed Waiver Budget to '100'") is None
+    assert _budget_target("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'") == (
+        "Ice Station Zebra"
+    )
 
 
 def test_classify_reattributes_adjusted_points() -> None:

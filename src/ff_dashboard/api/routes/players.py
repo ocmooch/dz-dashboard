@@ -8,7 +8,6 @@ from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import (
     get_player,
     get_season_by_year,
-    top_scorers,
 )
 
 from ff_dashboard.analytics.common import require_league
@@ -19,7 +18,7 @@ from ff_dashboard.analytics.players import (
     player_insights,
     player_scoring,
 )
-from ff_dashboard.analytics.stats import season_totals
+from ff_dashboard.analytics.stats import season_totals, top_scorers
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,

@@ -29,6 +29,7 @@ from ff_dashboard.analytics.common import (
     played_season_ids,
     require_league,
 )
+from ff_dashboard.analytics.curated_events import curated_events_by_year
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
@@ -576,6 +577,14 @@ def league_timeline(session: Session) -> dict[str, Any]:
     for r in rows:
         r["changes"]["details"].extend(events_by_year.get(int(r["season_year"]), []))
 
+    # Curated narrative events (e.g. the 2022 Hamlin no-contest) have no
+    # setting-change transaction; fold them in here so they render via ChangeRow.
+    curated_by_year = curated_events_by_year(session)
+    for r in rows:
+        r["changes"]["details"].extend(curated_by_year.get(int(r["season_year"]), []))
+
+    _assign_era_ids(rows)
+
     return {
         "league": {
             "league_id": league.league_id,
@@ -610,19 +619,35 @@ def _era_label(row: dict[str, Any]) -> str:
     return " / ".join(bits)
 
 
+def _assign_era_ids(rows: list[dict[str, Any]]) -> None:
+    """Tag each season row with the id of its contiguous structural era.
+
+    An era is a maximal run of seasons sharing ``_era_key`` (size, weeks, scoring
+    provenance). This is the same grouping ``league_eras`` summarises, so the timeline
+    ``era_id`` and the ``/eras`` summaries agree by construction.
+    """
+    era_count = 0
+    previous_key: tuple[Any, ...] | None = None
+    for row in rows:
+        key = _era_key(row)
+        if era_count == 0 or key != previous_key:
+            era_count += 1
+        row["era_id"] = f"era-{era_count}"
+        previous_key = key
+
+
 def league_eras(session: Session) -> dict[str, Any]:
     """Material era changes derived from what the dashboard can prove today."""
     timeline = league_timeline(session)
     seasons = timeline["seasons"]
     eras: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
-    previous_key: tuple[Any, ...] | None = None
 
     for row in seasons:
-        key = _era_key(row)
-        if current is None or key != previous_key:
+        era_id = row["era_id"]
+        if current is None or era_id != current["era_id"]:
             current = {
-                "era_id": f"era-{len(eras) + 1}",
+                "era_id": era_id,
                 "label": _era_label(row),
                 "start_year": row["season_year"],
                 "end_year": row["season_year"],
@@ -640,7 +665,6 @@ def league_eras(session: Session) -> dict[str, Any]:
         else:
             current["end_year"] = row["season_year"]
             current["season_years"].append(row["season_year"])
-        previous_key = key
 
     changes = [
         {
