@@ -20,7 +20,35 @@ P1–P6 review fix-passes, and every post-roadmap product slice are merged to `d
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
 below) awaits the next `dev → main` promotion.
 
-**In flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
+**In flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
+*BFF (full):* new `analytics/scoring.py` centralises `authoritative_week_points()` =
+`coalesce(nfl_com_points, total_points)` + `rostered_ever()`; applied to Stats top-scorers (moved out of
+Phase-1 `queries` — no gen:api drift), season-totals, player insights, matchup monster-game flag, draft
+impact (records was already compliant). Backend 452 pass, ruff/mypy clean, FE typecheck+test green, no
+contract drift. *Upstream (offensive class, applied to the live DB):* the rules were already correct —
+the real gap was 2010–2024 raw rows missing PBP-derived long-TD keys. `danger-zone/scripts/
+backfill_long_td_bonus.py` merged them + re-scored → Vick 2010 wk10 = 63.32. Then
+`backfill_fumbles_lost.py` fixed the offensive over-count class (nflverse weekly `fumbles_lost`=0 where
+PBP shows a lost fumble → seeded -2 penalty never applied): offensive negatives 124→36. Combined
+total diverging rostered rows **2635→574** (backups `data/fantasy.db.bak-prelongtd-*`,
+`-prefumble-*`). *DST relocation join (2026-06-23, danger-zone `ea93b01`):* the schedule frame
+keeps relocated franchises' **era** codes (SD/OAK/STL) while team-stats/pbp use **current** codes
+(LAC/LV/LA), so the opponent join in `team_defense.py` silently dropped points_allowed/yards/sacks
+for those games. Fixed by folding every frame's code through `nfl_teams.canonical_franchise` +
+`scripts/backfill_dst_relocation_stats.py` re-ingest/re-score: **DST diverging 500→303**, total
+diverging rostered rows **574→368** (backup `data/fantasy.db.bak-predst-reloc-*`; Vick 63.32
+preserved). *DST missing-TD recount (2026-06-23, danger-zone `4677d10`):* nflverse's `def_tds`/
+`special_teams_tds` columns undercount real return/recovery TDs, so `team_defense.py` now recounts
+from play-by-play — `play_type` (kickoff/punt/field_goal) drives the special-teams half so
+kickoff-return TDs (which carry `td_team==posteam`) aren't dropped, `td_team!=posteam` drives the
+defensive half, and the count only ever *raises* the total. Validated on a DB copy (full re-ingest +
+rescore, row-by-row diff): **DST diverging 303→127**, the whole TD (155) + TD_or_PA (21) classes
+resolved, **0 regressions / 0 worsened**, then applied to the live DB. Remaining upstream:
+**127 DEF/DST rows** — 79 points-allowed bracket-boundary (proven false-positives; changing PA breaks
+correct rows like GB 2020 wk6, deliberately untouched) + ~48 small one-off residuals. See
+`docs/plans/bonus-scoring-fidelity.md` §Resolution addendum (2026-06-23 DST).
+
+**Prior in flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
 "Best player week" now uses authoritative `nfl_com_points` over **started** roster rows (Doug Martin
 2012 wk9, not a whole-NFL reconstruction max), and the matchup records (blowout/narrowest/highest-
 scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate green.
@@ -52,8 +80,16 @@ history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
 ## Next
 
-No open dashboard work. All remaining items are tracked in **`docs/ACTIVE_WORK.md`**; in priority
-order:
+**Planned, not started — Bonus-scoring fidelity.** Stats Top Scorers (and Home, Season Totals, player
+Insights, draft impact, monster-game flag) drift because `player_stats_scored.total_points` omits NFL.com
+scoring bonuses league-wide (Vick 2010 wk10 reads 58.32 vs the correct 63.32). Full diagnosis, owner
+decisions, and cold-start build anchors are in **`docs/plans/bonus-scoring-fidelity.md`** (the open
+validation half of F-27). Start a fresh BUILD session from that plan: step 1 is the BFF interim — move
+`top_scorers` into `analytics/stats.py` with `coalesce(nfl_com_points, total_points)` + a rostered-ever
+view filter so the canary reads 63.32. See memory `bonus-scoring-fidelity`.
+
+Otherwise, no open dashboard work. All remaining items are tracked in **`docs/ACTIVE_WORK.md`**; in
+priority order:
 
 1. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
    F-49 playoff/consolation metadata, F-27 reconstructed-scoring trust check, F-25 player-identity

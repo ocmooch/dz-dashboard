@@ -20,6 +20,7 @@ from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import _identity_cluster_members, classify_zero
+from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -266,22 +267,38 @@ def player_insights(session: Session, player_id: int) -> dict[str, Any] | None:
 
     ownership = ownership_timeline(session, player_id)
     member_ids = _identity_cluster_members(session, [player_id])[player_id]
+    # Best week / season read the authoritative bonus-inclusive league score
+    # (coalesce(nfl_com_points, total_points)) — the same number the player's box
+    # score and weekly view show — by LEFT JOINing the player's roster row for
+    # each scored week. Player-side, so a week the player was not rostered still
+    # counts as their credit, falling back to the reconstruction. See
+    # analytics/scoring.py and docs/plans/bonus-scoring-fidelity.md.
+    week_points = authoritative_week_points()
+    roster_for_week = (
+        (TeamRoster.player_id == PlayerStatsScored.player_id)
+        & (TeamRoster.week == PlayerStatsScored.week)
+        & (TeamRoster.season_year == Season.year)
+    )
     best_week_row = session.execute(
-        select(Season.year, PlayerStatsScored.week, PlayerStatsScored.total_points)
+        select(Season.year, PlayerStatsScored.week, week_points.label("points"))
+        .select_from(PlayerStatsScored)
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .outerjoin(TeamRoster, roster_for_week)
         .where(PlayerStatsScored.player_id.in_(member_ids))
-        .order_by(PlayerStatsScored.total_points.desc())
+        .order_by(week_points.desc())
         .limit(1)
     ).first()
     season_rows = session.execute(
-        select(Season.year, func.sum(PlayerStatsScored.total_points))
+        select(Season.year, func.sum(week_points))
+        .select_from(PlayerStatsScored)
         .join(Season, Season.season_id == PlayerStatsScored.season_id)
+        .outerjoin(TeamRoster, roster_for_week)
         .where(
             PlayerStatsScored.player_id.in_(member_ids),
             PlayerStatsScored.week <= Season.regular_season_weeks,
         )
         .group_by(Season.year)
-        .order_by(func.sum(PlayerStatsScored.total_points).desc())
+        .order_by(func.sum(week_points).desc())
     ).all()
     owner_rows = session.execute(
         select(Owner.owner_id, Owner.display_name, func.count())

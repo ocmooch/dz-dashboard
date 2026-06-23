@@ -262,8 +262,10 @@ def test_player_insights_endpoint(client: TestClient) -> None:
 def test_top_scorers_and_season_totals(client: TestClient) -> None:
     top = _envelope(client.get("/v1/stats/top-scorers?season=2016"))
     assert top["scorers"][0]["points"] == 30.0  # McCaffrey wk1
+    # Jefferson's 58.0 is the top scored line but he is never rostered; the
+    # rostered-ever leaderboard is led by McCaffrey (42.0, weeks 1-2).
     totals = _envelope(client.get("/v1/stats/season-totals?season=2017"))
-    assert totals["totals"][0]["total_points"] == 58.0  # Jefferson
+    assert totals["totals"][0]["total_points"] == 42.0  # McCaffrey
 
 
 def test_player_not_found(client: TestClient) -> None:

@@ -589,6 +589,24 @@ def _populate(session: Session) -> None:
                 acquisition_type="draft",
                 acquisition_week=1,
             ),
+            # Relocation Reggie is a *rostered* league player (so the rostered-ever
+            # leaderboards include him and the season-era team fold has a subject),
+            # benched here so he holds no started record. His ``nfl_com_points``
+            # (10.0) diverges from the reconstruction's 6.0 for this week: the
+            # bonus-scoring canary that proves Top Scorers / Season Totals read the
+            # authoritative coalesce, not raw ``total_points``. See
+            # docs/plans/bonus-scoring-fidelity.md.
+            TeamRoster(
+                team_id=team_id[(2017, "mav")],
+                player_id=pid["raider"],
+                season_year=2017,
+                week=1,
+                roster_slot="BN",
+                is_starter=False,
+                acquisition_type="waiver",
+                acquisition_week=1,
+                extra_data={"nfl_com_points": 10.0},
+            ),
             TeamRoster(
                 team_id=team_id[(2016, "mav")],
                 player_id=pid["dst"],
