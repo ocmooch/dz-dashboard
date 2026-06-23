@@ -259,38 +259,39 @@ def classify(raw: RawSettingChange) -> ClassifiedChange:
         tier, treatment = "T1", "STATE"
     elif canonical == "playoff_settings":  # (#3)
         tier, treatment = "T1", "PASS"
-    elif canonical == "playoff_teams":  # (#4) field size not derivable
-        tier, treatment = "T2", "MISSING"
+    elif canonical == "playoff_teams":  # (#4) field size not derivable -> routine
+        # "Updated playoff teams" recurs almost every season with no recoverable
+        # detail; it is noise, not a notable change. Fold into the routine bucket.
+        tier, treatment = "T3", "COLLAPSE"
     elif canonical in {"waiver_type", "waiver_budget_league"}:  # (#5) FAAB switch
         tier, treatment, group = "T1", "MERGE", f"faab-{raw.year}"
-    elif canonical == "waiver_period":  # (#6)
-        tier, treatment = "T2", "PASS"
+    elif canonical == "waiver_period":  # (#6) minor waiver-window tweak -> routine
+        tier, treatment = "T3", "COLLAPSE"
     elif canonical == "trade_review_type":  # (#7) SPLIT by era
         if raw.year <= 2011:
             tier, treatment = "T2", "PASS"
         else:
             tier, treatment = "T3", "COLLAPSE"  # 2023-25 annual re-confirm
-    elif canonical == "trade_reject_time":  # (#9)
-        tier, treatment = "T2", "PASS"
+    elif canonical == "trade_reject_time":  # (#9) minor window tweak -> routine
+        tier, treatment = "T3", "COLLAPSE"
     elif canonical == "trade_deadline":  # (#8) SPLIT
         if (before or "").strip().lower() == "no deadline":
-            tier, treatment = "T1", "PASS"  # 2019 first-ever deadline
+            tier, treatment = "T2", "PASS"  # 2019 first-ever deadline: notable, not major
         else:
             tier, treatment = "T3", "COLLAPSE"  # 2011 net-zero shuffle
-    elif canonical in {"fee", "standings_tiebreaker", "post_draft_players", "undroppable_list"}:
-        # #10 entry fee · #11 tiebreaker · #12/#13 originating standards — flat T2 PASS
+    elif canonical in {"fee", "standings_tiebreaker"}:
+        # #10 entry fee · #11 tiebreaker — genuine, outcome-relevant settings (T2)
         tier, treatment = "T2", "PASS"
-    elif canonical == "time_per_pick":  # (#18) SPLIT: era vs reverted blip
-        if (after or "") in {"300", "90"}:
-            tier, treatment = "T3", "COLLAPSE"
-        else:
-            tier, treatment = "T2", "PASS"
-    elif canonical == "draft_board":  # (#20) ambiguous
-        tier, treatment = "T2", "MISSING"
+    elif canonical in {"post_draft_players", "undroppable_list"}:
+        # #12/#13 originating standards — set-and-forget defaults -> routine
+        tier, treatment = "T3", "COLLAPSE"
+    elif canonical in {"time_per_pick", "draft_board"}:
+        # #18 draft-clock logistics · #20 ambiguous/unrecoverable -> routine bucket
+        tier, treatment = "T3", "COLLAPSE"
     elif canonical == "schedule_week_edit":  # (#21) aggregate -> T2
         tier, treatment, group = "T2", "AGG", f"sched-{raw.year}-{day}"
-    elif canonical == "division_assignment":  # (#22) aggregate -> T1
-        tier, treatment, group = "T1", "AGG", f"div-{raw.year}-{day}"
+    elif canonical == "division_assignment":  # (#22) aggregate -> T2 (notable, not major)
+        tier, treatment, group = "T2", "AGG", f"div-{raw.year}-{day}"
     elif canonical in {"logo_lock", "lineup_lock"}:  # (#25) aggregate -> T2
         tier, treatment, group = "T2", "AGG", f"punish-{raw.year}"
     elif canonical == "waiver_priority":  # (#26) aggregate same-day; small=routine
@@ -541,7 +542,7 @@ def _emit_group(
                 head,
                 title="Division realignment",
                 summary=summary,
-                tier="T1",
+                tier="T2",
                 certainty="verified",
                 members=members,
             ),

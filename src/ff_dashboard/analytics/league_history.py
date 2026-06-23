@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import (
@@ -34,7 +35,11 @@ from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
 )
-from ff_dashboard.analytics.league_changes import setting_change_events
+from ff_dashboard.analytics.league_changes import (
+    _load_raw,
+    classify,
+    setting_change_events,
+)
 
 # Tier for state-table-derived changes (the setting_change classifier sets its own).
 _CATEGORY_TIER: dict[str, str] = {
@@ -47,7 +52,7 @@ _CATEGORY_TIER: dict[str, str] = {
     "schedule": "T2",
     "standings": "T2",
     "waiver": "T2",
-    "participants": "T2",
+    "participants": "T1",  # a manager joining/leaving is a major event in a 12-team league
 }
 
 if TYPE_CHECKING:
@@ -457,6 +462,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
     scoring_rules = _scoring_rules_by_season(session)
     roster_sigs = _roster_signatures(session)
     active_owner_sets = _active_owner_sets(session)
+    waiver_systems = _waiver_systems(session, [int(s.year) for s in seasons])
 
     rows: list[dict[str, Any]] = []
     previous: dict[str, Any] | None = None
@@ -555,6 +561,12 @@ def league_timeline(session: Session) -> dict[str, Any]:
             "schedule_source": "scraped"
             if reg_weeks is not None or playoff_weeks is not None
             else "unavailable",
+            # Playstyle fingerprint (drives era boundaries; not part of the API shape).
+            "ppr_reception_value": _reception_value(scoring_rules.get(int(season.season_id), {})),
+            "lineup_flex": _flex_label(
+                roster_sigs.get(int(season.year), {}).get("starters", Counter())
+            ),
+            "waiver_system": waiver_systems.get(int(season.year)),
             **source,
             "changes": changes,
         }
@@ -598,32 +610,133 @@ def league_timeline(session: Session) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Playstyle fingerprint — per-season state for the rules that define how the game
+# is played. Used to cut the league's history into eras (see ``_era_key``).
+# ---------------------------------------------------------------------------
+def _reception_value(rules: dict[tuple[Any, ...], ScoringRule]) -> float | None:
+    """Points per reception (PPR) for a season, or None when not recorded."""
+    for rule in rules.values():
+        if rule.stat_key == "receptions" and rule.points_per_unit is not None and rule.unit_size:
+            return rule.points_per_unit / rule.unit_size
+    return None
+
+
+def _ppr_label(value: float | None) -> str | None:
+    if value is None:
+        return None
+    if abs(value - 1.0) < 1e-6:
+        return "Full PPR"
+    if abs(value - 0.5) < 1e-6:
+        return "Half PPR"
+    if value == 0:
+        return "Non-PPR"
+    return f"{value:g} PPR"
+
+
+def _flex_label(starters: Counter[str]) -> str | None:
+    """The starting-lineup's flex character — the salient lineup playstyle trait."""
+    if not starters:
+        return None
+    if starters.get("R/W/T"):
+        return "RB/WR/TE flex"
+    if starters.get("W/R"):
+        return "WR/RB flex"
+    return "No flex"
+
+
+def _waiver_class(value: str | None) -> str | None:
+    """Map a raw NFL.com waiver-type value to a durable system label."""
+    if not value:
+        return None
+    return "FAAB budget" if "budget" in value.lower() else "Standings-order waivers"
+
+
+def _waiver_systems(session: Session, years: list[int]) -> dict[int, str]:
+    """Per-season waiver system, reconstructed by carrying the last setting forward.
+
+    Only ``waiver_type`` transitions move the state; the value *before* the first
+    transition seeds the earlier seasons (the DB records what it was), so nothing
+    is invented. Years with no recoverable state are omitted.
+    """
+    events: list[tuple[int, datetime | None, str | None, str | None]] = []
+    for raw in _load_raw(session):
+        c = classify(raw)
+        if c.canonical_type == "waiver_type":
+            events.append((raw.year, raw.executed_at, c.before, c.after))
+    if not events:
+        return {}
+    events.sort(key=lambda e: (e[0], e[1] or datetime.min))
+    # Seed pre-history from the first transition's "before" value (the DB records it).
+    current = _waiver_class(events[0][2])
+    transitions = {year: _waiver_class(after) for year, _at, _before, after in events}
+    out: dict[int, str] = {}
+    for year in sorted(years):
+        if transitions.get(year):
+            current = transitions[year]
+        if current is not None:
+            out[year] = current
+    return out
+
+
+# An era is defined by *playstyle*, not bookkeeping: the few highly-significant
+# rules that change how the game is actually played — reception scoring (PPR), the
+# starting-lineup flex, and the waiver system. An era is a maximal run of seasons
+# sharing that fingerprint, so every boundary marks a real shift (PPR doubling, the
+# FLEX appearing, the move to FAAB). Each trait is per-season state proven from the
+# DB; a dimension we can't prove is left out of the label, never guessed.
 def _era_key(row: dict[str, Any]) -> tuple[Any, ...]:
     return (
-        row["league_size"],
-        row["regular_season_weeks"],
-        row["playoff_weeks"],
-        row["scoring_provenance"],
-        row["is_scored"],
+        _ppr_label(row.get("ppr_reception_value")),
+        row.get("lineup_flex"),
+        row.get("waiver_system"),
     )
 
 
+def _era_traits(row: dict[str, Any]) -> list[str]:
+    """The era's defining traits, most-salient first, omitting any we can't prove."""
+    bits: list[str] = []
+    ppr = _ppr_label(row.get("ppr_reception_value"))
+    if ppr:
+        bits.append(ppr)
+    if row.get("lineup_flex"):
+        bits.append(row["lineup_flex"])
+    if row.get("waiver_system"):
+        bits.append(row["waiver_system"])
+    return bits
+
+
 def _era_label(row: dict[str, Any]) -> str:
-    bits = [f"{row['league_size']}-team league"]
-    if row["regular_season_weeks"]:
-        bits.append(f"{row['regular_season_weeks']}-week regular season")
-    if row["is_scored"]:
-        bits.append("reconstructed player-scoring era")
-    else:
-        bits.append("team-total-only era")
-    return " / ".join(bits)
+    traits = _era_traits(row)
+    return " · ".join(traits) if traits else f"{row['league_size']}-team league"
+
+
+def _era_defining_change(row: dict[str, Any], previous: dict[str, Any] | None) -> str:
+    """One line naming what shifted at this era's boundary versus the prior era."""
+    if previous is None:
+        return "Earliest recorded ruleset"
+    bits: list[str] = []
+    cur_ppr, prev_ppr = (
+        _ppr_label(row.get("ppr_reception_value")),
+        _ppr_label(previous.get("ppr_reception_value")),
+    )
+    if cur_ppr and cur_ppr != prev_ppr:
+        bits.append(f"{cur_ppr} scoring")
+    if row.get("lineup_flex") and row.get("lineup_flex") != previous.get("lineup_flex"):
+        bits.append(str(row["lineup_flex"]))
+    if row.get("waiver_system") and row.get("waiver_system") != previous.get("waiver_system"):
+        bits.append(str(row["waiver_system"]))
+    if not bits:
+        return "Settings refined"
+    text = "; ".join(bits)
+    return text[:1].upper() + text[1:]
 
 
 def _assign_era_ids(rows: list[dict[str, Any]]) -> None:
-    """Tag each season row with the id of its contiguous structural era.
+    """Tag each season row with the id of its contiguous playstyle era.
 
-    An era is a maximal run of seasons sharing ``_era_key`` (size, weeks, scoring
-    provenance). This is the same grouping ``league_eras`` summarises, so the timeline
+    An era is a maximal run of seasons sharing ``_era_key`` (PPR, flex, waivers).
+    This is the same grouping ``league_eras`` summarises, so the timeline
     ``era_id`` and the ``/eras`` summaries agree by construction.
     """
     era_count = 0
@@ -637,11 +750,12 @@ def _assign_era_ids(rows: list[dict[str, Any]]) -> None:
 
 
 def league_eras(session: Session) -> dict[str, Any]:
-    """Material era changes derived from what the dashboard can prove today."""
+    """Playstyle eras derived from the highly-significant rules the dashboard can prove."""
     timeline = league_timeline(session)
     seasons = timeline["seasons"]
     eras: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
+    previous_row: dict[str, Any] | None = None
 
     for row in seasons:
         era_id = row["era_id"]
@@ -649,9 +763,13 @@ def league_eras(session: Session) -> dict[str, Any]:
             current = {
                 "era_id": era_id,
                 "label": _era_label(row),
+                "defining_change": _era_defining_change(row, previous_row),
                 "start_year": row["season_year"],
                 "end_year": row["season_year"],
                 "season_years": [row["season_year"]],
+                "ppr": _ppr_label(row.get("ppr_reception_value")),
+                "lineup": row.get("lineup_flex"),
+                "waiver_system": row.get("waiver_system"),
                 "league_size": row["league_size"],
                 "regular_season_weeks": row["regular_season_weeks"],
                 "playoff_weeks": row["playoff_weeks"],
@@ -662,6 +780,7 @@ def league_eras(session: Session) -> dict[str, Any]:
                 else "unavailable",
             }
             eras.append(current)
+            previous_row = row
         else:
             current["end_year"] = row["season_year"]
             current["season_years"].append(row["season_year"])
