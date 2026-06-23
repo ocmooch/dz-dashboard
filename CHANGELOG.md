@@ -4,6 +4,20 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-23 — Release v0.3.0 (dev → main promotion)
+
+- **Version bumped `0.2.0` → `0.3.0`** (`pyproject.toml`, `web/package.json` + lock) and `dev`
+  promoted to `main`, tagged `v0.3.0`. Minor bump: a large batch of new features since `v0.2.0`, no
+  breaking changes (pre-1.0).
+- **What landed since the last release (PRs #72–#100):** the Data Integrity & Coverage program
+  (#77–#81), matchup superlative flags + source player-identity integrity + BFF-owned weekly division
+  standings (#82–#84), the draft suite — genuine-zero classification, draft-impact composite,
+  integrity follow-up, query perf, position taxonomy (#85–#89), the FAAB suite — bid capture +
+  remaining-budget view (#90–#93), the 2022 Hamlin no-contest championship resolution (#94, #97),
+  docs/state reconciliation (#95), Records-book accuracy & attribution (#96), and the **bonus-scoring
+  fidelity** stack — BFF `authoritative_week_points()` coalesce layer (#99) — with its upstream data
+  fixes landing in `danger-zone` v1.6.0, plus the box-score visual-baseline refresh (#100).
+
 ## 2026-06-22 — Records-book accuracy & attribution (feature/records-accuracy)
 
 - **Corrected "Best player week."** It took the global `player_stats_scored` max, which (a) ranged

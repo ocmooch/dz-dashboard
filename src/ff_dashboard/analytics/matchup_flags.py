@@ -29,6 +29,8 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, TeamRoster
 from sqlalchemy import select
 
+from ff_dashboard.analytics.scoring import authoritative_week_points
+
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
@@ -82,13 +84,18 @@ def _top_starter_weeks(
     session: Session, season_id: int, season_year: int, n: int = MONSTER_TOP_N
 ) -> list[dict[str, Any]]:
     """The season's top-N individual *starter* player-weeks, each tied to the
-    fantasy team that started the player (so a flag can attach to a side)."""
+    fantasy team that started the player (so a flag can attach to a side).
+
+    Scored as ``coalesce(nfl_com_points, total_points)`` so a record-setting week
+    reflects the NFL.com bonuses the reconstruction omits — the same authoritative
+    score the box score and records book use (see analytics/scoring.py)."""
+    points = authoritative_week_points()
     rows = session.execute(
         select(
             TeamRoster.team_id,
             TeamRoster.week,
             Player.name_full,
-            PlayerStatsScored.total_points,
+            points.label("points"),
         )
         .select_from(PlayerStatsScored)
         .join(
@@ -100,10 +107,10 @@ def _top_starter_weeks(
         .join(Player, Player.player_id == PlayerStatsScored.player_id)
         .where(
             PlayerStatsScored.season_id == season_id,
-            PlayerStatsScored.total_points.is_not(None),
+            points.is_not(None),
             TeamRoster.is_starter.is_(True),
         )
-        .order_by(PlayerStatsScored.total_points.desc())
+        .order_by(points.desc())
         .limit(n)
     ).all()
     return [
@@ -111,7 +118,7 @@ def _top_starter_weeks(
             "team_id": int(r.team_id),
             "week": int(r.week),
             "player_name": r.name_full,
-            "points": round(float(r.total_points), 2),
+            "points": round(float(r.points), 2),
         }
         for r in rows
     ]
