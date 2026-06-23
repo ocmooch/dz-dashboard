@@ -52,8 +52,16 @@ history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
 ## Next
 
-No open dashboard work. All remaining items are tracked in **`docs/ACTIVE_WORK.md`**; in priority
-order:
+**Planned, not started — Bonus-scoring fidelity.** Stats Top Scorers (and Home, Season Totals, player
+Insights, draft impact, monster-game flag) drift because `player_stats_scored.total_points` omits NFL.com
+scoring bonuses league-wide (Vick 2010 wk10 reads 58.32 vs the correct 63.32). Full diagnosis, owner
+decisions, and cold-start build anchors are in **`docs/plans/bonus-scoring-fidelity.md`** (the open
+validation half of F-27). Start a fresh BUILD session from that plan: step 1 is the BFF interim — move
+`top_scorers` into `analytics/stats.py` with `coalesce(nfl_com_points, total_points)` + a rostered-ever
+view filter so the canary reads 63.32. See memory `bonus-scoring-fidelity`.
+
+Otherwise, no open dashboard work. All remaining items are tracked in **`docs/ACTIVE_WORK.md`**; in
+priority order:
 
 1. **The UP (upstream / `../danger-zone`) program** — Phase-1 data/research, not dashboard PRs:
    F-49 playoff/consolation metadata, F-27 reconstructed-scoring trust check, F-25 player-identity
