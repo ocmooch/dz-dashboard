@@ -20,7 +20,22 @@ P1–P6 review fix-passes, and every post-roadmap product slice are merged to `d
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
 below) awaits the next `dev → main` promotion.
 
-**In flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
+**In flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
+*BFF (full):* new `analytics/scoring.py` centralises `authoritative_week_points()` =
+`coalesce(nfl_com_points, total_points)` + `rostered_ever()`; applied to Stats top-scorers (moved out of
+Phase-1 `queries` — no gen:api drift), season-totals, player insights, matchup monster-game flag, draft
+impact (records was already compliant). Backend 452 pass, ruff/mypy clean, FE typecheck+test green, no
+contract drift. *Upstream (offensive class, applied to the live DB):* the rules were already correct —
+the real gap was 2010–2024 raw rows missing PBP-derived long-TD keys. `danger-zone/scripts/
+backfill_long_td_bonus.py` merged them + re-scored → Vick 2010 wk10 = 63.32. Then
+`backfill_fumbles_lost.py` fixed the offensive over-count class (nflverse weekly `fumbles_lost`=0 where
+PBP shows a lost fumble → seeded -2 penalty never applied): offensive negatives 124→36. Combined
+total diverging rostered rows **2635→574** (backups `data/fantasy.db.bak-prelongtd-*`,
+`-prefumble-*`). Remaining upstream: ~500 DEF/DST rows — the deep dst-yards-sacks gap (D/ST TD
+undercount needs per-play classification; yards/PA relocation join failures). See
+`docs/plans/bonus-scoring-fidelity.md` §Resolution.
+
+**Prior in flight:** `feature/records-accuracy` — corrects the Records book against the post-fidelity data.
 "Best player week" now uses authoritative `nfl_com_points` over **started** roster rows (Doug Martin
 2012 wk9, not a whole-NFL reconstruction max), and the matchup records (blowout/narrowest/highest-
 scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate green.

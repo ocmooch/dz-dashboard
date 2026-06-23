@@ -58,6 +58,7 @@ from sqlalchemy import distinct, func, select
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import BENCH_SLOTS, IR_SLOTS, _identity_cluster_members
+from ff_dashboard.analytics.scoring import authoritative_week_points
 from ff_dashboard.analytics.weighting import positional_weight, weighted_impact
 
 if TYPE_CHECKING:
@@ -166,11 +167,23 @@ def _season_points(
     if cluster_members is None:
         cluster_members = _identity_cluster_members(session, sorted(player_ids))
     lookup_ids = sorted({member for members in cluster_members.values() for member in members})
+    # Score each week as coalesce(nfl_com_points, total_points) so pick value is
+    # measured against the same bonus-inclusive points the box score and records
+    # book show (the reconstruction omits NFL.com bonuses). At most one roster row
+    # per (player, season_year, week), so the LEFT JOIN stays exact. See
+    # analytics/scoring.py and docs/plans/bonus-scoring-fidelity.md.
+    points = authoritative_week_points()
     rows = session.execute(
         select(
             PlayerStatsScored.player_id,
             PlayerStatsScored.week,
-            func.sum(PlayerStatsScored.total_points),
+            func.sum(points),
+        )
+        .outerjoin(
+            TeamRoster,
+            (TeamRoster.player_id == PlayerStatsScored.player_id)
+            & (TeamRoster.week == PlayerStatsScored.week)
+            & (TeamRoster.season_year == season.year),
         )
         .where(
             PlayerStatsScored.season_id == season.season_id,

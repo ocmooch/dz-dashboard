@@ -1,6 +1,8 @@
 # Plan — Bonus-scoring fidelity (the `total_points` drift)
 
-**Status:** plan / awaiting build go-ahead
+**Status:** BUILT 2026-06-23 — BFF interim shipped in full; upstream offensive long-TD class re-scored
+on the live DB. See the **Resolution** section at the bottom. DST + negative-delta classes remain
+(separate, pre-existing).
 **Trigger:** 2010 Stats → Top Scorers showed Mike Vick wk10 = **58.32**, but the matchup page,
 his player page, and NFL.com all show **63.32**. Investigation found a league-wide, every-season
 drift, not a 2010 quirk.
@@ -144,3 +146,65 @@ Stats coverage: `tests/test_fixp1_stats.py` (extend; add a `top_scorers` case as
   players are absent.
 - Green gate; click-through on Stats, a player page, a matchup; `PROGRESS.md` updated.
 - F-27 / config-ledger entry updated with the seed-bonus-rules + re-score + 0.1 validation gate.
+
+---
+
+## Resolution (2026-06-23)
+
+**BFF interim (3b) — shipped in full.** New `analytics/scoring.py` centralises
+`authoritative_week_points()` = `coalesce(nfl_com_points, total_points)` and `rostered_ever()`
+(= `Player.last_rostered_season IS NOT NULL`, the league-relevance signal). Applied to:
+`stats.top_scorers` (moved out of Phase-1 `queries`, coalesce + rostered-ever, dict keys unchanged so
+**no gen:api drift**), `stats.season_totals` (per-week coalesce + rostered-ever), `players.player_insights`
+(best week/season coalesce), `matchup_flags._top_starter_weeks` (monster-game coalesce), `draft._season_points`
+(pick-value coalesce). `records.best_player_week` was already compliant. Fixture canary added (Relocation
+Reggie 2017 wk1 `nfl_com_points` 10.0 vs raw 6.0); Jefferson/Lamar (never-rostered) are the exclusion
+cases. Backend 452 pass, ruff/mypy clean, FE typecheck+test green, contract drift = none. Live-DB canary
+via the endpoint: Vick 2010 wk10 = **63.32**.
+
+**Upstream (3a) — refined diagnosis + offensive fix applied.** The plan's premise ("seed missing bonus
+rules") was wrong: `scoring_rules` already carry every bonus (yardage milestones **and** long-TD tiers
+40=+1 / 50=+3, stacking) and the engine applies them; yardage bonuses already sit inside the category
+totals. The real gap was **data, not rules** — historical `player_stats_raw` (2010–2024) predates the
+crawler's PBP long-TD merge, so it lacked the `*_bonus_long_td_*` keys and the long-TD rules scored 0.
+`danger-zone/scripts/backfill_long_td_bonus.py` derives the counts from nflverse PBP and merges them into
+the offensive raw rows (game facts only — no points written to raw), then re-scores. Result on the live
+DB: Vick wk10 → 63.32; offensive positive divergence **2015 → 28** rows; total diverging rostered rows
+**2635 → 652**. Backup: `danger-zone/data/fantasy.db.bak-prelongtd-*`.
+
+**Still open (separate, pre-existing — were never long-TD):**
+- **~500 DEF/DST rows** — the `dst-yards-sacks-pipeline-gap`: `total_yards_allowed` is missing/wrong from
+  the nflverse team-defense source, so the (already-seeded) DST bracket bonuses can't score. Needs an
+  upstream team-defense source fix.
+- **~120 offensive negative-delta over-counts** — reconstruction > NFL.com (stat-source discrepancy); the
+  brief's "secondary finding". Needs a root-cause pass, not bonus addition.
+
+These two block the full `|Δ| ≤ 0.1` gate across all 46,521 rostered rows. The BFF coalesce keeps every
+displayed number correct in the meantime (it prefers `nfl_com_points` for the still-divergent DST rows).
+
+---
+
+## Resolution addendum (2026-06-23) — offensive negative-delta fixed; DST diagnosed
+
+**Offensive negative-delta (over-count) — RESOLVED.** Root cause: nflverse *weekly*
+`fumbles_lost` reads 0 for many players who actually lost a fumble, so the (already-seeded)
+`fumbles_lost = -2` penalty never applied — ~97 of ~120 offensive over-counts were exactly
+-2.00 = one un-penalised fumble. PBP carries the lost fumble. `danger-zone/scripts/
+backfill_fumbles_lost.py` derives the per-(player, week) count from PBP and raises
+`fumbles_lost` toward it (only ever raises → never breaks a correct row), then re-scores.
+Live DB: offensive negative divergence **124 → 36** (0 rows newly broken; validated on a copy
+first). Backup `data/fantasy.db.bak-prefumble-*`. Combined with the long-TD fix, total diverging
+rostered rows are now **2635 → 574**.
+
+**DST/DEF (~500 rows) — diagnosed, deferred as the deep gap.** The current team-defense build
+already extracts everything nflverse's team aggregates offer (a fresh rebuild reproduces the
+stored stats exactly), so the divergence is genuine source-data shortfall, not stale raw:
+- **D/ST TD undercount** (~the +6 class): nflverse `def_tds`/`special_teams_tds` miss some
+  scores NFL.com credits. A naive PBP recount (`touchdown==1 AND td_team==defteam`) fixes ~100
+  rows but **breaks 45 currently-correct rows** — return/recovery TDs need careful per-play
+  classification, so this is not a safe quick win.
+- **Missing `total_yards_allowed` / `points_allowed`**: opponent/schedule join failures,
+  concentrated on relocations (OAK/SD/STL), plus the net-of-sacks yards definition.
+
+These remain the `dst-yards-sacks-pipeline-gap` (tracked). The BFF coalesce keeps every displayed
+DST number correct (it prefers `nfl_com_points` for the still-divergent rows).

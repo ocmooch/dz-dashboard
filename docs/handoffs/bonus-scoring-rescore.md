@@ -1,5 +1,17 @@
 # Handoff — danger-zone: seed per-season bonus rules + re-score (F-27 validation half)
 
+> **UPDATE 2026-06-23 — premise corrected; offensive class resolved.** The rules were **already
+> seeded** (yardage milestones *and* long-TD tiers 40=+1/50=+3 stacking) and the engine applies
+> them; the "0 bonus rows" signal was false (bonuses fold into the category totals, there is no
+> literal `bonus` key). The real gap was **data**: 2010–2024 `player_stats_raw` predates the
+> crawler's PBP long-TD merge, so it lacked the `*_bonus_long_td_*` keys and those rules scored 0
+> (2025, crawled later, was already clean — the control). Fixed via
+> `scripts/backfill_long_td_bonus.py` (derive long-TD counts from PBP → merge into offensive raw →
+> re-score). Live DB: Vick 2010 wk10 → 63.32; offensive positive divergence 2015→28; total diverging
+> rostered rows 2635→652. **Still open** (separate, not long-TD): ~500 DEF/DST rows (the
+> `dst-yards-sacks-pipeline-gap` — `total_yards_allowed` missing/wrong upstream) and ~120 offensive
+> negative-delta over-counts (Step ⚠ below). Sections 1–5 below are the original (pre-correction) brief.
+
 **Audience:** ff-pipeline (`../danger-zone`) work. **Authored from:** dz-dashboard investigation
 2026-06-22. **Companion:** `dz-dashboard/docs/plans/bonus-scoring-fidelity.md` (the dashboard half +
 shared diagnosis). **Tracks:** F-27 (reconstructed-scoring trust check) + the per-season config ledger.
