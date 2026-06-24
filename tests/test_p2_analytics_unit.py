@@ -10,6 +10,7 @@ from sqlalchemy import select
 from ff_dashboard.analytics.bracket import (
     _connected_components,
     _order_components,
+    postseason_classification,
     season_bracket,
 )
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
@@ -167,6 +168,36 @@ def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
     assert data["reason"] == "bracket_unavailable"
     assert data["playoff_bracket"] is None
     assert data["consolation_bracket"] is None
+
+
+def test_postseason_classification_tags_championship_and_sacko(session: Session) -> None:
+    c = postseason_classification(session, KNOWN["season_id"][2015])
+    assert c["consolation_distinguished"] is True
+
+    # Championship game = the playoff-half final won by the recorded champion (Slider).
+    champ_mid = c["championship_matchup_id"]
+    assert champ_mid is not None
+    assert c["by_matchup_id"][champ_mid]["tier"] == "championship"
+    assert c["by_matchup_id"][champ_mid]["game_label"] == "Championship"
+
+    # The toilet-bowl loser (Iceman) is the Sacko, derived from the consolation final.
+    sacko = c["sacko"]
+    assert sacko is not None
+    assert sacko["source"] == "derived"
+    assert sacko["team_id"] == KNOWN["team_id"][(2015, "ice")]
+
+    # Every consolation matchup is tagged consolation, never championship/playoff.
+    consol_tiers = {
+        e["tier"] for mid, e in c["by_matchup_id"].items() if e["tier"] == "consolation"
+    }
+    assert consol_tiers == {"consolation"}
+
+
+def test_postseason_classification_empty_when_no_postseason(session: Session) -> None:
+    c = postseason_classification(session, KNOWN["season_id"][2016])
+    assert c["consolation_distinguished"] is False
+    assert c["by_matchup_id"] == {}
+    assert c["championship_matchup_id"] is None
 
 
 # --- Owners ----------------------------------------------------------------

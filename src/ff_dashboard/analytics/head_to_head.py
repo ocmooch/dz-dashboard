@@ -16,6 +16,11 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Season
 from sqlalchemy import select
 
+from ff_dashboard.analytics.bracket import (
+    TIER_CHAMPIONSHIP,
+    TIER_CONSOLATION,
+    postseason_classification,
+)
 from ff_dashboard.analytics.common import owner_active_map, owner_name_map, team_owner_map
 
 if TYPE_CHECKING:
@@ -31,7 +36,10 @@ def _blank_pair() -> dict[str, Any]:
         "high_wins": 0,
         "ties": 0,
         "low_margin_total": 0.0,  # signed margin from the lower-id owner's view
+        # ``playoff_meetings`` counts **true** (non-consolation) playoff games only;
+        # consolation/"toilet" games are tracked separately and never inflate it.
         "playoff_meetings": 0,
+        "consolation_meetings": 0,
         "meetings": [],
     }
 
@@ -45,6 +53,21 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
     }
 
     pairs: dict[Pair, dict[str, Any]] = {}
+    # One postseason classification per season, shared across every meeting so
+    # consolation games stop counting as true playoff meetings (the bracket split
+    # lives in bracket.py; see postseason_classification).
+    class_cache: dict[int, dict[str, Any]] = {}
+
+    def tier_for(m: Matchup) -> str | None:
+        if not m.is_playoff:
+            return None
+        cls = class_cache.get(m.season_id)
+        if cls is None:
+            cls = postseason_classification(session, m.season_id)
+            class_cache[m.season_id] = cls
+        entry = cls["by_matchup_id"].get(m.matchup_id)
+        return entry["tier"] if entry is not None else None
+
     rows = (
         session.execute(select(Matchup).where(Matchup.opponent_team_id.is_not(None)))
         .scalars()
@@ -72,8 +95,17 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
             agg["high_wins"] += 1
         else:
             agg["ties"] += 1
-        if m.is_playoff:
+        tier = tier_for(m)
+        is_consolation = tier == TIER_CONSOLATION
+        is_championship = tier == TIER_CHAMPIONSHIP
+        # True playoff = a postseason game that is not consolation. Where the bracket
+        # can't be distinguished (tier is None) we keep the prior behaviour rather
+        # than guess — an indistinguishable game still counts as playoff.
+        is_true_playoff = bool(m.is_playoff) and not is_consolation
+        if is_true_playoff:
             agg["playoff_meetings"] += 1
+        if is_consolation:
+            agg["consolation_meetings"] += 1
         agg["meetings"].append(
             {
                 "matchup_id": m.matchup_id,
@@ -84,6 +116,10 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
                 "high_score": m.opponent_score,
                 "low_margin": margin,
                 "is_playoff": m.is_playoff,
+                "bracket_tier": tier,
+                "is_true_playoff": is_true_playoff,
+                "is_championship": is_championship,
+                "is_consolation": is_consolation,
             }
         )
     return pairs

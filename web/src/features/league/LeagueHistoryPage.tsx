@@ -408,8 +408,9 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
 }
 
 function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
-  const { champion, runner_up, last_place } = season;
-  if (!champion && !runner_up && !last_place) return <DataGap reason="champion_unavailable" />;
+  const { champion, runner_up, last_place, sacko } = season;
+  if (!champion && !runner_up && !last_place && !sacko)
+    return <DataGap reason="champion_unavailable" />;
 
   return (
     <div className="flex flex-wrap items-start gap-3">
@@ -420,7 +421,7 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
           avatarUrl={teamAvatarUrl(champion.team_id)}
         />
       )}
-      {(runner_up || last_place) && (
+      {(runner_up || last_place || sacko) && (
         <div className="flex flex-col gap-1.5 self-center">
           {runner_up && (
             <div className="flex items-center gap-2">
@@ -432,15 +433,33 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
               </span>
             </div>
           )}
-          {last_place && (
-            <div className="flex items-center gap-2">
+          {sacko ? (
+            <div
+              className="flex items-center gap-2"
+              title={
+                sacko.source === "recorded"
+                  ? "Recorded last-place team (bracket could not be split)"
+                  : "Toilet-bowl loser"
+              }
+            >
               <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                Last place
+                Sacko 💩
               </span>
               <span className="text-[var(--fs-xs)] font-medium text-muted">
-                {last_place.team_name ?? last_place.owner_name}
+                {sacko.team_name ?? sacko.owner_name}
               </span>
             </div>
+          ) : (
+            last_place && (
+              <div className="flex items-center gap-2">
+                <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                  Last place
+                </span>
+                <span className="text-[var(--fs-xs)] font-medium text-muted">
+                  {last_place.team_name ?? last_place.owner_name}
+                </span>
+              </div>
+            )
           )}
         </div>
       )}

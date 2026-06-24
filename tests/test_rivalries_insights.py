@@ -128,11 +128,13 @@ def test_playoff_rivalries(session: Session) -> None:
     out = playoff_rivalries(session)
     assert out["available"] is True
     rivs = out["rivalries"]
-    # Two postseason pairings in the fixture: Slider/Maverick (championship) and
-    # Goose/Iceman (consolation).
-    assert len(rivs) == 2
+    # Only the **true** playoff pairing surfaces: Slider/Maverick (championship). The
+    # Goose/Iceman consolation ("toilet bowl") game is not a playoff achievement and
+    # must NOT appear as a playoff rivalry.
+    assert len(rivs) == 1
 
     pairs = {frozenset({r["owner_a"]["owner_id"], r["owner_b"]["owner_id"]}): r for r in rivs}
+    assert frozenset({_oid("goose"), _oid("ice")}) not in pairs
     ms = pairs[frozenset({_oid("mav"), _oid("slider")})]
     assert ms["playoff_meetings"] == 1
     assert ms["last_meeting"]["season_year"] == 2015

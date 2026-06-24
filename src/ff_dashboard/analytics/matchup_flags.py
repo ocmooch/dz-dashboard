@@ -169,14 +169,25 @@ def flags_for_game(
     week: int,
     season_ctx: dict[str, Any],
     week_ctx: dict[int, float],
+    bracket_tier: str | None = None,
 ) -> list[dict[str, Any]]:
     """Superlative flags for one game. Pure: all DB work is in the contexts.
 
     ``team_a`` / ``team_b`` are side dicts carrying ``team_id``, ``score`` and
     ``entering_record`` (the shapes ``week_matchups`` and ``box_score`` already
-    build). Returns ``[]`` for an unscored or bye game.
+    build). ``bracket_tier`` (``championship`` / ``playoff`` / ``consolation`` from
+    the shared classifier) drives the postseason flag. Returns ``[]`` for an
+    unscored or bye game without a bracket tier.
     """
     flags: list[dict[str, Any]] = []
+
+    # Postseason tier flag — the championship gets its own banner; the consolation
+    # ("toilet") bracket is marked muted so it never reads as a playoff achievement.
+    if bracket_tier == "championship":
+        flags.append(_flag("championship", "Championship", "win", detail="The title game"))
+    elif bracket_tier == "consolation":
+        flags.append(_flag("consolation", "Consolation", "muted", detail="Consolation bracket"))
+
     a, b = team_a, team_b
     sa = a["score"] if a else None
     sb = b["score"] if b else None

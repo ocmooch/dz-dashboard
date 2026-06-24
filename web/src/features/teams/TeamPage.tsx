@@ -17,6 +17,7 @@ import {
   UNSCORED_SEASON_NOTE,
   Pill,
   RecordLine,
+  Sacko,
   Skeleton,
   Stat,
   Trophy,
@@ -712,6 +713,7 @@ export function TeamPage() {
             {data?.team_name ?? "Team"}
           </h1>
           {data?.is_champion && <Trophy label="Champion" />}
+          {data?.is_sacko && <Sacko />}
           {data && (
             <Link to={`/managers/${data.owner_id}`} className="text-muted hover:text-accent">
               {data.owner_name ?? "—"}

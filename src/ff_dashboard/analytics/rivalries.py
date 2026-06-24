@@ -78,6 +78,9 @@ def _meeting_item(
         "week": meeting["week"],
         "matchup_id": meeting["matchup_id"],
         "is_playoff": meeting["is_playoff"],
+        "bracket_tier": meeting.get("bracket_tier"),
+        "is_championship": meeting.get("is_championship", False),
+        "is_consolation": meeting.get("is_consolation", False),
     }
 
 
@@ -381,17 +384,19 @@ def playoff_rivalries(session: Session, top_n: int = 6) -> dict[str, Any]:
     names = owner_name_map(session)
     pairs = all_pairwise(session)
 
+    # Only **true** (non-consolation) playoff meetings count here — the consolation
+    # bracket is not a playoff achievement, so it never appears as a playoff rivalry.
     playoff_years: set[int] = {
         mt["season_year"]
         for agg in pairs.values()
         for mt in agg["meetings"]
-        if mt["is_playoff"] and mt["season_year"] is not None
+        if mt["is_true_playoff"] and mt["season_year"] is not None
     }
     finals = _finals_index(session, playoff_years)
 
     items: list[dict[str, Any]] = []
     for (low, high), agg in pairs.items():
-        pm = [m for m in agg["meetings"] if m["is_playoff"]]
+        pm = [m for m in agg["meetings"] if m["is_true_playoff"]]
         if not pm:
             continue
         low_wins = sum(1 for m in pm if m["low_margin"] > 0)

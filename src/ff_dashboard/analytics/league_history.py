@@ -24,6 +24,7 @@ from ff_pipeline.repository.models import (
 )
 from sqlalchemy import distinct, func, select
 
+from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import (
     displayed_seasons,
     owner_name_map,
@@ -463,6 +464,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
     roster_sigs = _roster_signatures(session)
     active_owner_sets = _active_owner_sets(session)
     waiver_systems = _waiver_systems(session, [int(s.year) for s in seasons])
+    sacko_map = season_sacko_map(session)
 
     rows: list[dict[str, Any]] = []
     previous: dict[str, Any] | None = None
@@ -557,6 +559,16 @@ def league_timeline(session: Session) -> dict[str, Any]:
             "last_place": _team_ref(teams.get(int(season.last_place_team_id)), owners)
             if season.last_place_team_id is not None
             else None,
+            # The Sacko (toilet-bowl loser) — derived where the bracket distinguishes
+            # the consolation half, else the recorded last-place team (``source``).
+            "sacko": (
+                {
+                    **(_team_ref(teams.get(int(sacko_row["team_id"])), owners) or {}),
+                    "source": sacko_row["source"],
+                }
+                if (sacko_row := sacko_map.get(int(season.season_id))) is not None
+                else None
+            ),
             "is_scored": int(season.season_id) in scored_ids,
             "schedule_source": "scraped"
             if reg_weeks is not None or playoff_weeks is not None

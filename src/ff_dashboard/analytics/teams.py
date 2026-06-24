@@ -36,6 +36,7 @@ from ff_pipeline.repository.queries import (
 )
 from sqlalchemy import func, select
 
+from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
@@ -80,6 +81,7 @@ def team_overview(session: Session, team_id: int) -> dict[str, Any] | None:
         (r for r in standings.get("rows", []) if r["team_id"] == team_id),
         None,
     )
+    sacko = postseason_classification(session, season.season_id).get("sacko") or {}
 
     return {
         "team_id": team_id,
@@ -98,6 +100,7 @@ def team_overview(session: Session, team_id: int) -> dict[str, Any] | None:
         "final_rank": team.final_rank,
         "made_playoffs": team.made_playoffs,
         "is_champion": season.champion_team_id == team_id,
+        "is_sacko": sacko.get("team_id") == team_id,
         "is_scored": season.year in set(seasons_scored(session)),
     }
 

@@ -51,6 +51,7 @@ const RECORDS: { key: string; label: string; suffix?: string }[] = [
   { key: "highest_scoring_matchup", label: "Highest-scoring matchup", suffix: " total" },
   { key: "best_player_week", label: "Best player week", suffix: " pts" },
   { key: "most_championships", label: "Most championships", suffix: " 🏆" },
+  { key: "most_sackos", label: "Most Sackos", suffix: " 💩" },
   { key: "best_season_points_for", label: "Best season (PF)", suffix: " pts" },
   { key: "longest_win_streak", label: "Longest win streak", suffix: " W" },
   { key: "longest_loss_streak", label: "Longest loss streak", suffix: " L" },
@@ -175,6 +176,8 @@ function ChampionshipTimeline({ query }: { query: string }) {
       s.runner_up?.owner_name,
       s.last_place?.team_name,
       s.last_place?.owner_name,
+      s.sacko?.team_name,
+      s.sacko?.owner_name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -196,6 +199,15 @@ function ChampionshipTimeline({ query }: { query: string }) {
                 avatarUrl={teamId != null ? teamAvatarUrl(teamId) : undefined}
               />
             </div>
+            {s.sacko && (
+              <div
+                className="mt-1.5 flex items-center gap-1 text-[var(--fs-xs)] text-muted"
+                title={s.sacko.source === "recorded" ? "Recorded last place" : "Toilet-bowl loser"}
+              >
+                <span aria-hidden>💩</span>
+                <span className="truncate">{s.sacko.team_name ?? s.sacko.owner_name}</span>
+              </div>
+            )}
           </>
         );
         const cls = "dz-card dz-card--hover min-w-[140px] shrink-0 p-3";

@@ -261,6 +261,40 @@ export function Trophy({ label, count }: { label?: string; count?: number }) {
   );
 }
 
+/** Sacko (last-place / toilet-bowl) marker — the 💩 anti-trophy for hardware areas. */
+export function Sacko({ label = "Sacko", count }: { label?: string; count?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-muted" title={label}>
+      <span aria-hidden>💩</span>
+      {count != null && <span className="num">{count}</span>}
+      {label && <span className="text-muted">{label}</span>}
+    </span>
+  );
+}
+
+/**
+ * Badge for a postseason game's bracket tier. Championship gets an accent banner;
+ * the consolation ("toilet") bracket is muted so it never reads as an achievement.
+ * Returns null for regular-season / indistinguishable games (so callers can render
+ * a plain "regular season" eyebrow themselves).
+ */
+export function BracketBadge({ tier }: { tier?: string | null }) {
+  if (tier === "championship")
+    return (
+      <span title="Championship — the title game">
+        <Badge variant="accent">🏆 Championship</Badge>
+      </span>
+    );
+  if (tier === "consolation")
+    return (
+      <span title="Consolation (toilet) bracket — not a playoff achievement">
+        <Badge>💩 Consolation</Badge>
+      </span>
+    );
+  if (tier === "playoff") return <Badge variant="accent">Playoff</Badge>;
+  return null;
+}
+
 /** Prev/next week control. The bound value lives in the URL at the page level. */
 export function WeekStepper({
   week,

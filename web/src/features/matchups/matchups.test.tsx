@@ -263,6 +263,8 @@ describe("BoxScorePage", () => {
           week: 17,
           available: true,
           is_playoff: true,
+          bracket_tier: "championship",
+          game_label: "Championship",
           winner_team_id: 20,
           margin: 38.54,
           resolution_note:
@@ -312,6 +314,9 @@ describe("BoxScorePage", () => {
     expect(screen.getByText(/no-contest resolution/i)).toBeInTheDocument();
     expect(screen.getByText(/ruled a no-contest/i)).toBeInTheDocument();
     expect(screen.getByText("Wk17+19")).toBeInTheDocument();
+    // The title game carries its own Championship badge, not a generic "playoff" one.
+    expect(screen.getByText(/🏆 Championship/)).toBeInTheDocument();
+    expect(screen.queryByText("playoff")).not.toBeInTheDocument();
   });
 
   it("shows an unscored-season box score as a gap, not zeros", async () => {

@@ -19,16 +19,22 @@ const CAREER = {
   total_ties: 0,
   total_points_for: 4200,
   championships: 1,
+  sackos: 1,
   best_finish: 1,
   avg_finish: 2.5,
-  trophy_case: [{ season_year: 2020, team_name: "Alpha FC", finish: 1, is_champion: true }],
+  trophy_case: [
+    { season_year: 2020, team_name: "Alpha FC", finish: 1, is_champion: true, is_sacko: false },
+    { season_year: 2018, team_name: "Alpha FC", finish: 12, is_champion: false, is_sacko: true },
+  ],
 };
 
 const SEASONS = [
   // record-only season: 0 PF -> must render an honest gap, not "0".
-  { season_id: 10, season_year: 2014, team_id: 100, team_name: "Old Alpha", wins: 8, losses: 6, ties: 0, points_for: 0, final_rank: 5, made_playoffs: false, is_champion: false },
+  { season_id: 10, season_year: 2014, team_id: 100, team_name: "Old Alpha", wins: 8, losses: 6, ties: 0, points_for: 0, final_rank: 5, made_playoffs: false, is_champion: false, is_sacko: false },
   // scored, championship season.
-  { season_id: 11, season_year: 2020, team_id: 101, team_name: "Alpha FC", wins: 12, losses: 2, ties: 0, points_for: 1800.5, final_rank: 1, made_playoffs: true, is_champion: true },
+  { season_id: 11, season_year: 2020, team_id: 101, team_name: "Alpha FC", wins: 12, losses: 2, ties: 0, points_for: 1800.5, final_rank: 1, made_playoffs: true, is_champion: true, is_sacko: false },
+  // a Sacko (toilet-bowl) season — the result cell must show the 💩 anti-trophy.
+  { season_id: 12, season_year: 2018, team_id: 102, team_name: "Alpha FC", wins: 3, losses: 11, ties: 0, points_for: 1200.0, final_rank: 12, made_playoffs: false, is_champion: false, is_sacko: true },
 ];
 
 const TRAJ = [
@@ -112,6 +118,15 @@ describe("ManagerProfilePage", () => {
     expect(screen.getByText("Hardware")).toBeInTheDocument();
     // Season table has both seasons, scored PF rendered as a number.
     expect(screen.getByText("1,800.50")).toBeInTheDocument();
+  });
+
+  it("brands a Sacko season with the 💩 anti-trophy in the season table", async () => {
+    mockEndpoints();
+    renderProfile();
+
+    // The 2018 Sacko season (PF 1,200.00) — its result cell carries the 💩.
+    const sackoRow = (await screen.findByText("1,200.00")).closest("tr")!;
+    expect(within(sackoRow).getByText(/💩/)).toBeInTheDocument();
   });
 
   it("shows an honest gap for a record-only (unscored) season instead of a 0", async () => {

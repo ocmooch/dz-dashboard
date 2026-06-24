@@ -14,6 +14,11 @@ from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
+from ff_dashboard.analytics.bracket import (
+    TIER_CONSOLATION,
+    postseason_classification,
+    season_sacko_map,
+)
 from ff_dashboard.analytics.common import (
     SIGNIFICANT_STINT_SEASONS,
     owner_name_map,
@@ -27,15 +32,18 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 
-def _season_result(final_rank: int | None, is_champion: bool) -> str | None:
+def _season_result(final_rank: int | None, is_champion: bool, is_sacko: bool = False) -> str | None:
     """A human label for a completed season's finish, or None when no rank yet.
 
-    Returned for every completed season (incl. 2010-2015): champion / runner-up /
-    3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent — an
-    in-progress or rank-less season.
+    Returned for every completed season (incl. 2010-2015): champion / Sacko /
+    runner-up / 3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent —
+    an in-progress or rank-less season. The ``Sacko`` (toilet-bowl loser) brand
+    takes precedence over the bare ``Nth`` finish.
     """
     if is_champion:
         return "Champion"
+    if is_sacko:
+        return "Sacko"
     if final_rank is None:
         return None
     if final_rank == 1:
@@ -51,22 +59,33 @@ def _playoff_participation(session: Session) -> tuple[dict[int, set[int]], set[i
     """``(made_by_season, derivable_season_ids)``.
 
     ``made_by_season[season_id]`` is the set of teams with ≥1 ``is_playoff``
-    matchup that is **not** a consolation/toilet-bowl game.
+    matchup that is **not** a consolation/toilet-bowl game — classified by the
+    shared bracket connectivity split (``postseason_classification``), not the
+    unpopulated ``is_consolation`` source column.
 
     ``derivable_season_ids`` are the seasons where ``made_playoffs`` can be stated
     honestly — i.e. the playoff flag selects a **proper subset** of the league
-    (``0 < made < teams_that_season``). When *no* team or *every* team carries a
-    non-consolation playoff game the bracket isn't distinguishable in the data
-    (notably: Phase-1 leaves ``is_consolation`` unpopulated and flags every
-    post-season game ``is_playoff``, so all teams look like they advanced) →
-    ``made_playoffs`` is **unknown** (``None``), never a fabricated True/False.
+    (``0 < made < teams_that_season``). When *every* post-season team is
+    indistinguishable (the bracket can't be split, so all are tier ``playoff``) the
+    set spans the whole field → ``made_playoffs`` is **unknown** (``None``), never a
+    fabricated True/False.
     """
     made_by_season: dict[int, set[int]] = {}
-    for team_id, season_id, is_playoff, is_consolation in session.execute(
-        select(Matchup.team_id, Matchup.season_id, Matchup.is_playoff, Matchup.is_consolation)
+    class_cache: dict[int, dict[str, Any]] = {}
+    for team_id, season_id, matchup_id, is_playoff in session.execute(
+        select(Matchup.team_id, Matchup.season_id, Matchup.matchup_id, Matchup.is_playoff)
     ).all():
-        if is_playoff and not is_consolation:
-            made_by_season.setdefault(int(season_id), set()).add(int(team_id))
+        if not is_playoff:
+            continue
+        sid = int(season_id)
+        cls = class_cache.get(sid)
+        if cls is None:
+            cls = postseason_classification(session, sid)
+            class_cache[sid] = cls
+        entry = cls["by_matchup_id"].get(int(matchup_id))
+        if entry is not None and entry["tier"] == TIER_CONSOLATION:
+            continue
+        made_by_season.setdefault(sid, set()).add(int(team_id))
     teams_per_season = {
         int(sid): int(n)
         for sid, n in session.execute(
@@ -112,11 +131,13 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
     made_by_season, derivable_seasons = _playoff_participation(session)
+    sacko_map = season_sacko_map(session)
 
     rows: list[dict[str, Any]] = []
     for team in teams:
         srow = index.get(team.team_id, {})
         is_champion = team.team_id in champions
+        is_sacko = sacko_map.get(int(team.season_id), {}).get("team_id") == team.team_id
         # Derive made_playoffs from the schedule (the Team column is unpopulated):
         # True/False only when the season's bracket is distinguishable, else None
         # (a gap — never fabricate; see _playoff_participation).
@@ -136,8 +157,9 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
                 "points_for": srow.get("points_for", 0.0),
                 "final_rank": team.final_rank,
                 "made_playoffs": made_playoffs,
-                "result": _season_result(team.final_rank, is_champion),
+                "result": _season_result(team.final_rank, is_champion, is_sacko),
                 "is_champion": is_champion,
+                "is_sacko": is_sacko,
             }
         )
     rows.sort(key=lambda r: r["season_year"] or 0)
@@ -161,6 +183,7 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
     made_by_season, derivable_seasons = _playoff_participation(session)
+    sacko_map = season_sacko_map(session)
     owners = owner_name_map(session)
 
     rows: list[dict[str, Any]] = []
@@ -169,6 +192,7 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
             continue
         srow = index.get(team.team_id, {})
         is_champion = team.team_id in champions
+        is_sacko = sacko_map.get(int(team.season_id), {}).get("team_id") == team.team_id
         if team.season_id in derivable_seasons:
             made_playoffs: bool | None = team.team_id in made_by_season[team.season_id]
         else:
@@ -187,8 +211,9 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
                 "points_for": srow.get("points_for", 0.0),
                 "final_rank": team.final_rank,
                 "made_playoffs": made_playoffs,
-                "result": _season_result(team.final_rank, is_champion),
+                "result": _season_result(team.final_rank, is_champion, is_sacko),
                 "is_champion": is_champion,
+                "is_sacko": is_sacko,
             }
         )
     # Newest season first, then by finish within a season; team_id breaks ties so
@@ -202,6 +227,7 @@ def _career_from_seasons(
 ) -> dict[str, Any]:
     finishes = [r["final_rank"] for r in rows if r["final_rank"] is not None]
     championships = [r for r in rows if r["is_champion"]]
+    sackos = [r for r in rows if r.get("is_sacko")]
     latest = max(rows, key=lambda r: r.get("season_year") or 0, default=None)
     seasons_played = len(rows)
     return {
@@ -213,6 +239,7 @@ def _career_from_seasons(
         "total_ties": sum(r["ties"] for r in rows),
         "total_points_for": round(sum(r["points_for"] for r in rows), 2),
         "championships": len(championships),
+        "sackos": len(sackos),
         "best_finish": min(finishes) if finishes else None,
         "avg_finish": round(mean(finishes), 2) if finishes else None,
         "latest_team_id": latest["team_id"] if latest else None,
@@ -234,15 +261,20 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
     career = _career_from_seasons(
         owner_id, owner.display_name, rows, is_active=bool(owner.is_active)
     )
+    # Hardware strip: podium finishes (the trophies) plus every Sacko season (the
+    # 💩 anti-trophy), so the disgrace is recorded alongside the glory.
     trophy_case = [
         {
             "season_year": r["season_year"],
             "team_name": r["team_name"],
             "finish": r["final_rank"],
             "is_champion": r["is_champion"],
+            "is_sacko": r.get("is_sacko", False),
         }
         for r in rows
-        if r["is_champion"] or (r["final_rank"] is not None and r["final_rank"] <= 3)
+        if r["is_champion"]
+        or r.get("is_sacko")
+        or (r["final_rank"] is not None and r["final_rank"] <= 3)
     ]
     return {
         **career,

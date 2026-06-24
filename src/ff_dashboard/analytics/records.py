@@ -22,6 +22,7 @@ from ff_pipeline.repository.models import (
 )
 from sqlalchemy import Float, cast, distinct, func, select
 
+from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.head_to_head import closest_rivalry
@@ -285,6 +286,24 @@ def _record_only(
     else:
         most_champs = _unavailable("no_champions")
 
+    # Most Sackos — the anti-championship. The toilet-bowl loser per season, owner-keyed.
+    sacko_counts: dict[int, int] = {}
+    for sacko in season_sacko_map(session).values():
+        owner_id = sacko.get("owner_id")
+        if owner_id is not None:
+            sacko_counts[owner_id] = sacko_counts.get(owner_id, 0) + 1
+    most_sackos: dict[str, Any]
+    if sacko_counts:
+        owner_id, n = max(sacko_counts.items(), key=lambda kv: kv[1])
+        most_sackos = {
+            "available": True,
+            "value": n,
+            "owner_id": owner_id,
+            "owner_name": owners.get(owner_id),
+        }
+    else:
+        most_sackos = _unavailable("no_sackos")
+
     # Best / worst single-season regular-season points-for, from matchups.
     from ff_dashboard.analytics.owners import _standings_index
 
@@ -317,6 +336,7 @@ def _record_only(
 
     return {
         "most_championships": most_champs,
+        "most_sackos": most_sackos,
         "best_season_points_for": best_pf,
         "worst_season_points_for": worst_pf,
         "longest_win_streak": win_streak,
@@ -397,14 +417,21 @@ def championships(session: Session) -> dict[str, Any]:
             "owner_name": owners.get(t.get("owner_id", -1)),
         }
 
+    sacko_map = season_sacko_map(session)
     entries: list[dict[str, Any]] = []
     for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
+        sacko = sacko_map.get(int(season.season_id))
+        sacko_ref = label(sacko["team_id"], season.year) if sacko else None
         entries.append(
             {
                 "season_year": season.year,
                 "champion": label(season.champion_team_id, season.year),
                 "runner_up": label(season.runner_up_team_id, season.year),
                 "last_place": label(season.last_place_team_id, season.year),
+                # The Sacko (toilet-bowl loser) — derived from the bracket where it
+                # can be distinguished, else the recorded last-place team. ``source``
+                # lets the UI caveat the recorded fallback.
+                "sacko": {**sacko_ref, "source": sacko["source"]} if sacko_ref and sacko else None,
             }
         )
     return {"seasons": entries}
