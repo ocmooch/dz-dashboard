@@ -6,6 +6,37 @@
 > `analytics/scoring.py` coalesce. **Authored from** a dz-dashboard investigation, 2026-06-24.
 > **Companions:** `docs/plans/dst-deep-classification.md` (deep census — but see the correction
 > below), memory `dst-yards-sacks-pipeline-gap`, `reconstruction-fidelity-direction`.
+>
+> **Important:** this handoff supersedes the PA section of `docs/plans/dst-deep-classification.md`.
+> Treat that older section as historical evidence only; do **not** copy its "PA = final score"
+> implementation plan.
+>
+> **Outcome update (2026-06-24):** the upstream attempt in `../danger-zone` found no safe
+> material PA shrink. A pure structured-`play_type` classifier resolved ARI 2016 wk3 but
+> regressed SEA 2013 wk6; copy validation over 2010–2025: `RESOLVED=0`, `IMPROVED=0`,
+> `UNCHANGED=127`, `WORSENED=0`, `REGRESSED=0`. Live DB deliberately **not** rewritten.
+>
+> **Deep audit (2026-06-24, dz-dashboard side) — the PA class is now PROVEN irreducible, and the
+> `play_type` framing was a red herring.** The 79 PA rows are **not** special-teams cases: every one
+> is a game where `_score_counts_against_dst` excluded an opponent **scrimmage defensive return TD**
+> (pick-six / fumble-six, `play_type='pass'/'run'`, `td_team!=posteam`), leaving our PA exactly
+> **7/8/9 below the opponent's final score** (75×−7, 7×−9, 3×−8); smeared evenly across all 16
+> seasons. That is why the `play_type` change resolved 0 rows — it can only touch kick/punt/FG returns,
+> which are not the issue here. Two whole-set offline tests settle it: **(1)** among DEF-weeks where an
+> exclusion moves the PA bracket, the exclusion is **correct in 287 rows** and **wrong in only 94**
+> (the 79 PA + ~15 bracket-edge OTHERs) — so sourcing PA from the opponent's full final score would
+> **break 287 currently-correct rows**, permanently refuting "PA = final score" and reproducing the GB
+> 2020 wk6 canary at scale; **(2)** the 94 wrong-exclusions and the 287 correct-exclusions carry the
+> **same INT:FUM mix** (DIVERGE 47 INT / 33 FUM vs MATCH 158 INT / 83 FUM) — identical play types in
+> both buckets, **no nflverse-PBP feature separates them**. **(3)** Explicitly tested the "year-to-year
+> scoring-rule change" hypothesis: every season is an **11–44% charged/excluded mix** — no season near
+> 0/100%, no transition year — so it is not a per-season rule. **The decisive canary is HOU 2013 wk2 vs
+> wk5:** the same defense, same season, a **Matt Schaub pick-six in both games**; NFL.com *excluded* it
+> from points-allowed in wk2 (PA 17 → matches) but *included* it in wk5 (PA 34 → diverges). A scoring
+> rule cannot change between week 2 and week 5 of one season — the inconsistency is at the
+> individual-game level, in NFL.com's own box-score feed. **Conclusion: genuine source noise, not a
+> classifier bug and not a rule change. Do not change `_index_fantasy_points_allowed`; do not override
+> rows. The workstream is closed.**
 
 ---
 
@@ -83,7 +114,7 @@ therefore edge-case misclassifications, not a wrong theory** — the classifier 
 proves the core), but mislabels specific scoring events at the margin, which nudges PA across a bracket
 boundary.
 
-### The most likely root cause (strong hypothesis, verify first)
+### The most likely root cause (tested; only partly useful)
 
 `_is_special_teams_return_touchdown` uses **brittle `desc` string-matching**, whereas the **proven TD
 recount** (`_index_dst_touchdowns`, landed 2026-06-23) classifies special-teams scores by the
@@ -92,25 +123,30 @@ what's a special-teams return — and that inconsistency is the prime suspect fo
 (a defensive return TD mislabeled ST, or vice-versa, charges/relieves PA by ~6–8 and flips the
 bracket).
 
-**Primary fix to try:** make `_score_counts_against_dst` classify special-teams returns by `play_type`
-(reuse `_SPECIAL_TEAMS_TD_PLAY_TYPES`), exactly as `_index_dst_touchdowns` does — unifying the two
-classifiers on the structured column instead of the description text. Then re-check the safety and
-XP/2pt-inheritance branches against any rows that remain.
+**Result:** making `_score_counts_against_dst` classify special-teams returns by `play_type`
+(reusing `_SPECIAL_TEAMS_TD_PLAY_TYPES`) is safe for kickoff/punt/FG return tests, but it does **not**
+shrink the live residual once the SEA 2013 wk6 field-goal-formation canary is preserved. nflverse has
+no clean structured field for that formation; the narrow description fallback remains necessary.
 
 ### Step-by-step
 
 1. **Re-run the offline audit** (no network) to refresh the census on the current live DB:
    `cd ../danger-zone && uv run python scripts/audit_dst_divergence.py` — confirm ~79 `PA` +
    the OTHER classes. Use `--detail PA` to dump the rows (season, week, team, our PA, opp final).
+   Save this as the "before" artifact in the PR notes.
 2. **Classify the 79 by cause.** For each, pull the game's PBP and find the scoring event(s) whose
    inclusion/exclusion would move our PA into the bracket that matches `nfl_com_points`. Expect a
    dominant pattern (mislabeled ST vs defensive return TD). Confirm the `play_type` vs `desc`
-   disagreement is the driver on a sample.
-3. **Implement** the `play_type`-based classification in `_score_counts_against_dst`. Unit-test
-   offline first: `tests/unit/test_team_defense.py` has a `_pbp_score` / `_pbp` helper for hand-built
-   PBP rows — add cases for: a defensive return TD (excluded), a kickoff/punt return TD (included), a
-   safety (excluded), a blocked-FG return, and XP/2pt inheritance after each.
-4. **Validate on a DB copy** (see Mechanics) with the **zero-regression gate**.
+   disagreement is the driver on a sample. Minimum useful sample: several seasons, at least one
+   kickoff/punt return, at least one blocked kick / field-goal return, and the GB 2020 wk6
+   counter-example as a must-not-regress canary.
+3. **Implement** the `play_type`-based classification in `_score_counts_against_dst`, with the narrow
+   field-goal-formation fallback documented above. Unit-test offline first:
+   `tests/unit/test_team_defense.py` has a `_pbp_score` / `_pbp` helper for hand-built PBP rows — add
+   cases for: a defensive return TD (excluded), a kickoff/punt return TD (included), a safety
+   (excluded), a blocked-FG return, aborted field-goal formation, and XP/2pt inheritance after each.
+4. **Validate on a DB copy** (see Mechanics) with the **zero-regression gate**. This was done
+   2026-06-24 and produced `RESOLVED=0`, `WORSENED=0`, `REGRESSED=0`.
 5. **Document the residual.** Any PA rows that remain after a faithful classifier are likely genuine
    source disagreements (nflverse PBP vs NFL.com's box score). Record them; do not override row-by-row
    to force a match (that destroys the reconstruction's value as an independent check — see
@@ -121,9 +157,28 @@ XP/2pt-inheritance branches against any rows that remain.
 
 - **Only ever change behavior that is validated across multiple rows/seasons.** A one-row override is
   not a fix; it's quarantine-and-document territory.
+- **Do not replace PA with opponent final score.** That breaks currently-correct rows where the
+  opponent scored against this team's offense. GB 2020 wk6 is the explicit canary.
+- **Do not change raw PBP/team-stat facts to make a score match.** The valid change is the derived
+  classifier or a faithful downstream stat derivation. Raw source rows remain raw.
 - **The `~48 OTHER` (sacks/yards ±1/±2/±3) are out of scope here** unless a PA fix happens to touch
   them. They are residual one-offs, not a systematic class. Note any that the PA work incidentally
   resolves.
+
+### Implementation notes for the classifier
+
+The safe target shape is to make PA classification use the same structured return-TD vocabulary as the
+already-proven TD recount where nflverse exposes enough structure:
+
+- Add `play_type` to the scoring-event context passed into `_score_counts_against_dst`.
+- Replace the broad `desc` substring heuristic in `_is_special_teams_return_touchdown` with
+  `play_type in _SPECIAL_TEAMS_TD_PLAY_TYPES`, plus only the narrow `"(Field Goal formation)"`
+  fallback needed for SEA 2013 wk6.
+- Keep the existing semantic split: opponent defensive return TDs and safeties are excluded from PA;
+  opponent special-teams return TDs count against the D/ST; XP/2pt attempts inherit the preceding TD's
+  include/exclude decision.
+- If a remaining row needs a different rule, prove it with repeated examples before changing behavior.
+  Single-row oddities belong in the residual table.
 
 ---
 
@@ -192,6 +247,18 @@ DATABASE_URL="sqlite:///./data/fantasy_validation.db" uv run ff-pipeline rescore
 6. **Only then** apply to the live `data/fantasy.db` (same loop without the `DATABASE_URL` override +
    `rescore`), back up first, and re-audit to confirm the copy's numbers reproduce.
 
+The diff artifact should include the counts and examples for:
+
+- `RESOLVED`: was divergent, now matches `nfl_com_points`.
+- `IMPROVED`: still divergent, but absolute delta shrank.
+- `UNCHANGED`: still divergent by the same delta.
+- `WORSENED`: was divergent and moved farther away. Must be zero.
+- `REGRESSED`: previously matched and now diverges. Must be zero.
+
+For residual PA rows, record `(season, week, team, player_id, our_pa_before, our_pa_after,
+opponent_final, nfl_com_points, total_points_after, suspected event)` so the owner can review without
+re-running the whole audit.
+
 **Green gate before PR:** `uv run pytest tests/unit/test_team_defense.py -q`, then
 `uv run ruff check -q && uv run ruff format --check && uv run mypy src/ff_pipeline`.
 
@@ -214,6 +281,8 @@ DATABASE_URL="sqlite:///./data/fantasy_validation.db" uv run ff-pipeline rescore
 - `scripts/audit_dst_divergence.py` — offline census + `--detail PA` row dump (your primary diagnostic).
 - `tests/unit/test_team_defense.py` — offline PBP unit-test harness (`_pbp` / `_pbp_score` helpers).
 - `cli.py` commands: `team-defense --season YYYY`, `rescore` (both honor `DATABASE_URL`).
+- `docs/plans/dst-deep-classification.md` — update only after the danger-zone result is known; mark the
+  PA-final-score thesis as refuted and summarize the actual residual.
 
 ## Done when
 
