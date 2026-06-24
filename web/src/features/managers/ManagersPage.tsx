@@ -30,11 +30,13 @@ type SortKey = "titles" | "winPct" | "points" | "seasons" | "bestFinish" | "avgF
 type SortDir = "asc" | "desc";
 
 // Rate-based columns where a short stint can flatter a manager (a 1-season owner
-// with a fluky finish or win rate). For these the BFF's `qualified` flag (active,
-// or a significant stint) pins unqualified owners below the qualified ones in
-// both directions — they stay listed, never crowned above an active or legacy
-// manager. Accumulation columns (titles/points/seasons) need no gate: a short
-// stint can't out-accumulate a long one.
+// with a fluky finish or win rate). For these we rank in three tiers — active
+// managers, then departed-but-long-tenured (the BFF's `qualified` flag covers
+// active OR a significant stint), then short-stint departed — so an active
+// manager always sits above any former one, even one below the stint threshold,
+// and no short stint floats to the top. Owners stay listed, never crowned above
+// an active or legacy manager. Accumulation columns (titles/points/seasons) need
+// no gate: a short stint can't out-accumulate a long one.
 const GATED_SORTS = new Set<SortKey>(["winPct", "bestFinish", "avgFinish"]);
 const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
   titles: (a, b) => a.championships - b.championships || a.total_wins - b.total_wins,
@@ -128,11 +130,16 @@ export function ManagersPage() {
       const s = [...arr].sort(SORTERS[sort]);
       return dir === "asc" ? s : s.reverse();
     };
-    // On rate-based columns, keep qualified managers as one block above the rest
-    // (in either direction) so a short stint never floats to the top; otherwise a
-    // single pass over everyone.
+    // On rate-based columns, rank in three tiers (in either direction) so a short
+    // stint never floats to the top and an active manager always outranks a former
+    // one: active first, then departed-but-qualified (significant stint), then
+    // short-stint departed. Otherwise a single pass over everyone.
     if (!GATED_SORTS.has(sort)) return order(data);
-    return [...order(data.filter((o) => o.qualified)), ...order(data.filter((o) => !o.qualified))];
+    return [
+      ...order(data.filter((o) => o.is_active)),
+      ...order(data.filter((o) => !o.is_active && o.qualified)),
+      ...order(data.filter((o) => !o.is_active && !o.qualified)),
+    ];
   }, [data, sort, dir]);
 
   const onSort = (k: SortKey) => {
@@ -218,11 +225,11 @@ export function ManagersPage() {
               </table>
             </div>
             <p className="px-4 pb-4 pt-1 text-[var(--fs-xs)] text-faint">
-              When sorting by win %, best, or average finish, managers with a short
-              stint who have left the league are listed below the rest — a one- or
-              two-season run can flatter a rate, so it never ranks above an active or
-              long-tenured manager. Every manager is still shown; “former” marks those
-              no longer in the league.
+              When sorting by win %, best, or average finish, active managers are
+              listed first, then former managers with a long stint, then those with a
+              short stint who have left — a one- or two-season run can flatter a rate,
+              so it never ranks above an active or long-tenured manager. Every manager
+              is still shown; “former” marks those no longer in the league.
             </p>
           </Card>
         </>
