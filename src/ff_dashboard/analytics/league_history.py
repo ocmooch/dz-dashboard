@@ -32,6 +32,7 @@ from ff_dashboard.analytics.common import (
     require_league,
 )
 from ff_dashboard.analytics.curated_events import curated_events_by_year
+from ff_dashboard.analytics.historical_divisions import historical_division_season
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
@@ -54,6 +55,7 @@ _CATEGORY_TIER: dict[str, str] = {
     "standings": "T2",
     "waiver": "T2",
     "participants": "T1",  # a manager joining/leaving is a major event in a 12-team league
+    "divisions": "T1",  # adding/dropping/restructuring divisions changes schedule + seeding
 }
 
 if TYPE_CHECKING:
@@ -474,6 +476,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
         playoff_weeks = season.playoff_weeks
         league_size = sizes.get(int(season.season_id), 0)
         raw_league_size = raw_sizes.get(int(season.season_id), league_size)
+        division_structure = _division_structure(int(season.year))
         source = _season_source(season, scored_ids)
         details: list[dict[str, str | None]] = []
         if previous is not None and previous["league_size"] != league_size:
@@ -510,6 +513,25 @@ def league_timeline(session: Session) -> dict[str, Any]:
                     before=str(previous["scoring_provenance"]).replace("_", " "),
                     after=str(source["scoring_provenance"]).replace("_", " "),
                     certainty="source_limited",
+                )
+            )
+        if previous is not None and previous["division_structure"] != division_structure:
+            before = str(previous["division_structure"])
+            after = division_structure
+            if before == "No divisions":
+                title = "Divisions introduced"
+            elif after == "No divisions":
+                title = "Divisions removed"
+            else:
+                title = "Divisions restructured"
+            details.append(
+                _change(
+                    "divisions",
+                    title,
+                    "The league's division structure changed from the prior season; "
+                    "this reshapes the schedule and standings groupings.",
+                    before=before,
+                    after=after,
                 )
             )
         details.extend(_scoring_rule_changes(season, previous_season, scoring_rules))
@@ -570,6 +592,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
                 else None
             ),
             "is_scored": int(season.season_id) in scored_ids,
+            "division_structure": division_structure,
             "schedule_source": "scraped"
             if reg_weeks is not None or playoff_weeks is not None
             else "unavailable",
@@ -655,6 +678,25 @@ def _flex_label(starters: Counter[str]) -> str | None:
     if starters.get("W/R"):
         return "WR/RB flex"
     return "No flex"
+
+
+def _division_structure(year: int) -> str:
+    """The season's division *structure* (never its rotating, cosmetic names).
+
+    Sourced from the reviewed ``historical_divisions`` artifact, which covers the
+    seasons that had divisions; any other season played as a single table. The
+    structure (how many divisions of what size) is the gameplay-significant fact —
+    it shapes the schedule and standings — so it is shown as era context, but it
+    deliberately does *not* feed ``_era_key`` (the division drop and the FAAB move
+    happened a year apart, and splitting on it would orphan a single season).
+    """
+    season = historical_division_season(year)
+    if season is None:
+        return "No divisions"
+    sizes = [len(division.teams) for division in season.divisions]
+    if len(set(sizes)) == 1:
+        return f"{len(sizes)} divisions of {sizes[0]}"
+    return f"{len(sizes)} divisions ({', '.join(str(size) for size in sizes)})"
 
 
 def _waiver_class(value: str | None) -> str | None:
@@ -782,6 +824,11 @@ def league_eras(session: Session) -> dict[str, Any]:
                 "ppr": _ppr_label(row.get("ppr_reception_value")),
                 "lineup": row.get("lineup_flex"),
                 "waiver_system": row.get("waiver_system"),
+                # Division structure is era *context*, not an era-defining trait: resolved
+                # to a single value below, or None when the era straddles a change (the
+                # inline ``divisions`` change-event names that transition).
+                "division_structure": row["division_structure"],
+                "_division_structures": {row["division_structure"]},
                 "league_size": row["league_size"],
                 "regular_season_weeks": row["regular_season_weeks"],
                 "playoff_weeks": row["playoff_weeks"],
@@ -796,6 +843,11 @@ def league_eras(session: Session) -> dict[str, Any]:
         else:
             current["end_year"] = row["season_year"]
             current["season_years"].append(row["season_year"])
+            current["_division_structures"].add(row["division_structure"])
+
+    for era in eras:
+        structures = era.pop("_division_structures")
+        era["division_structure"] = next(iter(structures)) if len(structures) == 1 else None
 
     changes = [
         {

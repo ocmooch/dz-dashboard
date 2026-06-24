@@ -441,6 +441,9 @@ class LeagueTimelineSeason(BaseModel):
     # The Sacko (toilet-bowl loser); derived or recorded (see ``SackoRef.source``).
     sacko: SackoRef | None = None
     is_scored: bool
+    # Division *structure* for the season (e.g. "2 divisions of 6", "No divisions");
+    # the rotating division names are display-only and live in the conferences view.
+    division_structure: str | None = None
     schedule_source: str
     scoring_provenance: str
     verification_status: str
@@ -483,6 +486,9 @@ class LeagueEra(BaseModel):
     ppr: str | None = None
     lineup: str | None = None
     waiver_system: str | None = None
+    # Division structure when constant across the era; None when the era straddles a
+    # structural change (the inline ``divisions`` change-event names that transition).
+    division_structure: str | None = None
     league_size: int
     regular_season_weeks: int | None = None
     playoff_weeks: int | None = None

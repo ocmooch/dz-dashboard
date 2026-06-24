@@ -1898,6 +1898,8 @@ export interface components {
             lineup?: string | null;
             /** Waiver System */
             waiver_system?: string | null;
+            /** Division Structure */
+            division_structure?: string | null;
             /** League Size */
             league_size: number;
             /** Regular Season Weeks */
@@ -2028,6 +2030,8 @@ export interface components {
             sacko?: components["schemas"]["SackoRef"] | null;
             /** Is Scored */
             is_scored: boolean;
+            /** Division Structure */
+            division_structure?: string | null;
             /** Schedule Source */
             schedule_source: string;
             /** Scoring Provenance */

@@ -96,7 +96,12 @@ function EraStrip({ eras }: { eras: LeagueEra[] }) {
             era.start_year === era.end_year
               ? `${era.start_year}`
               : `${era.start_year}–${era.end_year}`;
-          const traits = [era.ppr, era.lineup, era.waiver_system].filter(Boolean) as string[];
+          const traits = [
+            era.ppr,
+            era.lineup,
+            era.waiver_system,
+            era.division_structure,
+          ].filter(Boolean) as string[];
           const isCurrent = i === eras.length - 1;
           return (
             <a

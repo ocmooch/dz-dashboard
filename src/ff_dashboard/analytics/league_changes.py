@@ -290,8 +290,8 @@ def classify(raw: RawSettingChange) -> ClassifiedChange:
         tier, treatment = "T3", "COLLAPSE"
     elif canonical == "schedule_week_edit":  # (#21) aggregate -> T2
         tier, treatment, group = "T2", "AGG", f"sched-{raw.year}-{day}"
-    elif canonical == "division_assignment":  # (#22) aggregate -> T2 (notable, not major)
-        tier, treatment, group = "T2", "AGG", f"div-{raw.year}-{day}"
+    elif canonical == "division_assignment":  # (#22) aggregate -> T1 (a division change is major)
+        tier, treatment, group = "T1", "AGG", f"div-{raw.year}-{day}"
     elif canonical in {"logo_lock", "lineup_lock"}:  # (#25) aggregate -> T2
         tier, treatment, group = "T2", "AGG", f"punish-{raw.year}"
     elif canonical == "waiver_priority":  # (#26) aggregate same-day; small=routine
@@ -542,7 +542,7 @@ def _emit_group(
                 head,
                 title="Division realignment",
                 summary=summary,
-                tier="T2",
+                tier="T1",  # a division change is a major timeline event
                 certainty="verified",
                 members=members,
             ),

@@ -273,7 +273,7 @@ def test_emit_group_division_realignment_counts() -> None:
     ]
     event, leftovers = _emit_group("div-2011-2011-08-06", items)
     assert leftovers == []
-    assert event["tier"] == "T2"
+    assert event["tier"] == "T1"
     assert "12 teams" in event["summary"]
     assert len(event["members"]) == 12
 
