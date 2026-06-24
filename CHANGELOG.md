@@ -4,6 +4,29 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-24 — Rivalries: active-manager-focused insight bands
+
+- **Fixed "most dead-even" — it wasn't even.** `head_to_head.closest_rivalry()` sorted by
+  `(-games, closeness)`, so the most-played pair always won regardless of balance (a 21–9,
+  30-game series crowned "dead even"). Now **balance-first**, gated by a real sample
+  (`MIN_DEAD_EVEN_GAMES`, default 4), crowned among qualified owners. Records-book `closest_rivalry`
+  and the rivalries-page `dead_even` list both flow from the fix.
+- **Owner-prominence ordering across the rivalry insight bands** (`analytics/rivalries.py`), via
+  new shared `common.owner_prominence_map` (2 active / 1 ≥5-season departed / 0 short-stint
+  departed). Pair-level lists sort by `min(prominence)` first; nemesis/favorite-victim headline
+  qualified opponents with a deprioritized `*_departed` secondary; hottest-rivalries and active
+  streaks lead with active managers. Reorders, never hides — short-stint departed records stay
+  visible, dimmed below.
+- **Ranked pair-level superlatives** — `most_played` and `dead_even` are now top-5 lists (see the
+  2nd/3rd, not just #1), replacing the single `most_played_pairing` / `dead_even_rivalry`.
+- **Single-game records stay pure all-time** (closest game / biggest blowout / highest-scoring
+  duel) regardless of who's left the league.
+- **Streaks deep-link the whole run** — each streak carries `from_matchup_id` + `last_matchup_id`,
+  and the UI links a cross-season run start → end and reads it as both a win and a losing streak.
+- Owner refs in every band carry `is_active` + `prominence` so the SPA dims/divides departed
+  managers without a second lookup. Bands are `extra="allow"` → no schema class change, no gen:api
+  drift. Backend 459 + frontend 193 tests green; ruff/mypy clean.
+
 ## 2026-06-23 — Release v0.4.0 (dev → main promotion)
 
 - **Version bumped `0.3.0` → `0.4.0`** (`pyproject.toml`, `web/package.json` + lock, `uv.lock`) and

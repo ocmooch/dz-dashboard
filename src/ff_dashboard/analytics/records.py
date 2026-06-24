@@ -251,8 +251,9 @@ def records_book(session: Session) -> dict[str, Any]:
 
     book.update(_record_only(session, teams, season_year))
 
-    # The "closest rivalry" — most-played pair nearest a 50/50 split (04 §4). A
-    # records-book stat that deep-links to its pairwise page on the frontend.
+    # The "closest rivalry" — the genuinely dead-even pair (win pct nearest 50/50,
+    # min-sample gated; balance leads, not volume), crowned among qualified
+    # managers (04 §4). Deep-links to its pairwise page on the frontend.
     rivalry = closest_rivalry(session)
     book["closest_rivalry"] = (
         {"available": True, **rivalry} if rivalry is not None else _unavailable("no_meetings")

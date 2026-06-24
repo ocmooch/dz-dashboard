@@ -122,3 +122,30 @@ def owner_qualified_map(session: Session) -> dict[int, bool]:
         oid: bool(active.get(oid, True)) or seasons.get(oid, 0) >= SIGNIFICANT_STINT_SEASONS
         for oid in owner_name_map(session)
     }
+
+
+def owner_prominence_map(session: Session) -> dict[int, int]:
+    """owner_id -> display-prominence tier for owner-keyed leaderboards.
+
+    Three tiers, highest first, so manager-centric rankings lead with the people
+    the league still cares about most without ever hiding anyone:
+
+    * ``2`` — currently active (always top, regardless of tenure),
+    * ``1`` — departed but with a significant stint
+      (``seasons_played >= SIGNIFICANT_STINT_SEASONS``),
+    * ``0`` — short-stint departed (deprioritized, never removed).
+
+    Generalizes :func:`owner_qualified_map` (qualified == prominence ≥ 1). Pair-
+    level surfaces take ``min`` of the two members' tiers so a pairing is only as
+    prominent as its less-prominent owner."""
+    active = owner_active_map(session)
+    seasons = owner_seasons_played_map(session)
+    out: dict[int, int] = {}
+    for oid in owner_name_map(session):
+        if active.get(oid, True):
+            out[oid] = 2
+        elif seasons.get(oid, 0) >= SIGNIFICANT_STINT_SEASONS:
+            out[oid] = 1
+        else:
+            out[oid] = 0
+    return out
