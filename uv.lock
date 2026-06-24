@@ -347,7 +347,7 @@ wheels = [
 
 [[package]]
 name = "dz-dashboard"
-version = "0.2.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -407,7 +407,7 @@ wheels = [
 
 [[package]]
 name = "ff-pipeline"
-version = "1.5.0"
+version = "1.6.0"
 source = { editable = "../danger-zone" }
 dependencies = [
     { name = "alembic" },

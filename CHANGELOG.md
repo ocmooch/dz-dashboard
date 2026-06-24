@@ -4,6 +4,16 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-23 — Release v0.4.0 (dev → main promotion)
+
+- **Version bumped `0.3.0` → `0.4.0`** (`pyproject.toml`, `web/package.json` + lock, `uv.lock`) and
+  `dev` promoted to `main`, tagged `v0.4.0`. Minor bump: new feature since `v0.3.0`, no breaking
+  changes (pre-1.0).
+- **What landed since the last release (PR #98):** timeline eras redefined by playstyle with the
+  change feed re-tiered (`analytics/league_history.py` + `league_changes.py`, `LeagueHistoryPage`).
+- **`uv.lock` caught up to the tracked pyproject versions** (dz-dashboard `0.4.0`, ff-pipeline
+  `1.6.0`) — prior release bumps had updated `pyproject.toml` but not `uv.lock`, leaving it stale.
+
 ## 2026-06-23 — Release v0.3.0 (dev → main promotion)
 
 - **Version bumped `0.2.0` → `0.3.0`** (`pyproject.toml`, `web/package.json` + lock) and `dev`
