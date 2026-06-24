@@ -1,6 +1,6 @@
 [project]
 name = "dz-dashboard"
-version = "0.3.0"
+version = "0.4.0"
 description = "Phase 2 analytics dashboard for the Danger Zone fantasy football league — a read-only backend-for-frontend (ff_dashboard) over the Phase 1 ff-pipeline database, plus a React SPA (web/)."
 readme = "README.md"
 requires-python = ">=3.11"
