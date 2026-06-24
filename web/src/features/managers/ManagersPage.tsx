@@ -28,6 +28,14 @@ function winPct(o: OwnerCareer): number | null {
 // PF) is the initial view. Each column knows how to rank a career.
 type SortKey = "titles" | "winPct" | "points" | "seasons" | "bestFinish" | "avgFinish";
 type SortDir = "asc" | "desc";
+
+// Rate-based columns where a short stint can flatter a manager (a 1-season owner
+// with a fluky finish or win rate). For these the BFF's `qualified` flag (active,
+// or a significant stint) pins unqualified owners below the qualified ones in
+// both directions — they stay listed, never crowned above an active or legacy
+// manager. Accumulation columns (titles/points/seasons) need no gate: a short
+// stint can't out-accumulate a long one.
+const GATED_SORTS = new Set<SortKey>(["winPct", "bestFinish", "avgFinish"]);
 const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
   titles: (a, b) => a.championships - b.championships || a.total_wins - b.total_wins,
   winPct: (a, b) => (winPct(a) ?? -1) - (winPct(b) ?? -1),
@@ -51,13 +59,19 @@ function LegendCard({ label, name, value }: { label: string; name: string | null
 /** The four league-wide superlatives, computed from the career list. Owner-centric
  *  by design — distinct from the event-centric Records Book. */
 function LeagueLegends({ owners }: { owners: OwnerCareer[] }) {
-  const top = <K,>(score: (o: OwnerCareer) => K, cmp: (a: K, b: K) => number) =>
-    owners.reduce((best, o) => (cmp(score(o), score(best)) > 0 ? o : best), owners[0]);
+  const top = <K,>(pool: OwnerCareer[], score: (o: OwnerCareer) => K, cmp: (a: K, b: K) => number) =>
+    pool.reduce((best, o) => (cmp(score(o), score(best)) > 0 ? o : best), pool[0]);
 
-  const mostTitles = top((o) => o.championships, (a, b) => a - b);
-  const bestWinPct = top((o) => winPct(o) ?? -1, (a, b) => a - b);
-  const mostPoints = top((o) => o.total_points_for, (a, b) => a - b);
-  const mostSeasons = top((o) => o.seasons_played, (a, b) => a - b);
+  // Best win % crowns only qualified managers (active or a significant stint) so a
+  // one-season hot streak never tops the legends; the accumulation legends are
+  // tenure-proof and stay over everyone. Fall back to all if none qualify.
+  const eligible = owners.filter((o) => o.qualified);
+  const winPctPool = eligible.length > 0 ? eligible : owners;
+
+  const mostTitles = top(owners, (o) => o.championships, (a, b) => a - b);
+  const bestWinPct = top(winPctPool, (o) => winPct(o) ?? -1, (a, b) => a - b);
+  const mostPoints = top(owners, (o) => o.total_points_for, (a, b) => a - b);
+  const mostSeasons = top(owners, (o) => o.seasons_played, (a, b) => a - b);
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -109,8 +123,16 @@ export function ManagersPage() {
   const [dir, setDir] = useState<SortDir>("desc");
 
   const owners = useMemo(() => {
-    const sorted = data ? [...data].sort(SORTERS[sort]) : [];
-    return dir === "asc" ? sorted : sorted.reverse();
+    if (!data) return [];
+    const order = (arr: OwnerCareer[]) => {
+      const s = [...arr].sort(SORTERS[sort]);
+      return dir === "asc" ? s : s.reverse();
+    };
+    // On rate-based columns, keep qualified managers as one block above the rest
+    // (in either direction) so a short stint never floats to the top; otherwise a
+    // single pass over everyone.
+    if (!GATED_SORTS.has(sort)) return order(data);
+    return [...order(data.filter((o) => o.qualified)), ...order(data.filter((o) => !o.qualified))];
   }, [data, sort, dir]);
 
   const onSort = (k: SortKey) => {
@@ -167,10 +189,18 @@ export function ManagersPage() {
                 </thead>
                 <tbody>
                   {owners.map((o) => (
-                    <tr key={o.owner_id}>
+                    <tr key={o.owner_id} className={o.qualified ? undefined : "opacity-60"}>
                       <td>
-                        <Link to={`/managers/${o.owner_id}`} className="hover:text-accent">
+                        <Link
+                          to={`/managers/${o.owner_id}`}
+                          className="inline-flex items-center gap-2 hover:text-accent"
+                        >
                           <Chip name={o.display_name} avatarUrl={teamAvatarUrl(o.latest_team_id)} />
+                          {!o.is_active && (
+                            <span className="dz-eyebrow text-faint" title="No longer in the league">
+                              former
+                            </span>
+                          )}
                         </Link>
                       </td>
                       <td className="dz-num num">{o.seasons_played}</td>
@@ -187,6 +217,13 @@ export function ManagersPage() {
                 </tbody>
               </table>
             </div>
+            <p className="px-4 pb-4 pt-1 text-[var(--fs-xs)] text-faint">
+              When sorting by win %, best, or average finish, managers with a short
+              stint who have left the league are listed below the rest — a one- or
+              two-season run can flatter a rate, so it never ranks above an active or
+              long-tenured manager. Every manager is still shown; “former” marks those
+              no longer in the league.
+            </p>
           </Card>
         </>
       )}

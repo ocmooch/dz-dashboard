@@ -14,7 +14,12 @@ from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
-from ff_dashboard.analytics.common import owner_name_map, played_season_ids
+from ff_dashboard.analytics.common import (
+    SIGNIFICANT_STINT_SEASONS,
+    owner_name_map,
+    owner_qualified_map,
+    played_season_ids,
+)
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -193,15 +198,16 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
 
 
 def _career_from_seasons(
-    owner_id: int, display_name: str | None, rows: list[dict[str, Any]]
+    owner_id: int, display_name: str | None, rows: list[dict[str, Any]], *, is_active: bool
 ) -> dict[str, Any]:
     finishes = [r["final_rank"] for r in rows if r["final_rank"] is not None]
     championships = [r for r in rows if r["is_champion"]]
     latest = max(rows, key=lambda r: r.get("season_year") or 0, default=None)
+    seasons_played = len(rows)
     return {
         "owner_id": owner_id,
         "display_name": display_name,
-        "seasons_played": len(rows),
+        "seasons_played": seasons_played,
         "total_wins": sum(r["wins"] for r in rows),
         "total_losses": sum(r["losses"] for r in rows),
         "total_ties": sum(r["ties"] for r in rows),
@@ -210,6 +216,12 @@ def _career_from_seasons(
         "best_finish": min(finishes) if finishes else None,
         "avg_finish": round(mean(finishes), 2) if finishes else None,
         "latest_team_id": latest["team_id"] if latest else None,
+        # Activity + tenure travel with the career row so the managers table can
+        # rank the rate-based "best of" stats without recomputing eligibility:
+        # an active manager always qualifies; a departed one only once they have a
+        # significant stint. See ``common.SIGNIFICANT_STINT_SEASONS``.
+        "is_active": is_active,
+        "qualified": is_active or seasons_played >= SIGNIFICANT_STINT_SEASONS,
     }
 
 
@@ -219,7 +231,9 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
     if owner is None:
         return None
     rows = owner_seasons(session, owner_id) or []
-    career = _career_from_seasons(owner_id, owner.display_name, rows)
+    career = _career_from_seasons(
+        owner_id, owner.display_name, rows, is_active=bool(owner.is_active)
+    )
     trophy_case = [
         {
             "season_year": r["season_year"],
@@ -258,8 +272,15 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
         if oid is not None:
             per_owner.setdefault(oid, []).append(float(score))
 
+    # Rank only against owners who qualify (active or a significant stint), so a
+    # short-stint departed owner's few weeks don't dilute the denominator or skew
+    # the steady/boom-bust midpoint. The subject is always kept in the pool so
+    # their own profile still shows a rank, even when they don't otherwise qualify.
+    qualified = owner_qualified_map(session)
     ranked: list[tuple[int, float]] = [
-        (oid, pstdev(scores)) for oid, scores in per_owner.items() if len(scores) >= 2
+        (oid, pstdev(scores))
+        for oid, scores in per_owner.items()
+        if len(scores) >= 2 and (qualified.get(oid, True) or oid == owner_id)
     ]
     ranked.sort(key=lambda item: item[1])
     rank_by_owner = {oid: i for i, (oid, _) in enumerate(ranked, start=1)}
@@ -302,7 +323,10 @@ def list_owners_career(session: Session) -> list[dict[str, Any]]:
     for o in owners:
         by_owner[o.owner_id] = owner_seasons(session, o.owner_id) or []
     careers = [
-        _career_from_seasons(o.owner_id, o.display_name, by_owner[o.owner_id]) for o in owners
+        _career_from_seasons(
+            o.owner_id, o.display_name, by_owner[o.owner_id], is_active=bool(o.is_active)
+        )
+        for o in owners
     ]
     careers.sort(key=lambda c: (-c["championships"], -c["total_wins"], -c["total_points_for"]))
     return careers
