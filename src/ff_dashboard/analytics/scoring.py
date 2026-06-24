@@ -1,10 +1,15 @@
 """Authoritative league scoring helpers (``analytics/scoring.py``).
 
-``player_stats_scored.total_points`` (the nflverse scoring reconstruction) omits
-the NFL.com scoring bonuses the league actually awarded — long-TD and yardage
-milestones — verified league-wide, every season (0 of ~390k rows carry a bonus
-component). The bonus-inclusive league score lives in
-``team_rosters.extra_data.nfl_com_points``, but only for *rostered* player-weeks.
+``player_stats_scored.total_points`` is an independent reconstruction (nflverse
+source stats scored by the league's per-season rules); the authoritative,
+bonus-inclusive league score is the scraped ``team_rosters.extra_data.nfl_com_points``,
+present only on *rostered* player-weeks. The two now agree for the overwhelming
+majority of rows — the NFL.com long-TD bonuses were folded into the reconstruction
+upstream (danger-zone ``backfill_long_td_bonus.py``) — but a small residual still
+diverges: ~69 offensive player-weeks (genuine nflverse-vs-NFL.com *stat*
+disagreements, not missing rules) and the DST ``points_allowed`` class (a faithful
+PBP re-derivation is still pending — see
+``docs/handoffs/dst-points-allowed-rederivation.md``).
 
 Every surface that ranks or sums individual player-weeks must therefore prefer
 ``nfl_com_points`` and fall back to ``total_points`` — the same coalesce the box
@@ -13,10 +18,11 @@ score, player weekly and records book already use (see
 and the league-relevance ("rostered-ever") filter so the surfaces cannot quietly
 diverge again. See ``docs/plans/bonus-scoring-fidelity.md``.
 
-**Interim.** Once the upstream re-score folds bonuses into ``total_points``
-(``docs/handoffs/bonus-scoring-rescore.md``) the coalesce becomes a no-op and
-these helpers can be retired — the displayed numbers will come from one
-authoritative source again.
+**Why the coalesce is not yet a no-op.** It retires once the reconstruction matches
+``nfl_com_points`` everywhere. The offensive gap is effectively closed (its residual
+is irreducible source disagreement, not fixable rules); the DST ``points_allowed``
+re-derivation is the remaining systematic work. Until then the coalesce keeps every
+displayed number authoritative regardless of the residual.
 """
 
 from __future__ import annotations
