@@ -2137,6 +2137,16 @@ export interface components {
             /** Latest Team Id */
             latest_team_id?: number | null;
             /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Qualified
+             * @default true
+             */
+            qualified: boolean;
+            /**
              * Trophy Case
              * @default []
              */

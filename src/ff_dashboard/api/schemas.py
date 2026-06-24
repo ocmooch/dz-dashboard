@@ -571,6 +571,12 @@ class OwnerCareer(BaseModel):
     best_finish: int | None = None
     avg_finish: float | None = None
     latest_team_id: int | None = None
+    # Whether the manager is still in the league, and whether they qualify for the
+    # all-time "best of" rankings (active, or a significant stint) — the managers
+    # table reads ``qualified`` so a short-stint departed owner is shown but never
+    # crowned above an active or legacy manager.
+    is_active: bool = True
+    qualified: bool = True
     trophy_case: list[TrophyEntry] = []
     consistency: OwnerConsistency | None = None
     commissioner_terms: list[CommissionerTerm] = []

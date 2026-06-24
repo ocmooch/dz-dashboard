@@ -135,7 +135,11 @@ def _populate(session: Session) -> None:
         "ice": Owner(league_id=LEAGUE_ID, display_name="Iceman", joined_year=2015),
         "goose": Owner(league_id=LEAGUE_ID, display_name="Goose", joined_year=2015),
         "slider": Owner(
-            league_id=LEAGUE_ID, display_name="Slider", joined_year=2015, left_year=2016
+            league_id=LEAGUE_ID,
+            display_name="Slider",
+            joined_year=2015,
+            left_year=2016,
+            is_active=False,
         ),
         "viper": Owner(league_id=LEAGUE_ID, display_name="Viper", joined_year=2017),
     }

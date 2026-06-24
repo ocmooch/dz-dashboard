@@ -181,6 +181,21 @@ def test_owner_career_championships(session: Session) -> None:
     assert list_owners_career(session)[0]["display_name"] == "Maverick"
 
 
+def test_owner_career_qualification_gates_short_departed(session: Session) -> None:
+    careers = {c["display_name"]: c for c in list_owners_career(session)}
+    # Active managers always qualify for the "best of" rankings, regardless of
+    # tenure — Viper plays a single season but is still in the league.
+    assert careers["Maverick"]["is_active"] is True
+    assert careers["Maverick"]["qualified"] is True
+    assert careers["Viper"]["seasons_played"] == 1
+    assert careers["Viper"]["qualified"] is True
+    # Slider left the league after two seasons (< SIGNIFICANT_STINT_SEASONS), so a
+    # short, departed stint is deprioritized — shown, but never crowned.
+    assert careers["Slider"]["is_active"] is False
+    assert careers["Slider"]["seasons_played"] == 2
+    assert careers["Slider"]["qualified"] is False
+
+
 def test_owner_trophy_case(session: Session) -> None:
     career = owner_career(session, KNOWN["owner_id"]["mav"])
     assert career is not None

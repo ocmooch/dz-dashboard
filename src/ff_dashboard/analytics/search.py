@@ -26,6 +26,7 @@ from ff_pipeline.repository.models import Owner, Season, Team
 from ff_pipeline.repository.queries import search_players
 from sqlalchemy import select
 
+from ff_dashboard.analytics.common import owner_active_map, owner_seasons_played_map
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.nfl_teams import resolve_nfl_teams
 
@@ -36,6 +37,18 @@ if TYPE_CHECKING:
 # Entity-type ordering: owners and fantasy teams are the most useful nav targets
 # (both deep-link to a manager), then seasons, then players.
 _TYPE_RANK = {"owner": 0, "team": 1, "season": 2, "player": 3}
+
+# Within a single entity type, this orders ties before the alphabetical label.
+# Only owners use it (active before departed, longer tenure first), so an active
+# or legacy manager surfaces above a short-stint departed one on an equal name
+# match; every other hit gets the neutral default and is unaffected.
+_NO_PRIORITY = (0, 0)
+
+
+def _owner_priority(
+    owner_id: int, active: dict[int, bool], seasons: dict[int, int]
+) -> tuple[int, int]:
+    return (0 if active.get(owner_id, True) else 1, -seasons.get(owner_id, 0))
 
 
 def _match_rank(haystack: str, needle: str) -> int | None:
@@ -72,9 +85,12 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
     if not query:
         return []
 
-    scored: list[tuple[int, int, str, dict[str, Any]]] = []
+    scored: list[tuple[int, int, tuple[int, int], str, dict[str, Any]]] = []
 
-    # Owners -> /managers/{owner_id}
+    # Owners -> /managers/{owner_id}. Tie-break equal name matches by activity then
+    # tenure so a legacy/active manager outranks a short-stint departed namesake.
+    active = owner_active_map(session)
+    seasons = owner_seasons_played_map(session)
     for owner in session.execute(select(Owner)).scalars():
         name = owner.display_name or ""
         rank = _match_rank(name, query)
@@ -83,6 +99,7 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
                 (
                     rank,
                     _TYPE_RANK["owner"],
+                    _owner_priority(int(owner.owner_id), active, seasons),
                     name.casefold(),
                     {
                         "type": "owner",
@@ -119,7 +136,7 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
                 },
             )
     for key, (_, rank, hit) in team_matches.items():
-        scored.append((rank, _TYPE_RANK["team"], key, hit))
+        scored.append((rank, _TYPE_RANK["team"], _NO_PRIORITY, key, hit))
 
     # Seasons -> /standings (the season context switches client-side); match on year text.
     for season in session.execute(select(Season).order_by(Season.year.desc())).scalars():
@@ -130,6 +147,7 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
                 (
                     rank,
                     _TYPE_RANK["season"],
+                    _NO_PRIORITY,
                     year_text,
                     {
                         "type": "season",
@@ -151,7 +169,9 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
         if rank is None:
             continue
         seen_players.add(int(player.player_id))
-        scored.append((rank, _TYPE_RANK["player"], name.casefold(), _player_hit(player)))
+        scored.append(
+            (rank, _TYPE_RANK["player"], _NO_PRIORITY, name.casefold(), _player_hit(player))
+        )
 
     # NFL-team query expander: a city/nickname/abbrev token surfaces that team's
     # league-relevant players (deduped against the name branch). The NFL team
@@ -163,7 +183,9 @@ def global_search(session: Session, q: str, limit: int = 10) -> list[dict[str, A
                 continue
             seen_players.add(pid)
             name = player.name_full or ""
-            scored.append((1, _TYPE_RANK["player"], name.casefold(), _player_hit(player)))
+            scored.append(
+                (1, _TYPE_RANK["player"], _NO_PRIORITY, name.casefold(), _player_hit(player))
+            )
 
-    scored.sort(key=lambda t: (t[0], t[1], t[2]))
-    return [hit for _, _, _, hit in scored[:limit]]
+    scored.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
+    return [hit for *_, hit in scored[:limit]]
