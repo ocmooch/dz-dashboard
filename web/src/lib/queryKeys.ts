@@ -25,6 +25,7 @@ export const qk = {
   boxScore: (matchupId: number) => ["box-score", matchupId] as const,
   draftBoard: (seasonId: number) => ["draft", seasonId] as const,
   draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
+  draftTendencies: () => ["draft", "tendencies"] as const,
   bracket: (seasonId: number) => ["bracket", seasonId] as const,
   conferences: (seasonId: number, week?: number) =>
     ["conferences", seasonId, week ?? "latest"] as const,

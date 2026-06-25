@@ -650,6 +650,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/draft/tendencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Draft Tendencies */
+        get: operations["get_draft_tendencies_v1_draft_tendencies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons/{season_id}/power": {
         parameters: {
             query?: never;
@@ -1258,6 +1275,31 @@ export interface components {
             /** Rounds */
             rounds: components["schemas"]["DraftRound"][];
         };
+        /** DraftManagerTendency */
+        DraftManagerTendency: {
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Qualified */
+            qualified: boolean;
+            /** N Picks With Adp */
+            n_picks_with_adp: number;
+            /** Mean Delta */
+            mean_delta: number;
+            /** Reach Rate */
+            reach_rate: number;
+            /** Value Rate */
+            value_rate: number;
+            /** Discipline */
+            discipline: number;
+            /** By Position */
+            by_position: components["schemas"]["DraftTendencyPosition"][];
+            /** Sufficient */
+            sufficient: boolean;
+        };
         /** DraftPick */
         DraftPick: {
             /** Overall */
@@ -1300,6 +1342,33 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Adp */
+            adp?: number | null;
+            /**
+             * Adp Sources
+             * @default []
+             */
+            adp_sources: string[];
+            /** Adp Source Spread */
+            adp_source_spread?: number | null;
+            /** Adp Format */
+            adp_format?: string | null;
+            /**
+             * Adp Format Fallback
+             * @default false
+             */
+            adp_format_fallback: boolean;
+            /** Adp Delta */
+            adp_delta?: number | null;
+            /** Market Label */
+            market_label?: string | null;
+            /**
+             * Adp Available
+             * @default false
+             */
+            adp_available: boolean;
+            /** Adp Reason */
+            adp_reason?: string | null;
         };
         /** DraftRecords */
         DraftRecords: {
@@ -1320,6 +1389,32 @@ export interface components {
             round: number;
             /** Picks */
             picks: components["schemas"]["DraftPick"][];
+        };
+        /** DraftTendencies */
+        DraftTendencies: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Definition */
+            definition: string;
+            /** Min Picks */
+            min_picks: number;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** Managers */
+            managers: components["schemas"]["DraftManagerTendency"][];
+        };
+        /** DraftTendencyPosition */
+        DraftTendencyPosition: {
+            /** Position */
+            position: string;
+            /** N */
+            n: number;
+            /** Mean Delta */
+            mean_delta: number;
         };
         /** DraftValue */
         DraftValue: {
@@ -1348,6 +1443,16 @@ export interface components {
             points_steals: components["schemas"]["DraftPick"][];
             /** Points Busts */
             points_busts: components["schemas"]["DraftPick"][];
+            /** Adp Definition */
+            adp_definition: string;
+            /** Adp Weights */
+            adp_weights: {
+                [key: string]: number;
+            };
+            /** Reaches */
+            reaches: components["schemas"]["DraftPick"][];
+            /** Values */
+            values: components["schemas"]["DraftPick"][];
             /** Leaderboard Limit */
             leaderboard_limit: number;
         };
@@ -1395,6 +1500,11 @@ export interface components {
         /** Envelope[DraftRecords] */
         Envelope_DraftRecords_: {
             data: components["schemas"]["DraftRecords"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[DraftTendencies] */
+        Envelope_DraftTendencies_: {
+            data: components["schemas"]["DraftTendencies"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[DraftValue] */
@@ -4503,6 +4613,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_tendencies_v1_draft_tendencies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_DraftTendencies_"];
                 };
             };
         };
