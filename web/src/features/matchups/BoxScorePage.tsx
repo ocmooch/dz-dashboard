@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
-import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Badge, BracketBadge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
@@ -308,7 +308,11 @@ export function BoxScorePage() {
           </div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Box Score</h1>
         </div>
-        {data?.is_playoff && <Badge variant="accent">playoff</Badge>}
+        {data?.bracket_tier ? (
+          <BracketBadge tier={data.bracket_tier} />
+        ) : (
+          data?.is_playoff && <Badge variant="accent">playoff</Badge>
+        )}
       </div>
 
       {isLoading && (

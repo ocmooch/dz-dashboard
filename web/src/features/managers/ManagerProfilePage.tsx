@@ -10,6 +10,7 @@ import {
   DataGap,
   EmptyState,
   RecordLine,
+  Sacko,
   Skeleton,
   Stat,
   Trophy,
@@ -84,7 +85,15 @@ function SeasonRow({ row }: { row: OwnerSeasonRow }) {
       <td className="dz-num num">{scored(row) ? num(row.points_for) : <DataGap reason="season_unscored" size="sm" />}</td>
       <td className="dz-num num">{ordinal(row.final_rank)}</td>
       <td className="dz-num">
-        {row.is_champion ? <Trophy label="Champion" /> : row.made_playoffs ? <Badge>playoffs</Badge> : "—"}
+        {row.is_champion ? (
+          <Trophy label="Champion" />
+        ) : row.is_sacko ? (
+          <Sacko />
+        ) : row.made_playoffs ? (
+          <Badge>playoffs</Badge>
+        ) : (
+          "—"
+        )}
       </td>
     </tr>
   );
@@ -225,6 +234,7 @@ export function ManagerProfilePage() {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">{c?.display_name ?? "—"}</h1>
           {c && c.championships > 0 && <Trophy label="Champion" count={c.championships} />}
+          {c && c.sackos > 0 && <Sacko count={c.sackos} />}
           {latestSeason && (
             <Link to={`/teams/${latestSeason.team_id}`} className="text-muted hover:text-accent">
               Latest roster ({latestSeason.season_year})
@@ -240,7 +250,7 @@ export function ManagerProfilePage() {
 
       {c && (
         <Card className="p-5">
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-7">
             <Stat label="Seasons" value={c.seasons_played} />
             <div>
               <div className="dz-eyebrow mb-1">Record</div>
@@ -260,6 +270,7 @@ export function ManagerProfilePage() {
             <Stat label="Points for" value={num(c.total_points_for, 0)} />
             <Stat label="Best finish" value={ordinal(c.best_finish)} />
             <Stat label="Titles" value={c.championships} unit="★" tone="accent" />
+            <Stat label="Sackos" value={c.sackos} unit="💩" />
           </div>
         </Card>
       )}
@@ -272,7 +283,13 @@ export function ManagerProfilePage() {
               <div key={i} className={`dz-card min-w-[150px] shrink-0 p-3 ${t.is_champion ? "dz-card--hover" : ""}`}>
                 <div className="num text-[var(--fs-sm)] text-faint">{t.season_year ?? "—"}</div>
                 <div className="mt-1 flex items-center gap-1.5">
-                  {t.is_champion ? <Trophy label="Champion" /> : <span className="num text-accent">{ordinal(t.finish)}</span>}
+                  {t.is_champion ? (
+                    <Trophy label="Champion" />
+                  ) : t.is_sacko ? (
+                    <Sacko />
+                  ) : (
+                    <span className="num text-accent">{ordinal(t.finish)}</span>
+                  )}
                   <span className="truncate font-semibold text-text">{t.team_name ?? "—"}</span>
                 </div>
               </div>

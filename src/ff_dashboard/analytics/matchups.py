@@ -42,6 +42,7 @@ from ff_pipeline.scoring.rules import ScoringRule as ScoringRuleDataclass
 from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
+from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
@@ -991,6 +992,11 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     if season is None:  # pragma: no cover - a matchup always has its season
         return None
 
+    # Shared postseason tier (championship / playoff / consolation) for this game.
+    _pc = postseason_classification(session, m.season_id)["by_matchup_id"].get(matchup_id) or {}
+    bracket_tier = _pc.get("tier")
+    game_label = _pc.get("game_label")
+
     if season.year not in set(seasons_scored(session)):
         return {
             "matchup_id": matchup_id,
@@ -999,6 +1005,8 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
             "available": False,
             "reason": "season_unscored",
             "is_playoff": bool(m.is_playoff),
+            "bracket_tier": bracket_tier,
+            "game_label": game_label,
         }
 
     # Projection coverage is a property of the (season, week), identical for both
@@ -1060,6 +1068,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         week=m.week,
         season_ctx=season_score_context(session, season.season_id, season.year),
         week_ctx=week_score_context(session, season.season_id, m.week),
+        bracket_tier=bracket_tier,
     )
 
     # Matchup-level no-contest banner: shown on every matchup that holds an
@@ -1076,6 +1085,8 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "week": m.week,
         "available": True,
         "is_playoff": bool(m.is_playoff),
+        "bracket_tier": bracket_tier,
+        "game_label": game_label,
         "projections_available": projections_available,
         "projection_reason": projection_reason,
         "resolution_note": resolution_note,
@@ -1150,6 +1161,8 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
     # this whole function per (season, week).
     season_ctx = season_score_context(session, season_id, season.year)
     week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
+    # Shared postseason classification for this season; cheap and reused per card.
+    classification = postseason_classification(session, season_id)["by_matchup_id"]
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -1198,10 +1211,14 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         team_b = team_ref(
             m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
         )
+        tier_entry = classification.get(m.matchup_id) or {}
+        bracket_tier = tier_entry.get("tier")
         games.append(
             {
                 "matchup_id": m.matchup_id,
                 "is_playoff": bool(m.is_playoff),
+                "bracket_tier": bracket_tier,
+                "game_label": tier_entry.get("game_label"),
                 "team_a": team_a,
                 "team_b": team_b,
                 "margin": margin,
@@ -1214,6 +1231,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
                     week=week,
                     season_ctx=season_ctx,
                     week_ctx=week_ctx,
+                    bracket_tier=bracket_tier,
                 ),
             }
         )

@@ -163,6 +163,13 @@ class TeamRef(BaseModel):
     owner_name: str | None = None
 
 
+class SackoRef(TeamRef):
+    """The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket) or
+    "recorded" (the stored last-place team, where the bracket can't be split)."""
+
+    source: str | None = None
+
+
 class OwnerRef(BaseModel):
     owner_id: int
     display_name: str | None = None
@@ -431,7 +438,12 @@ class LeagueTimelineSeason(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    # The Sacko (toilet-bowl loser); derived or recorded (see ``SackoRef.source``).
+    sacko: SackoRef | None = None
     is_scored: bool
+    # Division *structure* for the season (e.g. "2 divisions of 6", "No divisions");
+    # the rotating division names are display-only and live in the conferences view.
+    division_structure: str | None = None
     schedule_source: str
     scoring_provenance: str
     verification_status: str
@@ -474,6 +486,9 @@ class LeagueEra(BaseModel):
     ppr: str | None = None
     lineup: str | None = None
     waiver_system: str | None = None
+    # Division structure when constant across the era; None when the era straddles a
+    # structural change (the inline ``divisions`` change-event names that transition).
+    division_structure: str | None = None
     league_size: int
     regular_season_weeks: int | None = None
     playoff_weeks: int | None = None
@@ -547,6 +562,8 @@ class TrophyEntry(BaseModel):
     team_name: str | None = None
     finish: int | None = None
     is_champion: bool
+    # The 💩 anti-trophy: this season ended with the Sacko (toilet-bowl loser).
+    is_sacko: bool = False
 
 
 class OwnerConsistency(BaseModel):
@@ -568,6 +585,8 @@ class OwnerCareer(BaseModel):
     total_ties: int
     total_points_for: float
     championships: int
+    # Count of Sacko (last-place / toilet-bowl) seasons — the anti-championship.
+    sackos: int = 0
     best_finish: int | None = None
     avg_finish: float | None = None
     latest_team_id: int | None = None
@@ -597,10 +616,12 @@ class OwnerSeasonRow(BaseModel):
     points_for: float
     final_rank: int | None = None
     made_playoffs: bool | None = None
-    # Derived finish label: "Champion" / "Runner-up" / "3rd place" / "Nth".
+    # Derived finish label: "Champion" / "Sacko" / "Runner-up" / "3rd place" / "Nth".
     # null (a gap, never 0) for an in-progress or rank-less season.
     result: str | None = None
     is_champion: bool
+    # True when this team was the season's Sacko (toilet-bowl loser).
+    is_sacko: bool = False
 
 
 class OwnerSeasons(BaseModel):
@@ -806,6 +827,9 @@ class ChampionshipEntry(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    # The Sacko (toilet-bowl loser) — derived where the bracket distinguishes it,
+    # else the recorded last-place team (see ``SackoRef.source``).
+    sacko: SackoRef | None = None
 
 
 class ChampionshipHistory(BaseModel):
@@ -1076,6 +1100,11 @@ class GameCard(BaseModel):
 
     matchup_id: int
     is_playoff: bool = False
+    # Postseason tier from the shared bracket classifier: "championship" | "playoff"
+    # | "consolation" | null (regular season / indistinguishable). ``game_label`` is
+    # the round/place label ("Championship", "Toilet Bowl", …) where known.
+    bracket_tier: str | None = None
+    game_label: str | None = None
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
@@ -1176,6 +1205,9 @@ class BoxScore(BaseModel):
     available: bool
     reason: str | None = None
     is_playoff: bool = False
+    # Postseason tier / label from the shared bracket classifier (see GameCard).
+    bracket_tier: str | None = None
+    game_label: str | None = None
     # Whether this (season, week) has real projection data — drives a single
     # top-level note rather than a per-player gap. ``projection_reason`` carries
     # the machine code (e.g. ``projections_not_captured``) for the UI copy.
@@ -1213,6 +1245,8 @@ class TeamOverview(BaseModel):
     final_rank: int | None = None
     made_playoffs: bool | None = None
     is_champion: bool
+    # True when this team was the season's Sacko (toilet-bowl loser) — the 💩.
+    is_sacko: bool = False
     is_scored: bool
 
 

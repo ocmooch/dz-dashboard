@@ -4,6 +4,29 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-06-24 — Championship flag, playoff/consolation differentiation, Sacko 💩
+
+- **Shared postseason classifier** (`analytics/bracket.py` `postseason_classification` +
+  `season_sacko_map`): reuses the existing connectivity split to tag every postseason game
+  `championship` / `playoff` / `consolation` (championship anchored on `Season.champion_team_id`),
+  and derives the **Sacko** (toilet-bowl final loser), falling back to the recorded last-place team
+  where the bracket can't be split (`source: derived|recorded`). One source of truth; consumers
+  cache it per season.
+- **Consolation no longer counts as playoff.** `head_to_head.all_pairwise` enriches meetings with
+  `bracket_tier` + `is_true_playoff`; `playoff_meetings` now excludes consolation, and
+  `rivalries.playoff_rivalries` (the "hottest rivalries"/stakes math) drops consolation-only
+  pairings. `owners._playoff_participation` derives `made_playoffs` from the classifier instead of
+  the unpopulated `is_consolation` column.
+- **Championship gets its own flag** wherever a playoff badge showed: a `championship`/`consolation`
+  superlative in `matchup_flags`, `bracket_tier`/`game_label` on `week_matchups` + `box_score`, and
+  distinct badges/eyebrows in `MatchupsPage`/`BoxScorePage` (new `BracketBadge`).
+- **Sacko recorded & surfaced** (new `Sacko` 💩 primitive): owner season table + career hardware
+  (`sackos` count, trophy-case anti-trophy), team-season header (`is_sacko`), records book
+  ("Most Sackos" + per-season Sacko in the dynasty timeline), and the league-history results row.
+- Schema: new `SackoRef`, `bracket_tier`/`game_label`/`is_sacko`/`sackos`/`sacko` fields; client
+  regenerated. Backend 459 pass + ruff/mypy clean; FE typecheck + 194 tests green; no contract drift.
+  Plan: `docs/plans/championship-flag-consolation-sacko.md`.
+
 ## 2026-06-24 — Rivalries: active-manager-focused insight bands
 
 - **Fixed "most dead-even" — it wasn't even.** `head_to_head.closest_rivalry()` sorted by

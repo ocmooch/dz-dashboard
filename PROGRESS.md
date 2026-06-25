@@ -20,7 +20,15 @@ P1–P6 review fix-passes, and every post-roadmap product slice are merged to `d
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
 below) awaits the next `dev → main` promotion.
 
-**In flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
+**In flight:** `feature/championship-consolation-sacko` (cut from `dev`) — a shared postseason
+classifier (`bracket.postseason_classification`) that tags every postseason game
+championship/playoff/consolation and derives the **Sacko** (toilet-bowl loser). Consolation games no
+longer count as true playoff in rivalries/records/`made_playoffs`; the championship game carries its
+own flag/badge everywhere a playoff badge showed; the Sacko (💩) is surfaced on owner/team/records/
+league-history/hardware. Schema + client regenerated. Full gate green (backend 459; FE typecheck +
+194). Plan: `docs/plans/championship-flag-consolation-sacko.md`. Ready to commit + PR to `dev`.
+
+**Prior in flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
 *BFF (full):* new `analytics/scoring.py` centralises `authoritative_week_points()` =
 `coalesce(nfl_com_points, total_points)` + `rostered_ever()`; applied to Stats top-scorers (moved out of
 Phase-1 `queries` — no gen:api drift), season-totals, player insights, matchup monster-game flag, draft

@@ -943,6 +943,10 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /** Bracket Tier */
+            bracket_tier?: string | null;
+            /** Game Label */
+            game_label?: string | null;
             /**
              * Projections Available
              * @default true
@@ -1078,6 +1082,7 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            sacko?: components["schemas"]["SackoRef"] | null;
         };
         /** ChampionshipHistory */
         ChampionshipHistory: {
@@ -1617,6 +1622,10 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /** Bracket Tier */
+            bracket_tier?: string | null;
+            /** Game Label */
+            game_label?: string | null;
             team_a?: components["schemas"]["GameTeam"] | null;
             team_b?: components["schemas"]["GameTeam"] | null;
             /** Margin */
@@ -1889,6 +1898,8 @@ export interface components {
             lineup?: string | null;
             /** Waiver System */
             waiver_system?: string | null;
+            /** Division Structure */
+            division_structure?: string | null;
             /** League Size */
             league_size: number;
             /** Regular Season Weeks */
@@ -2016,8 +2027,11 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            sacko?: components["schemas"]["SackoRef"] | null;
             /** Is Scored */
             is_scored: boolean;
+            /** Division Structure */
+            division_structure?: string | null;
             /** Schedule Source */
             schedule_source: string;
             /** Scoring Provenance */
@@ -2130,6 +2144,11 @@ export interface components {
             total_points_for: number;
             /** Championships */
             championships: number;
+            /**
+             * Sackos
+             * @default 0
+             */
+            sackos: number;
             /** Best Finish */
             best_finish?: number | null;
             /** Avg Finish */
@@ -2208,6 +2227,11 @@ export interface components {
             result?: string | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
         };
         /** OwnerSeasons */
         OwnerSeasons: {
@@ -2636,6 +2660,23 @@ export interface components {
             position?: string | null;
             /** Action */
             action: string;
+        };
+        /**
+         * SackoRef
+         * @description The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket) or
+         *     "recorded" (the stored last-place team, where the bracket can't be split).
+         */
+        SackoRef: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Source */
+            source?: string | null;
         };
         /** ScheduleGame */
         ScheduleGame: {
@@ -3079,6 +3120,11 @@ export interface components {
             made_playoffs?: boolean | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Is Scored */
             is_scored: boolean;
         };
@@ -3274,6 +3320,11 @@ export interface components {
             result?: string | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Owner Id */
             owner_id: number;
             /** Owner Name */
@@ -3348,6 +3399,11 @@ export interface components {
             finish?: number | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
         };
         /** ValidationError */
         ValidationError: {

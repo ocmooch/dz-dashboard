@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from ff_dashboard.analytics.league_history import (
     _assign_era_ids,
+    _division_structure,
     _era_defining_change,
     _flex_label,
     _owner_aliases,
@@ -151,6 +152,31 @@ def test_eras_split_on_highly_significant_playstyle_changes() -> None:
     assert [r["era_id"] for r in rows] == ["era-1", "era-2", "era-2", "era-3", "era-4"]
 
 
+def test_division_structure_reads_structure_not_names() -> None:
+    # Sourced from the reviewed historical-divisions artifact: structure only, never
+    # the rotating cosmetic names. Seasons outside the artifact played as one table.
+    assert _division_structure(2010) == "3 divisions of 4"
+    assert _division_structure(2011) == "2 divisions of 6"
+    assert _division_structure(2019) == "2 divisions of 6"
+    assert _division_structure(2020) == "No divisions"
+
+
+def test_eras_carry_division_structure_as_context(session: Session) -> None:
+    # The fixture's seasons (2015-2017) all sit in the 2-divisions-of-6 era, so the
+    # single era carries that structure as a trait without splitting on it.
+    eras = league_eras(session)["eras"]
+    assert [era["division_structure"] for era in eras] == ["2 divisions of 6"]
+    # A constant structure across the fixture means no division change-event fires.
+    timeline = league_timeline(session)
+    division_changes = [
+        detail
+        for row in timeline["seasons"]
+        for detail in row["changes"]["details"]
+        if detail["category"] == "divisions" and detail["title"].startswith("Divisions ")
+    ]
+    assert division_changes == []
+
+
 def test_era_defining_change_names_only_what_shifted() -> None:
     e1 = _era_row(2010, ppr=0.5, flex="No flex", waiver="Standings-order waivers")
     e2 = _era_row(2011, ppr=1.0, flex="WR/RB flex", waiver="Standings-order waivers")
@@ -226,9 +252,9 @@ def test_timeline_classifies_2016_setting_changes(session: Session) -> None:
     events = _setting_events(row["changes"]["details"])
     by_label = {e["human_label"]: e for e in events}
 
-    # Division cluster -> one T2 realignment event (notable, not major) with all 3 rows.
+    # Division cluster -> one T1 realignment event (a division change is major) with all 3 rows.
     div = by_label["Division realignment"]
-    assert div["tier"] == "T2"
+    assert div["tier"] == "T1"
     assert len(div["members"]) == 3
     assert "3 teams" in div["summary"]
 

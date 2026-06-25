@@ -58,6 +58,15 @@ function TeamSide({
   );
 }
 
+/** Eyebrow text reflecting the postseason tier (championship/consolation are
+ *  differentiated from a generic playoff game; consolation is never "playoff"). */
+function eyebrowFor(game: GameCard): string {
+  if (game.bracket_tier === "championship") return "championship";
+  if (game.bracket_tier === "consolation") return "consolation";
+  if (game.is_playoff) return "playoff";
+  return "regular season";
+}
+
 function GameCardView({ game }: { game: GameCard }) {
   return (
     <Link
@@ -65,7 +74,7 @@ function GameCardView({ game }: { game: GameCard }) {
       className="block rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] p-4 transition-colors hover:border-[var(--accent)]"
     >
       <div className="mb-2 flex items-start justify-between gap-3">
-        <span className="dz-eyebrow shrink-0 pt-1">{game.is_playoff ? "playoff" : "regular season"}</span>
+        <span className="dz-eyebrow shrink-0 pt-1">{eyebrowFor(game)}</span>
         <MatchupFlags flags={game.flags} className="justify-end" />
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
