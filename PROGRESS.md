@@ -75,6 +75,14 @@ scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate 
 - **#72–#79** CI prune fix, player context/status-drift guards, power-into-Standings lens,
   `/seasons`+`/rules` → one **Timeline** space, Teams nav + team-page refinements.
 
+**In flight:** `feature/rivalries-active-focus` (uncommitted) — `/rivalries` insight bands made
+active-manager-focused. Fixed the dead-even bug (balance-first + `MIN_DEAD_EVEN_GAMES` gate, was
+volume-first), added owner-prominence ordering via `common.owner_prominence_map`, ranked top-5
+`most_played`/`dead_even` lists, qualified-first nemesis/victim with `*_departed` secondaries, and
+streak `from_matchup_id`→`last_matchup_id` deep-links. Single-game records stay pure all-time.
+Bands are `extra="allow"` (no contract change). Gate green (459 BE / 193 FE, ruff/mypy clean);
+e2e not re-run. See `CHANGELOG.md` 2026-06-24.
+
 The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the reverse-chron pass
 history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 

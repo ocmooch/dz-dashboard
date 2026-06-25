@@ -16,12 +16,21 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Season
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import owner_active_map, owner_name_map, team_owner_map
+from ff_dashboard.analytics.common import (
+    owner_active_map,
+    owner_name_map,
+    owner_prominence_map,
+    team_owner_map,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 Pair = tuple[int, int]  # (lower_owner_id, higher_owner_id)
+
+# A pair below this many meetings is too thin to crown as a "dead-even" rivalry —
+# a lone 1-1 split is not a 50/50 series. Mirrors rivalries.MIN_INTENSITY_GAMES.
+MIN_DEAD_EVEN_GAMES = 4
 
 
 def _blank_pair() -> dict[str, Any]:
@@ -199,23 +208,38 @@ def rivalry_matrix(session: Session) -> dict[str, Any]:
 
 
 def closest_rivalry(session: Session) -> dict[str, Any] | None:
-    """The most-played pair whose win pct is nearest 0.5 (a records-book stat)."""
+    """The genuinely dead-even rivalry: the pair whose all-time win pct is nearest
+    0.5, gated by a real sample (``MIN_DEAD_EVEN_GAMES``).
+
+    Balance is the primary key — a lopsided 21–9 series is not "even" however many
+    times it was played — with more games as the tiebreak between equally balanced
+    pairs. Crowned among **qualified** pairs (both owners still active or a
+    significant-stint departure) so the headline is a current, compelling rivalry,
+    falling back to all pairs only if none qualify. A records-book stat."""
     names = owner_name_map(session)
+    prominence = owner_prominence_map(session)
     pairs = all_pairwise(session)
-    best: tuple[int, float, Pair] | None = None
-    for key, agg in pairs.items():
-        if agg["games"] == 0:
-            continue
-        low_pct = (agg["low_wins"] + 0.5 * agg["ties"]) / agg["games"]
-        closeness = abs(low_pct - 0.5)
-        # More games first, then closest to even.
-        candidate = (-agg["games"], closeness, key)
-        if best is None or candidate < (-best[0], best[1], best[2]):
-            best = (agg["games"], closeness, key)
-    if best is None:
+
+    def pick(qualified_only: bool) -> Pair | None:
+        best: tuple[float, int, Pair] | None = None
+        for key, agg in pairs.items():
+            if agg["games"] < MIN_DEAD_EVEN_GAMES:
+                continue
+            if qualified_only and min(prominence.get(o, 0) for o in key) < 1:
+                continue
+            low_pct = (agg["low_wins"] + 0.5 * agg["ties"]) / agg["games"]
+            closeness = abs(low_pct - 0.5)
+            # Closest to even first, then more games, then a stable id tiebreak.
+            candidate = (closeness, -agg["games"], key)
+            if best is None or candidate < best:
+                best = candidate
+        return best[2] if best is not None else None
+
+    chosen = pick(qualified_only=True) or pick(qualified_only=False)
+    if chosen is None:
         return None
-    low, high = best[2]
-    agg = pairs[best[2]]
+    low, high = chosen
+    agg = pairs[chosen]
     return {
         "owner_a": {"owner_id": low, "display_name": names.get(low)},
         "owner_b": {"owner_id": high, "display_name": names.get(high)},

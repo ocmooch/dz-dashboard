@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Link } from "react-router-dom";
 
 import { Badge, Card, CardHeader, DataGap, RecordLine } from "@/design-system";
@@ -6,7 +7,13 @@ import { num } from "@/lib/format";
 // The bundle is intentionally loose on the wire — each band carries its own rich,
 // deep-linkable context (matchup_id, heat components, owner refs). The generated
 // client only guarantees the envelope, so we widen here exactly like PairwisePage.
-type OwnerRef = { owner_id: number; display_name?: string | null };
+type OwnerRef = {
+  owner_id: number;
+  display_name?: string | null;
+  // Enriched by the BFF so bands can dim/order departed managers in place.
+  is_active?: boolean;
+  prominence?: number;
+};
 type Band = { available?: boolean; reason?: string | null };
 
 type RecordMeeting = {
@@ -33,14 +40,8 @@ type Records = Band & {
   closest_game?: RecordMeeting;
   biggest_blowout?: RecordMeeting;
   highest_scoring_duel?: RecordMeeting;
-  most_played_pairing?: PairRecord;
-  dead_even_rivalry?: {
-    owner_a: OwnerRef;
-    owner_b: OwnerRef;
-    games_played: number;
-    a_wins: number;
-    b_wins: number;
-  } | null;
+  most_played?: PairRecord[];
+  dead_even?: PairRecord[];
 };
 type IntensityRow = {
   owner_a: OwnerRef;
@@ -59,12 +60,15 @@ type Streak = {
   length: number;
   from_year?: number | null;
   to_year?: number | null;
+  from_matchup_id?: number | null;
   last_matchup_id?: number | null;
 };
 type NemesisRow = {
   owner: OwnerRef;
   nemesis: OppRecord | null;
   favorite_victim: OppRecord | null;
+  nemesis_departed?: OppRecord | null;
+  favorite_victim_departed?: OppRecord | null;
 };
 type OppRecord = {
   opponent: OwnerRef;
@@ -96,6 +100,18 @@ export type RivalryInsightsData = {
 const name = (o: OwnerRef | undefined) => o?.display_name ?? (o ? `#${o.owner_id}` : "—");
 const pairTo = (a: OwnerRef, b: OwnerRef) => `/rivalries/${a.owner_id}/vs/${b.owner_id}`;
 
+// A pairing is "departed" (deprioritized in place) if either side has left the
+// league — the BFF has already ranked these below the active ones; the UI only
+// has to dim them so active-manager rivalries read as the headline.
+const isDeparted = (o?: OwnerRef) => o?.is_active === false;
+const pairDeparted = (a: OwnerRef, b: OwnerRef) => isDeparted(a) || isDeparted(b);
+
+// A faint "former" chip, used wherever a departed manager appears in a ranking so
+// the deprioritization is legible rather than mysterious.
+function FormerTag() {
+  return <span className="dz-pill ml-2 text-[var(--fs-xs)] text-faint">former</span>;
+}
+
 function When({ year, week }: { year?: number | null; week?: number | null }) {
   if (!year) return <span className="text-faint">—</span>;
   return (
@@ -113,6 +129,18 @@ function PairLink({ a, b, className = "" }: { a: OwnerRef; b: OwnerRef; classNam
     <Link to={pairTo(a, b)} className={`font-semibold hover:text-accent ${className}`.trim()}>
       {name(a)} <span className="text-faint">vs</span> {name(b)}
     </Link>
+  );
+}
+
+// A divider that drops in once, ahead of the first departed entry in a ranked
+// list, so the active block reads first and the rest is clearly "history".
+function FormerDivider() {
+  return (
+    <li aria-hidden className="dz-eyebrow flex items-center gap-2 pt-1 text-faint">
+      <span className="h-px flex-1 bg-[var(--hairline)]" />
+      former managers
+      <span className="h-px flex-1 bg-[var(--hairline)]" />
+    </li>
   );
 }
 
@@ -145,29 +173,38 @@ function IntensityBand({ band }: { band: RivalryInsightsData["intensity"] }) {
           <DataGap reason={band.reason ?? "insufficient_rivalry_history"} />
         ) : (
           <ol className="space-y-3">
-            {band.leaderboard.map((r, i) => (
-              <li key={`${r.owner_a.owner_id}-${r.owner_b.owner_id}`} className="flex items-center gap-4">
-                <span className="font-display text-[22px] font-bold text-faint w-6 tabular-nums">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <PairLink a={r.owner_a} b={r.owner_b} />
-                    <span className="num text-[var(--fs-sm)] text-muted">
-                      {r.a_wins}–{r.b_wins}
-                      {r.ties ? `–${r.ties}` : ""} · {r.games}g
-                      {r.playoff_meetings > 0 && ` · ${r.playoff_meetings} playoff`}
+            {band.leaderboard.map((r, i) => {
+              const departed = pairDeparted(r.owner_a, r.owner_b);
+              const prev = band.leaderboard![i - 1];
+              const firstDeparted =
+                departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
+              return (
+                <Fragment key={`${r.owner_a.owner_id}-${r.owner_b.owner_id}`}>
+                  {firstDeparted && <FormerDivider />}
+                  <li className={`flex items-center gap-4 ${departed ? "opacity-60" : ""}`}>
+                    <span className="font-display text-[22px] font-bold text-faint w-6 tabular-nums">
+                      {i + 1}
                     </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full rounded bg-[var(--hairline)]">
-                    <div
-                      className="h-full rounded bg-accent"
-                      style={{ width: `${Math.max(2, Math.min(100, r.heat))}%` }}
-                    />
-                  </div>
-                </div>
-              </li>
-            ))}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <PairLink a={r.owner_a} b={r.owner_b} />
+                        <span className="num text-[var(--fs-sm)] text-muted">
+                          {r.a_wins}–{r.b_wins}
+                          {r.ties ? `–${r.ties}` : ""} · {r.games}g
+                          {r.playoff_meetings > 0 && ` · ${r.playoff_meetings} playoff`}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 w-full rounded bg-[var(--hairline)]">
+                        <div
+                          className="h-full rounded bg-accent"
+                          style={{ width: `${Math.max(2, Math.min(100, r.heat))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </li>
+                </Fragment>
+              );
+            })}
           </ol>
         )}
         <p className="mt-4 text-[var(--fs-xs)] text-faint">
@@ -203,48 +240,99 @@ function MeetingRecord({ label, m }: { label: string; m?: RecordMeeting }) {
   );
 }
 
+// A numbered list of pairings, dimmed + divided once the ranking crosses into
+// former managers. ``kind`` only changes the trailing stat line.
+function PairRankList({
+  label,
+  rows,
+  kind,
+}: {
+  label: string;
+  rows?: PairRecord[];
+  kind: "played" | "even";
+}) {
+  return (
+    <div className="bg-[var(--surface-1)] p-5">
+      <div className="dz-eyebrow mb-3">{label}</div>
+      {!rows || rows.length === 0 ? (
+        <DataGap reason="no_meetings" size="sm" />
+      ) : (
+        <ol className="space-y-2">
+          {rows.map((p, i) => {
+            const departed = pairDeparted(p.owner_a, p.owner_b);
+            const prev = rows[i - 1];
+            const firstDeparted =
+              departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
+            return (
+              <Fragment key={`${p.owner_a.owner_id}-${p.owner_b.owner_id}`}>
+                {firstDeparted && <FormerDivider />}
+                <li
+                  className={`flex items-baseline justify-between gap-3 ${departed ? "opacity-60" : ""}`}
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="num mr-2 text-faint">{i + 1}</span>
+                    <Link
+                      to={pairTo(p.owner_a, p.owner_b)}
+                      className="font-semibold hover:text-accent"
+                    >
+                      {name(p.owner_a)} <span className="text-faint">vs</span> {name(p.owner_b)}
+                    </Link>
+                  </span>
+                  <span className="num shrink-0 text-[var(--fs-sm)] text-muted">
+                    {kind === "played" ? (
+                      <>
+                        {p.games}g ·{" "}
+                        <RecordLine wins={p.a_wins} losses={p.b_wins} ties={p.ties} />
+                      </>
+                    ) : (
+                      <>
+                        {p.a_wins}–{p.b_wins}
+                        {p.ties ? `–${p.ties}` : ""} · {p.games}g
+                      </>
+                    )}
+                  </span>
+                </li>
+              </Fragment>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 function RecordsBand({ band }: { band: RivalryInsightsData["records"] }) {
-  const most = band.most_played_pairing;
-  const even = band.dead_even_rivalry;
   return (
     <Card>
       <CardHeader eyebrow="the record book" title="Rivalry Superlatives" />
-      <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-3">
+      {/* Absolute single-game records — pure all-time, never deprioritized. */}
+      <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-3">
         <MeetingRecord label="Closest game ever" m={band.closest_game} />
         <MeetingRecord label="Biggest beating" m={band.biggest_blowout} />
         <MeetingRecord label="Highest-scoring duel" m={band.highest_scoring_duel} />
-        <div className="bg-[var(--surface-1)] p-5">
-          <div className="dz-eyebrow mb-2">Most-played pairing</div>
-          {most ? (
-            <Link to={pairTo(most.owner_a, most.owner_b)} className="block hover:text-accent">
-              <div className="font-semibold text-text">
-                {name(most.owner_a)} <span className="text-faint">vs</span> {name(most.owner_b)}
-              </div>
-              <div className="mt-0.5 text-[var(--fs-sm)] text-muted">
-                {most.games} meetings · <RecordLine wins={most.a_wins} losses={most.b_wins} ties={most.ties} />
-              </div>
-            </Link>
-          ) : (
-            <DataGap reason="no_meetings" size="sm" />
-          )}
-        </div>
-        <div className="bg-[var(--surface-1)] p-5">
-          <div className="dz-eyebrow mb-2">Most dead-even</div>
-          {even ? (
-            <Link to={pairTo(even.owner_a, even.owner_b)} className="block hover:text-accent">
-              <div className="font-semibold text-text">
-                {name(even.owner_a)} <span className="text-faint">vs</span> {name(even.owner_b)}
-              </div>
-              <div className="num mt-0.5 text-[var(--fs-sm)] text-muted">
-                {even.a_wins}–{even.b_wins} over {even.games_played} games
-              </div>
-            </Link>
-          ) : (
-            <DataGap reason="no_meetings" size="sm" />
-          )}
-        </div>
+      </div>
+      {/* Ranked pairings — active first, former managers dimmed below. */}
+      <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-2">
+        <PairRankList label="Most-played rivalries" rows={band.most_played} kind="played" />
+        <PairRankList label="Most dead-even rivalries" rows={band.dead_even} kind="even" />
       </div>
     </Card>
+  );
+}
+
+// The span of a (possibly cross-season) streak, with both ends deep-linked to
+// their matchups so the run is browsable start → end, not just at the last game.
+function StreakSpan({ streak }: { streak: Streak }) {
+  return (
+    <span className="text-[var(--fs-xs)]">
+      <MatchupLink matchupId={streak.from_matchup_id}>
+        <When year={streak.from_year} />
+      </MatchupLink>{" "}
+      <span className="text-faint">→</span>{" "}
+      <MatchupLink matchupId={streak.last_matchup_id}>
+        <When year={streak.to_year} />
+      </MatchupLink>
+    </span>
   );
 }
 
@@ -258,14 +346,21 @@ function StreaksBand({ band }: { band: RivalryInsightsData["streaks"] }) {
         {band.longest ? (
           <div>
             <div className="dz-eyebrow mb-1">Longest ever</div>
-            <Link to={pairTo(band.longest.owner, band.longest.opponent)} className="hover:text-accent">
-              <span className="font-display text-[26px] font-bold text-accent">{band.longest.length}</span>{" "}
-              <span className="font-semibold text-text">
-                — {name(band.longest.owner)} over {name(band.longest.opponent)}
+            <div>
+              <span className="font-display text-[26px] font-bold text-accent">
+                {band.longest.length}
               </span>{" "}
-              <When year={band.longest.from_year} /> <span className="text-faint">→</span>{" "}
-              <When year={band.longest.to_year} />
-            </Link>
+              <Link
+                to={pairTo(band.longest.owner, band.longest.opponent)}
+                className="font-semibold text-text hover:text-accent"
+              >
+                — {name(band.longest.owner)} over {name(band.longest.opponent)}
+              </Link>
+            </div>
+            <div className="mt-1 text-[var(--fs-sm)] text-muted">
+              also {name(band.longest.opponent)}&apos;s longest losing skid to one rival ·{" "}
+              <StreakSpan streak={band.longest} />
+            </div>
           </div>
         ) : (
           <DataGap reason="no_meetings" />
@@ -278,12 +373,13 @@ function StreaksBand({ band }: { band: RivalryInsightsData["streaks"] }) {
                 <li key={`${s.owner.owner_id}-${s.opponent.owner_id}`}>
                   <Link
                     to={pairTo(s.owner, s.opponent)}
-                    className="dz-pill hover:text-accent"
-                    title={`${name(s.owner)} has won the last ${s.length} vs ${name(s.opponent)}`}
+                    className={`dz-pill hover:text-accent ${isDeparted(s.owner) ? "opacity-60" : ""}`}
+                    title={`${name(s.owner)} has won the last ${s.length} vs ${name(s.opponent)} — ${name(s.opponent)} has dropped ${s.length} straight`}
                   >
                     <span className="font-semibold">{name(s.owner)}</span>
                     <span className="text-faint"> W{s.length} </span>
                     <span className="text-muted">vs {name(s.opponent)}</span>
+                    {isDeparted(s.owner) && <FormerTag />}
                   </Link>
                 </li>
               ))}
@@ -325,6 +421,54 @@ function NemesesBand({ band }: { band: RivalryInsightsData["nemeses"] }) {
   );
 }
 
+// One nemesis/victim cell: the headline opponent (chosen among current/long-stint
+// managers) plus, when it exists, a dimmed "vs former …" line for an even more
+// extreme record against a short-stint departed opponent — kept visible, never
+// the headline.
+function OppCell({
+  owner,
+  primary,
+  departed,
+  tone,
+}: {
+  owner: OwnerRef;
+  primary: OppRecord | null;
+  departed?: OppRecord | null;
+  tone: "win" | "loss";
+}) {
+  const toneClass = tone === "win" ? "text-win" : "text-loss";
+  return (
+    <div className="bg-[var(--surface-1)] px-4 py-3">
+      {primary ? (
+        <Link to={pairTo(owner, primary.opponent)} className="block hover:text-accent">
+          <span className={`font-semibold ${toneClass}`}>{name(primary.opponent)}</span>
+          <span className="num ml-2 text-[var(--fs-xs)] text-muted">
+            {primary.wins}–{primary.losses}
+            {primary.ties ? `–${primary.ties}` : ""}
+          </span>
+        </Link>
+      ) : (
+        <DataGap reason="insufficient_rivalry_history" size="sm" />
+      )}
+      {departed && (
+        <Link
+          to={pairTo(owner, departed.opponent)}
+          className="mt-1 block opacity-60 hover:text-accent"
+        >
+          <span className="text-[var(--fs-xs)] text-faint">vs former </span>
+          <span className={`text-[var(--fs-xs)] font-semibold ${toneClass}`}>
+            {name(departed.opponent)}
+          </span>
+          <span className="num ml-1 text-[var(--fs-xs)] text-faint">
+            {departed.wins}–{departed.losses}
+            {departed.ties ? `–${departed.ties}` : ""}
+          </span>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 function RowGroup({ row }: { row: NemesisRow }) {
   return (
     <>
@@ -333,32 +477,13 @@ function RowGroup({ row }: { row: NemesisRow }) {
           {name(row.owner)}
         </Link>
       </div>
-      <div className="bg-[var(--surface-1)] px-4 py-3">
-        {row.nemesis ? (
-          <Link to={pairTo(row.owner, row.nemesis.opponent)} className="block hover:text-accent">
-            <span className="font-semibold text-loss">{name(row.nemesis.opponent)}</span>
-            <span className="num ml-2 text-[var(--fs-xs)] text-muted">
-              {row.nemesis.wins}–{row.nemesis.losses}
-              {row.nemesis.ties ? `–${row.nemesis.ties}` : ""}
-            </span>
-          </Link>
-        ) : (
-          <DataGap reason="insufficient_rivalry_history" size="sm" />
-        )}
-      </div>
-      <div className="bg-[var(--surface-1)] px-4 py-3">
-        {row.favorite_victim ? (
-          <Link to={pairTo(row.owner, row.favorite_victim.opponent)} className="block hover:text-accent">
-            <span className="font-semibold text-win">{name(row.favorite_victim.opponent)}</span>
-            <span className="num ml-2 text-[var(--fs-xs)] text-muted">
-              {row.favorite_victim.wins}–{row.favorite_victim.losses}
-              {row.favorite_victim.ties ? `–${row.favorite_victim.ties}` : ""}
-            </span>
-          </Link>
-        ) : (
-          <DataGap reason="insufficient_rivalry_history" size="sm" />
-        )}
-      </div>
+      <OppCell owner={row.owner} primary={row.nemesis} departed={row.nemesis_departed} tone="loss" />
+      <OppCell
+        owner={row.owner}
+        primary={row.favorite_victim}
+        departed={row.favorite_victim_departed}
+        tone="win"
+      />
     </>
   );
 }

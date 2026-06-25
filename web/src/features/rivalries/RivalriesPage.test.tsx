@@ -44,6 +44,34 @@ const INSIGHTS = {
       week: 11,
       matchup_id: 9001,
     },
+    most_played: [
+      {
+        owner_a: { owner_id: 1, display_name: "Alpha", is_active: true },
+        owner_b: { owner_id: 2, display_name: "Bravo", is_active: true },
+        games: 27,
+        a_wins: 14,
+        b_wins: 13,
+        ties: 0,
+      },
+      {
+        owner_a: { owner_id: 1, display_name: "Alpha", is_active: true },
+        owner_b: { owner_id: 3, display_name: "Charlie", is_active: false },
+        games: 20,
+        a_wins: 15,
+        b_wins: 5,
+        ties: 0,
+      },
+    ],
+    dead_even: [
+      {
+        owner_a: { owner_id: 1, display_name: "Alpha", is_active: true },
+        owner_b: { owner_id: 2, display_name: "Bravo", is_active: true },
+        games: 27,
+        a_wins: 14,
+        b_wins: 13,
+        ties: 0,
+      },
+    ],
   },
   streaks: {
     available: true,
@@ -53,6 +81,7 @@ const INSIGHTS = {
       length: 9,
       from_year: 2016,
       to_year: 2020,
+      from_matchup_id: 9099,
       last_matchup_id: 9100,
     },
     active: [],
@@ -80,6 +109,14 @@ const INSIGHTS = {
         owner: { owner_id: 1, display_name: "Alpha" },
         nemesis: { opponent: { owner_id: 2, display_name: "Bravo" }, games: 27, wins: 9, losses: 18, ties: 0, win_pct: 0.333 },
         favorite_victim: null,
+        favorite_victim_departed: {
+          opponent: { owner_id: 3, display_name: "Charlie", is_active: false },
+          games: 20,
+          wins: 15,
+          losses: 5,
+          ties: 0,
+          win_pct: 0.75,
+        },
       },
     ],
   },
@@ -130,6 +167,10 @@ describe("RivalriesPage", () => {
     expect(await screen.findByText("Hottest Rivalries")).toBeInTheDocument();
     expect(screen.getByText("Closest game ever")).toBeInTheDocument();
     expect(screen.getByText(/Alpha over Charlie/)).toBeInTheDocument();
+    // The pair-level superlatives render as ranked lists, and a departed
+    // manager's "own" record still surfaces — as a deprioritized "vs former" line.
+    expect(screen.getByText("Most-played rivalries")).toBeInTheDocument();
+    expect(screen.getByText(/vs former/)).toBeInTheDocument();
     // The empty playoff band shows the honest affordance, not a fabricated row.
     expect(screen.getByText(/No postseason meetings on record/)).toBeInTheDocument();
   });
