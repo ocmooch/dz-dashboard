@@ -639,6 +639,12 @@ class TeamsIndexRow(OwnerSeasonRow):
 
     owner_id: int
     owner_name: str | None = None
+    # Owner activity + grouping prominence (2 active / 1 long-tenured departed /
+    # 0 short-stint departed), so the "By owner" view orders its groups by
+    # prominence — an active or legacy manager never sits below a short-stint
+    # departed one — and can flag former owners. See ``common.owner_prominence_map``.
+    owner_is_active: bool = True
+    owner_prominence: int = 2
 
 
 class TeamsIndex(BaseModel):

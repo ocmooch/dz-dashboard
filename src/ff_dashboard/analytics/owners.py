@@ -21,6 +21,7 @@ from ff_dashboard.analytics.bracket import (
 )
 from ff_dashboard.analytics.common import (
     SIGNIFICANT_STINT_SEASONS,
+    owner_active_map,
     owner_name_map,
     owner_qualified_map,
     played_season_ids,
@@ -185,6 +186,18 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
     made_by_season, derivable_seasons = _playoff_participation(session)
     sacko_map = season_sacko_map(session)
     owners = owner_name_map(session)
+    # Owner activity + grouping prominence travel on every row so the Teams
+    # browser can order its "By owner" groups without recomputing eligibility.
+    # Prominence reuses the shared gates (active / qualified): 2 active, 1
+    # departed-but-long-tenured (qualified == significant stint), 0 short-stint
+    # departed — the same tiering the managers table and rivalry surfaces use.
+    active = owner_active_map(session)
+    qualified = owner_qualified_map(session)
+
+    def _prominence(owner_id: int) -> int:
+        if active.get(owner_id, True):
+            return 2
+        return 1 if qualified.get(owner_id, False) else 0
 
     rows: list[dict[str, Any]] = []
     for team in session.execute(select(Team)).scalars().all():
@@ -201,6 +214,8 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
             {
                 "owner_id": team.owner_id,
                 "owner_name": owners.get(team.owner_id),
+                "owner_is_active": bool(active.get(team.owner_id, True)),
+                "owner_prominence": _prominence(team.owner_id),
                 "season_id": team.season_id,
                 "season_year": season_year.get(team.season_id),
                 "team_id": team.team_id,
