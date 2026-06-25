@@ -3329,6 +3329,16 @@ export interface components {
             owner_id: number;
             /** Owner Name */
             owner_name?: string | null;
+            /**
+             * Owner Is Active
+             * @default true
+             */
+            owner_is_active: boolean;
+            /**
+             * Owner Prominence
+             * @default 2
+             */
+            owner_prominence: number;
         };
         /** TimelinePoint */
         TimelinePoint: {

@@ -15,7 +15,7 @@ from ff_dashboard.analytics.bracket import (
 )
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
-from ff_dashboard.analytics.owners import list_owners_career, owner_career
+from ff_dashboard.analytics.owners import list_owners_career, owner_career, teams_index
 from ff_dashboard.analytics.players import (
     availability,
     list_player_index,
@@ -225,6 +225,23 @@ def test_owner_career_qualification_gates_short_departed(session: Session) -> No
     assert careers["Slider"]["is_active"] is False
     assert careers["Slider"]["seasons_played"] == 2
     assert careers["Slider"]["qualified"] is False
+
+
+def test_teams_index_carries_owner_prominence(session: Session) -> None:
+    # The Teams browser's "By owner" view orders groups by owner prominence, so
+    # every row carries the owner's activity + prominence (2 active / 1 long-
+    # tenured departed / 0 short-stint departed) — the same gate the managers
+    # table uses. See common.owner_prominence_map.
+    rows = teams_index(session)
+    by_owner = {r["owner_name"]: r for r in rows}
+    # Active managers (regardless of tenure) are most prominent.
+    assert by_owner["Maverick"]["owner_is_active"] is True
+    assert by_owner["Maverick"]["owner_prominence"] == 2
+    assert by_owner["Viper"]["owner_prominence"] == 2
+    # Slider left after a short stint, so its group sorts last (never above an
+    # active or legacy owner) — shown, not hidden.
+    assert by_owner["Slider"]["owner_is_active"] is False
+    assert by_owner["Slider"]["owner_prominence"] == 0
 
 
 def test_owner_trophy_case(session: Session) -> None:

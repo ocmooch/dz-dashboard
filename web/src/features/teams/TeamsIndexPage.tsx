@@ -30,12 +30,14 @@ async function fetchTeams(): Promise<TeamRow[]> {
 function Section({
   title,
   meta,
+  former,
   open,
   onToggle,
   children,
 }: {
   title: string;
   meta?: string;
+  former?: boolean;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -49,7 +51,16 @@ function Section({
         className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left hover:text-accent"
       >
         <span className="flex items-baseline gap-3">
-          <span className="font-display text-[var(--fs-h3)] font-bold tracking-wide">{title}</span>
+          <span
+            className={`font-display text-[var(--fs-h3)] font-bold tracking-wide${former ? " opacity-60" : ""}`}
+          >
+            {title}
+          </span>
+          {former && (
+            <span className="dz-eyebrow text-faint" title="No longer in the league">
+              former
+            </span>
+          )}
           {meta && <span className="text-[var(--fs-xs)] text-faint">{meta}</span>}
         </span>
         <span className="num text-muted">{open ? "–" : "+"}</span>
@@ -91,30 +102,49 @@ export function TeamsIndexPage() {
   });
 
   // Build ordered groups for the active grouping. By season: newest first. By
-  // owner: alphabetical, each owner's teams newest-season first.
+  // owner: prominence-tiered (active, then long-tenured departed, then short-
+  // stint departed — the BFF's owner_prominence), then by tenure, then name; so
+  // an active or legacy manager never sorts below a short-stint departed owner.
+  // Each owner's teams stay newest-season first within their section.
   const groups = useMemo(() => {
     const rows = data ?? [];
-    const out = new Map<string, { title: string; meta?: string; rows: TeamRow[] }>();
+    const out = new Map<
+      string,
+      { title: string; meta?: string; rows: TeamRow[]; prominence: number; isActive: boolean }
+    >();
     if (groupBy === "season") {
       for (const t of rows) {
         const key = String(t.season_year ?? "—");
-        if (!out.has(key)) out.set(key, { title: key, rows: [] });
+        if (!out.has(key))
+          out.set(key, { title: key, rows: [], prominence: 0, isActive: true });
         out.get(key)!.rows.push(t);
       }
     } else {
-      const byOwner = [...rows].sort(
-        (a, b) =>
-          (a.owner_name ?? "").localeCompare(b.owner_name ?? "") ||
-          (b.season_year ?? 0) - (a.season_year ?? 0),
-      );
+      const byOwner = [...rows].sort((a, b) => (b.season_year ?? 0) - (a.season_year ?? 0));
       for (const t of byOwner) {
         const key = String(t.owner_id);
-        if (!out.has(key)) out.set(key, { title: t.owner_name ?? "Unknown", rows: [] });
+        if (!out.has(key))
+          out.set(key, {
+            title: t.owner_name ?? "Unknown",
+            rows: [],
+            prominence: t.owner_prominence ?? 2,
+            isActive: t.owner_is_active ?? true,
+          });
         out.get(key)!.rows.push(t);
       }
     }
     for (const g of out.values()) g.meta = `${g.rows.length} team${g.rows.length === 1 ? "" : "s"}`;
-    return [...out.entries()].map(([key, g]) => ({ key, ...g }));
+    const entries = [...out.entries()].map(([key, g]) => ({ key, ...g }));
+    if (groupBy === "owner") {
+      // prominence desc, then tenure (team count) desc, then name.
+      entries.sort(
+        (a, b) =>
+          b.prominence - a.prominence ||
+          b.rows.length - a.rows.length ||
+          a.title.localeCompare(b.title),
+      );
+    }
+    return entries;
   }, [data, groupBy]);
 
   // Open sections, namespaced per grouping so each remembers its own state.
@@ -166,6 +196,7 @@ export function TeamsIndexPage() {
             key={`${groupBy}-${g.key}`}
             title={g.title}
             meta={g.meta}
+            former={groupBy === "owner" && !g.isActive}
             open={isOpen(g.key)}
             onToggle={() => toggle(g.key)}
           >
