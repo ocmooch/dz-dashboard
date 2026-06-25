@@ -105,6 +105,19 @@ class SourceIdentityMismatch(BaseModel):
     reason: str
 
 
+class SeasonPositionDivergenceSeason(BaseModel):
+    season_year: int
+    season_position: str
+
+
+class SeasonPositionDivergence(BaseModel):
+    player_id: int
+    name_full: str
+    snapshot_position: str | None = None
+    divergent_season_count: int
+    divergent_seasons: list[SeasonPositionDivergenceSeason]
+
+
 class CoverageRelevance(BaseModel):
     total_players: int
     league_rostered_players: int
@@ -114,6 +127,8 @@ class CoverageRelevance(BaseModel):
     identity_split_candidates: list[IdentitySplitCandidate]
     source_identity_mismatch_count: int
     source_identity_mismatches: list[SourceIdentityMismatch]
+    season_position_divergence_count: int
+    season_position_divergences: list[SeasonPositionDivergence]
 
 
 class CoverageFeedCell(BaseModel):

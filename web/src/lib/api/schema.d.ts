@@ -1229,6 +1229,10 @@ export interface components {
             source_identity_mismatch_count: number;
             /** Source Identity Mismatches */
             source_identity_mismatches: components["schemas"]["SourceIdentityMismatch"][];
+            /** Season Position Divergence Count */
+            season_position_divergence_count: number;
+            /** Season Position Divergences */
+            season_position_divergences: components["schemas"]["SeasonPositionDivergence"][];
         };
         /** DataCaveat */
         DataCaveat: {
@@ -2839,6 +2843,26 @@ export interface components {
             /** Is Scored */
             is_scored: boolean;
             champion?: components["schemas"]["TeamRef"] | null;
+        };
+        /** SeasonPositionDivergence */
+        SeasonPositionDivergence: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Snapshot Position */
+            snapshot_position?: string | null;
+            /** Divergent Season Count */
+            divergent_season_count: number;
+            /** Divergent Seasons */
+            divergent_seasons: components["schemas"]["SeasonPositionDivergenceSeason"][];
+        };
+        /** SeasonPositionDivergenceSeason */
+        SeasonPositionDivergenceSeason: {
+            /** Season Year */
+            season_year: number;
+            /** Season Position */
+            season_position: string;
         };
         /** SeasonSummary */
         SeasonSummary: {
