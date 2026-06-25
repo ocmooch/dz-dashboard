@@ -57,6 +57,11 @@ function TeamRow({
             avatarUrl={teamAvatarUrl(team.team_id)}
           />
         </div>
+        {team.is_sacko && (
+          <span className="shrink-0 text-[var(--fs-sm)]" title="Sacko — toilet-bowl loser" aria-label="Sacko">
+            💩
+          </span>
+        )}
         {hadBye && (
           <span className="shrink-0 rounded border border-[var(--border)] px-1 py-px text-[9px] font-semibold uppercase tracking-widest text-faint">
             Bye

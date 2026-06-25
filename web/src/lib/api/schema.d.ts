@@ -1059,6 +1059,11 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Name */
             conference_name?: string | null;
         };
@@ -1144,6 +1149,11 @@ export interface components {
             streak: components["schemas"]["Streak"];
             /** Final Rank */
             final_rank?: number | null;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Rank */
             conference_rank: number;
             /** Division Wins */
@@ -1657,6 +1667,11 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             entering_record?: components["schemas"]["EnteringRecord"] | null;
         };
         /**
@@ -2960,6 +2975,11 @@ export interface components {
             streak: components["schemas"]["Streak"];
             /** Final Rank */
             final_rank?: number | null;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Id */
             conference_id?: number | null;
             /** Conference Name */

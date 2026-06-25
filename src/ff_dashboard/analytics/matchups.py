@@ -1210,7 +1210,14 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
     season_ctx = season_score_context(session, season_id, season.year)
     week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
     # Shared postseason classification for this season; cheap and reused per card.
-    classification = postseason_classification(session, season_id)["by_matchup_id"]
+    _pc = postseason_classification(session, season_id)
+    classification = _pc["by_matchup_id"]
+    # The Sacko (toilet-bowl loser) is surfaced on its game's losing team so the
+    # last week of the season carries the 💩 anti-trophy. ``matchup_id`` is the
+    # smallest of the toilet game's two rows, which is also the deduped card's id.
+    _sacko = _pc.get("sacko") or {}
+    sacko_mid = _sacko.get("matchup_id")
+    sacko_tid = _sacko.get("team_id")
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -1227,6 +1234,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
             "owner_name": owners.get(team.owner_id) if team is not None else None,
             "score": round(score, 2) if score is not None else None,
             "is_winner": is_winner,
+            "is_sacko": False,  # set on the toilet-bowl loser below
             "entering_record": entering.get(team_id, {"wins": 0, "losses": 0, "ties": 0}),
         }
 
@@ -1259,6 +1267,10 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         team_b = team_ref(
             m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
         )
+        if sacko_mid is not None and m.matchup_id == sacko_mid:
+            for ref in (team_a, team_b):
+                if ref is not None and ref["team_id"] == sacko_tid:
+                    ref["is_sacko"] = True
         tier_entry = classification.get(m.matchup_id) or {}
         bracket_tier = tier_entry.get("tier")
         games.append(

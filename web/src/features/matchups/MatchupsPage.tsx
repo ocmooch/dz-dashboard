@@ -43,6 +43,11 @@ function TeamSide({
   return (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
       <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} avatarUrl={teamAvatarUrl(team.team_id)} />
+      {team.is_sacko && (
+        <span className="shrink-0 text-[var(--fs-sm)]" title="Sacko — toilet-bowl loser" aria-label="Sacko">
+          💩
+        </span>
+      )}
       <span className="flex flex-col">
         <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
           {num(team.score)}
@@ -62,6 +67,7 @@ function TeamSide({
  *  differentiated from a generic playoff game; consolation is never "playoff"). */
 function eyebrowFor(game: GameCard): string {
   if (game.bracket_tier === "championship") return "championship";
+  if (game.game_label === "Toilet Bowl") return "toilet bowl";
   if (game.bracket_tier === "consolation") return "consolation";
   if (game.is_playoff) return "playoff";
   return "regular season";
