@@ -35,6 +35,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     injury_reports_for_week,
+    player_season_positions,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -99,6 +100,30 @@ SLOT_ELIGIBILITY: dict[str, set[str]] = {
 # genuinely absent for that team/week. Keyed on the *slot*, not the player's
 # position, because team-defense rows often carry no position.
 DEF_SLOTS = {"DEF", "DST", "D/ST"}
+
+# A roster slot that names exactly one NFL position. When the league starts a
+# player here the slot *is* the league's position call (eligibility is enforced
+# upstream), so the displayed badge follows it for fantasy-special players whose
+# nflverse position differs (a TE-slotted Taysom Hill reads TE). Flex slots
+# (W/R, R/W/T, …) and bench/IR name no single position and are absent here, so
+# those rows fall back to the season-correct position.
+_CONCRETE_SLOT_POSITION: dict[str, str] = {
+    "QB": "QB",
+    "RB": "RB",
+    "WR": "WR",
+    "TE": "TE",
+    "K": "K",
+    "DEF": "DEF",
+    "DST": "DEF",
+    "D/ST": "DEF",
+}
+
+
+def _slot_to_position(slot: str | None) -> str | None:
+    """The position a concrete single-position slot names, else ``None``."""
+    if slot is None:
+        return None
+    return _CONCRETE_SLOT_POSITION.get(slot)
 
 
 def _authoritative_points(roster_row: Any) -> float | None:
@@ -743,6 +768,29 @@ def _team_box(
     # the per-player DATA badge and surface a single team-level caveat instead.
     roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
+    # Season-correct NFL position: ``players.position`` is a single
+    # current/last-known snapshot, so it misrepresents any season before a
+    # position change (a 2014 WR shown as a later-career TE). Resolve the
+    # position the player actually played that season, falling back to the
+    # snapshot when none is stored. Mirrors the season-correct NFL-team path.
+    season_positions = player_season_positions(session, player_ids, season.year)
+
+    def _position(player: Any) -> str | None:
+        """The player's true season position — used for sort + optimal eligibility."""
+        season = season_positions.get(player.player_id)
+        if season is not None:
+            return season
+        return cast("str | None", player.position)
+
+    def _badge_position(slot: str | None, player: Any) -> str | None:
+        """The position to *display*. When the league started the player in a
+        concrete single-position slot (QB/RB/WR/TE/K/DEF), trust that designation
+        — it carries the league's eligibility call for fantasy-special players
+        (e.g. a TE-slotted Taysom Hill reads TE, not his nflverse QB). A flex or
+        bench slot names no single position, so fall back to the season position
+        (then the snapshot)."""
+        return _slot_to_position(slot) or _position(player)
+
     cluster_members = _identity_cluster_members(session, player_ids)
     scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
     projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
@@ -766,7 +814,7 @@ def _team_box(
     # Starters (QB, RB, RB, WR, WR, TE, FLEX, K, DST) first, then bench, then IR.
     for roster_row, player in sorted(
         roster,
-        key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position),
+        key=lambda rp: roster_sort_key(rp[0].roster_slot, _position(rp[1])),
     ):
         slot = roster_row.roster_slot
         is_starter = (
@@ -894,7 +942,7 @@ def _team_box(
             "roster_slot": slot,
             "player_id": player.player_id,
             "player_name": player.name_full,
-            "position": player.position,
+            "position": _badge_position(slot, player),
             "nfl_opponent": opponent,
             "nfl_game_status": _extra_str(roster_row, "game_status"),
             "roster_status": roster_status,
@@ -931,7 +979,7 @@ def _team_box(
 
         # The optimal lineup may draw from any non-IR player (starter or bench).
         if slot not in IR_SLOTS:
-            optimal_candidates.append({"position": player.position, "points": effective})
+            optimal_candidates.append({"position": _position(player), "points": effective})
 
     optimal_total = solve_optimal(optimal_candidates, starting_slots)
     starter_points = round(starter_points, 2)

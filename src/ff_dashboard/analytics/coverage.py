@@ -23,7 +23,10 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
-from ff_pipeline.repository.queries import player_source_identity_mismatches
+from ff_pipeline.repository.queries import (
+    player_season_position_divergences,
+    player_source_identity_mismatches,
+)
 from sqlalchemy import Integer, and_, distinct, func, select
 from sqlalchemy import cast as sql_cast
 
@@ -352,6 +355,7 @@ def _relevance_summary(session: Session) -> dict[str, object]:
     }
     candidates = _identity_split_candidates(session)
     source_mismatches = player_source_identity_mismatches(session)
+    position_divergences = player_season_position_divergences(session)
     candidate_member_ids = set()
     for candidate in candidates:
         for member in candidate["members"]:
@@ -366,6 +370,8 @@ def _relevance_summary(session: Session) -> dict[str, object]:
         "identity_split_candidates": candidates,
         "source_identity_mismatch_count": len(source_mismatches),
         "source_identity_mismatches": source_mismatches,
+        "season_position_divergence_count": len(position_divergences),
+        "season_position_divergences": position_divergences,
     }
 
 
