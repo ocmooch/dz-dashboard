@@ -55,7 +55,18 @@ from ff_pipeline.repository.models import (
 from ff_pipeline.repository.queries import get_season
 from sqlalchemy import distinct, func, select
 
-from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
+from ff_dashboard.analytics.adp import (
+    ADP_DEFINITION,
+    ADP_SOURCE_WEIGHTS,
+    market_axis,
+    season_adp_map,
+)
+from ff_dashboard.analytics.common import (
+    owner_name_map,
+    owner_qualified_map,
+    regular_season_weeks,
+    require_league,
+)
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import BENCH_SLOTS, IR_SLOTS, _identity_cluster_members
 from ff_dashboard.analytics.scoring import authoritative_week_points
@@ -768,6 +779,46 @@ def _with_values(
     return out
 
 
+def _attach_adp(
+    picks: list[dict[str, Any]], adp_map: dict[int, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Layer the market (reach/value) axis onto valued picks, in safe copies.
+
+    The ADP fields are kept **orthogonal** to the scoring fields: ``adp_available``
+    is its own sub-state, so a pick can have a score but no ADP (a deep sleeper)
+    or an ADP but no score (a drafted-but-never-played bust). When the season
+    captured no ADP at all the reason is ``adp_not_captured``; a single missing
+    player in an otherwise-covered season is ``no_market_data`` (outside the
+    consensus top ~200 — kickers, most DSTs, rookies, retirees).
+    """
+    captured = bool(adp_map)
+    out: list[dict[str, Any]] = []
+    for pick in picks:
+        p = dict(pick)
+        blend = adp_map.get(p["player_id"])
+        if blend is None:
+            p.update(
+                {
+                    "adp": None,
+                    "adp_sources": [],
+                    "adp_source_spread": None,
+                    "adp_format": None,
+                    "adp_format_fallback": False,
+                    "adp_delta": None,
+                    "market_label": None,
+                    "adp_available": False,
+                    "adp_reason": "no_market_data" if captured else "adp_not_captured",
+                }
+            )
+        else:
+            p.update(blend)
+            p.update(market_axis(blend["adp"], p["overall"]))
+            p["adp_available"] = True
+            p["adp_reason"] = None
+        out.append(p)
+    return out
+
+
 def draft_board(
     session: Session, season_id: int, cache: AnalyticsCache | None = None
 ) -> dict[str, Any] | None:
@@ -795,6 +846,7 @@ def draft_board(
     num_teams = picks[0]["num_teams"]
     model = _draft_history_model(session, cache)
     valued = _with_values(picks, model["expected"], model["position_stats"])
+    valued = _attach_adp(valued, season_adp_map(session, season_id, cache))
     rounds: dict[int, list[dict[str, Any]]] = {}
     for pick in valued:
         rounds.setdefault(pick["round"], []).append(pick)
@@ -833,11 +885,27 @@ def draft_value(
             "busts": [],
             "points_steals": [],
             "points_busts": [],
+            "adp_definition": ADP_DEFINITION,
+            "adp_weights": ADP_SOURCE_WEIGHTS,
+            "reaches": [],
+            "values": [],
             "leaderboard_limit": LEADERBOARD_LIMIT,
         }
 
     model = _draft_history_model(session, cache)
     valued = _with_values(picks, model["expected"], model["position_stats"])
+    valued = _attach_adp(valued, season_adp_map(session, season_id, cache))
+    # Market axis (independent of scoring): reaches drafted earlier than the
+    # consensus (most-negative delta first), values later (most-positive first).
+    adp_scored = [p for p in valued if p["adp_delta"] is not None]
+    reaches = sorted([p for p in adp_scored if p["adp_delta"] < 0], key=lambda p: p["adp_delta"])[
+        :LEADERBOARD_LIMIT
+    ]
+    values = sorted(
+        [p for p in adp_scored if p["adp_delta"] > 0],
+        key=lambda p: p["adp_delta"],
+        reverse=True,
+    )[:LEADERBOARD_LIMIT]
     scored = [p for p in valued if p["value"] is not None]
     # The full list stays sorted by the honest per-slot value (highest first);
     # Steals/busts are ranked by position-normalized composite impact.
@@ -875,6 +943,10 @@ def draft_value(
         "busts": busts,
         "points_steals": points_steals,
         "points_busts": points_busts,
+        "adp_definition": ADP_DEFINITION,
+        "adp_weights": ADP_SOURCE_WEIGHTS,
+        "reaches": reaches,
+        "values": values,
         "leaderboard_limit": LEADERBOARD_LIMIT,
     }
 
@@ -907,4 +979,90 @@ def best_worst_picks(
         "definition": VALUE_DEFINITION,
         "best_picks": by_value[:limit],
         "worst_picks": sorted(all_valued, key=lambda p: p["value"])[:limit],
+    }
+
+
+# Minimum ADP-covered picks before a manager's market tendency is reported, so a
+# handful of picks can't masquerade as a "tendency". The honest denominator
+# (``n_picks_with_adp``) always travels in the payload either way.
+TENDENCY_MIN_PICKS = 8
+
+TENDENCY_DEFINITION = (
+    "Draft tendencies aggregate the market (reach/value) axis across every "
+    "captured draft for a manager. Reach rate is the share of their ADP-covered "
+    "picks taken earlier than consensus; mean delta is the average gap between "
+    "actual slot and ADP (positive = tends to wait/find value, negative = tends "
+    "to reach); discipline is the average distance from consensus (lower = sticks "
+    "closer to the board). Only picks with a blended ADP count."
+)
+
+
+def draft_tendencies(session: Session, cache: AnalyticsCache | None = None) -> dict[str, Any]:
+    """Per-manager market (reach/value) tendencies across all captured drafts."""
+    require_league(session)
+    owners = owner_name_map(session)
+    qualified = owner_qualified_map(session)
+
+    deltas: dict[int, list[float]] = defaultdict(list)
+    reaches: dict[int, int] = defaultdict(int)
+    values: dict[int, int] = defaultdict(int)
+    by_position: dict[int, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    recent_team: dict[int, tuple[int, str | None]] = {}
+
+    for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
+        picks = _season_picks_cached(session, season, cache)
+        if picks is None:
+            continue
+        enriched = _attach_adp(picks, season_adp_map(session, season.season_id, cache))
+        for p in enriched:
+            owner_id = p.get("owner_id")
+            if owner_id is None or p["adp_delta"] is None:
+                continue
+            deltas[owner_id].append(p["adp_delta"])
+            if p["market_label"] == "reach":
+                reaches[owner_id] += 1
+            elif p["market_label"] == "value":
+                values[owner_id] += 1
+            position = p.get("position")
+            if position is not None:
+                by_position[owner_id][position].append(p["adp_delta"])
+            year = p.get("season_year") or season.year
+            if owner_id not in recent_team or year >= recent_team[owner_id][0]:
+                recent_team[owner_id] = (year, p.get("team_name"))
+
+    managers: list[dict[str, Any]] = []
+    for owner_id, owner_deltas in deltas.items():
+        n = len(owner_deltas)
+        managers.append(
+            {
+                "owner_id": owner_id,
+                "owner_name": owners.get(owner_id),
+                "team_name": recent_team.get(owner_id, (0, None))[1],
+                "qualified": bool(qualified.get(owner_id, True)),
+                "n_picks_with_adp": n,
+                "mean_delta": _clean_rounded(fmean(owner_deltas), 1),
+                "reach_rate": _clean_rounded(reaches[owner_id] / n, 3),
+                "value_rate": _clean_rounded(values[owner_id] / n, 3),
+                "discipline": _clean_rounded(fmean([abs(d) for d in owner_deltas]), 1),
+                "by_position": [
+                    {
+                        "position": pos,
+                        "n": len(pos_deltas),
+                        "mean_delta": _clean_rounded(fmean(pos_deltas), 1),
+                    }
+                    for pos, pos_deltas in sorted(by_position[owner_id].items())
+                ],
+                "sufficient": n >= TENDENCY_MIN_PICKS,
+            }
+        )
+
+    # Qualified managers first, then by sample size — never hide anyone.
+    managers.sort(key=lambda m: (m["qualified"], m["n_picks_with_adp"]), reverse=True)
+    return {
+        "available": bool(managers),
+        "reason": None if managers else "draft_not_captured",
+        "definition": TENDENCY_DEFINITION,
+        "min_picks": TENDENCY_MIN_PICKS,
+        "weights": ADP_SOURCE_WEIGHTS,
+        "managers": managers,
     }

@@ -7,10 +7,14 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
+  ZAxis,
 } from "recharts";
 
 import { chartTheme, heatColor, seriesColor, tooltipProps } from "./chartTheme";
@@ -385,5 +389,112 @@ export function Heatmap({
         ))}
       </div>
     </figure>
+  );
+}
+
+export type QuadrantPoint = {
+  x: number;
+  y: number;
+  label: string;
+  /** extra tooltip context, e.g. "RB · #14 · Goose". */
+  note?: string;
+};
+
+function quadrantTooltip({
+  active,
+  payload,
+}: TooltipProps<number | string, string>): React.ReactElement | null {
+  if (!active || !payload?.length) return null;
+  const t = chartTheme();
+  const p = payload[0]?.payload as QuadrantPoint | undefined;
+  if (!p) return null;
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.borderStrong}`,
+        borderRadius: 10,
+        fontFamily: t.fontMono,
+        fontSize: 12,
+        padding: "8px 10px",
+      }}
+    >
+      <div style={{ color: t.text, marginBottom: 4 }}>{p.label}</div>
+      {p.note && <div style={{ color: t.axis, marginBottom: 4 }}>{p.note}</div>}
+      <div style={{ color: t.text }}>
+        reach/value {p.x > 0 ? "+" : ""}
+        {p.x} · outcome {p.y > 0 ? "+" : ""}
+        {p.y}
+      </div>
+    </div>
+  );
+}
+
+/** Reach × outcome quadrant: x = market axis (reach ↔ value), y = outcome axis
+ *  (bust ↔ steal). Zero reference lines split the four stories (reached-and-busted,
+ *  late gem, …). Pages pass already-computed points. */
+export function ScatterQuadrant({
+  points,
+  title,
+  xLabel,
+  yLabel,
+  height = 280,
+}: {
+  points: QuadrantPoint[];
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  height?: number;
+}) {
+  const t = chartTheme();
+  const table = (
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr style={{ color: t.axis }}>
+          <th className="pr-3">Pick</th>
+          <th className="pr-3">{xLabel}</th>
+          <th className="pr-3">{yLabel}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {points.map((p) => (
+          <tr key={`${p.label}-${p.x}-${p.y}`} style={{ color: t.text }}>
+            <td className="pr-3">{p.note ? `${p.label} (${p.note})` : p.label}</td>
+            <td className="pr-3">{p.x}</td>
+            <td className="pr-3">{p.y}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+  return (
+    <ChartFrame title={title} height={height} table={table}>
+      <ScatterChart margin={{ top: 8, right: 16, bottom: 16, left: 0 }}>
+        <CartesianGrid stroke={t.grid} />
+        <XAxis
+          type="number"
+          dataKey="x"
+          name={xLabel}
+          stroke={t.axis}
+          tick={axisTick()}
+          tickLine={false}
+          label={{ value: xLabel, position: "insideBottom", offset: -8, fill: t.axis, fontSize: 11 }}
+        />
+        <YAxis
+          type="number"
+          dataKey="y"
+          name={yLabel}
+          stroke={t.axis}
+          tick={axisTick()}
+          tickLine={false}
+          width={44}
+        />
+        <ZAxis range={[60, 60]} />
+        <ReferenceLine x={0} stroke={t.borderStrong} />
+        <ReferenceLine y={0} stroke={t.borderStrong} />
+        <Tooltip content={quadrantTooltip} cursor={{ stroke: t.grid }} />
+        <Scatter data={points} fill={seriesColor(0)} isAnimationActive={false} />
+      </ScatterChart>
+    </ChartFrame>
   );
 }

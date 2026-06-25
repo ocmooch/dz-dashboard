@@ -46,10 +46,39 @@ const pick = (
   value,
   available: true,
   reason: null,
+  adp: null,
+  adp_sources: [],
+  adp_source_spread: null,
+  adp_format: null,
+  adp_format_fallback: false,
+  adp_delta: null,
+  market_label: null,
+  adp_available: false,
+  adp_reason: "no_market_data",
 });
 
-const KELCE = pick(1, "Travis Kelce", "Iceman", 22, -13.67);
-const CMC = pick(4, "Christian McCaffrey", "Maverick", 55, 8.33);
+const KELCE = {
+  ...pick(1, "Travis Kelce", "Iceman", 22, -13.67),
+  adp: 8.4,
+  adp_sources: ["ffc", "mfl"],
+  adp_source_spread: 1.0,
+  adp_format: "full_ppr",
+  adp_delta: -7.4,
+  market_label: "reach",
+  adp_available: true,
+  adp_reason: null,
+};
+const CMC = {
+  ...pick(4, "Christian McCaffrey", "Maverick", 55, 8.33),
+  adp: 1.0,
+  adp_sources: ["ffc"],
+  adp_source_spread: 0.0,
+  adp_format: "full_ppr",
+  adp_delta: 3.0,
+  market_label: "value",
+  adp_available: true,
+  adp_reason: null,
+};
 const ROUND_TWO = [
   pick(5, "Saquon Barkley", "Maverick", 50, 6.5, 2, 1),
   pick(6, "Ja'Marr Chase", "Slider", 44, 4.5, 2, 2),
@@ -87,12 +116,40 @@ const VALUE = {
   busts: [KELCE],
   points_steals: [CMC],
   points_busts: [KELCE],
+  adp_definition: "ADP is the consensus average draft position blended across public sources.",
+  adp_weights: { ffc: 0.5, mfl: 0.3, sleeper: 0.2 },
+  reaches: [KELCE],
+  values: [CMC],
   leaderboard_limit: 9,
+};
+
+const TENDENCIES = {
+  available: true,
+  reason: null,
+  definition: "Draft tendencies aggregate the market axis across every captured draft.",
+  min_picks: 8,
+  weights: { ffc: 0.5, mfl: 0.3, sleeper: 0.2 },
+  managers: [
+    {
+      owner_id: 1,
+      owner_name: "Iceman",
+      team_name: "Iceman 2016",
+      qualified: true,
+      n_picks_with_adp: 12,
+      mean_delta: -3.2,
+      reach_rate: 0.6,
+      value_rate: 0.3,
+      discipline: 5.1,
+      by_position: [{ position: "RB", n: 5, mean_delta: -4.0 }],
+      sufficient: true,
+    },
+  ],
 };
 
 function routeByPath(path: string) {
   if (path === "/v1/seasons/{season_id}/draft") return envelope(BOARD);
   if (path === "/v1/seasons/{season_id}/draft/value") return envelope(VALUE);
+  if (path === "/v1/draft/tendencies") return envelope(TENDENCIES);
   throw new Error(`unexpected path ${path}`);
 }
 
@@ -374,5 +431,26 @@ describe("DraftPage", () => {
     renderPage();
     expect(await screen.findByText(/Draft not captured for this season/i)).toBeInTheDocument();
     expect(screen.queryByText("Round 1")).not.toBeInTheDocument();
+  });
+
+  it("shows the market (reach/value) axis on the board and a reach/value lens", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Round 1");
+    // The board cell carries the blended ADP and the coloured reach/value delta.
+    expect(screen.getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/reach -7\.40/).length).toBeGreaterThan(0);
+
+    // The Reach / value lens swaps Steals/Busts for Reaches/Values.
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+    expect(await screen.findByText("Reaches")).toBeInTheDocument();
+    expect(screen.getByText("Values")).toBeInTheDocument();
+  });
+
+  it("renders the manager draft-tendencies table", async () => {
+    renderPage();
+    expect(await screen.findByText("Manager draft tendencies")).toBeInTheDocument();
+    expect(screen.getByText("Reach rate")).toBeInTheDocument();
+    expect(screen.getByText("60%")).toBeInTheDocument();
   });
 });

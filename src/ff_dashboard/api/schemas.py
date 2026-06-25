@@ -914,6 +914,17 @@ class DraftPick(BaseModel):
     # zero so the UI annotates it instead of hiding it as a gap.
     zero_reason: str | None = None
     zero_detail: str | None = None
+    # --- Market axis (ADP): independent of the scoring fields above. ---
+    # Blended consensus ADP and where the league drafted relative to it.
+    adp: float | None = None
+    adp_sources: list[str] = []  # which sources contributed to the blend
+    adp_source_spread: float | None = None  # max-min across sources; high = market split
+    adp_format: str | None = None  # format actually used (full_ppr / half_ppr / standard)
+    adp_format_fallback: bool = False  # True when the league's target format was unavailable
+    adp_delta: float | None = None  # overall - adp; positive = value/bargain, negative = reach
+    market_label: str | None = None  # "value" | "reach" | "on_market"
+    adp_available: bool = False
+    adp_reason: str | None = None  # "no_market_data" | "adp_not_captured" when adp is null
 
 
 class DraftRound(BaseModel):
@@ -944,7 +955,41 @@ class DraftValue(BaseModel):
     busts: list[DraftPick]  # ranked by composite impact (ascending)
     points_steals: list[DraftPick]  # ranked by raw points-over-expectation
     points_busts: list[DraftPick]  # ranked by raw points-under-expectation
+    # Market axis (ADP): reaches drafted earlier than consensus, values later.
+    adp_definition: str
+    adp_weights: dict[str, float]
+    reaches: list[DraftPick]  # most-negative adp_delta first (biggest reaches)
+    values: list[DraftPick]  # most-positive adp_delta first (biggest bargains)
     leaderboard_limit: int
+
+
+class DraftTendencyPosition(BaseModel):
+    position: str
+    n: int
+    mean_delta: float
+
+
+class DraftManagerTendency(BaseModel):
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    qualified: bool
+    n_picks_with_adp: int
+    mean_delta: float  # positive = tends to find value, negative = tends to reach
+    reach_rate: float
+    value_rate: float
+    discipline: float  # mean |delta| — lower = sticks closer to the board
+    by_position: list[DraftTendencyPosition]
+    sufficient: bool  # n_picks_with_adp >= min_picks
+
+
+class DraftTendencies(BaseModel):
+    available: bool
+    reason: str | None = None
+    definition: str
+    min_picks: int
+    weights: dict[str, float]
+    managers: list[DraftManagerTendency]
 
 
 class DraftRecords(BaseModel):

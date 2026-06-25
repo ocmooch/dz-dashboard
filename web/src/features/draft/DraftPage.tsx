@@ -4,14 +4,17 @@ import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { Badge, Button, Card, CardHeader, DataGap, ErrorState, Skeleton, Tabs } from "@/design-system";
-import { BarCompare } from "@/charts";
+import { BarCompare, ScatterQuadrant } from "@/charts";
+import type { QuadrantPoint } from "@/charts";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 type Board = Awaited<ReturnType<typeof fetchBoard>>;
 type Pick = Board["rounds"][number]["picks"][number];
-type Lens = "weighted" | "points";
+type Tendencies = Awaited<ReturnType<typeof fetchTendencies>>;
+type Manager = Tendencies["managers"][number];
+type Lens = "weighted" | "points" | "market";
 type ChartOrder = "metric" | "draft";
 
 async function fetchBoard(seasonId: number) {
@@ -30,6 +33,12 @@ async function fetchValue(seasonId: number) {
   return data.data;
 }
 
+async function fetchTendencies() {
+  const { data, error } = await api.GET("/v1/draft/tendencies");
+  if (error || !data) throw new Error("Failed to load draft tendencies");
+  return data.data;
+}
+
 /** Signed value with steal/bust colouring. A positive value beat its slot. */
 function ValueTag({ value }: { value: number | null | undefined }) {
   if (value == null) return null;
@@ -39,6 +48,57 @@ function ValueTag({ value }: { value: number | null | undefined }) {
       {value > 0 ? "+" : ""}
       {num(value)}
     </Badge>
+  );
+}
+
+/** Tooltip spelling out the market read: blended ADP, sources, spread, format. */
+function adpTitle(pick: Pick): string | undefined {
+  if (!pick.adp_available || pick.adp == null) return undefined;
+  const parts = [`Blended ADP ${num(pick.adp)} (${(pick.adp_sources ?? []).join(", ") || "—"})`];
+  if (pick.adp_delta != null) {
+    const verb = pick.adp_delta > 0 ? "later than" : pick.adp_delta < 0 ? "earlier than" : "right on";
+    parts.push(`drafted #${pick.overall} — ${verb} the market`);
+  }
+  if (pick.adp_source_spread) parts.push(`sources split by ${num(pick.adp_source_spread)}`);
+  if (pick.adp_format) {
+    parts.push(pick.adp_format_fallback ? `${pick.adp_format} (format fallback)` : pick.adp_format);
+  }
+  return parts.join(" · ");
+}
+
+/** Signed reach/value delta, coloured: value (drafted later than ADP) green, reach red. */
+function AdpTag({ pick }: { pick: Pick }) {
+  if (!pick.adp_available || pick.adp_delta == null) return null;
+  const tone = pick.market_label === "value" ? "win" : pick.market_label === "reach" ? "loss" : "default";
+  return (
+    <Badge variant={tone}>
+      {pick.adp_delta > 0 ? "+" : ""}
+      {num(pick.adp_delta)}
+    </Badge>
+  );
+}
+
+/** Compact board-cell market line: "ADP 8.4 · reach −7.4", or an honest gap. */
+function MarketChip({ pick }: { pick: Pick }) {
+  if (!pick.adp_available || pick.adp == null || pick.adp_delta == null) {
+    return <span className="dz-eyebrow text-faint" title="No consensus ADP for this pick">no ADP</span>;
+  }
+  const tone =
+    pick.market_label === "value" ? "text-win" : pick.market_label === "reach" ? "text-loss" : "text-muted";
+  return (
+    <span className="flex items-center gap-1 text-[var(--fs-xs)]" title={adpTitle(pick)}>
+      <span className="num text-faint">ADP {num(pick.adp)}</span>
+      <span className={`num ${tone}`}>
+        {pick.market_label === "reach" ? "reach " : pick.market_label === "value" ? "value " : ""}
+        {pick.adp_delta > 0 ? "+" : ""}
+        {num(pick.adp_delta)}
+      </span>
+      {pick.adp_format_fallback && (
+        <span className="text-faint" title="ADP format fallback — not the league's target format">
+          *
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -132,6 +192,7 @@ function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
             {compactPoints(pick.season_points)}
             {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
           </span>
+          <MarketChip pick={pick} />
         </div>
       </div>
       <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
@@ -180,7 +241,13 @@ function PickLine({
           </span>
         </span>
       </span>
-      {lens === "weighted" ? <ImpactTag pick={pick} /> : <ValueTag value={pick.value} />}
+      {lens === "weighted" ? (
+        <ImpactTag pick={pick} />
+      ) : lens === "market" ? (
+        <AdpTag pick={pick} />
+      ) : (
+        <ValueTag value={pick.value} />
+      )}
     </button>
   );
 }
@@ -225,6 +292,31 @@ function LeaderboardList({
         </div>
       )}
     </div>
+  );
+}
+
+/** One manager's market tendencies row. Mean Δ is coloured (value green / reach red);
+ *  a thin sample is dimmed but never hidden — the honest pick count stays visible. */
+function TendencyRow({ m }: { m: Manager }) {
+  const deltaTone = m.mean_delta > 0 ? "text-win" : m.mean_delta < 0 ? "text-loss" : "text-muted";
+  const positions = m.by_position
+    .map((p) => `${p.position} ${p.mean_delta > 0 ? "+" : ""}${num(p.mean_delta)} (${p.n})`)
+    .join(" · ");
+  return (
+    <tr className={`border-t border-[var(--border)] ${m.sufficient ? "" : "opacity-60"}`}>
+      <td className="py-1.5 pr-3">
+        <span className="font-medium text-text">{m.owner_name ?? m.team_name ?? "—"}</span>
+        {!m.qualified && <span className="dz-eyebrow ml-1 text-faint">(short stint)</span>}
+        {positions && <span className="block truncate text-[var(--fs-xs)] text-faint" title={positions}>{positions}</span>}
+      </td>
+      <td className="py-1.5 pr-3 text-right num">{m.n_picks_with_adp}</td>
+      <td className="py-1.5 pr-3 text-right num">{Math.round(m.reach_rate * 100)}%</td>
+      <td className={`py-1.5 pr-3 text-right num ${deltaTone}`}>
+        {m.mean_delta > 0 ? "+" : ""}
+        {num(m.mean_delta)}
+      </td>
+      <td className="py-1.5 pr-3 text-right num">{num(m.discipline)}</td>
+    </tr>
   );
 }
 
@@ -282,13 +374,26 @@ export function DraftPage() {
     setTeam("");
   }, [seasonId]);
 
-  const weightedSteals = value.data?.steals ?? [];
-  const weightedBusts = value.data?.busts ?? [];
-  const pointsSteals = value.data?.points_steals ?? [];
-  const pointsBusts = value.data?.points_busts ?? [];
-  const steals = lens === "weighted" ? weightedSteals : pointsSteals;
-  const busts = lens === "weighted" ? weightedBusts : pointsBusts;
-  const metricOf = (p: Pick) => (lens === "weighted" ? p.impact : p.value);
+  // Outcome axis (weighted / points) shares the steals|busts shape; the market
+  // axis swaps in reaches|values (drafted earlier vs later than consensus).
+  const leftPicks =
+    lens === "weighted" ? (value.data?.steals ?? [])
+    : lens === "points" ? (value.data?.points_steals ?? [])
+    : (value.data?.reaches ?? []);
+  const rightPicks =
+    lens === "weighted" ? (value.data?.busts ?? [])
+    : lens === "points" ? (value.data?.points_busts ?? [])
+    : (value.data?.values ?? []);
+  const leftMeta =
+    lens === "market"
+      ? { title: "Reaches", eyebrow: "drafted earlier than the market" }
+      : { title: "Steals", eyebrow: "outperformed their slot" };
+  const rightMeta =
+    lens === "market"
+      ? { title: "Values", eyebrow: "drafted later than the market" }
+      : { title: "Busts", eyebrow: "fell short of their slot" };
+  const metricOf = (p: Pick) =>
+    lens === "weighted" ? p.impact : lens === "market" ? p.adp_delta : p.value;
   // Picks matching the filter controls, independent of whether they have a
   // value for the active lens. Kept separate from `chartRows` so the empty
   // state can tell "nothing matched the filter" apart from "matched, but this
@@ -317,7 +422,26 @@ export function DraftPage() {
       ? "No picks match these filters."
       : lens === "weighted"
         ? "These picks aren’t part of the position-normalized impact model — kickers, defenses, and unscored picks are excluded. Switch to the Points lens to compare them."
-        : "These picks have no scored value yet.";
+        : lens === "market"
+          ? "These picks have no consensus ADP — they fell outside the public market (deep picks, most kickers and defenses, rookies)."
+          : "These picks have no scored value yet.";
+
+  // Reach × outcome quadrant: x = market axis (reach ↔ value), y = outcome axis.
+  // Only picks with both a delta and an impact appear; the four quadrants tell the
+  // "reached and it busted" vs "waited and it hit" stories.
+  const quadrantPoints: QuadrantPoint[] = (value.data?.picks ?? [])
+    .filter((p) => p.adp_delta != null && p.impact != null)
+    .map((p) => ({
+      x: p.adp_delta as number,
+      y: p.impact as number,
+      label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
+      note: `${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"}`,
+    }));
+
+  const tendencies = useQuery({
+    queryKey: qk.draftTendencies(),
+    queryFn: fetchTendencies,
+  });
 
   return (
     <div className="dz-rise space-y-6">
@@ -354,24 +478,25 @@ export function DraftPage() {
 
       {board.data?.available && (
         <>
-          {value.data?.available && (steals.length > 0 || busts.length > 0) && (
+          {value.data?.available && (leftPicks.length > 0 || rightPicks.length > 0) && (
             <div className="space-y-2">
             <Tabs
               tabs={[
                 { id: "weighted", label: "Weighted" },
                 { id: "points", label: "Points" },
+                { id: "market", label: "Reach / value" },
               ]}
               value={lens}
               onChange={setLens}
             />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader eyebrow="outperformed their slot" title="Steals" />
-                {steals.length === 0 ? (
-                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear steals.</p>
+                <CardHeader eyebrow={leftMeta.eyebrow} title={leftMeta.title} />
+                {leftPicks.length === 0 ? (
+                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear {leftMeta.title.toLowerCase()}.</p>
                 ) : (
                   <LeaderboardList
-                    picks={steals}
+                    picks={leftPicks}
                     lens={lens}
                     visible={stealsVisible}
                     onVisible={setStealsVisible}
@@ -380,12 +505,12 @@ export function DraftPage() {
                 )}
               </Card>
               <Card>
-                <CardHeader eyebrow="fell short of their slot" title="Busts" />
-                {busts.length === 0 ? (
-                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear busts.</p>
+                <CardHeader eyebrow={rightMeta.eyebrow} title={rightMeta.title} />
+                {rightPicks.length === 0 ? (
+                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear {rightMeta.title.toLowerCase()}.</p>
                 ) : (
                   <LeaderboardList
-                    picks={busts}
+                    picks={rightPicks}
                     lens={lens}
                     visible={bustsVisible}
                     onVisible={setBustsVisible}
@@ -402,14 +527,23 @@ export function DraftPage() {
             {lens === "points" && value.data.definition && (
               <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.definition}</p>
             )}
+            {lens === "market" && value.data.adp_definition && (
+              <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.adp_definition}</p>
+            )}
             </div>
           )}
 
           {hasPicks && (
             <Card>
               <CardHeader
-                eyebrow={lens === "weighted" ? "position-normalized weighted impact" : "points above / below slot expectation"}
-                title={lens === "weighted" ? "Weighted impact" : "Pick value"}
+                eyebrow={
+                  lens === "weighted"
+                    ? "position-normalized weighted impact"
+                    : lens === "market"
+                      ? "drafted earlier (reach) / later (value) than consensus"
+                      : "points above / below slot expectation"
+                }
+                title={lens === "weighted" ? "Weighted impact" : lens === "market" ? "Reach / value" : "Pick value"}
               />
               <div className="flex flex-wrap gap-2 px-5 pt-5">
                 <select aria-label="Filter by position" className="dz-input" value={position} onChange={(e) => setPosition(e.target.value)}>
@@ -437,16 +571,34 @@ export function DraftPage() {
                   ))}
                 </select>
                 <select aria-label="Sort chart" className="dz-input" value={chartOrder} onChange={(e) => setChartOrder(e.target.value as ChartOrder)}>
-                  <option value="metric">{lens === "weighted" ? "Weighted rank" : "Points rank"}</option>
+                  <option value="metric">
+                    {lens === "weighted" ? "Weighted rank" : lens === "market" ? "Reach / value rank" : "Points rank"}
+                  </option>
                   <option value="draft">Draft order</option>
                 </select>
               </div>
               <div className="p-5">
                 {chartRows.length > 0 ? (
                   <BarCompare
-                    title={lens === "weighted" ? "Weighted impact by pick" : "Points value by pick"}
+                    title={
+                      lens === "weighted"
+                        ? "Weighted impact by pick"
+                        : lens === "market"
+                          ? "Reach / value by pick"
+                          : "Points value by pick"
+                    }
                     data={chartRows}
-                    series={[{ key: "metric", label: lens === "weighted" ? "Weighted impact" : "Value (pts)" }]}
+                    series={[
+                      {
+                        key: "metric",
+                        label:
+                          lens === "weighted"
+                            ? "Weighted impact"
+                            : lens === "market"
+                              ? "Reach / value (picks)"
+                              : "Value (pts)",
+                      },
+                    ]}
                     xKey="label"
                     xLabel="Pick"
                     height={220}
@@ -461,6 +613,26 @@ export function DraftPage() {
                     {value.data.definition}
                   </p>
                 )}
+              </div>
+            </Card>
+          )}
+
+          {quadrantPoints.length > 1 && (
+            <Card>
+              <CardHeader eyebrow="market axis × outcome axis" title="Reach / value vs outcome" />
+              <div className="p-5">
+                <ScatterQuadrant
+                  points={quadrantPoints}
+                  title="Reach/value vs outcome by pick"
+                  xLabel="Reach ← → Value"
+                  yLabel="Bust ← → Steal"
+                  height={300}
+                />
+                <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">
+                  Up-right waited and it hit; down-left reached and it busted; up-left reached but it
+                  worked; down-right a value that still disappointed. Only picks with both a consensus
+                  ADP and a weighted impact appear.
+                </p>
               </div>
             </Card>
           )}
@@ -488,6 +660,33 @@ export function DraftPage() {
             </div>
           </Card>
         </>
+      )}
+
+      {tendencies.data?.available && tendencies.data.managers.length > 0 && (
+        <Card>
+          <CardHeader eyebrow="across every captured draft" title="Manager draft tendencies" />
+          <div className="space-y-3 p-5">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[var(--fs-sm)]">
+                <thead className="dz-eyebrow text-faint">
+                  <tr>
+                    <th className="pb-2 pr-3">Manager</th>
+                    <th className="pb-2 pr-3 text-right">Picks</th>
+                    <th className="pb-2 pr-3 text-right">Reach rate</th>
+                    <th className="pb-2 pr-3 text-right">Mean Δ</th>
+                    <th className="pb-2 pr-3 text-right">Discipline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tendencies.data.managers.map((m) => (
+                    <TendencyRow key={m.owner_id} m={m} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="max-w-prose text-[var(--fs-xs)] text-faint">{tendencies.data.definition}</p>
+          </div>
+        </Card>
       )}
     </div>
   );
