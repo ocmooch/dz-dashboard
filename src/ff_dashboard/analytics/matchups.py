@@ -777,7 +777,10 @@ def _team_box(
 
     def _position(player: Any) -> str | None:
         """The player's true season position — used for sort + optimal eligibility."""
-        return season_positions.get(player.player_id) or player.position
+        season = season_positions.get(player.player_id)
+        if season is not None:
+            return season
+        return cast("str | None", player.position)
 
     def _badge_position(slot: str | None, player: Any) -> str | None:
         """The position to *display*. When the league started the player in a
