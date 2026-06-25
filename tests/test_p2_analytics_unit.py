@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from ff_pipeline.repository.models import Season
 from sqlalchemy import select
 
+from ff_dashboard.analytics import head_to_head
 from ff_dashboard.analytics.bracket import (
     _connected_components,
     _order_components,
@@ -300,14 +301,27 @@ def test_records_record_only(session: Session) -> None:
     assert book["longest_loss_streak"]["owner_name"] == "Iceman"
 
 
-def test_records_closest_rivalry(session: Session) -> None:
-    # Maverick vs Iceman is the most-played pair (3 meetings) -> wins the
-    # "more games first, then nearest 0.5" tiebreak, ahead of the 2-game pairs.
+def test_records_closest_rivalry_needs_a_real_series(session: Session) -> None:
+    # No fixture pair reaches MIN_DEAD_EVEN_GAMES (4), so the crown is an honest
+    # gap rather than a thin 2-game "rivalry" or the lopsided most-played pair.
+    rivalry = records_book(session)["closest_rivalry"]
+    assert rivalry["available"] is False
+
+
+def test_records_closest_rivalry_prefers_balance(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # With the sample gate lowered, the crown goes to a genuinely even series
+    # (a_wins == b_wins) — never the lopsided most-played Maverick vs Iceman (2-1)
+    # just because it has the most meetings.
+    monkeypatch.setattr(head_to_head, "MIN_DEAD_EVEN_GAMES", 2)
     rivalry = records_book(session)["closest_rivalry"]
     assert rivalry["available"] is True
-    assert rivalry["games_played"] == KNOWN["h2h_mav_ice"]["games"]  # 3
+    assert rivalry["a_wins"] == rivalry["b_wins"]
     names = {rivalry["owner_a"]["display_name"], rivalry["owner_b"]["display_name"]}
-    assert names == {"Maverick", "Iceman"}
+    assert names != {"Maverick", "Iceman"}
+    # Crowned among qualified managers — short-stint departed Slider never headlines.
+    assert "Slider" not in names
 
 
 def test_records_only_use_scored_era(session: Session) -> None:

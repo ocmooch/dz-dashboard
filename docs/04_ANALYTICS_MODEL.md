@@ -142,8 +142,23 @@ Keyed on **owners**, not teams, so it spans renames and seasons.
   (smallest |margin|, oriented to A, deep-linkable via `matchup_id`); count of playoff meetings.
 - **Rivalry matrix** — the full N×N table of pairwise win pct (A's wins / games), rendered as
   a heatmap. Diagonal is blank. Symmetric pair (A vs B and B vs A) are complementary.
-- **"Closest rivalry"** — the pair with the most games and a win pct nearest 0.5 (a
-  league-fun stat for the records book).
+- **"Closest rivalry" / dead-even** — the genuinely even pair: win pct nearest 0.5, gated by
+  a real sample (`MIN_DEAD_EVEN_GAMES`, default 4) so a thin 1–1 isn't a "rivalry". **Balance
+  leads, volume only tiebreaks** — a lopsided 21–9 series is never "even" however many times it
+  was played. Crowned among *qualified* owners (active or significant-stint departed) for the
+  records book, falling back to all pairs only if none qualify.
+
+**Owner prominence in the rivalry insight bands (`analytics/rivalries.py`).** The
+manager-centric leaderboards — hottest rivalries, ranked most-played / most dead-even, and each
+manager's nemesis / favorite-victim — lead with the people the league still cares about, using
+the shared `owner_prominence_map` (2 = active, 1 = ≥`SIGNIFICANT_STINT_SEASONS` departed, 0 =
+short-stint departed). Pair-level surfaces sort by `min(prominence(a), prominence(b))` first,
+then by the metric. Nemesis/victim headlines are picked from qualified opponents, with an even
+more extreme record against a short-stint departed opponent kept as a deprioritized
+`*_departed` secondary. This **reorders, never hides** — the same spirit as the rivalry matrix's
+inactive toggle. **Absolute single-game records** (closest game, biggest blowout,
+highest-scoring duel) stay pure all-time, regardless of who's left. Streaks carry both
+`from_matchup_id` and `last_matchup_id` so a cross-season run is deep-linkable start → end.
 
 ## 5. Records book / hall of fame (`analytics/records.py`)
 

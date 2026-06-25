@@ -203,8 +203,9 @@ def test_records_endpoint(client: TestClient) -> None:
     assert data["highest_team_score"]["value"] == 160.4
     assert data["most_championships"]["owner_name"] == "Maverick"
     # The records book carries the closest-rivalry stat for its deep-linked card.
-    assert data["closest_rivalry"]["available"] is True
-    assert data["closest_rivalry"]["games_played"] == 3
+    # The small fixture has no 4+ game series, so it honestly reports the gap
+    # rather than crowning a thin or lopsided pair.
+    assert data["closest_rivalry"]["available"] is False
 
 
 def test_championships_endpoint(client: TestClient) -> None:

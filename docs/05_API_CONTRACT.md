@@ -84,6 +84,21 @@ document, so the contract is enforced at build time.
 | `GET /v1/owners/{owner_id}/trajectory` | Finish/points per season — for the chart |
 | `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}` | All-time pairwise record + superlatives |
 | `GET /v1/owners/rivalry-matrix` | Full N×N win-pct matrix — for the heatmap |
+| `GET /v1/rivalries/insights` | Five insight bands for the `/rivalries` page (see shape below) |
+
+**`/v1/rivalries/insights` shape.** An `extra="allow"` bundle of five availability-tagged
+bands; the frontend reads each band's `available` first. Owner refs carry `is_active` +
+`prominence` (2/1/0) so the UI can dim/order departed managers in place.
+
+- `records` — `closest_game` / `biggest_blowout` / `highest_scoring_duel` (pure all-time single
+  games) plus **ranked lists** `most_played[]` and `dead_even[]` (top 5, prominent pairings
+  first; `dead_even` is balance-first and `MIN_DEAD_EVEN_GAMES`-gated).
+- `intensity` — heat leaderboard; rows carry `pair_tier` and sort prominent-first then by heat.
+- `streaks` — `longest` (pure record) + `active[]` (prominence-ordered). Each streak carries
+  `from_matchup_id` **and** `last_matchup_id` to deep-link a cross-season run start → end.
+- `nemeses` — per active manager: `nemesis` / `favorite_victim` chosen among qualified
+  opponents, with optional `nemesis_departed` / `favorite_victim_departed` secondaries.
+- `playoffs` — postseason-only pairings with finals context.
 
 ### Records book
 

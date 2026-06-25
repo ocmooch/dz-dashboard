@@ -53,16 +53,38 @@ def test_records_superlatives(session: Session) -> None:
     assert duel["combined"] == 280.4
     assert duel["winner"]["owner_id"] == _oid("mav")
 
-    # Most-played pairing: Maverick vs Iceman, 3 games (2-1).
-    most = rec["most_played_pairing"]
-    assert most["games"] == 3
-    assert {most["owner_a"]["owner_id"], most["owner_b"]["owner_id"]} == {
+    # Most-played is a ranked list; Maverick vs Iceman (3 games) leads.
+    most = rec["most_played"]
+    assert most[0]["games"] == 3
+    assert {most[0]["owner_a"]["owner_id"], most[0]["owner_b"]["owner_id"]} == {
         _oid("mav"),
         _oid("ice"),
     }
+    # The five active-pair rivalries fill the top tier, so short-stint departed
+    # Slider's pairings are deprioritized out of the top-N (never hidden — they
+    # simply rank below every active pairing).
+    top_ids = {o for it in most for o in (it["owner_a"]["owner_id"], it["owner_b"]["owner_id"])}
+    assert _oid("slider") not in top_ids
 
-    # Dead-even rivalry reuses closest_rivalry (most games, nearest 50/50).
-    assert rec["dead_even_rivalry"]["games_played"] == 3
+    # Dead-even needs a real series (MIN_DEAD_EVEN_GAMES=4); the small fixture has
+    # none, so it's an honest empty list rather than a thin/lopsided pair.
+    assert rec["dead_even"] == []
+
+
+def test_dead_even_prefers_balance_over_volume(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(rivalries, "MIN_DEAD_EVEN_GAMES", 2)
+    rec = rivalry_records(session)
+    de = rec["dead_even"]
+    assert de, "expected dead-even pairs once the sample gate is lowered"
+    top = de[0]
+    # The headline is a genuinely even (1-1) series, not lopsided Maverick vs
+    # Iceman (2-1) despite it being the most-played pair.
+    assert top["a_wins"] == top["b_wins"]
+    assert {top["owner_a"]["owner_id"], top["owner_b"]["owner_id"]} != {_oid("mav"), _oid("ice")}
+    # Departed-short-stint (Slider) pairings rank below the active ones.
+    assert _oid("slider") not in {top["owner_a"]["owner_id"], top["owner_b"]["owner_id"]}
 
 
 def test_streaks_longest_and_active(session: Session) -> None:
@@ -71,6 +93,10 @@ def test_streaks_longest_and_active(session: Session) -> None:
     # The longest H2H run in the fixture is 2 (Maverick beat Iceman 2015→2016,
     # and Slider beat Iceman in both their meetings).
     assert streaks["longest"]["length"] == 2
+    # The longest run carries both ends so the UI can deep-link a cross-season
+    # run start → end, not just point at the last game.
+    assert streaks["longest"]["from_matchup_id"] is not None
+    assert streaks["longest"]["last_matchup_id"] is not None
     # No run reaches the active-domination gate (3), so the active list is empty —
     # honest emptiness, not a fabricated streak.
     assert streaks["active"] == []
@@ -92,12 +118,20 @@ def test_intensity_math_when_gate_lowered(
     assert out["available"] is True
     board = out["leaderboard"]
     assert board, "expected ranked rivalries once the gate is lowered"
-    heats = [row["heat"] for row in board]
-    assert heats == sorted(heats, reverse=True)  # ranked hottest-first
+    # Prominent pairings lead: tiers are non-increasing, and within each tier the
+    # board is ranked hottest-first. (A hot Slider pairing still sinks below a
+    # cooler active one — active-manager focus without hiding history.)
+    tiers = [row["pair_tier"] for row in board]
+    assert tiers == sorted(tiers, reverse=True)
+    for t in set(tiers):
+        tier_heats = [row["heat"] for row in board if row["pair_tier"] == t]
+        assert tier_heats == sorted(tier_heats, reverse=True)
     for row in board:
         assert 0.0 <= row["heat"] <= 100.0
         assert all(0.0 <= v <= 1.0 for v in row["components"].values())
         assert row["last_meeting"]["matchup_id"] is not None
+        # Refs carry activity so the UI can dim departed managers in place.
+        assert "is_active" in row["owner_a"]
 
 
 def test_nemeses_active_only_with_min_sample(session: Session) -> None:
