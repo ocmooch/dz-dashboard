@@ -1322,6 +1322,8 @@ export interface components {
             player_name?: string | null;
             /** Position */
             position?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
             /** Season Year */
             season_year?: number | null;
             /** Season Points */

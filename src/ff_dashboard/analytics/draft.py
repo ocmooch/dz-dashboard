@@ -52,7 +52,7 @@ from ff_pipeline.repository.models import (
     TeamRoster,
     Transaction,
 )
-from ff_pipeline.repository.queries import get_season
+from ff_pipeline.repository.queries import get_season, player_season_teams
 from sqlalchemy import distinct, func, select
 
 from ff_dashboard.analytics.adp import (
@@ -593,6 +593,10 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
     )
     roster_slots = _drafted_roster_slots(session, season, drafted_ids)
     roster_weeks = _drafted_roster_weeks(session, season, drafted_ids)
+    # Season-correct NFL team (e.g. a 2015 Raider reads "OAK"), falling back to
+    # the current snapshot on players.nfl_team when no per-week team is stored —
+    # mirrors the box score / team page rule (see player_season_teams).
+    season_teams = player_season_teams(session, sorted(drafted_ids), season.year)
     num_teams = len({team.team_id for _, _, team in rows}) or 1
 
     picks: list[dict[str, Any]] = []
@@ -618,6 +622,7 @@ def _season_picks(session: Session, season: Season) -> list[dict[str, Any]] | No
                 "player_id": player.player_id,
                 "player_name": player.name_full,
                 "position": fantasy_position(player.position),
+                "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
                 "season_year": season.year,
                 "num_teams": num_teams,
                 # Transient inputs for the impact composite; popped in _with_values.
