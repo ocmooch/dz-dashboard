@@ -396,9 +396,11 @@ export type QuadrantPoint = {
   x: number;
   y: number;
   label: string;
-  tone?: "hit" | "bust" | "mixed";
+  tone?: "value_hit" | "reach_bust" | "reach_hit" | "value_miss" | "mixed";
   /** extra tooltip context, e.g. "RB · #14 · Goose". */
   note?: string;
+  /** quadrant story, e.g. "Reach that hit". */
+  story?: string;
 };
 
 function quadrantTooltip({
@@ -421,6 +423,7 @@ function quadrantTooltip({
       }}
     >
       <div style={{ color: t.text, marginBottom: 4 }}>{p.label}</div>
+      {p.story && <div style={{ color: t.text, marginBottom: 4 }}>{p.story}</div>}
       {p.note && <div style={{ color: t.axis, marginBottom: 4 }}>{p.note}</div>}
       <div style={{ color: t.text }}>
         {p.x >= 0 ? "value" : "reach"} {p.x > 0 ? "+" : ""}
@@ -449,13 +452,17 @@ export function ScatterQuadrant({
 }) {
   const t = chartTheme();
   const colors = {
-    hit: "var(--win)",
-    bust: "var(--loss)",
+    value_hit: "var(--win)",
+    reach_bust: "var(--loss)",
+    reach_hit: seriesColor(3),
+    value_miss: seriesColor(3),
     mixed: seriesColor(3),
   };
   const byTone = {
-    hit: points.filter((p) => p.tone === "hit"),
-    bust: points.filter((p) => p.tone === "bust"),
+    value_hit: points.filter((p) => p.tone === "value_hit"),
+    reach_bust: points.filter((p) => p.tone === "reach_bust"),
+    reach_hit: points.filter((p) => p.tone === "reach_hit"),
+    value_miss: points.filter((p) => p.tone === "value_miss"),
     mixed: points.filter((p) => !p.tone || p.tone === "mixed"),
   };
   const table = (
@@ -463,6 +470,7 @@ export function ScatterQuadrant({
       <thead>
         <tr style={{ color: t.axis }}>
           <th className="pr-3">Pick</th>
+          <th className="pr-3">Story</th>
           <th className="pr-3">{xLabel}</th>
           <th className="pr-3">{yLabel}</th>
         </tr>
@@ -471,6 +479,7 @@ export function ScatterQuadrant({
         {points.map((p) => (
           <tr key={`${p.label}-${p.x}-${p.y}`} style={{ color: t.text }}>
             <td className="pr-3">{p.note ? `${p.label} (${p.note})` : p.label}</td>
+            <td className="pr-3">{p.story ?? "Mixed story"}</td>
             <td className="pr-3">{p.x}</td>
             <td className="pr-3">{p.y}</td>
           </tr>
@@ -504,9 +513,11 @@ export function ScatterQuadrant({
         <ReferenceLine x={0} stroke={t.borderStrong} />
         <ReferenceLine y={0} stroke={t.borderStrong} />
         <Tooltip content={quadrantTooltip} cursor={{ stroke: t.grid }} />
-        <Scatter name="reached/value and hit" data={byTone.hit} fill={colors.hit} isAnimationActive={false} />
-        <Scatter name="reached/value and busted" data={byTone.bust} fill={colors.bust} isAnimationActive={false} />
-        <Scatter name="split story" data={byTone.mixed} fill={colors.mixed} isAnimationActive={false} />
+        <Scatter name="value that hit" data={byTone.value_hit} fill={colors.value_hit} isAnimationActive={false} />
+        <Scatter name="reach that busted" data={byTone.reach_bust} fill={colors.reach_bust} isAnimationActive={false} />
+        <Scatter name="reach that hit" data={byTone.reach_hit} fill={colors.reach_hit} isAnimationActive={false} />
+        <Scatter name="value that missed" data={byTone.value_miss} fill={colors.value_miss} isAnimationActive={false} />
+        <Scatter name="mixed story" data={byTone.mixed} fill={colors.mixed} isAnimationActive={false} />
       </ScatterChart>
     </ChartFrame>
   );
