@@ -169,11 +169,6 @@ function compactPlayerName(name: string | null | undefined) {
   return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
 }
 
-function compactPoints(points: number | null | undefined) {
-  if (points == null) return "—";
-  return `${num(points).replace(/\.00$/, "")} pts`;
-}
-
 function quadrantStory(adpDelta: number, impact: number): QuadrantStory {
   if (adpDelta >= 0 && impact >= 0) return { tone: "value_hit", story: "Value that hit" };
   if (adpDelta < 0 && impact < 0) return { tone: "reach_bust", story: "Reach that busted" };
@@ -232,12 +227,8 @@ function PickCell({
             <div className="truncate text-[13px] font-semibold leading-snug text-text">
               {compactPlayerName(pick.player_name)}
             </div>
-            <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
+            <div className="mt-1 text-[var(--fs-xs)] text-muted">
               <span className="block truncate">{posTeam}</span>
-              <span className="num block truncate">
-                {compactPoints(pick.season_points)}
-                {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
-              </span>
             </div>
           </div>
           <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
@@ -260,7 +251,18 @@ function PickCell({
           <div className="mt-1.5 flex min-w-0 flex-1 flex-col items-start gap-1">
             {view === "performance" ? (
               pick.available ? (
-                <ImpactTag pick={pick} compact />
+                <>
+                  <ImpactTag pick={pick} compact />
+                  {pick.season_points != null && (
+                    <span
+                      className="text-[var(--fs-xs)] text-faint"
+                      title="Regular-season fantasy points — the weeks the board's value and impact are measured over (excludes the fantasy playoffs)."
+                    >
+                      <span className="num">{num(pick.season_points).replace(/\.00$/, "")}</span> reg-szn pts
+                      {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
+                    </span>
+                  )}
+                </>
               ) : (
                 <DataGap reason={pick.reason ?? undefined} size="sm" />
               )

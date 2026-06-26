@@ -409,10 +409,12 @@ describe("DraftPage", () => {
     });
     renderPage();
     await screen.findByText("Round 1");
-    // The 0 reads as a real total with a DNP marker explaining it — not a DataGap.
+    // Points (and the DNP marker that explains the zero) live in the Performance view.
+    await userEvent.click(screen.getByRole("tab", { name: "Performance" }));
+    // The 0 reads as a real, labeled regular-season total with a DNP marker — not a DataGap.
     expect(screen.getAllByText("DNP").length).toBeGreaterThan(0);
     expect(screen.getAllByTitle(/season-long injury or ineligibility/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/0 pts/)).toBeInTheDocument();
+    expect(screen.getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/value unavailable/i)).not.toBeInTheDocument();
   });
 
@@ -470,17 +472,17 @@ describe("DraftPage", () => {
     await screen.findByText("Round 1");
     const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
 
-    // Basic default: the persistent identity carries position · NFL team and season
-    // points; it does not crowd in the steal/bust impact badge.
+    // Basic default: pure identity — position · NFL team and owner. Season points are
+    // not shown here; they live in the Performance view where they explain impact.
     expect(within(boardCard).getAllByText(/RB · DAL/).length).toBeGreaterThan(0);
-    expect(within(boardCard).getAllByText(/\bpts$/).length).toBeGreaterThan(0);
+    expect(within(boardCard).queryByText(/pts/)).not.toBeInTheDocument();
 
-    // Performance view surfaces the steal/bust callouts on the leaders, and strips
-    // the season-points line so the impact number reads cleanly.
+    // Performance view surfaces the steal/bust callouts plus the labeled
+    // regular-season points behind each impact.
     await user.click(within(boardCard).getByRole("tab", { name: "Performance" }));
     expect(within(boardCard).getByText("Top steal")).toBeInTheDocument();
     expect(within(boardCard).getByText("Top bust")).toBeInTheDocument();
-    expect(within(boardCard).queryByText(/\bpts$/)).not.toBeInTheDocument();
+    expect(within(boardCard).getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
 
     // Market view swaps in the per-cell ADP read, and flags picks with no consensus
     // ADP rather than leaving the metric blank.
