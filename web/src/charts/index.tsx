@@ -396,6 +396,7 @@ export type QuadrantPoint = {
   x: number;
   y: number;
   label: string;
+  tone?: "hit" | "bust" | "mixed";
   /** extra tooltip context, e.g. "RB · #14 · Goose". */
   note?: string;
 };
@@ -422,8 +423,8 @@ function quadrantTooltip({
       <div style={{ color: t.text, marginBottom: 4 }}>{p.label}</div>
       {p.note && <div style={{ color: t.axis, marginBottom: 4 }}>{p.note}</div>}
       <div style={{ color: t.text }}>
-        reach/value {p.x > 0 ? "+" : ""}
-        {p.x} · outcome {p.y > 0 ? "+" : ""}
+        {p.x >= 0 ? "value" : "reach"} {p.x > 0 ? "+" : ""}
+        {p.x} · {p.y >= 0 ? "steal" : "bust"} {p.y > 0 ? "+" : ""}
         {p.y}
       </div>
     </div>
@@ -447,6 +448,16 @@ export function ScatterQuadrant({
   height?: number;
 }) {
   const t = chartTheme();
+  const colors = {
+    hit: "var(--win)",
+    bust: "var(--loss)",
+    mixed: seriesColor(3),
+  };
+  const byTone = {
+    hit: points.filter((p) => p.tone === "hit"),
+    bust: points.filter((p) => p.tone === "bust"),
+    mixed: points.filter((p) => !p.tone || p.tone === "mixed"),
+  };
   const table = (
     <table className="w-full border-collapse text-left">
       <thead>
@@ -493,7 +504,9 @@ export function ScatterQuadrant({
         <ReferenceLine x={0} stroke={t.borderStrong} />
         <ReferenceLine y={0} stroke={t.borderStrong} />
         <Tooltip content={quadrantTooltip} cursor={{ stroke: t.grid }} />
-        <Scatter data={points} fill={seriesColor(0)} isAnimationActive={false} />
+        <Scatter name="reached/value and hit" data={byTone.hit} fill={colors.hit} isAnimationActive={false} />
+        <Scatter name="reached/value and busted" data={byTone.bust} fill={colors.bust} isAnimationActive={false} />
+        <Scatter name="split story" data={byTone.mixed} fill={colors.mixed} isAnimationActive={false} />
       </ScatterChart>
     </ChartFrame>
   );
