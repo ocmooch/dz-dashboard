@@ -133,11 +133,11 @@ function impactTitle(pick: Pick): string | undefined {
 /** Composite draft-impact badge: the headline ranking number, steal/bust coloured,
  *  with the honest per-slot value shown alongside when the two differ. Falls back
  *  to value when the BFF hasn't supplied an impact (e.g. uncomputable picks). */
-function ImpactTag({ pick }: { pick: Pick }) {
+function ImpactTag({ pick, compact = false }: { pick: Pick; compact?: boolean }) {
   const impact = pick.impact ?? pick.value;
   if (impact == null) return null;
   const tone = impact > 0 ? "win" : impact < 0 ? "loss" : "default";
-  const showValue = pick.impact != null && pick.value != null && pick.impact !== pick.value;
+  const showValue = !compact && pick.impact != null && pick.value != null && pick.impact !== pick.value;
   return (
     <span className="flex items-center gap-1.5" title={impactTitle(pick)}>
       {showValue && pick.value != null && (
@@ -223,31 +223,60 @@ function PickCell({
         focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
       }`}
     >
-      <div className="mb-2 flex min-h-[1.25rem] items-start justify-between gap-1">
-        <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
-        {view === "performance" &&
-          (pick.available ? <ImpactTag pick={pick} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold leading-snug text-text">
-          {compactPlayerName(pick.player_name)}
-        </div>
-        <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
-          <span className="block truncate">{posTeam}</span>
-          {view !== "market" && (
-            <span className="num block truncate">
-              {compactPoints(pick.season_points)}
-              {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
-            </span>
-          )}
-          {view === "market" && <MarketChip pick={pick} />}
-          {superlative && <SuperlativeChip {...superlative} />}
-        </div>
-      </div>
-      <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
-        <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
-        {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
-      </div>
+      {view === "basic" ? (
+        <>
+          <div className="mb-2 flex min-h-[1.25rem] items-start justify-between gap-1">
+            <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold leading-snug text-text">
+              {compactPlayerName(pick.player_name)}
+            </div>
+            <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
+              <span className="block truncate">{posTeam}</span>
+              <span className="num block truncate">
+                {compactPoints(pick.season_points)}
+                {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
+            <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
+            {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
+          </div>
+        </>
+      ) : (
+        // Performance / Market: stripped to player + the view's metric + owner, so
+        // the relevant number reads cleanly. Pick # and position · team are retained
+        // but demoted to a faint top row that truncates first when space is tight.
+        <>
+          <div className="mb-1.5 flex items-center justify-between gap-1.5 text-[var(--fs-xs)] text-faint">
+            <span className="num shrink-0">#{pick.overall}</span>
+            <span className="min-w-0 truncate">{posTeam}</span>
+          </div>
+          <div className="truncate text-[13px] font-semibold leading-snug text-text">
+            {compactPlayerName(pick.player_name)}
+          </div>
+          <div className="mt-1.5 flex min-w-0 flex-1 flex-col items-start gap-1">
+            {view === "performance" ? (
+              pick.available ? (
+                <ImpactTag pick={pick} compact />
+              ) : (
+                <DataGap reason={pick.reason ?? undefined} size="sm" />
+              )
+            ) : (
+              <MarketChip pick={pick} />
+            )}
+            {view === "market" && !(pick.adp_available && pick.adp != null && pick.adp_delta != null) && (
+              <span className="text-[var(--fs-xs)] text-faint">no ADP</span>
+            )}
+            {superlative && <SuperlativeChip {...superlative} />}
+          </div>
+          <div className="mt-2 min-w-0 truncate border-l-2 border-[var(--border-strong)] pl-2 text-[var(--fs-xs)] font-semibold leading-tight text-text">
+            {ownerLabel}
+          </div>
+        </>
+      )}
     </Link>
   );
 }

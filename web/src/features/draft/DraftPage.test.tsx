@@ -470,18 +470,23 @@ describe("DraftPage", () => {
     await screen.findByText("Round 1");
     const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
 
-    // Basic default: the persistent identity carries position · NFL team, and the
-    // board does not crowd in the steal/bust impact badge.
+    // Basic default: the persistent identity carries position · NFL team and season
+    // points; it does not crowd in the steal/bust impact badge.
     expect(within(boardCard).getAllByText(/RB · DAL/).length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText(/\bpts$/).length).toBeGreaterThan(0);
 
-    // Performance view surfaces the steal/bust callouts on the leaders.
+    // Performance view surfaces the steal/bust callouts on the leaders, and strips
+    // the season-points line so the impact number reads cleanly.
     await user.click(within(boardCard).getByRole("tab", { name: "Performance" }));
     expect(within(boardCard).getByText("Top steal")).toBeInTheDocument();
     expect(within(boardCard).getByText("Top bust")).toBeInTheDocument();
+    expect(within(boardCard).queryByText(/\bpts$/)).not.toBeInTheDocument();
 
-    // Market view swaps in the per-cell ADP read.
+    // Market view swaps in the per-cell ADP read, and flags picks with no consensus
+    // ADP rather than leaving the metric blank.
     await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
     expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("no ADP").length).toBeGreaterThan(0);
   });
 
   it("names all four reach/value outcome quadrants", async () => {
