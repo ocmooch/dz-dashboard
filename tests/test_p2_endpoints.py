@@ -140,7 +140,20 @@ def test_owner_career(client: TestClient) -> None:
     assert data["championships"] == 2
     assert any(t["is_champion"] for t in data["trophy_case"])
     assert data["consistency"]["available"] is True
-    assert data["consistency"]["signature"] in {"steady scorer", "boom/bust"}
+    assert data["consistency"]["signature"] in {
+        "balanced scorer",
+        "ceiling scorer",
+        "floor risk",
+        "steady scorer",
+        "true boom/bust",
+        "uphill scorer",
+        "volatile scorer",
+        "weekly edge",
+    }
+    assert data["consistency"]["weeks_sampled"] > 0
+    assert 0 <= data["consistency"]["top_week_rate"] <= 1
+    assert 0 <= data["consistency"]["floor_week_rate"] <= 1
+    assert 0 <= data["consistency"]["above_median_rate"] <= 1
 
 
 def test_owner_seasons_and_trajectory(client: TestClient) -> None:

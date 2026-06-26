@@ -70,6 +70,10 @@ function scored(row: OwnerSeasonRow): boolean {
   return row.points_for > 0;
 }
 
+function rate(value: number | null | undefined) {
+  return value == null ? "—" : pct(value);
+}
+
 function SeasonRow({ row }: { row: OwnerSeasonRow }) {
   return (
     <tr>
@@ -300,16 +304,39 @@ export function ManagerProfilePage() {
 
       {c?.consistency && (
         <Card>
-          <CardHeader eyebrow="weekly scoring profile" title="Consistency" />
-          <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-4">
+          <CardHeader eyebrow="week-relative scoring profile" title="Scoring Tendency" />
+          <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-3 lg:grid-cols-6">
             {c.consistency.available ? (
               <>
                 <Stat
-                  label="Weekly stdev"
-                  value={num(c.consistency.weekly_points_stdev, 1)}
+                  label="Signature"
+                  value={c.consistency.signature ?? "—"}
                   tone="accent"
                 />
-                <Stat label="Consistency rank" value={ordinal(c.consistency.rank_among_owners)} />
+                <Stat
+                  label="Ceiling weeks"
+                  value={rate(c.consistency.top_week_rate)}
+                  unit="top quartile"
+                />
+                <Stat
+                  label="Floor weeks"
+                  value={rate(c.consistency.floor_week_rate)}
+                  unit="bottom quartile"
+                />
+                <Stat
+                  label="Above median"
+                  value={rate(c.consistency.above_median_rate)}
+                  unit={`${c.consistency.weeks_sampled ?? 0} weeks`}
+                />
+                <Stat
+                  label="Avg weekly rank"
+                  value={num(c.consistency.average_weekly_rank, 2)}
+                  unit={
+                    c.consistency.weekly_volatility != null
+                      ? `vol ${num(c.consistency.weekly_volatility, 2)}`
+                      : undefined
+                  }
+                />
                 <Stat
                   label="Best season"
                   value={c.consistency.best_season_year ?? "—"}
@@ -319,7 +346,6 @@ export function ManagerProfilePage() {
                       : undefined
                   }
                 />
-                <Stat label="Signature" value={c.consistency.signature ?? "—"} />
               </>
             ) : (
               <DataGap reason={c.consistency.reason ?? "no_scored_data"} />
