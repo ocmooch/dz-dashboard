@@ -899,6 +899,7 @@ class DraftPick(BaseModel):
     player_id: int
     player_name: str | None = None
     position: str | None = None
+    nfl_team: str | None = None  # season-correct NFL team (e.g. 2015 reads "OAK")
     season_year: int | None = None
     season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable

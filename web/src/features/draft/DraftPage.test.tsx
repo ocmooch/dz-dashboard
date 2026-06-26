@@ -41,6 +41,7 @@ const pick = (
   player_id: over * 10,
   player_name: name,
   position: "RB",
+  nfl_team: "DAL",
   season_year: 2016,
   season_points: pts,
   value,
@@ -447,15 +448,88 @@ describe("DraftPage", () => {
     expect(get.mock.calls.some(([path]) => path === "/v1/draft/tendencies")).toBe(false);
 
     // The Reach / value lens swaps Steals/Busts for Reaches/Values and reveals
-    // the market-only exploratory pieces, including the board ADP read.
+    // the market-only exploratory pieces (quadrant + tendencies).
     await user.click(screen.getByRole("tab", { name: "Reach / value" }));
     expect(await screen.findByText("Reaches")).toBeInTheDocument();
     expect(screen.getByText("Values")).toBeInTheDocument();
-    expect(screen.getAllByText("ADP 8.40").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Reach by/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("7.40").length).toBeGreaterThan(0);
     expect(screen.getByText("Reach / value vs outcome")).toBeInTheDocument();
     expect(screen.getByText("Manager market tendencies")).toBeInTheDocument();
+
+    // The board carries its own view control; switching it to Market reveals the
+    // per-cell ADP read + reach amount (independent of the leaderboard lens above).
+    const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
+    await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
+    expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("7.40").length).toBeGreaterThan(0);
+  });
+
+  it("toggles the board between basic, performance, and market views", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Round 1");
+    const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
+
+    // Basic default: the persistent identity carries position · NFL team, and the
+    // board does not crowd in the steal/bust impact badge.
+    expect(within(boardCard).getAllByText(/RB · DAL/).length).toBeGreaterThan(0);
+
+    // Performance view surfaces the steal/bust callouts on the leaders.
+    await user.click(within(boardCard).getByRole("tab", { name: "Performance" }));
+    expect(within(boardCard).getByText("Top steal")).toBeInTheDocument();
+    expect(within(boardCard).getByText("Top bust")).toBeInTheDocument();
+
+    // Market view swaps in the per-cell ADP read.
+    await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
+    expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+  });
+
+  it("names all four reach/value outcome quadrants", async () => {
+    const user = userEvent.setup();
+    const reachHit = {
+      ...pick(5, "Davante Adams", "Slider", 70, 14, 2, 1),
+      impact: 5.2,
+      adp: 11,
+      adp_delta: -6,
+      market_label: "reach",
+      adp_available: true,
+      adp_reason: null,
+    };
+    const valueMiss = {
+      ...pick(6, "Todd Gurley", "Goose", 20, -18, 2, 2),
+      impact: -4.4,
+      adp: 3,
+      adp_delta: 3,
+      market_label: "value",
+      adp_available: true,
+      adp_reason: null,
+    };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [KELCE, CMC, reachHit, valueMiss] }] }));
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            picks: [KELCE, CMC, reachHit, valueMiss],
+            reaches: [KELCE, reachHit],
+            values: [CMC, valueMiss],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+
+    renderPage();
+    await screen.findByText("Round 1");
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+
+    expect(await screen.findByText(/reach that hit or value that missed/i)).toBeInTheDocument();
+    const quadrant = screen.getByLabelText("Reach/value vs outcome by pick");
+    await user.click(within(quadrant).getByText("Data table"));
+    expect(within(quadrant).getByText("Value that hit")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Reach that busted")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Reach that hit")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Value that missed")).toBeInTheDocument();
   });
 
   it("renders the manager market-tendencies table as an experimental market insight", async () => {

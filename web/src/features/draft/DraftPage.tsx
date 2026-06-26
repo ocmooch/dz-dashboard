@@ -16,6 +16,12 @@ type Tendencies = Awaited<ReturnType<typeof fetchTendencies>>;
 type Manager = Tendencies["managers"][number];
 type Lens = "weighted" | "points" | "market";
 type ChartOrder = "metric" | "draft";
+/** What each board cell reveals beneath the persistent identity line. Basic is the
+ *  decluttered default; Performance swaps in the steal/bust impact; Market swaps in
+ *  the ADP read. Independent of the leaderboard `Lens` above. */
+type BoardView = "basic" | "performance" | "market";
+type Superlative = { label: string; tone: "win" | "loss" | "default" };
+type QuadrantStory = { tone: QuadrantPoint["tone"]; story: string };
 
 async function fetchBoard(seasonId: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/draft", {
@@ -168,12 +174,46 @@ function compactPoints(points: number | null | undefined) {
   return `${num(points).replace(/\.00$/, "")} pts`;
 }
 
-function PickCell({ pick, focused, showMarket = false }: { pick: Pick; focused?: boolean; showMarket?: boolean }) {
+function quadrantStory(adpDelta: number, impact: number): QuadrantStory {
+  if (adpDelta >= 0 && impact >= 0) return { tone: "value_hit", story: "Value that hit" };
+  if (adpDelta < 0 && impact < 0) return { tone: "reach_bust", story: "Reach that busted" };
+  if (adpDelta < 0 && impact >= 0) return { tone: "reach_hit", story: "Reach that hit" };
+  return { tone: "value_miss", story: "Value that missed" };
+}
+
+/** A one-word "headline of the draft" chip — the top steal/bust/reach/value. Kept
+ *  rare (only the leader of each list) so it stays a callout, not clutter. */
+function SuperlativeChip({ label, tone }: Superlative) {
+  const cls = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-accent";
+  return (
+    <span
+      className={`dz-eyebrow mt-1 inline-flex items-center rounded-sm border border-[var(--hairline)] px-1 py-0.5 text-[9px] ${cls}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+/** One board cell. The identity line — pick #, player, position · NFL team, owner —
+ *  is persistent across every view; only the metric beneath it changes with `view`,
+ *  so the whole board can be scanned through one lens at a time without crowding. */
+function PickCell({
+  pick,
+  focused,
+  view,
+  superlative,
+}: {
+  pick: Pick;
+  focused?: boolean;
+  view: BoardView;
+  superlative?: Superlative;
+}) {
   const ownerLabel = pick.owner_name ?? pick.team_name ?? "—";
   const teamSub =
     pick.team_name && pick.owner_name && !pick.team_name.toLowerCase().includes(pick.owner_name.toLowerCase())
       ? pick.team_name
       : null;
+  const posTeam = pick.nfl_team ? `${pick.position ?? "—"} · ${pick.nfl_team}` : (pick.position ?? "—");
 
   return (
     <Link
@@ -183,23 +223,25 @@ function PickCell({ pick, focused, showMarket = false }: { pick: Pick; focused?:
         focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
       }`}
     >
-      <div className="mb-2 space-y-1">
-        <span className="num block text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
-        <div className="min-w-0">
-          {pick.available ? <ValueTag value={pick.value} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />}
-        </div>
+      <div className="mb-2 flex min-h-[1.25rem] items-start justify-between gap-1">
+        <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
+        {view === "performance" &&
+          (pick.available ? <ImpactTag pick={pick} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />)}
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-semibold leading-snug text-text">
           {compactPlayerName(pick.player_name)}
         </div>
         <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
-          <span>{pick.position ?? "—"}</span>
-          <span className="num block truncate">
-            {compactPoints(pick.season_points)}
-            {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
-          </span>
-          {showMarket && <MarketChip pick={pick} />}
+          <span className="block truncate">{posTeam}</span>
+          {view !== "market" && (
+            <span className="num block truncate">
+              {compactPoints(pick.season_points)}
+              {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
+            </span>
+          )}
+          {view === "market" && <MarketChip pick={pick} />}
+          {superlative && <SuperlativeChip {...superlative} />}
         </div>
       </div>
       <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
@@ -340,6 +382,7 @@ export function DraftPage() {
   const [round, setRound] = useState("");
   const [team, setTeam] = useState("");
   const [lens, setLens] = useState<Lens>("weighted");
+  const [boardView, setBoardView] = useState<BoardView>("basic");
   const [chartOrder, setChartOrder] = useState<ChartOrder>("metric");
   const [stealsVisible, setStealsVisible] = useState(3);
   const [bustsVisible, setBustsVisible] = useState(3);
@@ -446,17 +489,35 @@ export function DraftPage() {
     if (lens !== "market") return [];
     return (value.data?.picks ?? [])
       .filter((p) => p.adp_delta != null && p.impact != null)
-      .map((p) => ({
-        x: p.adp_delta as number,
-        y: p.impact as number,
-        tone:
-          (p.adp_delta as number) >= 0 && (p.impact as number) >= 0 ? "hit"
-          : (p.adp_delta as number) < 0 && (p.impact as number) < 0 ? "bust"
-          : "mixed",
-        label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
-        note: `${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"}`,
-      }));
+      .map((p) => {
+        const x = p.adp_delta as number;
+        const y = p.impact as number;
+        return {
+          x,
+          y,
+          ...quadrantStory(x, y),
+          label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
+          note: `${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"}`,
+        };
+      });
   }, [lens, value.data?.picks]);
+
+  // Board "headline" callouts: only the single leader of each list earns a chip,
+  // so a superlative stays a rare flourish rather than another column of noise.
+  // The lists are already ranked best-first by the BFF.
+  const boardSuperlatives = useMemo(() => {
+    const map = new Map<number, Superlative>();
+    const v = value.data;
+    if (!v) return map;
+    if (boardView === "performance") {
+      if (v.steals[0]) map.set(v.steals[0].overall, { label: "Top steal", tone: "win" });
+      if (v.busts[0]) map.set(v.busts[0].overall, { label: "Top bust", tone: "loss" });
+    } else if (boardView === "market") {
+      if (v.reaches?.[0]) map.set(v.reaches[0].overall, { label: "Biggest reach", tone: "loss" });
+      if (v.values?.[0]) map.set(v.values[0].overall, { label: "Best value", tone: "win" });
+    }
+    return map;
+  }, [boardView, value.data]);
 
   const tendencies = useQuery({
     queryKey: qk.draftTendencies(),
@@ -645,7 +706,7 @@ export function DraftPage() {
                 <div className="mb-3 flex flex-wrap gap-3 text-[var(--fs-xs)] text-faint">
                   <span><span className="text-win">Green</span> = value that hit</span>
                   <span><span className="text-loss">Red</span> = reach that busted</span>
-                  <span><span className="text-accent">Gold</span> = mixed story</span>
+                  <span><span className="text-accent">Gold</span> = reach that hit or value that missed</span>
                 </div>
                 <ScatterQuadrant
                   points={quadrantPoints}
@@ -668,8 +729,26 @@ export function DraftPage() {
             <CardHeader
               eyebrow={`${board.data.num_teams ?? "—"} teams`}
               title="Draft board"
+              action={
+                <Tabs
+                  tabs={[
+                    { id: "basic", label: "Basic" },
+                    { id: "performance", label: "Performance" },
+                    { id: "market", label: "Market" },
+                  ]}
+                  value={boardView}
+                  onChange={setBoardView}
+                />
+              }
             />
             <div className="space-y-5 p-5">
+              <p className="max-w-prose text-[var(--fs-xs)] text-faint">
+                {boardView === "basic"
+                  ? "Who went where: player, position · NFL team, owner, and season points."
+                  : boardView === "performance"
+                    ? "Each pick's steal/bust impact against its slot — hover a badge for the weighting."
+                    : "Each pick read against consensus ADP — drafted earlier (reach) or later (value)."}
+              </p>
               {board.data.rounds.map((rnd) => (
                 <div key={rnd.round}>
                   <div className="dz-eyebrow mb-2">Round {rnd.round}</div>
@@ -683,7 +762,8 @@ export function DraftPage() {
                         key={p.overall}
                         pick={p}
                         focused={p.overall === focusedOverall}
-                        showMarket={lens === "market"}
+                        view={boardView}
+                        superlative={boardSuperlatives.get(p.overall)}
                       />
                     ))}
                   </div>
