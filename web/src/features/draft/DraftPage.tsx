@@ -66,32 +66,39 @@ function adpTitle(pick: Pick): string | undefined {
   return parts.join(" · ");
 }
 
-/** Signed reach/value delta, coloured: value (drafted later than ADP) green, reach red. */
-function AdpTag({ pick }: { pick: Pick }) {
+function marketRead(pick: Pick): { label: string; amount: number; tone: "win" | "loss" | "default" } | null {
   if (!pick.adp_available || pick.adp_delta == null) return null;
-  const tone = pick.market_label === "value" ? "win" : pick.market_label === "reach" ? "loss" : "default";
+  const amount = Math.abs(pick.adp_delta);
+  if (pick.market_label === "reach") return { label: "Reach by", amount, tone: "loss" };
+  if (pick.market_label === "value") return { label: "Value by", amount, tone: "win" };
+  return { label: "On market", amount, tone: "default" };
+}
+
+/** Reach/value delta, phrased without relying on sign interpretation. */
+function AdpTag({ pick }: { pick: Pick }) {
+  const read = marketRead(pick);
+  if (!read) return null;
   return (
-    <Badge variant={tone}>
-      {pick.adp_delta > 0 ? "+" : ""}
-      {num(pick.adp_delta)}
+    <Badge variant={read.tone}>
+      {read.label} {num(read.amount)}
     </Badge>
   );
 }
 
-/** Compact board-cell market line: "ADP 8.4 · reach −7.4", or an honest gap. */
+/** Compact board-cell market line, phrased as a read rather than a signed number. */
 function MarketChip({ pick }: { pick: Pick }) {
-  if (!pick.adp_available || pick.adp == null || pick.adp_delta == null) {
-    return <span className="dz-eyebrow text-faint" title="No consensus ADP for this pick">no ADP</span>;
-  }
-  const tone =
-    pick.market_label === "value" ? "text-win" : pick.market_label === "reach" ? "text-loss" : "text-muted";
+  if (!pick.adp_available || pick.adp == null || pick.adp_delta == null) return null;
+  const read = marketRead(pick);
+  if (!read) return null;
+  const tone = read.tone === "win" ? "text-win" : read.tone === "loss" ? "text-loss" : "text-muted";
   return (
-    <span className="flex items-center gap-1 text-[var(--fs-xs)]" title={adpTitle(pick)}>
+    <span
+      className="mt-1 inline-flex max-w-full items-center gap-1 rounded-sm border border-[var(--hairline)] px-1.5 py-0.5 text-[10px]"
+      title={adpTitle(pick)}
+    >
       <span className="num text-faint">ADP {num(pick.adp)}</span>
-      <span className={`num ${tone}`}>
-        {pick.market_label === "reach" ? "reach " : pick.market_label === "value" ? "value " : ""}
-        {pick.adp_delta > 0 ? "+" : ""}
-        {num(pick.adp_delta)}
+      <span className={`truncate ${tone}`}>
+        {read.label} <span className="num">{num(read.amount)}</span>
       </span>
       {pick.adp_format_fallback && (
         <span className="text-faint" title="ADP format fallback — not the league's target format">
@@ -161,7 +168,7 @@ function compactPoints(points: number | null | undefined) {
   return `${num(points).replace(/\.00$/, "")} pts`;
 }
 
-function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
+function PickCell({ pick, focused, showMarket = false }: { pick: Pick; focused?: boolean; showMarket?: boolean }) {
   const ownerLabel = pick.owner_name ?? pick.team_name ?? "—";
   const teamSub =
     pick.team_name && pick.owner_name && !pick.team_name.toLowerCase().includes(pick.owner_name.toLowerCase())
@@ -192,7 +199,7 @@ function PickCell({ pick, focused }: { pick: Pick; focused?: boolean }) {
             {compactPoints(pick.season_points)}
             {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
           </span>
-          <MarketChip pick={pick} />
+          {showMarket && <MarketChip pick={pick} />}
         </div>
       </div>
       <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
@@ -295,12 +302,18 @@ function LeaderboardList({
   );
 }
 
-/** One manager's market tendencies row. Mean Δ is coloured (value green / reach red);
- *  a thin sample is dimmed but never hidden — the honest pick count stays visible. */
+/** One manager's market tendencies row. The language avoids signed deltas; a thin
+ *  sample is dimmed but never hidden — the honest pick count stays visible. */
 function TendencyRow({ m }: { m: Manager }) {
-  const deltaTone = m.mean_delta > 0 ? "text-win" : m.mean_delta < 0 ? "text-loss" : "text-muted";
+  const tendency =
+    m.mean_delta > 0 ? { label: "waits", amount: m.mean_delta, tone: "text-win" }
+    : m.mean_delta < 0 ? { label: "reaches", amount: Math.abs(m.mean_delta), tone: "text-loss" }
+    : { label: "on market", amount: 0, tone: "text-muted" };
   const positions = m.by_position
-    .map((p) => `${p.position} ${p.mean_delta > 0 ? "+" : ""}${num(p.mean_delta)} (${p.n})`)
+    .map((p) => {
+      const label = p.mean_delta > 0 ? "waits" : p.mean_delta < 0 ? "reaches" : "on market";
+      return `${p.position} ${label} ${num(Math.abs(p.mean_delta))} (${p.n})`;
+    })
     .join(" · ");
   return (
     <tr className={`border-t border-[var(--border)] ${m.sufficient ? "" : "opacity-60"}`}>
@@ -311,9 +324,9 @@ function TendencyRow({ m }: { m: Manager }) {
       </td>
       <td className="py-1.5 pr-3 text-right num">{m.n_picks_with_adp}</td>
       <td className="py-1.5 pr-3 text-right num">{Math.round(m.reach_rate * 100)}%</td>
-      <td className={`py-1.5 pr-3 text-right num ${deltaTone}`}>
-        {m.mean_delta > 0 ? "+" : ""}
-        {num(m.mean_delta)}
+      <td className={`py-1.5 pr-3 text-right ${tendency.tone}`}>
+        <span className="font-medium">{tendency.label}</span>{" "}
+        <span className="num">{num(tendency.amount)}</span>
       </td>
       <td className="py-1.5 pr-3 text-right num">{num(m.discipline)}</td>
     </tr>
@@ -386,11 +399,11 @@ export function DraftPage() {
     : (value.data?.values ?? []);
   const leftMeta =
     lens === "market"
-      ? { title: "Reaches", eyebrow: "drafted earlier than the market" }
+      ? { title: "Reaches", eyebrow: "took earlier than consensus" }
       : { title: "Steals", eyebrow: "outperformed their slot" };
   const rightMeta =
     lens === "market"
-      ? { title: "Values", eyebrow: "drafted later than the market" }
+      ? { title: "Values", eyebrow: "waited longer than consensus" }
       : { title: "Busts", eyebrow: "fell short of their slot" };
   const metricOf = (p: Pick) =>
     lens === "weighted" ? p.impact : lens === "market" ? p.adp_delta : p.value;
@@ -429,18 +442,26 @@ export function DraftPage() {
   // Reach × outcome quadrant: x = market axis (reach ↔ value), y = outcome axis.
   // Only picks with both a delta and an impact appear; the four quadrants tell the
   // "reached and it busted" vs "waited and it hit" stories.
-  const quadrantPoints: QuadrantPoint[] = (value.data?.picks ?? [])
-    .filter((p) => p.adp_delta != null && p.impact != null)
-    .map((p) => ({
-      x: p.adp_delta as number,
-      y: p.impact as number,
-      label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
-      note: `${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"}`,
-    }));
+  const quadrantPoints: QuadrantPoint[] = useMemo(() => {
+    if (lens !== "market") return [];
+    return (value.data?.picks ?? [])
+      .filter((p) => p.adp_delta != null && p.impact != null)
+      .map((p) => ({
+        x: p.adp_delta as number,
+        y: p.impact as number,
+        tone:
+          (p.adp_delta as number) >= 0 && (p.impact as number) >= 0 ? "hit"
+          : (p.adp_delta as number) < 0 && (p.impact as number) < 0 ? "bust"
+          : "mixed",
+        label: `#${p.overall} ${(p.player_name ?? "").split(" ").slice(-1)[0]}`,
+        note: `${p.position ?? "—"} · ${p.team_name ?? p.owner_name ?? "—"}`,
+      }));
+  }, [lens, value.data?.picks]);
 
   const tendencies = useQuery({
     queryKey: qk.draftTendencies(),
     queryFn: fetchTendencies,
+    enabled: board.data?.available === true && lens === "market",
   });
 
   return (
@@ -584,7 +605,7 @@ export function DraftPage() {
                       lens === "weighted"
                         ? "Weighted impact by pick"
                         : lens === "market"
-                          ? "Reach / value by pick"
+                          ? "Market gap by pick"
                           : "Points value by pick"
                     }
                     data={chartRows}
@@ -595,7 +616,7 @@ export function DraftPage() {
                           lens === "weighted"
                             ? "Weighted impact"
                             : lens === "market"
-                              ? "Reach / value (picks)"
+                              ? "Market gap (picks)"
                               : "Value (pts)",
                       },
                     ]}
@@ -617,20 +638,26 @@ export function DraftPage() {
             </Card>
           )}
 
-          {quadrantPoints.length > 1 && (
+          {lens === "market" && quadrantPoints.length > 1 && (
             <Card>
               <CardHeader eyebrow="market axis × outcome axis" title="Reach / value vs outcome" />
               <div className="p-5">
+                <div className="mb-3 flex flex-wrap gap-3 text-[var(--fs-xs)] text-faint">
+                  <span><span className="text-win">Green</span> = value that hit</span>
+                  <span><span className="text-loss">Red</span> = reach that busted</span>
+                  <span><span className="text-accent">Gold</span> = mixed story</span>
+                </div>
                 <ScatterQuadrant
                   points={quadrantPoints}
                   title="Reach/value vs outcome by pick"
-                  xLabel="Reach ← → Value"
+                  xLabel="Reached earlier ← → Waited longer"
                   yLabel="Bust ← → Steal"
                   height={300}
                 />
                 <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">
+                  Right side means the league waited longer than consensus; left side means it paid up.
                   Up-right waited and it hit; down-left reached and it busted; up-left reached but it
-                  worked; down-right a value that still disappointed. Only picks with both a consensus
+                  worked; down-right waited and still missed. Only picks with both a consensus
                   ADP and a weighted impact appear.
                 </p>
               </div>
@@ -652,7 +679,12 @@ export function DraftPage() {
                     style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }}
                   >
                     {orderedRoundPicks(rnd.round, rnd.picks).map((p) => (
-                      <PickCell key={p.overall} pick={p} focused={p.overall === focusedOverall} />
+                      <PickCell
+                        key={p.overall}
+                        pick={p}
+                        focused={p.overall === focusedOverall}
+                        showMarket={lens === "market"}
+                      />
                     ))}
                   </div>
                 </div>
@@ -662,10 +694,33 @@ export function DraftPage() {
         </>
       )}
 
-      {tendencies.data?.available && tendencies.data.managers.length > 0 && (
+      {board.data?.available && lens === "market" && tendencies.data?.available && tendencies.data.managers.length > 0 && (
         <Card>
-          <CardHeader eyebrow="across every captured draft" title="Manager draft tendencies" />
+          <CardHeader
+            eyebrow="experimental · across every captured draft"
+            title="Manager market tendencies"
+            action={<Badge variant="gap">work in progress</Badge>}
+          />
           <div className="space-y-3 p-5">
+            <p className="max-w-prose text-[var(--fs-sm)] text-muted">
+              This is a directional read on draft style, not a grade. It asks whether a manager
+              usually pays above consensus, waits for value, or stays close to the public board.
+              It will get stronger with more context, so sample size stays visible.
+            </p>
+            <div className="grid grid-cols-1 gap-3 text-[var(--fs-xs)] text-faint md:grid-cols-3">
+              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                <div className="dz-eyebrow mb-1 text-loss">Reach rate</div>
+                Share of ADP-covered picks taken before the public market expected.
+              </div>
+              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                <div className="dz-eyebrow mb-1 text-win">Typical lean</div>
+                "Waits" means later than consensus; "reaches" means earlier than consensus.
+              </div>
+              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                <div className="dz-eyebrow mb-1">Discipline</div>
+                Average distance from consensus. Lower means closer to the board.
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[var(--fs-sm)]">
                 <thead className="dz-eyebrow text-faint">
@@ -673,7 +728,7 @@ export function DraftPage() {
                     <th className="pb-2 pr-3">Manager</th>
                     <th className="pb-2 pr-3 text-right">Picks</th>
                     <th className="pb-2 pr-3 text-right">Reach rate</th>
-                    <th className="pb-2 pr-3 text-right">Mean Δ</th>
+                    <th className="pb-2 pr-3 text-right">Typical lean</th>
                     <th className="pb-2 pr-3 text-right">Discipline</th>
                   </tr>
                 </thead>

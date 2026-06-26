@@ -59,6 +59,7 @@ const pick = (
 
 const KELCE = {
   ...pick(1, "Travis Kelce", "Iceman", 22, -13.67),
+  impact: -13.67,
   adp: 8.4,
   adp_sources: ["ffc", "mfl"],
   adp_source_spread: 1.0,
@@ -70,6 +71,7 @@ const KELCE = {
 };
 const CMC = {
   ...pick(4, "Christian McCaffrey", "Maverick", 55, 8.33),
+  impact: 8.33,
   adp: 1.0,
   adp_sources: ["ffc"],
   adp_source_spread: 0.0,
@@ -437,20 +439,36 @@ describe("DraftPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Round 1");
-    // The board cell carries the blended ADP and the coloured reach/value delta.
-    expect(screen.getAllByText("ADP 8.40").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/reach -7\.40/).length).toBeGreaterThan(0);
+    // Market-only work stays off the initial weighted load.
+    expect(screen.queryByText("ADP 8.40")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reach by/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Reach / value vs outcome")).not.toBeInTheDocument();
+    expect(screen.queryByText("Manager market tendencies")).not.toBeInTheDocument();
+    expect(get.mock.calls.some(([path]) => path === "/v1/draft/tendencies")).toBe(false);
 
-    // The Reach / value lens swaps Steals/Busts for Reaches/Values.
+    // The Reach / value lens swaps Steals/Busts for Reaches/Values and reveals
+    // the market-only exploratory pieces, including the board ADP read.
     await user.click(screen.getByRole("tab", { name: "Reach / value" }));
     expect(await screen.findByText("Reaches")).toBeInTheDocument();
     expect(screen.getByText("Values")).toBeInTheDocument();
+    expect(screen.getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Reach by/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("7.40").length).toBeGreaterThan(0);
+    expect(screen.getByText("Reach / value vs outcome")).toBeInTheDocument();
+    expect(screen.getByText("Manager market tendencies")).toBeInTheDocument();
   });
 
-  it("renders the manager draft-tendencies table", async () => {
+  it("renders the manager market-tendencies table as an experimental market insight", async () => {
+    const user = userEvent.setup();
     renderPage();
-    expect(await screen.findByText("Manager draft tendencies")).toBeInTheDocument();
-    expect(screen.getByText("Reach rate")).toBeInTheDocument();
+    await screen.findByText("Round 1");
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+    expect(await screen.findByText("Manager market tendencies")).toBeInTheDocument();
+    expect(screen.getByText("work in progress")).toBeInTheDocument();
+    expect(screen.getAllByText("Reach rate").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Typical lean").length).toBeGreaterThan(0);
+    expect(screen.getByText(/directional read on draft style/i)).toBeInTheDocument();
     expect(screen.getByText("60%")).toBeInTheDocument();
+    expect(screen.getByText("reaches")).toBeInTheDocument();
   });
 });
