@@ -237,6 +237,9 @@ class StandingRow(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    # True when this row's team was the season's Sacko (toilet-bowl loser / recorded
+    # last place); only set on a completed season. The 💩 anti-trophy.
+    is_sacko: bool = False
     conference_id: int | None = None
     conference_name: str | None = None
 
@@ -303,6 +306,8 @@ class BracketTeam(BaseModel):
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    # True on the toilet-bowl loser — the season's Sacko (💩).
+    is_sacko: bool = False
     conference_name: str | None = None
 
 
@@ -369,6 +374,8 @@ class ConferenceTeam(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    # True when this team was the season's Sacko (toilet-bowl loser) — the 💩.
+    is_sacko: bool = False
     conference_rank: int
     division_wins: int
     division_losses: int
@@ -1151,6 +1158,8 @@ class GameTeam(BaseModel):
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    # True on the toilet-bowl loser — the season's Sacko (💩). Only set on that game.
+    is_sacko: bool = False
     entering_record: EnteringRecord | None = None
 
 

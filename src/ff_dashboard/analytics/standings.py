@@ -159,6 +159,21 @@ def compute_standings(
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
 
+    # Mark the season's Sacko (toilet-bowl loser / recorded last place) so the
+    # full-season table can carry the 💩 anti-trophy. Only resolved for a complete
+    # season — through a week the bracket hasn't happened yet, there is no Sacko —
+    # which also keeps the per-week timeline sweep from paying for the classifier.
+    # Imported lazily: ``bracket`` → ``conferences`` → ``standings`` is a cycle.
+    sacko_team_id: int | None = None
+    if is_full_season:
+        from ff_dashboard.analytics.bracket import postseason_classification
+
+        sacko_team_id = (postseason_classification(session, season_id).get("sacko") or {}).get(
+            "team_id"
+        )
+    for r in rows:
+        r["is_sacko"] = sacko_team_id is not None and r["team_id"] == sacko_team_id
+
     tiebreak_caveat = rank_basis == "computed" and season.year < CONSISTENT_TIEBREAK_SINCE
 
     return {

@@ -78,6 +78,7 @@ def _team_ref(
         "owner_name": owners.get(team.owner_id) if team is not None else None,
         "score": round(score, 2) if score is not None else None,
         "is_winner": is_winner,
+        "is_sacko": False,  # set on the toilet-bowl loser below
         "conference_name": _conf_name,
     }
 
@@ -325,6 +326,22 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
                 "winner_team_id": winner_team_id,
             }
         )
+
+    # Flag the Sacko (toilet-bowl loser) on their team ref in that game, so the
+    # bracket can surface the 💩 anti-trophy. Reuses the shared classifier so the
+    # toilet-bowl identification stays in one place; the deduped game's id equals
+    # the classifier's ``matchup_id`` (both the smallest of the pair's two rows).
+    sacko = postseason_classification(session, season_id).get("sacko") or {}
+    sacko_mid = sacko.get("matchup_id")
+    sacko_tid = sacko.get("team_id")
+    if sacko_mid is not None and sacko_tid is not None:
+        for g in game_dicts:
+            if g["matchup_id"] != sacko_mid:
+                continue
+            for side in ("team_a", "team_b"):
+                ref = g.get(side)
+                if ref is not None and ref["team_id"] == sacko_tid:
+                    ref["is_sacko"] = True
 
     # Split the championship and consolation halves by matchup connectivity, then
     # label the lower-ranked half as the championship bracket. final_rank is read

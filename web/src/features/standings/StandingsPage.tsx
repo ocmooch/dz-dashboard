@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Sacko, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
@@ -61,7 +61,14 @@ function StreakCell({ streak }: { streak: { result?: string | null; length?: num
   );
 }
 
-function PlacementCell({ finalRank }: { finalRank: number | null | undefined }) {
+function PlacementCell({
+  finalRank,
+  isSacko,
+}: {
+  finalRank: number | null | undefined;
+  isSacko?: boolean;
+}) {
+  if (isSacko) return <Sacko />;
   if (finalRank == null) return <span className="text-faint">—</span>;
   if (finalRank === 1) return <Trophy label="Champion" />;
   return <span className="num text-accent">{ordinal(finalRank)}</span>;
@@ -128,7 +135,7 @@ function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; 
                   <RecordLine wins={t.division_wins} losses={t.division_losses} ties={t.division_ties} />
                 </td>
                 {showFinalPlacement && (
-                  <td className="dz-num"><PlacementCell finalRank={t.final_rank} /></td>
+                  <td className="dz-num"><PlacementCell finalRank={t.final_rank} isSacko={t.is_sacko} /></td>
                 )}
                 <td className="dz-num"><StreakCell streak={t.streak} /></td>
               </tr>
@@ -285,7 +292,7 @@ export function StandingsPage() {
                     <td className="dz-num text-muted">{num(r.points_against)}</td>
                     {showFinalPlacement && (
                       <td className="dz-num">
-                        <PlacementCell finalRank={r.final_rank} />
+                        <PlacementCell finalRank={r.final_rank} isSacko={r.is_sacko} />
                       </td>
                     )}
                     <td className="dz-num">
