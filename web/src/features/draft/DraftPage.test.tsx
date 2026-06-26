@@ -463,6 +463,7 @@ describe("DraftPage", () => {
     const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
     await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
     expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("Reach by").length).toBeGreaterThan(0);
     expect(within(boardCard).getAllByText("7.40").length).toBeGreaterThan(0);
   });
 

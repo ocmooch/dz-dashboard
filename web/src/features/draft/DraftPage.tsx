@@ -91,26 +91,15 @@ function AdpTag({ pick }: { pick: Pick }) {
   );
 }
 
-/** Compact board-cell market line, phrased as a read rather than a signed number. */
-function MarketChip({ pick }: { pick: Pick }) {
-  if (!pick.adp_available || pick.adp == null || pick.adp_delta == null) return null;
+/** Board-cell reach/value read: a neutral label with only the number coloured
+ *  steal/bust, so the cell isn't a solid block of red/green. */
+function MarketRead({ pick }: { pick: Pick }) {
   const read = marketRead(pick);
   if (!read) return null;
   const tone = read.tone === "win" ? "text-win" : read.tone === "loss" ? "text-loss" : "text-muted";
   return (
-    <span
-      className="mt-1 inline-flex max-w-full items-center gap-1 rounded-sm border border-[var(--hairline)] px-1.5 py-0.5 text-[10px]"
-      title={adpTitle(pick)}
-    >
-      <span className="num text-faint">ADP {num(pick.adp)}</span>
-      <span className={`truncate ${tone}`}>
-        {read.label} <span className="num">{num(read.amount)}</span>
-      </span>
-      {pick.adp_format_fallback && (
-        <span className="text-faint" title="ADP format fallback — not the league's target format">
-          *
-        </span>
-      )}
+    <span className="text-[var(--fs-sm)] leading-snug text-muted">
+      {read.label} <span className={`num font-semibold ${tone}`}>{num(read.amount)}</span>
     </span>
   );
 }
@@ -266,10 +255,19 @@ function PickCell({
               ) : (
                 <DataGap reason={pick.reason ?? undefined} size="sm" />
               )
+            ) : pick.adp_available && pick.adp != null && pick.adp_delta != null ? (
+              <>
+                <MarketRead pick={pick} />
+                <span className="text-[var(--fs-xs)] text-faint" title={adpTitle(pick)}>
+                  <span className="num">ADP {num(pick.adp)}</span>
+                  {pick.adp_format_fallback && (
+                    <span className="ml-0.5" title="ADP format fallback — not the league's target format">
+                      *
+                    </span>
+                  )}
+                </span>
+              </>
             ) : (
-              <MarketChip pick={pick} />
-            )}
-            {view === "market" && !(pick.adp_available && pick.adp != null && pick.adp_delta != null) && (
               <span className="text-[var(--fs-xs)] text-faint">no ADP</span>
             )}
             {superlative && <SuperlativeChip {...superlative} />}
