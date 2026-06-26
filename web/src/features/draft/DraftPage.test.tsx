@@ -353,43 +353,43 @@ describe("DraftPage", () => {
     expect(within(stealsCard as HTMLElement).getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 
-  it("keeps the chart filters mounted when an ineligible position empties the chart", async () => {
-    // A kicker has a points value but no weighted impact. Selecting K under the
-    // weighted lens used to unmount the whole chart card (filters included),
-    // stranding the user until a refresh. The controls must survive so the
-    // selection stays recoverable.
-    const wr = { ...CMC, impact: 8.33 };
-    const kicker = { ...pick(2, "Justin Tucker", "Goose", 130, 30, 1, 2), position: "K", impact: null };
+  it("keeps the chart filters mounted when matched picks have no weighted impact", async () => {
+    // A pick with no comparable position (no fantasy home) has a points value but no
+    // weighted impact. Filtering down to only such picks under the weighted lens used
+    // to unmount the whole chart card (filters included), stranding the user until a
+    // refresh. The controls must survive so the selection stays recoverable.
+    const wr = { ...CMC, impact: 8.33, round: 1 };
+    const noImpact = { ...pick(13, "No Home", "Goose", 130, 30, 2, 1), position: null, impact: null };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")
-        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr, kicker] }] }));
+        return Promise.resolve(
+          envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr] }, { round: 2, picks: [noImpact] }] }),
+        );
       if (path === "/v1/seasons/{season_id}/draft/value")
         return Promise.resolve(
           envelope({
             ...VALUE,
-            picks: [wr, kicker],
+            picks: [wr, noImpact],
             steals: [wr],
             busts: [],
-            points_steals: [kicker],
+            points_steals: [noImpact],
             points_busts: [],
           }),
         );
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
-    const positionFilter = await screen.findByLabelText("Filter by position");
+    const roundFilter = await screen.findByLabelText("Filter by round");
 
-    await userEvent.selectOptions(positionFilter, "K");
+    await userEvent.selectOptions(roundFilter, "2");
     // The card and its controls remain; an honest empty state replaces the bars.
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(screen.getByText(/aren’t part of the position-normalized impact model/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.getByText(/no weighted impact yet/i)).toBeInTheDocument();
 
     // Switching to the Points lens recovers a chart for the same selection.
     await userEvent.click(screen.getByRole("tab", { name: "Points" }));
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(
-      screen.queryByText(/aren’t part of the position-normalized impact model/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.queryByText(/no weighted impact yet/i)).not.toBeInTheDocument();
   });
 
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {

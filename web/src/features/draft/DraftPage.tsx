@@ -484,7 +484,7 @@ export function DraftPage() {
   // Picks matching the filter controls, independent of whether they have a
   // value for the active lens. Kept separate from `chartRows` so the empty
   // state can tell "nothing matched the filter" apart from "matched, but this
-  // lens has no number for them" (e.g. a kicker under the weighted lens).
+  // lens has no number for them" (e.g. an unscored pick under the weighted lens).
   const matchedPicks = (value.data?.picks ?? []).filter((p) => {
     if (position && p.position !== position) return false;
     if (round && p.round !== Number(round)) return false;
@@ -508,7 +508,7 @@ export function DraftPage() {
     matchedPicks.length === 0
       ? "No picks match these filters."
       : lens === "weighted"
-        ? "These picks aren’t part of the position-normalized impact model — kickers, defenses, and unscored picks are excluded. Switch to the Points lens to compare them."
+        ? "These picks have no weighted impact yet — they’re unscored or have no comparable position. Switch to the Points lens to compare them."
         : lens === "market"
           ? "These picks have no consensus ADP — they fell outside the public market (deep picks, most kickers and defenses, rookies)."
           : "These picks have no scored value yet.";
