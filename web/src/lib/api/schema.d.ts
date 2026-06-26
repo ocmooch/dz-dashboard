@@ -2307,6 +2307,21 @@ export interface components {
             best_season_points_for?: number | null;
             /** Signature */
             signature?: string | null;
+            /**
+             * Weeks Sampled
+             * @default 0
+             */
+            weeks_sampled: number;
+            /** Top Week Rate */
+            top_week_rate?: number | null;
+            /** Floor Week Rate */
+            floor_week_rate?: number | null;
+            /** Above Median Rate */
+            above_median_rate?: number | null;
+            /** Average Weekly Rank */
+            average_weekly_rank?: number | null;
+            /** Weekly Volatility */
+            weekly_volatility?: number | null;
         };
         /** OwnerRef */
         OwnerRef: {

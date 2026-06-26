@@ -584,11 +584,19 @@ class TrophyEntry(BaseModel):
 class OwnerConsistency(BaseModel):
     available: bool
     reason: str | None = None
+    # Legacy raw spread of weekly scores. Kept for compatibility, but the manager
+    # page now leads with week-relative profile fields below.
     weekly_points_stdev: float | None = None
     rank_among_owners: int | None = None
     best_season_year: int | None = None
     best_season_points_for: float | None = None
     signature: str | None = None
+    weeks_sampled: int = 0
+    top_week_rate: float | None = None
+    floor_week_rate: float | None = None
+    above_median_rate: float | None = None
+    average_weekly_rank: float | None = None
+    weekly_volatility: float | None = None
 
 
 class OwnerCareer(BaseModel):

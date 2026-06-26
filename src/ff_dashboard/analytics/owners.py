@@ -7,7 +7,9 @@ and finishes from ``seasons`` / ``teams``.
 
 from __future__ import annotations
 
-from statistics import mean, pstdev
+from collections import defaultdict
+from math import ceil
+from statistics import mean, median, pstdev
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, Owner, Season, Team
@@ -298,26 +300,103 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
     }
 
 
+def _scoring_signature(
+    *, top_week_rate: float, floor_week_rate: float, above_median_rate: float, volatility: float
+) -> str:
+    """Human scoring tendency label from week-relative outcomes.
+
+    ``boom/bust`` is intentionally narrow: it requires frequent ceiling weeks,
+    frequent floor weeks, and above-normal volatility. Otherwise the label should
+    explain the manager's actual scoring habit rather than force a median split.
+    """
+    if top_week_rate >= 0.30 and floor_week_rate >= 0.30 and volatility >= 0.95:
+        return "true boom/bust"
+    if top_week_rate >= 0.30 and above_median_rate >= 0.58:
+        return "ceiling scorer"
+    if floor_week_rate <= 0.15 and volatility <= 0.85 and above_median_rate >= 0.50:
+        return "steady scorer"
+    if volatility >= 1.10 and (top_week_rate >= 0.25 or floor_week_rate >= 0.28):
+        return "volatile scorer"
+    if floor_week_rate >= 0.30 and top_week_rate < 0.20:
+        return "floor risk"
+    if above_median_rate >= 0.58:
+        return "weekly edge"
+    if above_median_rate <= 0.42:
+        return "uphill scorer"
+    return "balanced scorer"
+
+
 def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
-    """Weekly scoring consistency for one owner, ranked against current peers."""
+    """Week-relative scoring profile for one owner, ranked against peers."""
     if get_owner(session, owner_id) is None:
         return None
 
     owners = list(session.execute(select(Owner)).scalars().all())
     per_owner: dict[int, list[float]] = {int(o.owner_id): [] for o in owners}
+    profile_by_owner: dict[int, dict[str, Any]] = {}
     team_to_owner = {
         int(tid): int(oid)
         for tid, oid in session.execute(select(Team.team_id, Team.owner_id)).all()
     }
     rows = session.execute(
-        select(Matchup.team_id, Matchup.team_score, Matchup.opponent_team_id).where(
-            Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None)
-        )
+        select(
+            Matchup.season_id,
+            Matchup.week,
+            Matchup.team_id,
+            Matchup.team_score,
+            Matchup.opponent_team_id,
+        ).where(Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None))
     ).all()
-    for team_id, score, _ in rows:
+    weekly_scores: dict[tuple[int, int], list[tuple[int, float]]] = defaultdict(list)
+    for season_id, week, team_id, score, _ in rows:
         oid = team_to_owner.get(int(team_id))
         if oid is not None:
-            per_owner.setdefault(oid, []).append(float(score))
+            points = float(score)
+            per_owner.setdefault(oid, []).append(points)
+            weekly_scores[(int(season_id), int(week))].append((oid, points))
+
+    samples_by_owner: dict[int, list[dict[str, float]]] = defaultdict(list)
+    for week_scores in weekly_scores.values():
+        if len(week_scores) < 2:
+            continue
+        ordered = sorted(week_scores, key=lambda item: (-item[1], item[0]))
+        week_points = [points for _, points in ordered]
+        week_mean = mean(week_points)
+        week_stdev = pstdev(week_points)
+        week_median = median(week_points)
+        edge_count = max(1, ceil(len(ordered) / 4))
+        bottom_start = len(ordered) - edge_count + 1
+        for rank, (oid, points) in enumerate(ordered, start=1):
+            samples_by_owner[oid].append(
+                {
+                    "rank": float(rank),
+                    "z": (points - week_mean) / week_stdev if week_stdev else 0.0,
+                    "top": 1.0 if rank <= edge_count else 0.0,
+                    "floor": 1.0 if rank >= bottom_start else 0.0,
+                    "above_median": 1.0 if points > week_median else 0.0,
+                }
+            )
+
+    for oid, samples in samples_by_owner.items():
+        zscores = [sample["z"] for sample in samples]
+        top_week_rate = mean(sample["top"] for sample in samples)
+        floor_week_rate = mean(sample["floor"] for sample in samples)
+        above_median_rate = mean(sample["above_median"] for sample in samples)
+        volatility = pstdev(zscores) if len(zscores) >= 2 else 0.0
+        profile_by_owner[oid] = {
+            "weeks_sampled": len(samples),
+            "top_week_rate": round(top_week_rate, 3),
+            "floor_week_rate": round(floor_week_rate, 3),
+            "above_median_rate": round(above_median_rate, 3),
+            "average_weekly_rank": round(mean(sample["rank"] for sample in samples), 2),
+            "weekly_volatility": round(volatility, 2),
+            "signature": _scoring_signature(
+                top_week_rate=top_week_rate,
+                floor_week_rate=floor_week_rate,
+                above_median_rate=above_median_rate,
+                volatility=volatility,
+            ),
+        }
 
     # Rank only against owners who qualify (active or a significant stint), so a
     # short-stint departed owner's few weeks don't dilute the denominator or skew
@@ -325,7 +404,7 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
     # their own profile still shows a rank, even when they don't otherwise qualify.
     qualified = owner_qualified_map(session)
     ranked: list[tuple[int, float]] = [
-        (oid, pstdev(scores))
+        (oid, profile_by_owner.get(oid, {}).get("weekly_volatility", pstdev(scores)))
         for oid, scores in per_owner.items()
         if len(scores) >= 2 and (qualified.get(oid, True) or oid == owner_id)
     ]
@@ -346,20 +425,31 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
             "best_season_year": best["season_year"] if best else None,
             "best_season_points_for": best["points_for"] if best else None,
             "signature": None,
+            "weeks_sampled": 0,
+            "top_week_rate": None,
+            "floor_week_rate": None,
+            "above_median_rate": None,
+            "average_weekly_rank": None,
+            "weekly_volatility": None,
         }
 
     stdev = round(pstdev(scores), 2)
-    rank = rank_by_owner.get(owner_id)
-    midpoint = (len(ranked) + 1) / 2 if ranked else 0
-    signature = "steady scorer" if rank is not None and rank <= midpoint else "boom/bust"
+    volatility_rank = rank_by_owner.get(owner_id)
+    profile = profile_by_owner.get(owner_id)
     return {
         "available": True,
         "reason": None,
         "weekly_points_stdev": stdev,
-        "rank_among_owners": rank,
+        "rank_among_owners": volatility_rank,
         "best_season_year": best["season_year"] if best else None,
         "best_season_points_for": best["points_for"] if best else None,
-        "signature": signature,
+        "signature": profile["signature"] if profile else "balanced scorer",
+        "weeks_sampled": profile["weeks_sampled"] if profile else len(scores),
+        "top_week_rate": profile["top_week_rate"] if profile else None,
+        "floor_week_rate": profile["floor_week_rate"] if profile else None,
+        "above_median_rate": profile["above_median_rate"] if profile else None,
+        "average_weekly_rank": profile["average_weekly_rank"] if profile else None,
+        "weekly_volatility": profile["weekly_volatility"] if profile else None,
     }
 
 

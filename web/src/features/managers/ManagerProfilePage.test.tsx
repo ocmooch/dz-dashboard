@@ -22,6 +22,21 @@ const CAREER = {
   sackos: 1,
   best_finish: 1,
   avg_finish: 2.5,
+  consistency: {
+    available: true,
+    reason: null,
+    weekly_points_stdev: 18.2,
+    rank_among_owners: 2,
+    best_season_year: 2020,
+    best_season_points_for: 1800.5,
+    signature: "ceiling scorer",
+    weeks_sampled: 42,
+    top_week_rate: 0.31,
+    floor_week_rate: 0.12,
+    above_median_rate: 0.64,
+    average_weekly_rank: 4.25,
+    weekly_volatility: 0.82,
+  },
   trophy_case: [
     { season_year: 2020, team_name: "Alpha FC", finish: 1, is_champion: true, is_sacko: false },
     { season_year: 2018, team_name: "Alpha FC", finish: 12, is_champion: false, is_sacko: true },
@@ -155,6 +170,20 @@ describe("ManagerProfilePage", () => {
 
     const latest = await screen.findByRole("link", { name: /Latest roster \(2020\)/i });
     expect(latest).toHaveAttribute("href", "/teams/101");
+  });
+
+  it("renders a week-relative scoring tendency instead of a raw boom-bust split", async () => {
+    mockEndpoints();
+    renderProfile();
+
+    expect(await screen.findByText("Scoring Tendency")).toBeInTheDocument();
+    expect(screen.getByText("ceiling scorer")).toBeInTheDocument();
+    expect(screen.getByText("31%")).toBeInTheDocument();
+    expect(screen.getByText("12%")).toBeInTheDocument();
+    expect(screen.getByText("64%")).toBeInTheDocument();
+    expect(screen.getByText("42 weeks")).toBeInTheDocument();
+    expect(screen.getByText("vol 0.82")).toBeInTheDocument();
+    expect(screen.queryByText("Weekly stdev")).not.toBeInTheDocument();
   });
 
   it("leads with the Your Story band, links to receipts, and omits gated-out lines", async () => {

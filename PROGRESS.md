@@ -91,6 +91,13 @@ streak `from_matchup_id`→`last_matchup_id` deep-links. Single-game records sta
 Bands are `extra="allow"` (no contract change). Gate green (459 BE / 193 FE, ruff/mypy clean);
 e2e not re-run. See `CHANGELOG.md` 2026-06-24.
 
+**feature/manager-week-relative-profile:** manager profile scoring card now uses a week-relative
+tendency profile instead of a raw weekly-stdev median split. The BFF adds ceiling/floor/above-median
+rates, average weekly rank, volatility, and narrower labels (`true boom/bust` only for real
+two-sided volatility). Live DB distribution: 0 true boom/bust; labels spread across balanced scorer
+/ floor risk / ceiling scorer / uphill scorer / volatile scorer. Gate green (477 BE / 197 FE,
+ruff/mypy clean); e2e not re-run.
+
 The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the reverse-chron pass
 history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
