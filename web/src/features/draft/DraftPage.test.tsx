@@ -353,43 +353,43 @@ describe("DraftPage", () => {
     expect(within(stealsCard as HTMLElement).getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 
-  it("keeps the chart filters mounted when an ineligible position empties the chart", async () => {
-    // A kicker has a points value but no weighted impact. Selecting K under the
-    // weighted lens used to unmount the whole chart card (filters included),
-    // stranding the user until a refresh. The controls must survive so the
-    // selection stays recoverable.
-    const wr = { ...CMC, impact: 8.33 };
-    const kicker = { ...pick(2, "Justin Tucker", "Goose", 130, 30, 1, 2), position: "K", impact: null };
+  it("keeps the chart filters mounted when matched picks have no weighted impact", async () => {
+    // A pick with no comparable position (no fantasy home) has a points value but no
+    // weighted impact. Filtering down to only such picks under the weighted lens used
+    // to unmount the whole chart card (filters included), stranding the user until a
+    // refresh. The controls must survive so the selection stays recoverable.
+    const wr = { ...CMC, impact: 8.33, round: 1 };
+    const noImpact = { ...pick(13, "No Home", "Goose", 130, 30, 2, 1), position: null, impact: null };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")
-        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr, kicker] }] }));
+        return Promise.resolve(
+          envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr] }, { round: 2, picks: [noImpact] }] }),
+        );
       if (path === "/v1/seasons/{season_id}/draft/value")
         return Promise.resolve(
           envelope({
             ...VALUE,
-            picks: [wr, kicker],
+            picks: [wr, noImpact],
             steals: [wr],
             busts: [],
-            points_steals: [kicker],
+            points_steals: [noImpact],
             points_busts: [],
           }),
         );
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
-    const positionFilter = await screen.findByLabelText("Filter by position");
+    const roundFilter = await screen.findByLabelText("Filter by round");
 
-    await userEvent.selectOptions(positionFilter, "K");
+    await userEvent.selectOptions(roundFilter, "2");
     // The card and its controls remain; an honest empty state replaces the bars.
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(screen.getByText(/aren’t part of the position-normalized impact model/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.getByText(/no weighted impact yet/i)).toBeInTheDocument();
 
     // Switching to the Points lens recovers a chart for the same selection.
     await userEvent.click(screen.getByRole("tab", { name: "Points" }));
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(
-      screen.queryByText(/aren’t part of the position-normalized impact model/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.queryByText(/no weighted impact yet/i)).not.toBeInTheDocument();
   });
 
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {
@@ -409,10 +409,12 @@ describe("DraftPage", () => {
     });
     renderPage();
     await screen.findByText("Round 1");
-    // The 0 reads as a real total with a DNP marker explaining it — not a DataGap.
+    // Points (and the DNP marker that explains the zero) live in the Performance view.
+    await userEvent.click(screen.getByRole("tab", { name: "Performance" }));
+    // The 0 reads as a real, labeled regular-season total with a DNP marker — not a DataGap.
     expect(screen.getAllByText("DNP").length).toBeGreaterThan(0);
     expect(screen.getAllByTitle(/season-long injury or ineligibility/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/0 pts/)).toBeInTheDocument();
+    expect(screen.getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/value unavailable/i)).not.toBeInTheDocument();
   });
 
@@ -461,6 +463,7 @@ describe("DraftPage", () => {
     const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
     await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
     expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("Reach by").length).toBeGreaterThan(0);
     expect(within(boardCard).getAllByText("7.40").length).toBeGreaterThan(0);
   });
 
@@ -470,18 +473,23 @@ describe("DraftPage", () => {
     await screen.findByText("Round 1");
     const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
 
-    // Basic default: the persistent identity carries position · NFL team, and the
-    // board does not crowd in the steal/bust impact badge.
+    // Basic default: pure identity — position · NFL team and owner. Season points are
+    // not shown here; they live in the Performance view where they explain impact.
     expect(within(boardCard).getAllByText(/RB · DAL/).length).toBeGreaterThan(0);
+    expect(within(boardCard).queryByText(/pts/)).not.toBeInTheDocument();
 
-    // Performance view surfaces the steal/bust callouts on the leaders.
+    // Performance view surfaces the steal/bust callouts plus the labeled
+    // regular-season points behind each impact.
     await user.click(within(boardCard).getByRole("tab", { name: "Performance" }));
     expect(within(boardCard).getByText("Top steal")).toBeInTheDocument();
     expect(within(boardCard).getByText("Top bust")).toBeInTheDocument();
+    expect(within(boardCard).getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
 
-    // Market view swaps in the per-cell ADP read.
+    // Market view swaps in the per-cell ADP read, and flags picks with no consensus
+    // ADP rather than leaving the metric blank.
     await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
     expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("no ADP").length).toBeGreaterThan(0);
   });
 
   it("names all four reach/value outcome quadrants", async () => {

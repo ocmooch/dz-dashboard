@@ -98,7 +98,12 @@ COST_FLOOR = 0.30  # capital still "spent" on the very last pick (late picks are
 COST_CURVE = 1.0  # curvature of the capital decay (1 = linear, >1 = front-loaded)
 OPP_BENCH_WEIGHT = 1.0  # max bust amplification for a full season carried on the active bench
 OPP_IR_WEIGHT = 0.25  # max bust amplification for a full season stashed on IR / reserve
-WEIGHTED_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
+# Every fantasy position is compared against its own kind before ranking together,
+# so a kicker's or defense's impact lands on the same normalized scale as a skill
+# pick's rather than dwarfing it with raw points-above-slot. The per-position mean
+# and stddev that anchor the normalization come from league-wide drafted history —
+# see ``_build_history_model`` (position_stats) and ``_with_values``.
+WEIGHTED_POSITIONS = frozenset({"QB", "RB", "WR", "TE", "K", "DEF"})
 LEADERBOARD_LIMIT = 9
 
 # The fantasy league's position universe. Every drafted pick is presented as one
@@ -146,8 +151,8 @@ def fantasy_position(raw: str | None) -> str | None:
 
 IMPACT_DEFINITION = (
     "Draft impact = position-normalized pick value scaled by how the pick was spent "
-    "and carried. QB, RB, WR, and TE are compared with their own position before "
-    "ranking together. An "
+    "and carried. Every position — including kickers and defenses — is compared with "
+    "its own kind before ranking together, so the scores stay on one scale. An "
     "early-round bust (or a late-round steal) weighs more than the same value late "
     "(or early); and a bust carried all year on the active bench costs more than "
     "one stashed on IR / reserve. Opportunity cost amplifies weighted busts only. "
@@ -368,7 +373,8 @@ def _pick_impact(
       when roster history is missing, so impact omits the carry factor rather
       than inventing a cost.
 
-    ``impact`` is also ``None`` for positions outside QB/RB/WR/TE. The component
+    ``impact`` is ``None`` for a pick that is not weighted-eligible — a position
+    with no fantasy home, outside :data:`WEIGHTED_POSITIONS`. The component
     breakdown travels with the pick so the UI can explain both the number and
     weighted-position eligibility.
     """

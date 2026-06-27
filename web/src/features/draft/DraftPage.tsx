@@ -91,26 +91,15 @@ function AdpTag({ pick }: { pick: Pick }) {
   );
 }
 
-/** Compact board-cell market line, phrased as a read rather than a signed number. */
-function MarketChip({ pick }: { pick: Pick }) {
-  if (!pick.adp_available || pick.adp == null || pick.adp_delta == null) return null;
+/** Board-cell reach/value read: a neutral label with only the number coloured
+ *  steal/bust, so the cell isn't a solid block of red/green. */
+function MarketRead({ pick }: { pick: Pick }) {
   const read = marketRead(pick);
   if (!read) return null;
   const tone = read.tone === "win" ? "text-win" : read.tone === "loss" ? "text-loss" : "text-muted";
   return (
-    <span
-      className="mt-1 inline-flex max-w-full items-center gap-1 rounded-sm border border-[var(--hairline)] px-1.5 py-0.5 text-[10px]"
-      title={adpTitle(pick)}
-    >
-      <span className="num text-faint">ADP {num(pick.adp)}</span>
-      <span className={`truncate ${tone}`}>
-        {read.label} <span className="num">{num(read.amount)}</span>
-      </span>
-      {pick.adp_format_fallback && (
-        <span className="text-faint" title="ADP format fallback — not the league's target format">
-          *
-        </span>
-      )}
+    <span className="text-[var(--fs-sm)] leading-snug text-muted">
+      {read.label} <span className={`num font-semibold ${tone}`}>{num(read.amount)}</span>
     </span>
   );
 }
@@ -133,11 +122,11 @@ function impactTitle(pick: Pick): string | undefined {
 /** Composite draft-impact badge: the headline ranking number, steal/bust coloured,
  *  with the honest per-slot value shown alongside when the two differ. Falls back
  *  to value when the BFF hasn't supplied an impact (e.g. uncomputable picks). */
-function ImpactTag({ pick }: { pick: Pick }) {
+function ImpactTag({ pick, compact = false }: { pick: Pick; compact?: boolean }) {
   const impact = pick.impact ?? pick.value;
   if (impact == null) return null;
   const tone = impact > 0 ? "win" : impact < 0 ? "loss" : "default";
-  const showValue = pick.impact != null && pick.value != null && pick.impact !== pick.value;
+  const showValue = !compact && pick.impact != null && pick.value != null && pick.impact !== pick.value;
   return (
     <span className="flex items-center gap-1.5" title={impactTitle(pick)}>
       {showValue && pick.value != null && (
@@ -167,11 +156,6 @@ function compactPlayerName(name: string | null | undefined) {
   if (parts.length < 2) return name;
   if (/^(?:[A-Z]\.){1,3}$/i.test(parts[0])) return name;
   return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
-}
-
-function compactPoints(points: number | null | undefined) {
-  if (points == null) return "—";
-  return `${num(points).replace(/\.00$/, "")} pts`;
 }
 
 function quadrantStory(adpDelta: number, impact: number): QuadrantStory {
@@ -223,31 +207,76 @@ function PickCell({
         focused ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-[var(--border)]"
       }`}
     >
-      <div className="mb-2 flex min-h-[1.25rem] items-start justify-between gap-1">
-        <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
-        {view === "performance" &&
-          (pick.available ? <ImpactTag pick={pick} /> : <DataGap reason={pick.reason ?? undefined} size="sm" />)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold leading-snug text-text">
-          {compactPlayerName(pick.player_name)}
-        </div>
-        <div className="mt-1 space-y-0.5 text-[var(--fs-xs)] text-muted">
-          <span className="block truncate">{posTeam}</span>
-          {view !== "market" && (
-            <span className="num block truncate">
-              {compactPoints(pick.season_points)}
-              {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
-            </span>
-          )}
-          {view === "market" && <MarketChip pick={pick} />}
-          {superlative && <SuperlativeChip {...superlative} />}
-        </div>
-      </div>
-      <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
-        <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
-        {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
-      </div>
+      {view === "basic" ? (
+        <>
+          <div className="mb-2 flex min-h-[1.25rem] items-start justify-between gap-1">
+            <span className="num text-[var(--fs-xs)] text-faint">#{pick.overall}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold leading-snug text-text">
+              {compactPlayerName(pick.player_name)}
+            </div>
+            <div className="mt-1 text-[var(--fs-xs)] text-muted">
+              <span className="block truncate">{posTeam}</span>
+            </div>
+          </div>
+          <div className="mt-2 min-w-0 border-l-2 border-[var(--border-strong)] pl-2 leading-tight">
+            <div className="truncate text-[var(--fs-xs)] font-semibold text-text">{ownerLabel}</div>
+            {teamSub && <div className="mt-0.5 truncate text-[var(--fs-xs)] text-faint">{teamSub}</div>}
+          </div>
+        </>
+      ) : (
+        // Performance / Market: stripped to player + the view's metric + owner, so
+        // the relevant number reads cleanly. Pick # and position · team are retained
+        // but demoted to a faint top row that truncates first when space is tight.
+        <>
+          <div className="mb-1.5 flex items-center justify-between gap-1.5 text-[var(--fs-xs)] text-faint">
+            <span className="num shrink-0">#{pick.overall}</span>
+            <span className="min-w-0 truncate">{posTeam}</span>
+          </div>
+          <div className="truncate text-[13px] font-semibold leading-snug text-text">
+            {compactPlayerName(pick.player_name)}
+          </div>
+          <div className="mt-1.5 flex min-w-0 flex-1 flex-col items-start gap-1">
+            {view === "performance" ? (
+              pick.available ? (
+                <>
+                  <ImpactTag pick={pick} compact />
+                  {pick.season_points != null && (
+                    <span
+                      className="text-[var(--fs-xs)] text-faint"
+                      title="Regular-season fantasy points — the weeks the board's value and impact are measured over (excludes the fantasy playoffs)."
+                    >
+                      <span className="num">{num(pick.season_points).replace(/\.00$/, "")}</span> reg-szn pts
+                      {pick.zero_reason === "did_not_play_season" && <DnpMark detail={pick.zero_detail} />}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <DataGap reason={pick.reason ?? undefined} size="sm" />
+              )
+            ) : pick.adp_available && pick.adp != null && pick.adp_delta != null ? (
+              <>
+                <MarketRead pick={pick} />
+                <span className="text-[var(--fs-xs)] text-faint" title={adpTitle(pick)}>
+                  <span className="num">ADP {num(pick.adp)}</span>
+                  {pick.adp_format_fallback && (
+                    <span className="ml-0.5" title="ADP format fallback — not the league's target format">
+                      *
+                    </span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <span className="text-[var(--fs-xs)] text-faint">no ADP</span>
+            )}
+            {superlative && <SuperlativeChip {...superlative} />}
+          </div>
+          <div className="mt-2 min-w-0 truncate border-l-2 border-[var(--border-strong)] pl-2 text-[var(--fs-xs)] font-semibold leading-tight text-text">
+            {ownerLabel}
+          </div>
+        </>
+      )}
     </Link>
   );
 }
@@ -453,7 +482,7 @@ export function DraftPage() {
   // Picks matching the filter controls, independent of whether they have a
   // value for the active lens. Kept separate from `chartRows` so the empty
   // state can tell "nothing matched the filter" apart from "matched, but this
-  // lens has no number for them" (e.g. a kicker under the weighted lens).
+  // lens has no number for them" (e.g. an unscored pick under the weighted lens).
   const matchedPicks = (value.data?.picks ?? []).filter((p) => {
     if (position && p.position !== position) return false;
     if (round && p.round !== Number(round)) return false;
@@ -477,7 +506,7 @@ export function DraftPage() {
     matchedPicks.length === 0
       ? "No picks match these filters."
       : lens === "weighted"
-        ? "These picks aren’t part of the position-normalized impact model — kickers, defenses, and unscored picks are excluded. Switch to the Points lens to compare them."
+        ? "These picks have no weighted impact yet — they’re unscored or have no comparable position. Switch to the Points lens to compare them."
         : lens === "market"
           ? "These picks have no consensus ADP — they fell outside the public market (deep picks, most kickers and defenses, rookies)."
           : "These picks have no scored value yet.";

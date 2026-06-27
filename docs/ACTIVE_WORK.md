@@ -143,6 +143,26 @@ auto-invalidates on the new `pipeline_run_id`; no dashboard change). User chose 
 (See memory `dst-yards-sacks-pipeline-gap`. Distinct from fantasy *scoring* being end-to-end — this is
 the underlying box-score stat detail.)
 
+### ADP source coverage — FFC 2025 missing ☐ ⤴ (source-dependent; eventual, not forceable)
+The draft **Market** lens (reach/value) blends FFC + MFL + Sleeper ADP. **FFC is the only source
+carrying the full draft-week spread** (high/low/stdev, aggregated over late August — confirmed via
+the API `meta.start_date`/`end_date`, e.g. 2024 = Aug 31–Sep 1). For **2025 it is absent at the
+source**: `GET /api/v1/adp/ppr?teams=12&year=2025` returns *"No ADP data found"* while 2022/2023/2024/2026
+all return data, and a `&date=` param does not bring it back. So the live DB has **no FFC row for
+2025** (only MFL `PERIOD=DRAFT` whole-offseason aggregate + Sleeper), which is *why* an elite RB like
+Bijan Robinson reads as a "reach" — the wide-window MFL average (≈4.6) lacks the FFC draft-week anchor
+(≈1–2). MFL's relative date windows (`AUG15_NOW`) cannot be rewound for a past season (return empty),
+so the gap can only be closed by **FFC republishing 2025**, which may happen eventually or not at all
+— it is *not* achievable with immediate effort.
+- **Action when possible (danger-zone):** re-pull FFC for all years (fills any gaps), and verify the
+  reported MFL rate-limit truncation on the last ingest didn't drop rows. Capture FFC's
+  `meta.start_date`/`end_date` so each season's ADP window is recorded.
+- **Dashboard side is already handled, no wait:** the reach/value recalibration
+  (`docs/plans/draft-market-reach-value-recalibration.md`) degrades gracefully and surfaces a quiet,
+  data-driven "limited ADP coverage" note for any season blended **without** FFC (2025 today). If FFC
+  restores 2025, a re-ingest backfills the season, the flag clears itself, and the reads sharpen with
+  **no dashboard code change** (read-only seam).
+
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are ☑ via the regen, and **F-54** (season-correct player NFL team) is ☑
 (merged PR #51) — see `docs/archive/COMPLETED_WORK.md` §3, §5.
