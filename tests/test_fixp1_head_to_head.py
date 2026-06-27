@@ -31,6 +31,21 @@ def test_orientation_is_signed_mirror(session: Session) -> None:
     assert ba["closest_meeting"]["margin_for_a"] == -ab["closest_meeting"]["margin_for_a"]
 
 
+def test_meetings_list_is_chronological_and_oriented(session: Session) -> None:
+    mav, ice = KNOWN["owner_id"]["mav"], KNOWN["owner_id"]["ice"]
+    meetings = pairwise_record(session, mav, ice)["meetings"]
+    # Three regular-season meetings, oldest → newest, oriented to Maverick.
+    assert [m["season_year"] for m in meetings] == [2015, 2016, 2017]
+    assert [m["margin_for_a"] for m in meetings] == [10.0, 70.0, -5.0]
+    # Each meeting carries both scores and a deep-link.
+    assert meetings[0]["a_score"] == 110.0
+    assert meetings[0]["b_score"] == 100.0
+    assert all(m["matchup_id"] is not None for m in meetings)
+    # Flipping the orientation mirrors every signed margin.
+    ba = pairwise_record(session, ice, mav)["meetings"]
+    assert [m["margin_for_a"] for m in ba] == [-10.0, -70.0, 5.0]
+
+
 def test_no_meetings_omits_new_fields_gracefully(session: Session) -> None:
     # Slider (2015-16) and Viper (2017) never overlapped.
     slider, viper = KNOWN["owner_id"]["slider"], KNOWN["owner_id"]["viper"]

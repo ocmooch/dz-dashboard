@@ -167,6 +167,24 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
     l_margin = lopsided["low_margin"] if a_is_low else -lopsided["low_margin"]
     c_margin = closest["low_margin"] if a_is_low else -closest["low_margin"]
 
+    # Every meeting, chronological, oriented to A — drives the rivalry margin line.
+    meetings_for_a: list[dict[str, Any]] = []
+    for mt in sorted(agg["meetings"], key=lambda x: (x["season_year"] or 0, x["week"] or 0)):
+        a_score, b_score = meeting_scores(mt)
+        m_for_a = mt["low_margin"] if a_is_low else -mt["low_margin"]
+        meetings_for_a.append(
+            {
+                "season_year": mt["season_year"],
+                "week": mt["week"],
+                "matchup_id": mt["matchup_id"],
+                "margin_for_a": round(m_for_a, 2),
+                "a_score": a_score,
+                "b_score": b_score,
+                "is_playoff": mt["is_true_playoff"],
+                "is_championship": mt["is_championship"],
+            }
+        )
+
     return {
         **base,
         "available": True,
@@ -199,6 +217,7 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
             "matchup_id": closest["matchup_id"],
             "margin_for_a": round(c_margin, 2),
         },
+        "meetings": meetings_for_a,
     }
 
 

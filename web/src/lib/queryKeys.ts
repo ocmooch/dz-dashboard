@@ -52,4 +52,5 @@ export const qk = {
   teamRosterMoves: (teamId: number) => ["team", teamId, "roster-moves"] as const,
   teamFaabBudget: (teamId: number) => ["team", teamId, "faab-budget"] as const,
   search: (q: string) => ["search", q] as const,
+  labInsights: (seasonId: number) => ["lab", "insights", seasonId] as const,
 };

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { RankFlow } from "@/charts";
+import { DivergingBars, RankFlow } from "@/charts";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Sacko, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower, usePowerTimeline } from "@/features/power/usePower";
@@ -201,7 +201,16 @@ export function StandingsPage() {
     setParams(p, { replace: true });
   }
 
-  const flow = timeline.data ? toRankFlow(timeline.data.teams) : null;
+  // Tag the rank-race lines with the season's outcome (gold champion / red Sacko)
+  // once the regular season is complete and final placements are known.
+  const seasonMarkers: Record<number, "champion" | "sacko"> = {};
+  if (data && data.through_week === data.regular_season_weeks) {
+    for (const r of data.rows) {
+      if (r.final_rank === 1) seasonMarkers[r.team_id] = "champion";
+      else if (r.is_sacko) seasonMarkers[r.team_id] = "sacko";
+    }
+  }
+  const flow = timeline.data ? toRankFlow(timeline.data.teams, seasonMarkers) : null;
   const powerFlow = powerTimeline.data ? toRankFlow(powerTimeline.data.teams) : null;
   const showFinalPlacement =
     data != null &&
@@ -349,6 +358,21 @@ export function StandingsPage() {
                 {insights.data.most_blessed && <LuckCallout kind="blessed" team={insights.data.most_blessed} />}
               </div>
             )}
+            {insights.data.teams.length > 0 && (
+              <div className="p-5 pb-0">
+                <DivergingBars
+                  title="Luck by manager — wins above (gold) or below (blue) expected"
+                  xLabel="Wins vs expected"
+                  data={[...insights.data.teams]
+                    .sort((a, b) => b.luck_delta - a.luck_delta)
+                    .map((r) => ({
+                      label: r.team_name ?? r.owner_name ?? `#${r.team_id}`,
+                      value: Math.round(r.luck_delta * 100) / 100,
+                      note: r.luck_delta >= 0 ? "lucky" : "robbed",
+                    }))}
+                />
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="dz-table">
                 <thead>
@@ -390,13 +414,14 @@ export function StandingsPage() {
           {timeline.isLoading && <Skeleton className="h-[280px] w-full" />}
           {flow && flow.data.length > 0 ? (
             <RankFlow
-              title="Standings by week (rank 1 on top)"
+              title="Standings by week (rank 1 on top · gold = champion · red = Sacko)"
               data={flow.data}
               series={flow.series}
               xKey="week"
               xLabel="Week"
               teamCount={flow.teamCount}
               height={300}
+              animate
             />
           ) : (
             !timeline.isLoading && (

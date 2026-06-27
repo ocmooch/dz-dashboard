@@ -11,20 +11,24 @@ from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
 from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.efficiency import season_efficiency
 from ff_dashboard.analytics.standings import (
     compute_standings,
     season_summary,
     standings_insights,
     standings_timeline,
 )
+from ff_dashboard.analytics.weekly_scores import weekly_scores
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
     SeasonBracket,
     SeasonConferences,
+    SeasonEfficiency,
     SeasonList,
     SeasonListItem,
     SeasonSummary,
+    SeasonWeeklyScores,
     Standings,
     StandingsInsights,
     StandingsTimeline,
@@ -107,6 +111,28 @@ def get_standings_timeline(season_id: int, session: SessionDep) -> Envelope[Stan
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=StandingsTimeline(**data), meta=build_meta(session))
+
+
+@router.get(
+    "/v1/seasons/{season_id}/weekly-scores",
+    response_model=Envelope[SeasonWeeklyScores],
+)
+def get_weekly_scores(season_id: int, session: SessionDep) -> Envelope[SeasonWeeklyScores]:
+    data = weekly_scores(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonWeeklyScores(**data), meta=build_meta(session))
+
+
+@router.get(
+    "/v1/seasons/{season_id}/efficiency",
+    response_model=Envelope[SeasonEfficiency],
+)
+def get_efficiency(season_id: int, session: SessionDep) -> Envelope[SeasonEfficiency]:
+    data = season_efficiency(session, season_id)
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonEfficiency(**data), meta=build_meta(session))
 
 
 @router.get("/v1/seasons/{season_id}/bracket", response_model=Envelope[SeasonBracket])

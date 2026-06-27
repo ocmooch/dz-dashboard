@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
+import { MarginLine } from "@/charts";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
@@ -13,6 +14,8 @@ type Meeting = {
   a_score?: number;
   b_score?: number;
   margin_for_a?: number;
+  is_playoff?: boolean;
+  is_championship?: boolean;
 };
 
 // HeadToHead is intentionally extra-permissive on the wire (each record carries
@@ -32,6 +35,7 @@ type Pairwise = {
   playoff_meetings?: number;
   highest_scoring_meeting?: Meeting;
   most_lopsided_meeting?: Meeting;
+  meetings?: Meeting[];
 };
 
 async function fetchPairwise(a: number, b: number): Promise<Pairwise> {
@@ -126,6 +130,24 @@ export function PairwisePage() {
               />
             </div>
           </Card>
+
+          {(data.meetings?.length ?? 0) > 1 && (
+            <Card>
+              <CardHeader eyebrow="shape of the rivalry" title={`Margin over time (for ${aName})`} />
+              <div className="p-5">
+                <MarginLine
+                  title={`Signed margin per meeting — above 0 = ${aName} won`}
+                  xLabel="Meeting"
+                  points={(data.meetings ?? []).map((m) => ({
+                    label: m.season_year ? `${m.season_year} W${m.week ?? ""}` : "—",
+                    margin: Math.round((m.margin_for_a ?? 0) * 10) / 10,
+                    championship: m.is_championship,
+                    note: m.is_championship ? "Championship" : m.is_playoff ? "Playoff" : "",
+                  }))}
+                />
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardHeader eyebrow="defining games" title="Notable Meetings" />

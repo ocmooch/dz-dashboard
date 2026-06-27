@@ -352,7 +352,8 @@ describe("StandingsPage", () => {
   it("keeps the modern season on one overall table", async () => {
     renderPage();
     expect(await screen.findByText("Champion")).toBeInTheDocument();
-    expect(screen.getAllByRole("table")).toHaveLength(2); // standings + Robbed & Blessed
+    // standings + Robbed & Blessed table + the luck bars' data-table fallback.
+    expect(screen.getAllByRole("table")).toHaveLength(3);
     expect(screen.queryByRole("heading", { name: "Westeros" })).not.toBeInTheDocument();
   });
 

@@ -299,6 +299,88 @@ class StandingsInsights(BaseModel):
     teams: list[StandingsInsightTeam]
 
 
+# --- Insights Lab (non-viz "discovery engine" exhibits) --------------------
+# A structured finding computed by analytics/insights.py. `facts` are the
+# traceable numbers; `narration` is presentation prose built only from them
+# (template now, LLM later) — the same "no math in the narrator" trust seam.
+class InsightFact(BaseModel):
+    label: str
+    value: str | float | int
+    unit: str | None = None
+
+
+class InsightProvenance(BaseModel):
+    metric: str  # the analytics primitive the facts trace to
+    endpoint: str  # the view that serves the same numbers
+
+
+class InsightSubject(BaseModel):
+    owner_id: int | None = None
+    owner_name: str | None = None
+
+
+class Insight(BaseModel):
+    kind: str  # "schedule_luck" | "draft_market"
+    title: str
+    narration: str
+    facts: list[InsightFact]
+    subject: InsightSubject | None = None
+    provenance: InsightProvenance
+    confidence: str  # "high" | "medium" | "low" — reflects data quality, not effect size
+
+
+class LabInsights(BaseModel):
+    season_id: int
+    season_year: int | None = None
+    available: bool
+    insights: list[Insight]
+    notes: list[str] = []  # season-level honesty notes (e.g. limited ADP coverage)
+
+
+class WeeklyScorePoint(BaseModel):
+    week: int
+    score: float | None = None
+    is_playoff: bool = False
+
+
+class WeeklyScoreTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    scores: list[WeeklyScorePoint]
+
+
+class SeasonWeeklyScores(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    available: bool
+    reason: str | None = None
+    teams: list[WeeklyScoreTeam]
+
+
+class EfficiencyTeam(BaseModel):
+    team_id: int
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    # Started ("captured") points vs the optimal-lineup points, and their ratio.
+    captured: float
+    optimal: float
+    efficiency_pct: float
+    points_for: float
+    weeks: int
+
+
+class SeasonEfficiency(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    teams: list[EfficiencyTeam]
+
+
 class BracketTeam(BaseModel):
     team_id: int
     team_name: str | None = None
@@ -787,6 +869,12 @@ class H2HMeeting(BaseModel):
     week: int | None = None
     matchup_id: int | None = None
     margin_for_a: float | None = None
+    # Full-meeting context — set on the chronological ``meetings`` list (the
+    # closest/lopsided/highest refs leave these at their defaults).
+    a_score: float | None = None
+    b_score: float | None = None
+    is_playoff: bool = False
+    is_championship: bool = False
 
 
 class HeadToHead(BaseModel):
@@ -802,6 +890,8 @@ class HeadToHead(BaseModel):
     # The nearest meeting (smallest |margin|), oriented to A. The lopsided and
     # highest-scoring meetings remain extra fields on the payload.
     closest_meeting: H2HMeeting | None = None
+    # Every meeting, chronological, oriented to A — drives the rivalry margin line.
+    meetings: list[H2HMeeting] = []
 
 
 class RivalryCell(BaseModel):

@@ -4,6 +4,8 @@ import { AboutPage } from "@/features/about/AboutPage";
 import { PlayoffsPage } from "@/features/playoffs/PlayoffsPage";
 import { DraftPage } from "@/features/draft/DraftPage";
 import { HomePage } from "@/features/home/HomePage";
+import { InsightsLabPage } from "@/features/lab/InsightsLabPage";
+import { VizLabPage } from "@/features/lab/VizLabPage";
 import { LeagueHistoryPage } from "@/features/league/LeagueHistoryPage";
 import { StoriesPage } from "@/features/league/StoriesPage";
 import { BoxScorePage } from "@/features/matchups/BoxScorePage";
@@ -53,6 +55,8 @@ export function App() {
             <Route path="teams" element={<TeamsIndexPage />} />
             <Route path="teams/:teamId" element={<TeamPage />} />
             <Route path="draft" element={<DraftPage />} />
+            <Route path="lab" element={<VizLabPage />} />
+            <Route path="lab/insights" element={<InsightsLabPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="*" element={<PlaceholderPage title="Not found" />} />
           </Route>
