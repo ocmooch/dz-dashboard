@@ -948,6 +948,14 @@ class DraftRound(BaseModel):
     picks: list[DraftPick]
 
 
+class AdpCoverage(BaseModel):
+    # Season-level ADP coverage. ``limited`` when the season blended without FFC
+    # (the only draft-week-snapshot source), so reach/value reads are softer.
+    limited: bool
+    sources: list[str]
+    note: str | None = None
+
+
 class DraftBoard(BaseModel):
     season_id: int
     season_year: int
@@ -955,6 +963,7 @@ class DraftBoard(BaseModel):
     reason: str | None = None
     num_teams: int | None = None
     rounds: list[DraftRound]
+    adp_coverage: AdpCoverage
 
 
 class DraftValue(BaseModel):
@@ -974,6 +983,7 @@ class DraftValue(BaseModel):
     # Market axis (ADP): reaches drafted earlier than consensus, values later.
     adp_definition: str
     adp_weights: dict[str, float]
+    adp_coverage: AdpCoverage
     reaches: list[DraftPick]  # most-negative adp_delta first (biggest reaches)
     values: list[DraftPick]  # most-positive adp_delta first (biggest bargains)
     leaderboard_limit: int

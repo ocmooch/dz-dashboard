@@ -58,6 +58,7 @@ from sqlalchemy import distinct, func, select
 from ff_dashboard.analytics.adp import (
     ADP_DEFINITION,
     ADP_SOURCE_WEIGHTS,
+    adp_coverage,
     market_axis,
     season_adp_map,
 )
@@ -852,12 +853,14 @@ def draft_board(
             "reason": "draft_not_captured",
             "num_teams": None,
             "rounds": [],
+            "adp_coverage": adp_coverage({}),
         }
 
     num_teams = picks[0]["num_teams"]
     model = _draft_history_model(session, cache)
     valued = _with_values(picks, model["expected"], model["position_stats"])
-    valued = _attach_adp(valued, season_adp_map(session, season_id, cache))
+    adp_map = season_adp_map(session, season_id, cache)
+    valued = _attach_adp(valued, adp_map)
     rounds: dict[int, list[dict[str, Any]]] = {}
     for pick in valued:
         rounds.setdefault(pick["round"], []).append(pick)
@@ -868,6 +871,7 @@ def draft_board(
         "reason": None,
         "num_teams": num_teams,
         "rounds": [{"round": r, "picks": rounds[r]} for r in sorted(rounds)],
+        "adp_coverage": adp_coverage(adp_map),
     }
 
 
@@ -898,6 +902,7 @@ def draft_value(
             "points_busts": [],
             "adp_definition": ADP_DEFINITION,
             "adp_weights": ADP_SOURCE_WEIGHTS,
+            "adp_coverage": adp_coverage({}),
             "reaches": [],
             "values": [],
             "leaderboard_limit": LEADERBOARD_LIMIT,
@@ -905,15 +910,19 @@ def draft_value(
 
     model = _draft_history_model(session, cache)
     valued = _with_values(picks, model["expected"], model["position_stats"])
-    valued = _attach_adp(valued, season_adp_map(session, season_id, cache))
+    adp_map = season_adp_map(session, season_id, cache)
+    valued = _attach_adp(valued, adp_map)
     # Market axis (independent of scoring): reaches drafted earlier than the
     # consensus (most-negative delta first), values later (most-positive first).
-    adp_scored = [p for p in valued if p["adp_delta"] is not None]
-    reaches = sorted([p for p in adp_scored if p["adp_delta"] < 0], key=lambda p: p["adp_delta"])[
-        :LEADERBOARD_LIMIT
-    ]
+    # Membership keys off ``market_label`` so a pick inside its depth-scaled cushion
+    # (``on_market``) never leaks in as a tiny "reach/value"; ordering stays by the
+    # raw delta magnitude.
+    reaches = sorted(
+        [p for p in valued if p["market_label"] == "reach"],
+        key=lambda p: p["adp_delta"],
+    )[:LEADERBOARD_LIMIT]
     values = sorted(
-        [p for p in adp_scored if p["adp_delta"] > 0],
+        [p for p in valued if p["market_label"] == "value"],
         key=lambda p: p["adp_delta"],
         reverse=True,
     )[:LEADERBOARD_LIMIT]
@@ -956,6 +965,7 @@ def draft_value(
         "points_busts": points_busts,
         "adp_definition": ADP_DEFINITION,
         "adp_weights": ADP_SOURCE_WEIGHTS,
+        "adp_coverage": adp_coverage(adp_map),
         "reaches": reaches,
         "values": values,
         "leaderboard_limit": LEADERBOARD_LIMIT,

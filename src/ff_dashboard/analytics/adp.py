@@ -20,6 +20,7 @@ dead-band reads as "on market".
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.queries import player_adp_rows_for_season
@@ -37,9 +38,21 @@ if TYPE_CHECKING:
 # source alone rather than a penalized fraction.
 ADP_SOURCE_WEIGHTS: dict[str, float] = {"ffc": 0.5, "mfl": 0.3, "sleeper": 0.2}
 
-# Picks within this many slots of the consensus read as drafted "on market"
-# rather than a reach or a value — keeps tiny deltas from being over-read.
-ON_MARKET_BAND = 1.0
+# On-market cushion: how many pick slots a draft can sit from the consensus and
+# still read as "on market" rather than a reach or a value. The tolerance *grows
+# with draft depth* — being 3 picks off in Round 1 is precise disagreement; being
+# 3 picks off in Round 13 is rounding error — so the band is depth-scaled rather
+# than flat: ``cushion(adp) = max(CUSHION_FLOOR, CUSHION_SLOPE * sqrt(adp))``.
+# Two independent, documented knobs (echoed in the payload, like ADP_SOURCE_WEIGHTS):
+#   * SLOPE — the ``sqrt(adp)`` term: tolerance starts tight at the top and widens
+#     fast then flattens, mirroring how draft certainty decays. This *is* the
+#     early/middle/late weighting; it falls out of the curve, no per-round rules.
+#   * FLOOR — protects the consensus elite, where 1.01 vs 1.05 is pure preference.
+#     Only bites below ≈ADP 2.6 (where ``2.5·√adp`` < 4); the mid/late curve is
+#     untouched. Raise toward 5 to tolerate a bigger top grab; past ~5 it erodes
+#     the falls-to-Round-2 value signal.
+CUSHION_FLOOR = 4.0
+CUSHION_SLOPE = 2.5
 
 _WEIGHTS_PHRASE = ", ".join(f"{s.upper()} {w:g}" for s, w in ADP_SOURCE_WEIGHTS.items())
 
@@ -49,7 +62,11 @@ ADP_DEFINITION = (
     f"{_WEIGHTS_PHRASE} and matched to this league's format (full-PPR; half-PPR "
     "in 2010), 12-team. It is the closest public market to this league — not its "
     "own valuations. Reach / value is the gap between where the league drafted a "
-    "player and the consensus: drafted earlier than ADP is a reach, later is a value."
+    "player and the consensus, judged against a tolerance that grows with draft "
+    "depth: a pick well earlier than its ADP is a reach, well later is a value, and "
+    "anything inside the depth-scaled cushion reads as on-market. The cushion is "
+    "tight at the top (where the elite tier is interchangeable and ordering is "
+    "preference) and widens deeper into the draft (where exact slot matters less)."
 )
 
 
@@ -96,20 +113,32 @@ def blend_player_adp(rows: list[Any]) -> dict[str, Any] | None:
     }
 
 
+def on_market_cushion(adp: float) -> float:
+    """Half-width (in pick slots) of the on-market band at a given ``adp``.
+
+    ``max(CUSHION_FLOOR, CUSHION_SLOPE * sqrt(adp))`` — tight at the top, widening
+    with draft depth. Monotonic non-decreasing in ``adp``.
+    """
+    return max(CUSHION_FLOOR, CUSHION_SLOPE * math.sqrt(adp))
+
+
 def market_axis(adp: float | None, overall: int) -> dict[str, Any]:
     """Reach/value delta + label for a pick at ``overall`` given its ``adp``.
 
     ``adp_delta = overall - adp`` (positive = value/bargain — drafted later than
-    the market; negative = reach — drafted earlier). Returns nulls when there is
-    no ADP — the market axis is unavailable, which is kept distinct from the
-    pick's scoring availability.
+    the market; negative = reach — drafted earlier). The *number* is always the
+    literal pick gap; the *label* keys off the depth-scaled :func:`on_market_cushion`,
+    so a pick can read "Value by 7" yet still be ``on_market`` if 7 sits inside its
+    (deeper, wider) cushion. Returns nulls when there is no ADP — the market axis is
+    unavailable, which is kept distinct from the pick's scoring availability.
     """
     if adp is None:
         return {"adp_delta": None, "market_label": None}
     delta = round(overall - adp, 1)
-    if delta > ON_MARKET_BAND:
+    cushion = on_market_cushion(adp)
+    if delta > cushion:
         label = "value"
-    elif delta < -ON_MARKET_BAND:
+    elif delta < -cushion:
         label = "reach"
     else:
         label = "on_market"
@@ -141,11 +170,42 @@ def _build_season_adp_map(session: Session, season_id: int) -> dict[int, dict[st
     return out
 
 
+# FFC is the only source carrying the full draft-week high/low/stdev spread
+# (aggregated over late August); MFL/Sleeper are wider-window, softer aggregates.
+# A season blended *without* FFC has genuinely less-precise reach/value reads.
+_LIMITED_COVERAGE_NOTE = (
+    "ADP coverage is limited this season — based on wider-window sources (no "
+    "draft-week snapshot), so reach/value reads are less precise."
+)
+
+
+def adp_coverage(adp_map: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    """Season-level ADP coverage flag, derived from a built ``season_adp_map``.
+
+    A season is **limited** when the union of sources blended across its players
+    does not include ``ffc`` (the only draft-week-snapshot source). Data-driven —
+    never a hardcoded year: if FFC restores a season the flag clears itself, and if
+    a season loses FFC it trips, with no code change (read-only seam).
+    """
+    sources: set[str] = set()
+    for blend in adp_map.values():
+        sources.update(blend.get("adp_sources", ()))
+    limited = bool(sources) and "ffc" not in sources
+    return {
+        "limited": limited,
+        "sources": sorted(sources),
+        "note": _LIMITED_COVERAGE_NOTE if limited else None,
+    }
+
+
 __all__ = [
     "ADP_DEFINITION",
     "ADP_SOURCE_WEIGHTS",
-    "ON_MARKET_BAND",
+    "CUSHION_FLOOR",
+    "CUSHION_SLOPE",
+    "adp_coverage",
     "blend_player_adp",
     "market_axis",
+    "on_market_cushion",
     "season_adp_map",
 ]

@@ -600,6 +600,9 @@ export function DraftPage() {
               value={lens}
               onChange={setLens}
             />
+            {lens === "market" && value.data?.adp_coverage?.limited && value.data.adp_coverage.note && (
+              <p className="max-w-prose text-[var(--fs-xs)] text-faint">{value.data.adp_coverage.note}</p>
+            )}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader eyebrow={leftMeta.eyebrow} title={leftMeta.title} />
