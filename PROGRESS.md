@@ -103,6 +103,49 @@ history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
 ## Next
 
+**New strategic direction — Phase 2½ "The Resonance Leg"** (charter: `docs/PHASE2_5_RESONANCE.md`,
+2026-06-26). The dashboard is correct/complete (the "museum") but thin on resonance (the
+"barroom"): the whole frontend viz layer is `chartTheme.ts` + `rankflow.ts` + one component. The
+leg turns the archive into a storyteller for the league's ~12–20 members — audience/niche/6
+principles + a fantasy-literate **signature-metrics** vocabulary (xW/all-play, Lineup Efficiency,
+era-adjusted scoring, value-over-ADP…) and a tailored **visualization grammar**, scored under
+Relive/Reckon/Reveal. The charter is explicitly a **guide, not a must-build list** (out-of-the-box
+ideas expand the frame). Not Phase 3 (no edge/prediction). See memory `resonance-leg-direction`.
+
+**Build #1 — BUILT, uncommitted: Career Legacy-Spine + Viz Lab** (`docs/plans/resonance-legacy-spine.md`).
+New `LegacySpine` primitive in `web/src/charts/` — a per-manager career finish-position line
+(reversed-rank axis, gold = champion / red = Sacko markers, null finish = honest gap never 0),
+establishing the marker grammar the leg reuses. Marker colors centralized in `chartTheme.ts`
+(`gold`/`loss`/`win`). It **replaces** the Manager Profile's generic rank-trajectory `RankFlow`
+(`/trajectory` fetch dropped; spine reads the already-fetched `/owners/{id}/seasons`). **Pure
+frontend, zero backend → no `gen:api` drift.** Also added a **Viz Lab** holding space
+(`web/src/features/lab/VizLabPage.tsx`, route `/lab`, new "Lab" nav section in `AppShell`) to host
+spun-out viz until they find a permanent home — inaugural exhibit is the Legacy Spine with a manager
+picker. Gate green: typecheck clean, **202 FE tests pass** (no `lint` script wired in repo; no
+ESLint config — CLAUDE.md's `npm run lint` is stale). **Committed** on `feature/insights-lab-v0`
+(2026-06-27); interactive browser click-through of the new FE views still pending before PR to `dev`.
+(Charter's "viz layer is empty" premise was corrected in-doc: `web/src/charts/` already shipped
+`LineTrend`/`BarCompare`/`StackedBreakdown`/`RankFlow`/`Heatmap`/`ScatterQuadrant`; the gap is novel
+chart *types* + resonant metrics + a consistent grammar, not "no charts.")
+
+**Builds #2–#7 — BUILT, uncommitted** (`docs/plans/resonance-viz-suite.md`). New chart primitives
+in `web/src/charts/`: `DivergingBars`, `StreamArea`, `Beeswarm`, `MarginLine`, `MetricScatter` +
+`RankFlow` marker/animate upgrade. Landings:
+- **#2 Luck bars** → Standings "Robbed & Blessed" card (pure FE on `/standings/insights`).
+- **#3 rank-race** → Standings timeline gains gold-champion/red-Sacko end-markers + one-shot animate
+  (`SeriesDef.marker`, `toRankFlow(markers)`), pure FE.
+- **#4 dynasty stream**, **#5 weekly beeswarm**, **#7 efficiency scatter** → new **Viz Lab** exhibits.
+- **#6 rivalry margin line** → Pairwise page (`MarginLine`).
+Backend additions: `analytics/weekly_scores.py` + `/v1/seasons/{id}/weekly-scores`;
+`HeadToHead.meetings[]` (+ `H2HMeeting` score/championship fields) in `head_to_head.py`;
+`analytics/efficiency.py` + `/v1/seasons/{id}/efficiency` (reuses `matchups._team_box`, season-scoped/
+bounded). **Key fact:** xW/all-play keystone was already computed in `/standings/insights` (so #2 was
+pure FE). Client regenerated (intentional drift). Gate green: **BE 487 pytest + ruff/format/mypy
+clean; FE typecheck + 208 tests**; new backend tests in `tests/test_resonance_viz.py` (weekly scores,
+efficiency = hand-solved 113/126) + h2h meetings. **Committed** on `feature/insights-lab-v0`
+(2026-06-27); re-verified gate green + BFF smoke-tested (`/weekly-scores`, `/efficiency` → 200 with
+sane data) on resume. Interactive browser click-through of the new FE views still pending before PR.
+
 **Planned, not started — Bonus-scoring fidelity.** Stats Top Scorers (and Home, Season Totals, player
 Insights, draft impact, monster-game flag) drift because `player_stats_scored.total_points` omits NFL.com
 scoring bonuses league-wide (Vick 2010 wk10 reads 58.32 vs the correct 63.32). Full diagnosis, owner

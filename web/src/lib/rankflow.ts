@@ -19,11 +19,16 @@ export type RankFlowData = {
 };
 
 /** Reshape `{ teams: [{ team_id, team_name, points: [{week, rank}] }] }` into
- *  RankFlow's `{ data, series, teamCount }`. */
-export function toRankFlow(teams: TimelineTeam[]): RankFlowData {
+ *  RankFlow's `{ data, series, teamCount }`. `markers` (team_id → outcome) tags a
+ *  series so the rank-race draws a gold champion / red Sacko on its final node. */
+export function toRankFlow(
+  teams: TimelineTeam[],
+  markers?: Record<number, "champion" | "sacko">,
+): RankFlowData {
   const series: SeriesDef[] = teams.map((t) => ({
     key: String(t.team_id),
     label: t.team_name ?? t.owner_name ?? `Team ${t.team_id}`,
+    marker: markers?.[t.team_id],
   }));
 
   const byWeek = new Map<number, ChartRow>();

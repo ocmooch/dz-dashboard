@@ -225,6 +225,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/{season_id}/weekly-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Weekly Scores */
+        get: operations["get_weekly_scores_v1_seasons__season_id__weekly_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/efficiency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Efficiency */
+        get: operations["get_efficiency_v1_seasons__season_id__efficiency_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons/{season_id}/bracket": {
         parameters: {
             query?: never;
@@ -1479,6 +1513,27 @@ export interface components {
             /** Leaderboard Limit */
             leaderboard_limit: number;
         };
+        /** EfficiencyTeam */
+        EfficiencyTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Captured */
+            captured: number;
+            /** Optimal */
+            optimal: number;
+            /** Efficiency Pct */
+            efficiency_pct: number;
+            /** Points For */
+            points_for: number;
+            /** Weeks */
+            weeks: number;
+        };
         /**
          * EnteringRecord
          * @description A team's regular-season W-L-T entering a given week of the season.
@@ -1665,6 +1720,11 @@ export interface components {
             data: components["schemas"]["SeasonConferences"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[SeasonEfficiency] */
+        Envelope_SeasonEfficiency_: {
+            data: components["schemas"]["SeasonEfficiency"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[SeasonList] */
         Envelope_SeasonList_: {
             data: components["schemas"]["SeasonList"];
@@ -1678,6 +1738,11 @@ export interface components {
         /** Envelope[SeasonTotals] */
         Envelope_SeasonTotals_: {
             data: components["schemas"]["SeasonTotals"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonWeeklyScores] */
+        Envelope_SeasonWeeklyScores_: {
+            data: components["schemas"]["SeasonWeeklyScores"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[StandingsInsights] */
@@ -1810,6 +1875,20 @@ export interface components {
             matchup_id?: number | null;
             /** Margin For A */
             margin_for_a?: number | null;
+            /** A Score */
+            a_score?: number | null;
+            /** B Score */
+            b_score?: number | null;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+            /**
+             * Is Championship
+             * @default false
+             */
+            is_championship: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1860,6 +1939,11 @@ export interface components {
             /** Cumulative Margin For A */
             cumulative_margin_for_a?: number | null;
             closest_meeting?: components["schemas"]["H2HMeeting"] | null;
+            /**
+             * Meetings
+             * @default []
+             */
+            meetings: components["schemas"]["H2HMeeting"][];
         } & {
             [key: string]: unknown;
         };
@@ -2980,6 +3064,19 @@ export interface components {
             /** Conferences */
             conferences: components["schemas"]["ConferenceSection"][];
         };
+        /** SeasonEfficiency */
+        SeasonEfficiency: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Teams */
+            teams: components["schemas"]["EfficiencyTeam"][];
+        };
         /** SeasonList */
         SeasonList: {
             /** Seasons */
@@ -3056,6 +3153,21 @@ export interface components {
             position?: string | null;
             /** Totals */
             totals: components["schemas"]["SeasonTotal"][];
+        };
+        /** SeasonWeeklyScores */
+        SeasonWeeklyScores: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Teams */
+            teams: components["schemas"]["WeeklyScoreTeam"][];
         };
         /** SourceIdentityMismatch */
         SourceIdentityMismatch: {
@@ -3623,6 +3735,31 @@ export interface components {
             /** Games */
             games: components["schemas"]["GameCard"][];
         };
+        /** WeeklyScorePoint */
+        WeeklyScorePoint: {
+            /** Week */
+            week: number;
+            /** Score */
+            score?: number | null;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+        };
+        /** WeeklyScoreTeam */
+        WeeklyScoreTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Scores */
+            scores: components["schemas"]["WeeklyScorePoint"][];
+        };
     };
     responses: never;
     parameters: never;
@@ -3927,6 +4064,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_StandingsTimeline_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_weekly_scores_v1_seasons__season_id__weekly_scores_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonWeeklyScores_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_efficiency_v1_seasons__season_id__efficiency_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonEfficiency_"];
                 };
             };
             /** @description Validation Error */

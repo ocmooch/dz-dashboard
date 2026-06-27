@@ -6,8 +6,11 @@ import { DataAsOf } from "./DataAsOf";
 import { useSeasons } from "./SeasonContext";
 
 // Left nav = the product's primary IA. `ready` items are built; the rest route to
-// honest placeholders and carry a "soon" tag until their milestone lands.
-const NAV: { to: string; label: string; ready?: boolean }[] = [
+// honest placeholders and carry a "soon" tag until their milestone lands. A
+// `divider` entry opens a labelled section (e.g. the experimental Lab).
+type NavItem = { to: string; label: string; ready?: boolean };
+type NavEntry = NavItem | { divider: string };
+const NAV: NavEntry[] = [
   { to: "/", label: "Home", ready: true },
   { to: "/timeline", label: "Timeline", ready: true },
   { to: "/managers", label: "Managers", ready: true },
@@ -21,6 +24,8 @@ const NAV: { to: string; label: string; ready?: boolean }[] = [
   { to: "/players", label: "Players", ready: true },
   { to: "/stats", label: "Stats", ready: true },
   { to: "/draft", label: "Draft", ready: true },
+  { divider: "Lab" },
+  { to: "/lab", label: "Viz Lab", ready: true },
   { to: "/about", label: "About Data", ready: true },
 ];
 
@@ -68,17 +73,26 @@ export function AppShell() {
 
       <div className="dz-layout">
         <nav className="dz-nav" aria-label="Primary">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              className={({ isActive }) => `dz-nav-item ${isActive ? "active" : ""}`.trim()}
-            >
-              <span className="label-text">{item.label}</span>
-              {!item.ready && <span className="dz-soon">soon</span>}
-            </NavLink>
-          ))}
+          {NAV.map((item) =>
+            "divider" in item ? (
+              <div
+                key={`section-${item.divider}`}
+                className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint"
+              >
+                {item.divider}
+              </div>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                className={({ isActive }) => `dz-nav-item ${isActive ? "active" : ""}`.trim()}
+              >
+                <span className="label-text">{item.label}</span>
+                {!item.ready && <span className="dz-soon">soon</span>}
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <main className="dz-main min-w-0 flex-1">

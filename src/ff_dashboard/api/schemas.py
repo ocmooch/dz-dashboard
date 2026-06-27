@@ -299,6 +299,50 @@ class StandingsInsights(BaseModel):
     teams: list[StandingsInsightTeam]
 
 
+class WeeklyScorePoint(BaseModel):
+    week: int
+    score: float | None = None
+    is_playoff: bool = False
+
+
+class WeeklyScoreTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    scores: list[WeeklyScorePoint]
+
+
+class SeasonWeeklyScores(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    available: bool
+    reason: str | None = None
+    teams: list[WeeklyScoreTeam]
+
+
+class EfficiencyTeam(BaseModel):
+    team_id: int
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    # Started ("captured") points vs the optimal-lineup points, and their ratio.
+    captured: float
+    optimal: float
+    efficiency_pct: float
+    points_for: float
+    weeks: int
+
+
+class SeasonEfficiency(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    teams: list[EfficiencyTeam]
+
+
 class BracketTeam(BaseModel):
     team_id: int
     team_name: str | None = None
@@ -787,6 +831,12 @@ class H2HMeeting(BaseModel):
     week: int | None = None
     matchup_id: int | None = None
     margin_for_a: float | None = None
+    # Full-meeting context — set on the chronological ``meetings`` list (the
+    # closest/lopsided/highest refs leave these at their defaults).
+    a_score: float | None = None
+    b_score: float | None = None
+    is_playoff: bool = False
+    is_championship: bool = False
 
 
 class HeadToHead(BaseModel):
@@ -802,6 +852,8 @@ class HeadToHead(BaseModel):
     # The nearest meeting (smallest |margin|), oriented to A. The lopsided and
     # highest-scoring meetings remain extra fields on the payload.
     closest_meeting: H2HMeeting | None = None
+    # Every meeting, chronological, oriented to A — drives the rivalry margin line.
+    meetings: list[H2HMeeting] = []
 
 
 class RivalryCell(BaseModel):

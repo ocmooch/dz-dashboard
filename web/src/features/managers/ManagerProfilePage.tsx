@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
-import { RankFlow } from "@/charts";
+import { LegacySpine } from "@/charts";
 import {
   Badge,
   Card,
@@ -40,14 +40,6 @@ async function fetchSeasons(id: number) {
   });
   if (error || !data) throw new Error("Failed to load seasons");
   return data.data.seasons;
-}
-
-async function fetchTrajectory(id: number) {
-  const { data, error } = await api.GET("/v1/owners/{owner_id}/trajectory", {
-    params: { path: { owner_id: id } },
-  });
-  if (error || !data) throw new Error("Failed to load trajectory");
-  return data.data.points;
 }
 
 async function fetchRivalryMatrix() {
@@ -200,7 +192,6 @@ export function ManagerProfilePage() {
 
   const career = useQuery({ queryKey: qk.owner(ownerId), queryFn: () => fetchCareer(ownerId), enabled });
   const seasons = useQuery({ queryKey: qk.ownerSeasons(ownerId), queryFn: () => fetchSeasons(ownerId), enabled });
-  const trajectory = useQuery({ queryKey: qk.ownerTrajectory(ownerId), queryFn: () => fetchTrajectory(ownerId), enabled });
   const matrix = useQuery({ queryKey: qk.rivalryMatrix, queryFn: fetchRivalryMatrix, enabled });
   const story = useQuery({ queryKey: qk.ownerStory(ownerId), queryFn: () => fetchStory(ownerId), enabled });
 
@@ -224,12 +215,19 @@ export function ManagerProfilePage() {
     .filter((s) => s.team_id != null && s.season_year != null)
     .sort((a, b) => Number(b.season_year) - Number(a.season_year))[0];
 
-  // Trajectory is final rank per season (record-only seasons still have a rank),
-  // drawn 1-on-top. Domain is the deepest finish on record, min 8 so a small
-  // league doesn't crush the axis.
-  const points = (trajectory.data ?? []).filter((p) => p.final_rank != null);
-  const flowData = points.map((p) => ({ year: String(p.season_year ?? ""), finish: p.final_rank ?? null }));
-  const teamCount = Math.max(8, ...points.map((p) => p.final_rank ?? 0));
+  // Legacy spine = final finish across every season the manager played, oldest →
+  // newest, with gold = title / red = Sacko markers. Record-only seasons keep
+  // their rank; an in-progress/rank-less season becomes an honest gap, never a 0.
+  const spineSeasons = [...(seasons.data ?? [])]
+    .filter((s) => s.season_year != null)
+    .sort((a, b) => Number(a.season_year) - Number(b.season_year))
+    .map((s) => ({
+      season_year: s.season_year ?? null,
+      final_rank: s.final_rank ?? null,
+      is_champion: s.is_champion ?? false,
+      is_sacko: s.is_sacko ?? false,
+    }));
+  const rankedSeasons = spineSeasons.filter((s) => s.final_rank != null).length;
 
   return (
     <div className="dz-rise space-y-6">
@@ -355,21 +353,17 @@ export function ManagerProfilePage() {
       )}
 
       <Card>
-        <CardHeader eyebrow="finish by season" title="Career Trajectory" />
+        <CardHeader eyebrow="every finish · ★ title · 💩 Sacko" title="Legacy Spine" />
         <div className="p-5">
-          {trajectory.isLoading && <Skeleton className="h-[240px] w-full" />}
-          {trajectory.data &&
-            (flowData.length > 1 ? (
-              <RankFlow
-                title="Final finish by season (1 = best)"
-                data={flowData}
-                series={[{ key: "finish", label: "Finish" }]}
-                xKey="year"
-                xLabel="Season"
-                teamCount={teamCount}
+          {seasons.isLoading && <Skeleton className="h-[240px] w-full" />}
+          {seasons.data &&
+            (rankedSeasons > 1 ? (
+              <LegacySpine
+                title="Final finish by season (1 = best · gold = title · red = Sacko)"
+                seasons={spineSeasons}
               />
             ) : (
-              <EmptyState title="Not enough seasons" hint="A trajectory needs at least two seasons on record." />
+              <EmptyState title="Not enough seasons" hint="A legacy spine needs at least two ranked seasons on record." />
             ))}
         </div>
       </Card>

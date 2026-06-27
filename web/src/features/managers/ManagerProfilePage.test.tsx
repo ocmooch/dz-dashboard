@@ -131,6 +131,8 @@ describe("ManagerProfilePage", () => {
     expect(await screen.findByRole("heading", { name: "Alpha" })).toBeInTheDocument();
     // Trophy case section.
     expect(screen.getByText("Hardware")).toBeInTheDocument();
+    // The Legacy Spine replaces the old generic rank trajectory.
+    expect(screen.getByText("Legacy Spine")).toBeInTheDocument();
     // Season table has both seasons, scored PF rendered as a number.
     expect(screen.getByText("1,800.50")).toBeInTheDocument();
   });
