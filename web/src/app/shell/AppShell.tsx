@@ -26,6 +26,7 @@ const NAV: NavEntry[] = [
   { to: "/draft", label: "Draft", ready: true },
   { divider: "Lab" },
   { to: "/lab", label: "Viz Lab", ready: true },
+  { to: "/lab/insights", label: "Insights Lab", ready: true },
   { to: "/about", label: "About Data", ready: true },
 ];
 

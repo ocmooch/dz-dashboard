@@ -20,6 +20,19 @@ P1–P6 review fix-passes, and every post-roadmap product slice are merged to `d
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
 below) awaits the next `dev → main` promotion.
 
+**Insights Lab (`feature/insights-lab-v0`, committed 2026-06-27).** First non-viz "discovery engine"
+example, the text-first sibling to the Viz Lab: `analytics/insights.py` insight-primitive library
+(`schedule_luck` reuses the xW/all-play keystone; `draft_market` reuses the recalibrated ADP axis)
+where analytics computes structured *facts* (with provenance + a data-quality confidence) and a
+narrator only arranges them into prose — the same "no math in the presenter" seam as the SPA, so an
+LLM narration/selection layer can drop in later with facts unchanged. A primitive returns `None` on a
+data gap (absent insight, never fabricated). Served at `/v1/lab/insights/{season_id}` (lab-namespaced),
+surfaced as text insight cards at `/lab/insights`, a second "Insights Lab" entry beside "Viz Lab" under
+the Lab nav divider. Plan: `docs/plans/insights-lab-v0.md`. **Recovery note:** this half had been
+`git reset` out of the working tree before the resume session (only the viz half was committed first);
+recovered from the dangling commit and re-committed. Full gate green (BE 494 pytest + ruff/format/mypy;
+FE typecheck + 210; client regenerated for the lab route); BFF live click-through done. Ready to PR to `dev`.
+
 **In flight:** `feature/championship-consolation-sacko` (cut from `dev`) — a shared postseason
 classifier (`bracket.postseason_classification`) that tags every postseason game
 championship/playoff/consolation and derives the **Sacko** (toilet-bowl loser). Consolation games no

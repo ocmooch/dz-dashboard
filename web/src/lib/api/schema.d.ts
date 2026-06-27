@@ -891,6 +891,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/lab/insights/{season_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lab Insights */
+        get: operations["get_lab_insights_v1_lab_insights__season_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1595,6 +1612,11 @@ export interface components {
             data: components["schemas"]["HeadToHead"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[LabInsights] */
+        Envelope_LabInsights_: {
+            data: components["schemas"]["LabInsights"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[LeagueEras] */
         Envelope_LeagueEras_: {
             data: components["schemas"]["LeagueEras"];
@@ -2036,6 +2058,60 @@ export interface components {
             opp_bench_weight: number;
             /** Opp Ir Weight */
             opp_ir_weight: number;
+        };
+        /** Insight */
+        Insight: {
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Narration */
+            narration: string;
+            /** Facts */
+            facts: components["schemas"]["InsightFact"][];
+            subject?: components["schemas"]["InsightSubject"] | null;
+            provenance: components["schemas"]["InsightProvenance"];
+            /** Confidence */
+            confidence: string;
+        };
+        /** InsightFact */
+        InsightFact: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string | number;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** InsightProvenance */
+        InsightProvenance: {
+            /** Metric */
+            metric: string;
+            /** Endpoint */
+            endpoint: string;
+        };
+        /** InsightSubject */
+        InsightSubject: {
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+        };
+        /** LabInsights */
+        LabInsights: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year?: number | null;
+            /** Available */
+            available: boolean;
+            /** Insights */
+            insights: components["schemas"]["Insight"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
         };
         /** LatestRun */
         LatestRun: {
@@ -5207,6 +5283,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SearchResults_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lab_insights_v1_lab_insights__season_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LabInsights_"];
                 };
             };
             /** @description Validation Error */

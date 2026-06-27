@@ -299,6 +299,44 @@ class StandingsInsights(BaseModel):
     teams: list[StandingsInsightTeam]
 
 
+# --- Insights Lab (non-viz "discovery engine" exhibits) --------------------
+# A structured finding computed by analytics/insights.py. `facts` are the
+# traceable numbers; `narration` is presentation prose built only from them
+# (template now, LLM later) — the same "no math in the narrator" trust seam.
+class InsightFact(BaseModel):
+    label: str
+    value: str | float | int
+    unit: str | None = None
+
+
+class InsightProvenance(BaseModel):
+    metric: str  # the analytics primitive the facts trace to
+    endpoint: str  # the view that serves the same numbers
+
+
+class InsightSubject(BaseModel):
+    owner_id: int | None = None
+    owner_name: str | None = None
+
+
+class Insight(BaseModel):
+    kind: str  # "schedule_luck" | "draft_market"
+    title: str
+    narration: str
+    facts: list[InsightFact]
+    subject: InsightSubject | None = None
+    provenance: InsightProvenance
+    confidence: str  # "high" | "medium" | "low" — reflects data quality, not effect size
+
+
+class LabInsights(BaseModel):
+    season_id: int
+    season_year: int | None = None
+    available: bool
+    insights: list[Insight]
+    notes: list[str] = []  # season-level honesty notes (e.g. limited ADP coverage)
+
+
 class WeeklyScorePoint(BaseModel):
     week: int
     score: float | None = None
