@@ -103,9 +103,7 @@ def test_adp_coverage_flag() -> None:
     assert full["sources"] == ["ffc", "mfl"]
     assert full["note"] is None
     # FFC absent (the 2025 case) → limited, with the honesty note and real sources.
-    limited = adp_coverage(
-        {1: {"adp_sources": ["mfl", "sleeper"]}, 2: {"adp_sources": ["mfl"]}}
-    )
+    limited = adp_coverage({1: {"adp_sources": ["mfl", "sleeper"]}, 2: {"adp_sources": ["mfl"]}})
     assert limited["limited"] is True
     assert limited["sources"] == ["mfl", "sleeper"]
     assert limited["note"] is not None and "less precise" in limited["note"]
