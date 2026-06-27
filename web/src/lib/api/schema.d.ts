@@ -861,6 +861,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdpCoverage */
+        AdpCoverage: {
+            /** Limited */
+            limited: boolean;
+            /** Sources */
+            sources: string[];
+            /** Note */
+            note?: string | null;
+        };
         /** AvailabilityWeek */
         AvailabilityWeek: {
             /** Week */
@@ -1284,6 +1293,7 @@ export interface components {
             num_teams?: number | null;
             /** Rounds */
             rounds: components["schemas"]["DraftRound"][];
+            adp_coverage: components["schemas"]["AdpCoverage"];
         };
         /** DraftManagerTendency */
         DraftManagerTendency: {
@@ -1461,6 +1471,7 @@ export interface components {
             adp_weights: {
                 [key: string]: number;
             };
+            adp_coverage: components["schemas"]["AdpCoverage"];
             /** Reaches */
             reaches: components["schemas"]["DraftPick"][];
             /** Values */
