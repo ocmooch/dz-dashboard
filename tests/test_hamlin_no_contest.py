@@ -14,13 +14,19 @@ purpose-built session.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import pytest
 from ff_pipeline.repository.models import Base, League, Season, Team, TeamRoster
-from sqlalchemy import create_engine, select
+from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session
 
 from ff_dashboard.analytics.curated_events import curated_events_by_year
 from ff_dashboard.analytics.matchups import box_score
 from tests.conftest import KNOWN
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def _box(session: Session) -> dict:
@@ -80,8 +86,22 @@ def test_unaffected_matchup_has_no_resolution_note(session: Session) -> None:
 # ---------------------------------------------------------------------------
 
 
+# In-memory engines built by the helper below; disposed after every test so no
+# sqlite connection is left for the garbage collector (Python 3.14 reports those
+# as unraisable ResourceWarnings, which fail the run).
+_ENGINES: list[Engine] = []
+
+
+@pytest.fixture(autouse=True)
+def _dispose_engines() -> Iterator[None]:
+    yield
+    while _ENGINES:
+        _ENGINES.pop().dispose()
+
+
 def _minimal_session() -> Session:
     engine = create_engine("sqlite://", future=True)
+    _ENGINES.append(engine)
     Base.metadata.create_all(engine)
     session = Session(engine)
     session.add(League(league_id="L1", name="Test", platform="nfl_com"))
