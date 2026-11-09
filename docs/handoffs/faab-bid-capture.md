@@ -35,9 +35,9 @@ reproduce with the queries inline.
 
 The **only** FAAB facts present are 3 `setting_change` rows (`extra_data.description`):
 
-- 2021 — `"Chris changed Waiver Type from 'Resets to Inverse Standings Order' to 'Waiver Budget'"`
-- 2021 — `"Chris changed Waiver Budget to '100'"`  ← the $100 league default
-- 2022 — `"Dan changed Ice Station Zebra Waiver Budget from '39' to '76'"`  ← a per-team mid-season bump
+- 2021 — `"Owner 03 changed Waiver Type from 'Resets to Inverse Standings Order' to 'Waiver Budget'"`
+- 2021 — `"Owner 03 changed Waiver Budget to '100'"`  ← the $100 league default
+- 2022 — `"Owner 05 changed Team 083 Waiver Budget from '39' to '76'"`  ← a per-team mid-season bump
 
 These are already classified T1/T2 by the dashboard's `analytics/league_changes.py` and surface in
 `/seasons/`. They give the **budget**, not the **spend**.
@@ -117,8 +117,8 @@ The consume path already exists; this is why upstream capture alone unblocks dis
    - **Budget = flat $100 base + mid-season credits.** Validated against the live DB: the $100 base
      holds exactly for 2021/2023/2024/2025 (no team exceeds it; several land on $100).
    - **The one per-team budget event is an anomalous refund, not a grant.** The lone
-     `waiver_budget_team` row ("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", 2022)
-     is a **+$37 refund**: Ice Station Zebra won Dameon Pierce for $37 (wk2, `2022-09-16 00:22`), the
+     `waiver_budget_team` row ("Owner 05 changed Team 083 Waiver Budget from '39' to '76'", 2022)
+     is a **+$37 refund**: Team 083 won Dameon Pierce for $37 (wk2, `2022-09-16 00:22`), the
      claim was reversed ~12h later (dropped `12:52`), and the commissioner restored the $37
      (`39 → 76`). Raw bid-sum **$137**, **effective** spend `137 − 37 = $100`. Modeled as
      **timestamped credits** at the event's `effective_week` (`budget_at_week = 100 + Σ credits ≤

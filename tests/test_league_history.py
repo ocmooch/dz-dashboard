@@ -187,7 +187,7 @@ def test_era_defining_change_names_only_what_shifted() -> None:
 
 
 def test_owner_aliases_normalizes_upstream_provenance_dict() -> None:
-    assert _owner_aliases({"display_names": ["Adam"], "nfl_user_ids": ["126"]}) == ["Adam"]
+    assert _owner_aliases({"display_names": ["Owner 01"], "nfl_user_ids": ["126"]}) == ["Owner 01"]
 
 
 def test_league_stories_use_unique_matchups_and_gap_cards(session: Session) -> None:

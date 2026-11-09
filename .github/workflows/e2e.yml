@@ -30,7 +30,8 @@ jobs:
   # out beside this repo so the source resolves (see ci.yml's backend job for
   # the full rationale and the git-tag alternative).
   e2e:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, where the pinned Playwright has no chromium build.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Check out ff-pipeline (sibling)

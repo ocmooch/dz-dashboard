@@ -448,7 +448,7 @@ def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
 _FAAB_BASE_BUDGET = 100.0
 
 # A per-team mid-season budget adjustment, e.g.
-#   "Dan changed Ice Station Zebra Waiver Budget from '39' to '76'"
+#   "Owner 05 changed Team 083 Waiver Budget from '39' to '76'"
 # These setting_change rows carry team_id=NULL, so the only link to the affected
 # team is its name in the description. The league-wide default
 # ("changed Waiver Budget to '100'") has no from/to pair and is *not* matched.
@@ -515,7 +515,7 @@ def _budget_credits_for_team(
 
     Each per-team budget ``setting_change`` is parsed for its name + before/after
     values; the credit is ``after - before`` applied at the event's effective
-    week (preseason folds into week 1). Reproduces e.g. Ice Station Zebra's 2022
+    week (preseason folds into week 1). Reproduces e.g. Team 083's 2022
     +$37 refund. Name match is whitespace/case-insensitive against the season-
     correct team name.
     """

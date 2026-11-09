@@ -436,10 +436,11 @@ def _member_detail(c: ClassifiedChange) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Verified context for specific per-team FAAB budget events. NFL.com records the
 # budget change but not its reason; where the reason has been confirmed from the
-# transaction log it is stated here as fact (keyed by (year, team)). Absent an
-# entry, the event keeps the honest "reason not recorded" hedge.
-_BUDGET_EVENT_CONTEXT: dict[tuple[int, str], str] = {
-    (2022, "Ice Station Zebra"): (
+# transaction log it is stated here as fact, keyed by (year, budget before, budget
+# after) so no team name lives in this public source. Absent an entry, the event
+# keeps the honest "reason not recorded" hedge.
+_BUDGET_EVENT_CONTEXT: dict[tuple[int, str, str], str] = {
+    (2022, "39", "76"): (
         "The $37 increase is a refund of a reversed waiver claim: the team won "
         "Dameon Pierce for $37, the claim was undone about 12 hours later, and the "
         "budget was restored — so its effective season spend stays at the $100 cap."
@@ -454,7 +455,9 @@ def _emit_budget_team(c: ClassifiedChange) -> dict[str, Any]:
     actor = c.raw.actor or "A manager"
     title = f"{target} — FAAB budget" if target else c.human_label
     base = f"{actor} adjusted {target or 'a team'}'s FAAB budget mid-season ({c.before}→{c.after})."
-    context = _BUDGET_EVENT_CONTEXT.get((c.raw.year, target)) if target else None
+    context = (
+        _BUDGET_EVENT_CONTEXT.get((c.raw.year, str(c.before), str(c.after))) if target else None
+    )
     if context:
         return _detail(
             c,
@@ -627,8 +630,8 @@ def _budget_target(desc: str) -> str | None:
 
     Per-team budget events carry no ``team_id`` (they are league-level rows keyed
     only to a season); the only link to the affected team is its name embedded in
-    the verbatim description, e.g. ``"Dan changed Ice Station Zebra Waiver Budget
-    from '39' to '76'"`` -> ``"Ice Station Zebra"``. The league-wide default
+    the verbatim description, e.g. ``"Owner 05 changed Team 083 Waiver Budget
+    from '39' to '76'"`` -> ``"Team 083"``. The league-wide default
     (``"changed Waiver Budget to '100'"``) has no team and yields ``None``.
     """
     m = re.search(r"changed (.+?) Waiver Budget", desc)

@@ -3,7 +3,7 @@
 **Problem.** Box scores render a single static `players.position` (the player's
 latest/canonical position). NFL position is season-dependent, so any player who
 changed positions — or was ever mislabeled — is shown wrong for the seasons that
-disagree. Surfaced by: *"Harry's 2014 playoff team shows Jordan Matthews playing
+disagree. Surfaced by: *"Owner 17's 2014 playoff team shows Jordan Matthews playing
 TE in the WR slot."* JM's stored position is `TE`; he was a `WR` every season he
 was rostered (2014–2018).
 
@@ -22,7 +22,7 @@ Cross-checking stored `players.position` vs per-season roster position across
 
 | Class | Players |
 |-------|---------|
-| Plain-wrong (every season) | Jordan Matthews (TE→WR), N'Keal Harry (TE→WR) |
+| Plain-wrong (every season) | Jordan Matthews (TE→WR), N'Keal Owner 17 (TE→WR) |
 | Season-dependent (career conversion) | Cordarrelle Patterson (WR→RB), Ty Montgomery (WR→RB), Terrelle Pryor (QB→WR), Dexter McCluster, Danny Woodhead |
 | Fantasy/edge quirks | Taysom Hill (TE-eligible / NFL QB), Travis Hunter (CB/WR), Cameron Dicker (K/P) |
 
@@ -77,7 +77,7 @@ Position folding for the check: `HB`,`FB` → `RB`.
 - Validator runs clean (0 unexplained divergences) and is wired into CI.
 - Backfill applied to live DB after copy-validation; static fallback intact for
   player-seasons with no roster row.
-- Green gate both repos; box-score click-through on Harry's 2014 playoff team.
+- Green gate both repos; box-score click-through on Owner 17's 2014 playoff team.
 
 ## Branches
 - danger-zone: `feature/season-correct-position` (from dev)

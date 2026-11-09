@@ -8,7 +8,7 @@ frontend on an existing payload** (fast richness, no `gen:api` drift) **and** it
 
 A manager's **career finish-position line across every season they played** — rank 1 pinned to
 the top, championship seasons marked with a gold node, Sacko seasons with a 💩 node — plus a
-one-line career caption ("Smokin Doubs · 2 titles · 1 Sacko · best 1st"). *One image = a career.*
+one-line career caption ("Team 135 · 2 titles · 1 Sacko · best 1st"). *One image = a career.*
 
 This **supersedes the existing generic rank-trajectory chart** on the Manager Profile (which
 plots `final_rank` as a plain `LineTrend` with no champion/Sacko context). We replace that chart

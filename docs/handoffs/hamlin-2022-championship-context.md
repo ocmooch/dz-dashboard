@@ -13,7 +13,7 @@ game** (`final = wk17_partial + wk19`; Week 18 skipped). The **upstream** handof
 is **display only** — render the corrected scores, explain the unusual context, and add a curated
 timeline event. The dashboard is read-only and does **no** metric math.
 
-After the upstream fix the title game reads **Smokin Doubs (165) def. CMC (160)** (≈139 vs ≈101 once
+After the upstream fix the title game reads **Team 135 (165) def. CMC (160)** (≈139 vs ≈101 once
 partials are included), and `records.championships()` (`analytics/records.py:334`, reads
 `Season.champion_team_id`) + `routes/seasons.py:list_seasons()` show Doubs as 2022 champion
 automatically. The remaining work is context, honest per-player labelling, and the timeline event.
@@ -93,16 +93,16 @@ transaction, so add a small **curated narrative-events** source:
 ### 5 — Fixture DB + tests
 - Regenerate the dashboard fixture DB from the corrected live ORM (the fixture is ORM-built, so it
   won't reflect the upstream fix until regenerated — see project memory "green gate ≠ real DB").
-- Update known-answer assertions: 2022 champion = Smokin Doubs; title-game corrected totals.
+- Update known-answer assertions: 2022 champion = Team 135; title-game corrected totals.
 - New tests: box-score substitution labelling + suppressed false-zero flag; curated timeline event
-  present for 2022; `championships()` returns Smokin Doubs.
+  present for 2022; `championships()` returns Team 135.
 
 ## Done when
 
 - 2022 title-game box score shows **Doubs > CMC** (≈139 vs ≈101 with partials), a resolution banner,
   and the 4 substituted starters badged with their Wk17-partial + Wk19 breakdowns (no DNP/"unexpected"
   flags).
-- Records championship timeline + seasons list show **2022 Smokin Doubs**.
+- Records championship timeline + seasons list show **2022 Team 135**.
 - League History 2022 carries the curated Hamlin event with verified context + sources.
 - Green gate passes (`green-gate` skill): backend pytest/ruff/mypy; frontend gen:api drift +
   typecheck/lint/test; e2e for matchup/records/league-history; manual click-through done.

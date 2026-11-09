@@ -119,7 +119,7 @@ are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), the winning bid is
 pill in the team transactions log, and **weekly remaining-budget** shipped (`team_faab_budget()`,
 `GET /v1/teams/{id}/faab-budget`, `FaabBudgetCard`): $100 base (holds exactly for 2021/2023/2024/2025)
 + mid-season per-team **credits** parsed from the budget `setting_change` events (`team_id=NULL`,
-matched by name), modeled as timestamped credits so the 2022 Ice Station Zebra +$37 refund reproduces.
+matched by name), modeled as timestamped credits so the 2022 Team 083 +$37 refund reproduces.
 **Remaining open (the original F-37 scope):** the dashboard still hasn't consumed the exact
 transaction dates/types as a *richer tier* beyond the acquisitions log.
 
@@ -203,7 +203,7 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 ## 5. Open items / deviations & known non-blockers
 
 - **Phantom week-1-only teams (identity artifact).** 1–2 phantom week-1-only teams per season with
-  duplicate/garbled names (e.g. "JFCFPWCPGAWWLTDOSGT", "Rev Russell's Sunday Service"), ~2 matchups
+  duplicate/garbled names (e.g. "Team 084", "Team 116"), ~2 matchups
   each, present 2010–2018 and absent 2019/2023/2025. **Separate** from the repaired F-53 roster-churn
   corruption; belongs with owner/team-identity research (F-06). Worth a new finding if it surfaces in
   the UI.

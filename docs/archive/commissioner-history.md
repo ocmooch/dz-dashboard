@@ -22,25 +22,25 @@ The league spans 2010–2025 (16 completed seasons). Founded with 10 owners; 18 
 
 | Season | Champion | Owner |
 |--------|----------|-------|
-| 2010 | Final Fantasy Football | Rob |
-| 2011 | Papa Fies SteakhouseExperience | Chris |
-| 2012 | Tainted Basil | DJ |
-| 2013 | Roddy's White Walkers | scott |
-| 2014 | The King in the Northvale | DJ |
-| 2015 | Mint Chocolate Chip Kelly | DJ |
-| 2016 | I Need Mo Allowance | DJ |
-| 2017 | Brotherhood Without Bungalows | harry |
-| 2018 | ROBJECTION | Rob |
-| 2019 | Stevie Wonders Blindside Blitz | sully |
-| 2020 | Shish Karob | Rob |
-| 2021 | DuDu Shit-Pooster | scott |
-| 2022 | CMC Rules Everything Around Me | sully |
-| 2023 | Fred Jacksons Revenge | Gregg |
-| 2024 | Putting the CAP in CHAMP | Dave |
-| 2025 | Cream of the C | harry |
+| 2010 | Team 059 | Owner 14 |
+| 2011 | Team 110 | Owner 03 |
+| 2012 | Team 147 | Owner 04 |
+| 2013 | Team 123 | Owner 20 |
+| 2014 | Team 161 | Owner 04 |
+| 2015 | Team 097 | Owner 04 |
+| 2016 | Team 076 | Owner 04 |
+| 2017 | Team 019 | Owner 17 |
+| 2018 | Team 113 | Owner 14 |
+| 2019 | Team 140 | Owner 21 |
+| 2020 | Team 132 | Owner 14 |
+| 2021 | Team 048 | Owner 20 |
+| 2022 | Team 023 | Owner 21 |
+| 2023 | Team 063 | Owner 08 |
+| 2024 | Team 112 | Owner 06 |
+| 2025 | Team 038 | Owner 17 |
 
-**One confirmed data point:** In 2016, Rob (owner_id=10) named his team "Commissioner J Gordon"
-(per `analytics/historical_team_names.py`, year=2016, slot=10). This is strong evidence Rob held
+**One confirmed data point:** In 2016, Owner 14 (owner_id=10) named his team "Team 036"
+(per `analytics/historical_team_names.py`, year=2016, slot=10). This is strong evidence Owner 14 held
 the commissioner role in 2016. With 2-season terms, his tenure was likely 2016–2017.
 
 **16 seasons ÷ 2 = ~8 commissioners.** Possible windows (broken occasionally per the user):
@@ -50,7 +50,7 @@ the commissioner role in 2016. With 2-season terms, his tenure was likely 2016�
 | 2010–2011 | ? | Founding season; likely a founding member |
 | 2012–2013 | ? | Unknown |
 | 2014–2015 | ? | Unknown |
-| 2016–2017 | Rob | "Commissioner J Gordon" team name 2016 — HIGH |
+| 2016–2017 | Owner 14 | "Team 036" team name 2016 — HIGH |
 | 2018–2019 | ? | Unknown |
 | 2020–2021 | ? | Unknown |
 | 2022–2023 | ? | Unknown |
@@ -65,24 +65,24 @@ The plan proceeds with the infrastructure; the seed data drives everything downs
 
 | owner_id | display_name | joined | left |
 |----------|-------------|--------|------|
-| 1 | harry | 2010 | — |
-| 2 | scott | 2010 | — |
-| 3 | mike | 2010 | — |
-| 4 | sully | 2010 | — |
-| 5 | DJ | 2010 | — |
-| 6 | Dave | 2010 | — |
-| 7 | Gregg | 2010 | — |
-| 8 | Chris | 2010 | — |
-| 9 | Jeff | 2010 | — |
-| 10 | Rob | 2010 | — |
-| 11 | Jimbo | 2023 | — |
-| 12 | Kofi | 2025 | — |
-| 13 | Adam | 2010 | 2016 |
-| 14 | Ill | 2010 | 2022 |
-| 15 | Tom | 2012 | 2013 |
-| 16 | George | 2014 | 2014 |
-| 17 | Cheese | 2014 | 2024 |
-| 18 | Kevin | 2015 | 2017 |
+| 1 | Owner 17 | 2010 | — |
+| 2 | Owner 20 | 2010 | — |
+| 3 | Owner 19 | 2010 | — |
+| 4 | Owner 21 | 2010 | — |
+| 5 | Owner 04 | 2010 | — |
+| 6 | Owner 06 | 2010 | — |
+| 7 | Owner 08 | 2010 | — |
+| 8 | Owner 03 | 2010 | — |
+| 9 | Owner 10 | 2010 | — |
+| 10 | Owner 14 | 2010 | — |
+| 11 | Owner 11 | 2023 | — |
+| 12 | Owner 13 | 2025 | — |
+| 13 | Owner 01 | 2010 | 2016 |
+| 14 | Owner 09 | 2010 | 2022 |
+| 15 | Owner 15 | 2012 | 2013 |
+| 16 | Owner 07 | 2014 | 2014 |
+| 17 | Owner 02 | 2014 | 2024 |
+| 18 | Owner 12 | 2015 | 2017 |
 
 ---
 
@@ -139,10 +139,10 @@ Pattern mirrors `danger-zone/data/owner_identity_overrides.yaml` if one exists, 
 # Commissioner history — manually curated. from_year/to_year are inclusive NFL season years.
 # Add notes for any term that broke the 2-season rule.
 commissioners:
-  - owner_id: 10    # Rob
+  - owner_id: 10    # Owner 14
     from_year: 2016
     to_year: 2017
-    notes: "Team name 'Commissioner J Gordon' (2016) corroborates"
+    notes: "Team name 'Team 036' (2016) corroborates"
 
   # FILL IN REMAINING TERMS:
   # - owner_id: ?
@@ -266,7 +266,7 @@ show a "Commissioner" section: years served, total seasons.
 | `test_commissioner_history_unit.py` | `tests/dashboard/` — pure analytics function with stub DB rows |
 | Add `CommissionerTerm` assertions to `test_p2_endpoints.py` league overview test | existing file |
 | Manual: open `/league` page, verify commissioner strip renders | VERIFY session |
-| Manual: open a manager profile for a commissioner (e.g. Rob), verify term shown | VERIFY session |
+| Manual: open a manager profile for a commissioner (e.g. Owner 14), verify term shown | VERIFY session |
 
 ---
 
