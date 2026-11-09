@@ -40,10 +40,10 @@ def box(tmp_path: Path) -> Iterator[tuple[Session, int, Season]]:
     with Session(engine) as ss:
         league = League(league_id="36271", name="DZ", platform="nfl_com")
         season = Season(league_id="36271", year=2014, status="completed")
-        owner = Owner(league_id="36271", display_name="Harry")
+        owner = Owner(league_id="36271", display_name="Owner 17")
         ss.add_all([league, season, owner])
         ss.flush()
-        team = Team(season_id=season.season_id, owner_id=owner.owner_id, team_name="Harry")
+        team = Team(season_id=season.season_id, owner_id=owner.owner_id, team_name="Owner 17")
         # Started in a *flex* (W/R) slot: snapshot TE is the later-career mislabel,
         # so the badge must come from the 2014 season position (WR).
         jm = Player(name_full="Jordan Matthews", position="TE", gsis_id="00-0031299")

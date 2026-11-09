@@ -358,9 +358,9 @@ def test_championships_use_season_correct_team_name(
     # The fixture's 2016 champion (Maverick, slot abbrev "MAV") carries the
     # canonical alias "Maverick 2016". Inject a divergent historical slot name
     # so we can prove championships() resolves it rather than the raw column.
-    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Putting the CAP in CHAMP")
+    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Team 112")
     by_year = {e["season_year"]: e for e in championships(session)["seasons"]}
-    assert by_year[2016]["champion"]["team_name"] == "Putting the CAP in CHAMP"
+    assert by_year[2016]["champion"]["team_name"] == "Team 112"
 
 
 # --- Players + gap behavior ------------------------------------------------

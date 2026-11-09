@@ -79,7 +79,7 @@ scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate 
 
 - **#94** 2022 Hamlin no-contest championship resolution — box score branches on the upstream
   `hamlin_substitute` flag (wk17-partial + wk19), matchup `resolution_note` banner, curated
-  `league_event` in the timeline. Corrected champion = Smokin Doubs (see memory
+  `league_event` in the timeline. Corrected champion = Team 135 (see memory
   `hamlin-2022-championship-anomaly`).
 - **#90–#93** FAAB suite — bid capture surfaced (`$0` = real free claim; `"$X FAAB"` pill), then the
   weekly **remaining-budget** view (`team_faab_budget()`, `/v1/teams/{id}/faab-budget`,

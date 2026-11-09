@@ -112,12 +112,12 @@
   var WIRE = {
     home: function () {
       var stats = ["SEASONS","SCORED ERA","2019 LEADER","CHAMPION"].map(function (k, i) {
-        return '<div class="wstat"><div class="k">' + k + '</div><div class="v">' + (["16","10y","sully","sully"][i]) + '</div></div>';
+        return '<div class="wstat"><div class="k">' + k + '</div><div class="v">' + (["16","10y","Owner 21","Owner 21"][i]) + '</div></div>';
       }).join("");
-      var standRows = ["sully","Dave","harry","Chris","Gregg","Dan"].map(function (n, i) {
+      var standRows = ["Owner 21","Owner 06","Owner 17","Owner 03","Owner 08","Owner 05"].map(function (n, i) {
         return '<div class="wtable-row"><div class="wcircle">' + (i + 1) + '</div><div class="scribble w-60"></div><div class="num-block">8-5</div><div class="num-block">1,9xx</div></div>';
       }).join("");
-      var movers = ["Ben ▲3","sully ▲2","harry ▼2","Tom ▼1"].map(function (m) {
+      var movers = ["Ben ▲3","Owner 21 ▲2","Owner 17 ▼2","Owner 15 ▼1"].map(function (m) {
         return '<div class="wtable-row" style="grid-template-columns:1fr 80px"><div class="label" style="font-size:18px">' + m + '</div><div class="scribble w-80 dark"></div></div>';
       }).join("");
       return shell("home",
@@ -127,7 +127,7 @@
           '<div class="wcard-h"><div class="wcard-t">◍ OWNER SIGNAL</div><span class="wpill">auto-surfaced</span></div>' +
           '<div style="display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:center">' +
             '<div class="wchart" style="height:90px"><div class="ln"></div></div>' +
-            '<div><div class="label" style="font-size:24px">"sully closes strongest in the league"</div>' +
+            '<div><div class="label" style="font-size:24px">"Owner 21 closes strongest in the league"</div>' +
             '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><span class="wpill">▲ finisher</span><span class="wpill">elite WR</span><span class="wpill">slow starts</span></div></div>' +
           '</div>' +
           '<div class="callout" style="margin-top:10px"><span class="arrow">↑</span><span class="hand-note">THE differentiator — computed trends, not raw stats</span></div>' +
@@ -135,15 +135,15 @@
         '<div class="wrow c2">' +
           '<div class="wcard"><div class="wcard-h"><div class="wcard-t">Standings</div><span class="hand-note">full table →</span></div>' + standRows + '</div>' +
           '<div class="wcard"><div class="wcard-h"><div class="wcard-t">Week 14 Matchups</div></div>' +
-            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">sully</div><div class="num-block">142-98</div><div class="label" style="text-align:right">Tom</div></div>' +
-            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">Dave</div><div class="num-block" style="color:var(--waccent)">● LIVE</div><div class="label" style="text-align:right">harry</div></div>' +
-            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">Chris</div><div class="num-block">130-110</div><div class="label" style="text-align:right">Gregg</div></div>' +
+            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">Owner 21</div><div class="num-block">142-98</div><div class="label" style="text-align:right">Owner 15</div></div>' +
+            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">Owner 06</div><div class="num-block" style="color:var(--waccent)">● LIVE</div><div class="label" style="text-align:right">Owner 17</div></div>' +
+            '<div class="wtable-row" style="grid-template-columns:1fr 60px 1fr"><div class="label">Owner 03</div><div class="num-block">130-110</div><div class="label" style="text-align:right">Owner 08</div></div>' +
           '</div>' +
         '</div>' +
         '<div class="wrow c2">' +
           '<div class="wcard"><div class="wcard-h"><div class="wcard-t">Power Movers</div></div>' + movers + '</div>' +
           '<div class="wcard"><div class="wcard-h"><div class="wcard-t">Rivalry of week</div><span class="hand-note">→ matrix</span></div>' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><div class="label" style="font-size:26px">sully</div><div class="num-block" style="font-size:30px">11 – 7</div><div class="label" style="font-size:26px">harry</div></div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><div class="label" style="font-size:26px">Owner 21</div><div class="num-block" style="font-size:30px">11 – 7</div><div class="label" style="font-size:26px">Owner 17</div></div>' +
             '<div class="scribble w-100"></div><div class="scribble w-80" style="margin-top:8px"></div></div>' +
         '</div>' +
         '<div class="wrow c4">' +
@@ -155,7 +155,7 @@
     },
 
     standings: function () {
-      var rows = [["1","sully","10-3","2,011","W4"],["2","Dave","9-4","1,884","W2"],["3","harry","8-5","1,902","L1"],["4","Chris","8-5","1,640","W1"],["5","Gregg","7-6","1,712","L2"],["6","Dan","7-6","1,588","W1"]].map(function (r) {
+      var rows = [["1","Owner 21","10-3","2,011","W4"],["2","Owner 06","9-4","1,884","W2"],["3","Owner 17","8-5","1,902","L1"],["4","Owner 03","8-5","1,640","W1"],["5","Owner 08","7-6","1,712","L2"],["6","Owner 05","7-6","1,588","W1"]].map(function (r) {
         return '<div class="wtable-row" style="grid-template-columns:28px 1fr 70px 70px 60px"><div class="wcircle">' + r[0] + '</div><div class="scribble w-60"></div><div class="num-block">' + r[2] + '</div><div class="num-block">' + r[3] + '</div><div class="wpill" style="padding:2px 8px;font-size:14px">' + r[4] + '</div></div>';
       }).join("");
       return shell("standings",
@@ -179,7 +179,7 @@
     },
 
     rivalries: function () {
-      var names = ["sully","Dave","harry","Chris","Gregg","Dan"];
+      var names = ["Owner 21","Owner 06","Owner 17","Owner 03","Owner 08","Owner 05"];
       var head = '<div class="wheat-cell" style="border:none"></div>' + names.map(function (n) { return '<div class="wheat-cell" style="border:none">' + n.slice(0, 3) + '</div>'; }).join("");
       var grid = names.map(function (n, r) {
         var cells = '<div class="wheat-cell" style="border:none;justify-content:flex-end;padding-right:6px">' + n + '</div>';
@@ -216,19 +216,19 @@
 
   /* ================= RIVALRIES (data-driven) ================= */
   var MGRS = [
-    { id: "sully", name: "sully", av: "SU" },
-    { id: "dave",  name: "Dave",  av: "DA" },
-    { id: "harry", name: "harry", av: "HA" },
-    { id: "chris", name: "Chris", av: "CH" },
-    { id: "gregg", name: "Gregg", av: "GR" },
-    { id: "dan",   name: "Dan",   av: "DN" },
-    { id: "mike",  name: "Mike",  av: "MI" },
+    { id: "Owner 21", name: "Owner 21", av: "SU" },
+    { id: "Owner 06",  name: "Owner 06",  av: "DA" },
+    { id: "Owner 17", name: "Owner 17", av: "HA" },
+    { id: "Owner 03", name: "Owner 03", av: "CH" },
+    { id: "Owner 08", name: "Owner 08", av: "GR" },
+    { id: "Owner 05",   name: "Owner 05",   av: "DN" },
+    { id: "Owner 19",  name: "Owner 19",  av: "MI" },
     { id: "nick",  name: "Nick",  av: "NI" },
-    { id: "tom",   name: "Tom",   av: "TO" },
+    { id: "Owner 15",   name: "Owner 15",   av: "TO" },
     { id: "ben",   name: "Ben",   av: "BE" }
   ];
   var N = MGRS.length;
-  var NEVER_MET = { "ben:tom": 1, "mike:nick": 1 };   // demonstrate DataGap
+  var NEVER_MET = { "ben:Owner 15": 1, "Owner 19:nick": 1 };   // demonstrate DataGap
   var SEASONS_POOL = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016];
 
   function rng(seed) {
@@ -266,10 +266,10 @@
 
   // featured overrides for narrative pairs
   var FEATURED = {
-    "sully_harry": { total: 18, aWins: 11, avg: 8.4 },
-    "sully_dan":   { total: 26, aWins: 12, avg: 17.2 },
-    "mike_tom":    { total: 13, aWins: 11, avg: 26.5 },
-    "dave_chris":  { total: 15, aWins: 11, avg: 19.0 }
+    "Owner 21_Owner 17": { total: 18, aWins: 11, avg: 8.4 },
+    "Owner 21_Owner 05":   { total: 26, aWins: 12, avg: 17.2 },
+    "Owner 19_Owner 15":    { total: 13, aWins: 11, avg: 26.5 },
+    "Owner 06_Owner 03":  { total: 15, aWins: 11, avg: 19.0 }
   };
   function applyFeatured(ser) {
     if (!ser.met) return ser;
@@ -332,7 +332,7 @@
       if (e.key !== "Enter" && e.key !== " ") return;
       var c = e.target.closest(".hm-cell[data-i]"); if (!c) return; e.preventDefault(); selectCell(c);
     });
-    // default featured: sully (0) vs harry (2)
+    // default featured: Owner 21 (0) vs Owner 17 (2)
     renderH2H(0, 2);
     markSel(0, 2);
   }

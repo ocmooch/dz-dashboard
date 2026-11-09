@@ -82,7 +82,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   games. The result crowned **Jahmyr Gibbs (2025, 63.4 recon)** over the true record. It now scopes
   to **started** roster rows and scores each the box-score way — preferring authoritative
   `extra_data.nfl_com_points`, falling back to the reconstruction — yielding **Doug Martin, 67.2,
-  2012 wk9 (Sulladin's Salty Mujahideen)**, matching the NFL.com league-history page.
+  2012 wk9 (Team 142)**, matching the NFL.com league-history page.
 - **Attributed the matchup records.** `biggest_blowout` / `narrowest_win` exposed only a bare
   number plus a nested `winner` the grid never read, and `highest_scoring_matchup` carried only team
   ids. Each now carries both sides' season-correct names; the grid renders "<winner> def. <loser>"
@@ -100,7 +100,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   zero-classification — suppressing the false DNP, badging "Wk17+19" with the partial/wk19 split.
 - A matchup-level `resolution_note` banner explains the substitution, and a provenance-gated curated
   `league_event` (`analytics/curated_events.py`) merges into the league timeline. Schema gains
-  `HamlinSubstitute` + `resolution_note` (`gen:api` regenerated). Corrected title game = Smokin Doubs
+  `HamlinSubstitute` + `resolution_note` (`gen:api` regenerated). Corrected title game = Team 135
   139.54 def. CMC 101.0; ranks swap (CMC 1→2, Doubs 2→1), only the championship flips. Pairs with
   danger-zone PR #54 (idempotent `overrides/hamlin_2022_wk17.py`). Gate green: backend 448, frontend 192.
 
@@ -117,7 +117,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   `remaining = budget_at_week − cumulative spend`; `GET /v1/teams/{id}/faab-budget`; `FaabBudgetCard`
   on the Team page. Season budget = flat **$100** base + mid-season per-team **credits** parsed from
   budget `setting_change` events (`team_id=NULL`, matched by team name), modeled as timestamped credits
-  so the 2022 Ice Station Zebra **+$37 refund** reproduces (remaining never negative, lands at $0);
+  so the 2022 Team 083 **+$37 refund** reproduces (remaining never negative, lands at $0);
   Timeline events name the affected team + refund context. FAAB-era is **data-driven** on captured bids
   (pre-FAAB seasons return not-applicable, not a `DataGap`). Gate green: backend 438, frontend 191.
 

@@ -45,7 +45,7 @@ the part that makes a member screenshot a view into the group chat.
 
 Not "fantasy players." A **specific tribe of ~12–20 people** who have shared NFL seasons since
 2010. The entire value is *particularity*: the same number is worthless with a stranger's name
-and priceless with **Hamlin**, **Smokin Doubs**, the **Sacko**. Four real personas:
+and priceless with **Hamlin**, **Team 135**, the **Sacko**. Four real personas:
 
 - **The active veteran** — wants bragging rights and rivalry ammo. *"Where do I rank all-time?
   Do I own this guy?"*

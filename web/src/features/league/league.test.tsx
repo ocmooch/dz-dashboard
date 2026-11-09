@@ -228,7 +228,7 @@ describe("LeagueHistoryPage", () => {
                 category: "playoffs",
                 title: "Playoff field",
                 human_label: "Playoff field",
-                summary: "scott finalized the playoff field on 2018-12-02.",
+                summary: "Owner 20 finalized the playoff field on 2018-12-02.",
                 source: "nfl_com_transaction_log",
                 certainty: "source_limited",
                 tier: "T2",

@@ -274,7 +274,7 @@ describe("DraftPage", () => {
 
   it("switches leaderboards and chart together between weighted and points lenses", async () => {
     const weightedThird = {
-      ...pick(40, "Terry McLaurin", "Fie", 80, -73.56, 4, 4),
+      ...pick(40, "Terry McLaurin", "Team 055", 80, -73.56, 4, 4),
       impact: -2.1,
       impact_components: {
         base_value: -73.56,
@@ -292,7 +292,7 @@ describe("DraftPage", () => {
     };
     const pointsThird = { ...pick(43, "James Conner", "Brigands", 60, -119.8, 4, 7), impact: -1 };
     const bustOne = { ...KELCE, impact: -3 };
-    const bustTwo = { ...pick(2, "Mike Evans", "Fie", 40, -122.34), impact: -2.5 };
+    const bustTwo = { ...pick(2, "Owner 19 Evans", "Team 055", 40, -122.34), impact: -2.5 };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft") return Promise.resolve(envelope(BOARD));
       if (path === "/v1/seasons/{season_id}/draft/value")

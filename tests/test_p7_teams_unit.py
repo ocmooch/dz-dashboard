@@ -251,11 +251,11 @@ def test_faab_bid_falls_back_to_legacy_keys() -> None:
 def test_budget_adjust_regex_parses_team_and_delta() -> None:
     # The per-team budget event has no team_id; the team + before/after come from
     # the description text. The league-wide default (no from/to) must NOT match.
-    m = _BUDGET_ADJUST_RE.search("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'")
+    m = _BUDGET_ADJUST_RE.search("Owner 05 changed Team 083 Waiver Budget from '39' to '76'")
     assert m is not None
-    assert _norm_name(m.group("team")) == _norm_name("Ice Station Zebra")
+    assert _norm_name(m.group("team")) == _norm_name("Team 083")
     assert float(m.group("after")) - float(m.group("before")) == 37.0
-    assert _BUDGET_ADJUST_RE.search("Chris changed Waiver Budget to '100'") is None
+    assert _BUDGET_ADJUST_RE.search("Owner 03 changed Waiver Budget to '100'") is None
 
 
 def test_faab_budget_weeks_flat_budget_no_credits() -> None:
@@ -270,7 +270,7 @@ def test_faab_budget_weeks_flat_budget_no_credits() -> None:
 
 
 def test_faab_budget_weeks_mid_season_credit_refund() -> None:
-    # The Ice Station Zebra 2022 shape: $61 spent in wk2 plus a +$37 refund the
+    # The Team 083 2022 shape: $61 spent in wk2 plus a +$37 refund the
     # same week nets remaining to $76; a timestamped credit, not a flat total.
     weeks, total, final = _faab_budget_weeks({2: 61.0, 9: 12.0}, {2: 37.0}, 100.0)
     by_week = {w["week"]: w for w in weeks}

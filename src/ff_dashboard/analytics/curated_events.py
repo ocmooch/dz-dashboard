@@ -15,8 +15,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import TeamRoster
+from ff_pipeline.repository.models import Season, Team, TeamRoster
 from sqlalchemy import func, select
+
+from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -33,20 +35,24 @@ _HAMLIN_SUMMARY = (
     "substitute scores are reconstructed from public data (the Week-17 box score "
     "plus the Week-19 stat lines); a recovered private league note corroborated "
     "only the Week-19 component and was incomplete. The correction flips the 2022 "
-    "championship to Smokin Doubs over CMC Rules Everything Around Me."
+    "championship to {champion} over {runner_up}."
 )
 
 _HAMLIN_EVENT_YEAR = 2022
 
 
-def _hamlin_event() -> dict[str, Any]:
-    """The 2022 Hamlin no-contest event, in ``LeagueChangeDetail`` shape."""
+def _hamlin_event(champion: str, runner_up: str) -> dict[str, Any]:
+    """The 2022 Hamlin no-contest event, in ``LeagueChangeDetail`` shape.
+
+    Team names come from the DB (the corrected 2022 champion and runner-up), not
+    from source: the repo is public.
+    """
     return {
         "category": "league_event",
         "title": "2022 championship resolved after the Hamlin no-contest",
-        "summary": _HAMLIN_SUMMARY,
-        "before": "CMC Rules Everything Around Me (as originally recorded)",
-        "after": "Smokin Doubs (Week-17 partial + Week-19 substitution)",
+        "summary": _HAMLIN_SUMMARY.format(champion=champion, runner_up=runner_up),
+        "before": f"{runner_up} (as originally recorded)",
+        "after": f"{champion} (Week-17 partial + Week-19 substitution)",
         "source": "league_ruling",
         "certainty": "verified",
         "changed_at": "2023-01-02",
@@ -81,8 +87,30 @@ def curated_events_by_year(session: Session) -> dict[int, list[dict[str, Any]]]:
     """Curated narrative events keyed by season year (empty when none apply)."""
     events: dict[int, list[dict[str, Any]]] = {}
     if _hamlin_resolution_present(session):
-        events.setdefault(_HAMLIN_EVENT_YEAR, []).append(_hamlin_event())
+        events.setdefault(_HAMLIN_EVENT_YEAR, []).append(_hamlin_event(*_hamlin_finalists(session)))
     return events
+
+
+def _hamlin_finalists(session: Session) -> tuple[str, str]:
+    """(champion, runner-up) team names of the corrected 2022 season, from the DB.
+
+    Falls back to neutral wording when the season's finalists are not recorded,
+    so the event still renders.
+    """
+    fallback = ("the corrected champion", "the originally recorded champion")
+    season = session.execute(
+        select(Season).where(Season.year == _HAMLIN_EVENT_YEAR)
+    ).scalar_one_or_none()
+    if season is None or season.champion_team_id is None or season.runner_up_team_id is None:
+        return fallback
+    champ = session.get(Team, season.champion_team_id)
+    runner = session.get(Team, season.runner_up_team_id)
+    if champ is None or runner is None:
+        return fallback
+    return (
+        period_team_name(champ, _HAMLIN_EVENT_YEAR) or fallback[0],
+        period_team_name(runner, _HAMLIN_EVENT_YEAR) or fallback[1],
+    )
 
 
 __all__ = ["curated_events_by_year"]

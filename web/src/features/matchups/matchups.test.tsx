@@ -272,8 +272,8 @@ describe("BoxScorePage", () => {
             "cardiac arrest and ruled a no-contest by the NFL (never replayed).",
           home: {
             team_id: 20,
-            team_name: "Smokin Doubs",
-            owner_name: "Jeff",
+            team_name: "Team 135",
+            owner_name: "Owner 10",
             total_score: 139.54,
             starter_points: 139.54,
             bench_points: 0,
@@ -310,7 +310,7 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/555");
-    await screen.findByText("Smokin Doubs");
+    await screen.findByText("Team 135");
     expect(screen.getByText(/no-contest resolution/i)).toBeInTheDocument();
     expect(screen.getByText(/ruled a no-contest/i)).toBeInTheDocument();
     expect(screen.getByText("Wk17+19")).toBeInTheDocument();

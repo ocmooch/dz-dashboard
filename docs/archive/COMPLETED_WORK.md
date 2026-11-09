@@ -147,7 +147,7 @@ The wave of branches that earlier docs described as "awaiting PR" all landed:
   `b1d3e4f5a6c7`, seed YAML, loader) + `queries.commissioner_terms`;
   `analytics/commissioners.commissioner_history`; `CommissionerTerm` on `LeagueOverview` +
   `OwnerCareer`; commissioner strip on `/league`, per-season badge, and a manager-profile card.
-  Succession harry → sully → scott → Dave → Jeff → Chris → DJ → Rob (2024–present).
+  Succession Owner 17 → Owner 21 → Owner 20 → Owner 06 → Owner 10 → Owner 03 → Owner 04 → Owner 14 (2024–present).
 - **Playoffs/Bracket (F2.3) — fully shipped. PRs #55, #60.** Evolved from the caveated `/bracket`
   endpoint (§3b) into a true bracket visualization (#55), then split into separate **championship**
   and **consolation** brackets (#60). Closes N2 as *shipped* (was "resolved locally"). F-49 source

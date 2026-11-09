@@ -396,8 +396,8 @@ def manager_nemeses(session: Session) -> dict[str, Any]:
     (active or significant-stint departed) so a manager's most compelling current
     rivalry leads. An even more extreme record against a short-stint departed
     opponent is still surfaced, as a deprioritized ``*_departed`` secondary —
-    visible, never the headline (e.g. "Harry owns Tom" stays, under "Harry owns
-    Kofi")."""
+    visible, never the headline (e.g. "Owner 17 owns Owner 15" stays, under "Owner 17 owns
+    Owner 13")."""
     names = owner_name_map(session)
     active = owner_active_map(session)
     prom = owner_prominence_map(session)

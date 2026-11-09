@@ -15,7 +15,7 @@ purpose-built session.
 from __future__ import annotations
 
 from ff_pipeline.repository.models import Base, League, Season, Team, TeamRoster
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from ff_dashboard.analytics.curated_events import curated_events_by_year
@@ -137,5 +137,32 @@ def test_curated_event_present_with_provenance() -> None:
     assert event["certainty"] == "verified"
     assert event["changed_at"] == "2023-01-02"
     assert "no-contest" in event["summary"].lower()
-    assert "smokin doubs" in event["summary"].lower()
+    # no finalists recorded in this minimal DB: neutral wording, never a crash
+    assert "to the corrected champion over" in event["summary"]
+    session.close()
+
+
+def test_curated_event_names_the_finalists_from_the_db() -> None:
+    session = _minimal_session()
+    season = session.execute(select(Season).where(Season.year == 2022)).scalar_one()
+    session.add(Team(season_id=season.season_id, owner_id=2, team_name="Team 002"))
+    session.flush()
+    season.champion_team_id = 2
+    season.runner_up_team_id = 1
+    session.add(
+        TeamRoster(
+            team_id=1,
+            player_id=1,
+            season_year=2022,
+            week=17,
+            roster_slot="QB",
+            is_starter=True,
+            extra_data={"hamlin_substitute": {"basis": "no_contest_wk17partial_plus_wk19"}},
+        )
+    )
+    session.commit()
+    event = curated_events_by_year(session)[2022][0]
+    assert "to Team 002 over T." in event["summary"]
+    assert event["before"].startswith("T (as originally recorded)")
+    assert event["after"].startswith("Team 002 ")
     session.close()
