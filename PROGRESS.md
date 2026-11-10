@@ -44,11 +44,18 @@ D1–D3 on a 2026 DB copy.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
 - Merged to `dev` (PR #130, 2026-11-10); branch deleted.
 
-**D5: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d5-official-brackets.md` (branch
-`feature/sleeper-d5-official-brackets`). Official brackets extend `/bracket` additively (`source`,
-placements, provisional seeds); Sacko from official placement, agreeing with the derived one on a decided
-fixture; potential points = computed everywhere + Sleeper `ppts` as a cross-check; official divisions
-render nothing while `not_used`. Next: BUILD, starting with the decided-bracket fixture.
+**D5: BUILT (2026-11-10), gate green; PR to `dev` open.** Plan + as-built:
+`docs/plans/sleeper-d5-official-brackets.md` (branch `feature/sleeper-d5-official-brackets`).
+- `analytics/brackets.py`: official Sleeper brackets in the existing `/bracket` shape (+`source`,
+  `is_provisional`, game `placement` / `week_pending`, nullable `matchup_id`). Legacy stays derived
+  with a provenance note. The classifier and Sacko read official brackets for Sleeper (the derived
+  rule picked the wrong Sacko on Sleeper's bracket shape).
+- Potential points on Standings (computed for every era + Sleeper `ppts` cross-check, uncertain
+  `bench_or_reserve` weeks noted). Efficiency no longer counts the unfinished week.
+- Official divisions supported (`division_source`); `not_used` renders nothing.
+- New fixture: `decided_db_path` / `decided_client` (fully decided 6+6 playoff in weeks 6–8).
+- Open: 2010–2019 divisions view lacks Potential; Playoffs visual baseline → D8.
+Next: D6 (transaction market) or D7 (player status); they're independent.
 
 **D4: DONE (2026-11-10); merged to `dev` (PR #131).** Plan + as-built:
 `docs/plans/sleeper-d4-cross-era-aggregation.md` (branch `feature/sleeper-d4-cross-era-aggregation`).

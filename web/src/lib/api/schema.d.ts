@@ -1142,7 +1142,7 @@ export interface components {
         /** BracketGame */
         BracketGame: {
             /** Matchup Id */
-            matchup_id: number;
+            matchup_id?: number | null;
             /**
              * Is Playoff
              * @default false
@@ -1156,6 +1156,13 @@ export interface components {
             team_b?: components["schemas"]["BracketTeam"] | null;
             /** Winner Team Id */
             winner_team_id?: number | null;
+            /** Placement */
+            placement?: number | null;
+            /**
+             * Week Pending
+             * @default false
+             */
+            week_pending: boolean;
         };
         /** BracketRound */
         BracketRound: {
@@ -3238,8 +3245,9 @@ export interface components {
         };
         /**
          * SackoRef
-         * @description The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket) or
-         *     "recorded" (the stored last-place team, where the bracket can't be split).
+         * @description The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket), "recorded"
+         *     (the stored last-place team, where the bracket can't be split) or "official" (the platform's
+         *     bracket decided it; Sleeper).
          */
         SackoRef: {
             /** Team Id */
@@ -3371,6 +3379,17 @@ export interface components {
             consolation_distinguished: boolean;
             playoff_bracket?: components["schemas"]["BracketSection"] | null;
             consolation_bracket?: components["schemas"]["BracketSection"] | null;
+            /**
+             * Source
+             * @default derived
+             * @enum {string}
+             */
+            source: "official" | "derived";
+            /**
+             * Is Provisional
+             * @default false
+             */
+            is_provisional: boolean;
         };
         /** SeasonChangeFlags */
         SeasonChangeFlags: {
@@ -3603,6 +3622,10 @@ export interface components {
             conference_id?: number | null;
             /** Conference Name */
             conference_name?: string | null;
+            /** Potential Points */
+            potential_points?: number | null;
+            /** Potential Points Official */
+            potential_points_official?: number | null;
         };
         /** Standings */
         Standings: {
@@ -3622,6 +3645,13 @@ export interface components {
             tiebreak_caveat: boolean;
             /** Rows */
             rows: components["schemas"]["StandingRow"][];
+            /**
+             * Potential Points Uncertain Weeks
+             * @default []
+             */
+            potential_points_uncertain_weeks: number[];
+            /** Division Source */
+            division_source?: ("official" | "derived") | null;
         };
         /** StandingsInsightTeam */
         StandingsInsightTeam: {

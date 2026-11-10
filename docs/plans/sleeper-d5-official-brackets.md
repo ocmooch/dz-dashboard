@@ -38,9 +38,12 @@ to today with a "derived" provenance note; Sacko derivation agrees on both.
 2. **Potential points: one method across eras** (`01` row 101 wins over row 61). `potential_points` is
    always the BFF-computed optimal total. Sleeper's `ppts` is a separate `potential_points_official`
    cross-check field and is never mixed into the computed series.
-3. **The official Sacko** = the 12th-place team: `loser_team_id` of the losers-bracket game with
-   `placement` 11, else `seasons.last_place_team_id` once set. It is never derived for an undecided
-   bracket.
+3. **The official Sacko** = `seasons.last_place_team_id` on a Sleeper season. Upstream writes it
+   from the bracket: `placement` is bracket-relative (Sleeper `p`), and absolute place =
+   offset + p for the winner and offset + p + 1 for the loser (losers offset = winners size). It is
+   written only once that week is finalized. The Toilet Bowl is the losers game with the highest
+   `placement` (11th/12th in a 6+6 league), and its loser must equal `last_place_team_id`. The Sacko is
+   never derived for an undecided bracket.
 
 ## Scope
 
@@ -52,8 +55,9 @@ to today with a "derived" provenance note; Sacko derivation agrees on both.
     `consolation_distinguished=True`). It returns `None` when the season has no rows, which means the
     caller falls back.
     - Round labels use the existing `_build_bracket_section` vocabulary.
-    - Game labels come from `placement`: winners p1 = Championship, p3 = 3rd Place, p5 = 5th Place;
-      losers p7/p9/p11 = 7th/9th/11th Place, and the p11 game is the Toilet Bowl.
+    - Game labels come from the absolute place (offset + `placement`): 1 = Championship, 3/5 =
+      3rd/5th Place, 7/9/11 = 7th/9th/11th Place (the legacy `_LABELS` vocabulary). The top-placement
+      losers game is the Toilet Bowl.
     - Byes are teams that first appear in round 2 (`team*_from` null), shown as `bye_teams`.
     - Scores are joined from `matchups` at week `regular_season_weeks + round` for the team pair. The
       join goes through `game_state`, so a pending week gives `score None` and `week_pending True`,
@@ -158,3 +162,44 @@ the note line. If it changes beyond that, stop and inspect.
   null: render seeds and give no Sacko.
 - Efficiency may already re-solve per call, so check the standings route's latency on the live DB
   (16 seasons × 12 teams × 14 weeks). Cache per season if it's slow.
+
+## As built (2026-11-10)
+
+- **Fixture:** `decided_db_path` / `decided_client` (`DecidedSource` in `tests/sleeper_fixture.py`).
+  Beyond upstream's `_decided`, it pairs playoff weeks by bracket game (idle teams get no
+  `matchup_id`, like real Sleeper) and drops week 9 (a season has no games after its final). Upstream
+  places teams 1–12 on it: champion 21, Sacko 27.
+- **The derived rule misreads Sleeper.** On the decided fixture it found Sacko 20 (the 9th-place loser),
+  not 27, because Sleeper plays the 11th/12th and 5th/6th games a round early. It also rendered
+  bye/placed rows as opponent-less games. Fixes:
+  - `postseason_classification` uses `brackets.official_classification` for any season with bracket
+    rows;
+  - `season_bracket` skips idle rows (legacy has none).
+- **Sacko:** `source: "official"` = `seasons.last_place_team_id`, tied to the top-placement losers
+  game. The test checks it against the fixture's own bracket answer, the recorded value,
+  `season_sacko_map` and the bracket flag.
+- **Deviation: no `provenance_note` field.** `source` + `is_provisional` carry it, and the copy is in
+  `lib/platform.ts` (`bracketProvenanceText`, `PROVISIONAL_BRACKET_TEXT`).
+- **Potential points:**
+  - Implemented as `efficiency.season_potential_points` on a shared `team_lineup_weeks`. Standings rows
+    get `potential_points` / `potential_points_official`, and the payload gets
+    `potential_points_uncertain_weeks` (it's a week list, not prose, so the SPA writes the note).
+  - Cached per (season, through_week, pipeline run). Live 2024: 2.3 s cold, 7 ms warm.
+  - On the mixed fixture, computed == Sleeper `ppts` for every team despite weeks 1–8 being
+    `bench_or_reserve`.
+- **Leak fixed:** `season_efficiency` counted the unfinished week's live player points (it never
+  checked pending). It now skips pending team-weeks. This changes 2026 only.
+- **Divisions:**
+  - `conferences.official_division_map` feeds `compute_standings` rows and `conference_map` when
+    `teams.division` is set;
+  - Standings gets `division_source` (`official` / `derived` / null);
+  - `not_used` renders nothing.
+- **Open (not D5 "Done when"):**
+  - the 2010–2019 divisions view (`/conferences`) has no Potential column and no official-division
+    path;
+  - Playoffs has no visual baseline (add in D8 per-era baselines).
+- **Gate:**
+  - pytest 586 passed / 1 skipped, ruff + mypy clean, write-check empty;
+  - contract no drift, Prettier + tsc clean, vitest 239, e2e 19/19;
+  - both parity suites + live golden green with no regeneration;
+  - live click-through of 2025 Playoffs / Standings done.

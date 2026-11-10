@@ -42,3 +42,18 @@ test("standings and matchups mark the unfinished week", async ({ page }) => {
   await expect(page.getByText(/Week 9 isn.t final yet/)).toBeVisible();
   await expect(page.getByText("Awaiting final").first()).toBeVisible();
 });
+
+test("playoffs show the official bracket's current seeds; standings show potential points", async ({
+  page,
+}) => {
+  await page.goto("/playoffs");
+  await expect(page.getByRole("heading", { name: "Playoffs" })).toBeVisible();
+  await expect(page.getByText("Official bracket, as recorded by Sleeper.")).toBeVisible();
+  await expect(page.getByText(/may change until the playoffs are decided/)).toBeVisible();
+  await expect(page.getByText("Championship Bracket")).toBeVisible();
+  await expect(page.getByText("TBD").first()).toBeVisible();
+
+  await page.goto("/standings");
+  await expect(page.getByRole("columnheader", { name: "Potential" })).toBeVisible();
+  await expect(page.getByText(/Weeks 1–8: an injured-reserve player may sit on the bench/)).toBeVisible();
+});

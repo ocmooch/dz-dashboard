@@ -261,4 +261,54 @@ describe("PlayoffsPage", () => {
     const lensLink = screen.getByText(/week-by-week lens/i).closest("a");
     expect(lensLink).toHaveAttribute("href", "/standings?lens=power");
   });
+
+  it("marks a legacy bracket as derived", async () => {
+    renderPage();
+    expect(await screen.findByText("Bracket derived from who played whom.")).toBeInTheDocument();
+    expect(screen.queryByText(/may change until the playoffs are decided/i)).not.toBeInTheDocument();
+  });
+
+  it("renders an undecided official bracket as provisional seeds", async () => {
+    const seeded = (matchup_id: number | null, week_pending = false) => ({
+      matchup_id,
+      is_playoff: true,
+      is_consolation: false,
+      game_label: "Championship",
+      placement: 1,
+      week_pending,
+      winner_team_id: null,
+      team_a: {
+        team_id: 2,
+        team_name: "Maverick 2026",
+        owner_id: 2,
+        owner_name: "Maverick",
+        is_winner: false,
+      },
+      team_b: null,
+    });
+    bracketResponse = {
+      ...BRACKET,
+      source: "official",
+      is_provisional: true,
+      playoff_bracket: {
+        size: 2,
+        bye_teams: [],
+        rounds: [{ round_num: 1, round_label: "Finals", bye_teams: [], games: [seeded(null)] }],
+      },
+      consolation_bracket: {
+        size: 2,
+        bye_teams: [],
+        rounds: [{ round_num: 1, round_label: "Finals", bye_teams: [], games: [seeded(77, true)] }],
+      },
+    };
+    renderPage();
+    expect(await screen.findByText(/may change until the playoffs are decided/i)).toBeInTheDocument();
+    expect(screen.getByText("Official bracket.")).toBeInTheDocument();
+    expect(screen.getAllByText("TBD")).toHaveLength(2);
+    expect(screen.getByText("Awaiting final")).toBeInTheDocument();
+    // an unplayed official game has no matchup to open; a played (pending) one does
+    const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain("/matchups/77");
+    expect(hrefs).not.toContain("/matchups/null");
+  });
 });

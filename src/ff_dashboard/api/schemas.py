@@ -318,6 +318,10 @@ class StandingRow(BaseModel):
     is_sacko: bool = False
     conference_id: int | None = None
     conference_name: str | None = None
+    # Potential points (best possible lineup), the BFF's one method for every era; None = gap.
+    # ``potential_points_official`` is the platform's own figure (Sleeper), a cross-check only.
+    potential_points: float | None = None
+    potential_points_official: float | None = None
 
 
 class Standings(BaseModel):
@@ -331,6 +335,11 @@ class Standings(BaseModel):
     rank_basis: str  # "final_rank" | "computed"
     tiebreak_caveat: bool
     rows: list[StandingRow]
+    # Counted weeks where a bench slot may really be IR (Sleeper ``bench_or_reserve``), so the
+    # computed potential points may exceed the platform's. Empty when none.
+    potential_points_uncertain_weeks: list[int] = []
+    # "official" (platform-recorded) | "derived" (reviewed NFL.com history) | None (no divisions).
+    division_source: Literal["official", "derived"] | None = None
 
 
 class TimelinePoint(BaseModel):
