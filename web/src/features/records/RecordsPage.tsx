@@ -9,12 +9,14 @@ import {
   Chip,
   DataGap,
   ErrorState,
+  ProvenanceNote,
   Skeleton,
   throughWeekText,
   Trophy,
 } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText, scoringEraText, type AggregationNote, type ScoringEra } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchRecords() {
@@ -53,6 +55,8 @@ type RecordValue = {
   owner_a?: OwnerLite;
   owner_b?: OwnerLite;
   score_gap?: boolean;
+  // rules-era marker (Sleeper D4): the scoring era the record was set under.
+  scoring_era?: ScoringEra | null;
 };
 
 const RECORDS: { key: string; label: string; suffix?: string }[] = [
@@ -103,6 +107,7 @@ function RecordBody({
   available,
   reason,
   scoreGap,
+  eraText,
 }: {
   label: string;
   suffix?: string;
@@ -111,6 +116,7 @@ function RecordBody({
   available: boolean;
   reason?: string;
   scoreGap?: boolean;
+  eraText?: string | null;
 }) {
   return (
     <Card hover className="h-full p-5">
@@ -127,6 +133,11 @@ function RecordBody({
             </div>
           )}
           <div className="mt-2 text-[var(--fs-sm)] text-muted">{detail}</div>
+          {eraText && (
+            <div className="mt-2">
+              <Badge>{eraText}</Badge>
+            </div>
+          )}
         </>
       ) : (
         <DataGap reason={reason} />
@@ -142,6 +153,7 @@ function RecordCard({
   rec,
   value,
   detail,
+  eraCount,
 }: {
   recordKey: string;
   label: string;
@@ -149,6 +161,7 @@ function RecordCard({
   rec?: RecordValue;
   value?: number;
   detail?: string;
+  eraCount?: number;
 }) {
   const available = rec?.available !== false && (value ?? rec?.value) !== undefined;
   const href = rec && available ? recordHref(recordKey, rec) : null;
@@ -161,6 +174,7 @@ function RecordCard({
       available={available}
       reason={rec?.reason}
       scoreGap={rec?.score_gap}
+      eraText={scoringEraText(rec?.scoring_era, eraCount)}
     />
   );
   if (href) {
@@ -245,6 +259,8 @@ export function RecordsPage() {
 
   const era = Array.isArray(data?.scored_era as unknown) ? (data!.scored_era as unknown as number[]) : null;
   const rivalry = data?.closest_rivalry as RecordValue | undefined;
+  const eraCount = data?.scoring_era_count as unknown as number | undefined;
+  const note = aggregationNoteText(data?.aggregation_note as unknown as AggregationNote | null);
   const rivalryNames =
     rivalry?.owner_a?.display_name && rivalry?.owner_b?.display_name
       ? `${rivalry.owner_a.display_name} vs ${rivalry.owner_b.display_name}`
@@ -281,7 +297,14 @@ export function RecordsPage() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleRecords.map((r) => (
-              <RecordCard key={r.key} recordKey={r.key} label={r.label} suffix={r.suffix} rec={data[r.key]} />
+              <RecordCard
+                key={r.key}
+                recordKey={r.key}
+                label={r.label}
+                suffix={r.suffix}
+                rec={data[r.key]}
+                eraCount={eraCount}
+              />
             ))}
             <RecordCard
               recordKey="closest_rivalry"
@@ -292,6 +315,7 @@ export function RecordsPage() {
               detail={rivalryNames}
             />
           </div>
+          <ProvenanceNote>{note}</ProvenanceNote>
 
           <Card>
             <CardHeader eyebrow="league trophy case" title="Championship History" />

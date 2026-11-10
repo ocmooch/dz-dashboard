@@ -3,19 +3,21 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Card, Chip, ErrorState, RecordLine, Skeleton, Tabs, Trophy } from "@/design-system";
+import { Card, Chip, ErrorState, ProvenanceNote, RecordLine, Skeleton, Tabs, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { ordinal, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type TeamRow = components["schemas"]["TeamsIndexRow"];
+type TeamsIndex = components["schemas"]["TeamsIndex"];
 type GroupBy = "season" | "owner";
 
-async function fetchTeams(): Promise<TeamRow[]> {
+async function fetchTeams(): Promise<TeamsIndex> {
   const { data, error } = await api.GET("/v1/teams");
   if (error || !data) throw new Error("Failed to load teams");
-  return data.data.teams;
+  return data.data; // the full TeamsIndex: qk.teams is shared with the Viz Lab
 }
 
 /** A collapsible section — the accordion unit for either grouping. */
@@ -90,10 +92,16 @@ function TeamRowItem({ t, showSeason }: { t: TeamRow; showSeason: boolean }) {
 export function TeamsIndexPage() {
   const { current } = useSeasons();
   const [groupBy, setGroupBy] = useState<GroupBy>("season");
-  const { data, isLoading, isError, refetch } = useQuery({
+  const {
+    data: payload,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.teams,
     queryFn: fetchTeams,
   });
+  const data = payload?.teams;
 
   // Build ordered groups for the active grouping. By season: newest first. By
   // owner: prominence-tiered (active, then long-tenured departed, then short-
@@ -196,6 +204,7 @@ export function TeamsIndexPage() {
             </div>
           </Section>
         ))}
+      <ProvenanceNote>{aggregationNoteText(payload?.aggregation_note)}</ProvenanceNote>
     </div>
   );
 }

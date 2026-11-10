@@ -14,7 +14,7 @@ import { qk } from "@/lib/queryKeys";
 async function fetchOwners() {
   const { data, error } = await api.GET("/v1/owners");
   if (error || !data) throw new Error("Failed to load owners");
-  return data.data.owners;
+  return data.data; // the full OwnersList: qk.owners is shared with the Managers page
 }
 
 async function fetchSeasons(id: number) {
@@ -28,7 +28,7 @@ async function fetchSeasons(id: number) {
 async function fetchTeams() {
   const { data, error } = await api.GET("/v1/teams");
   if (error || !data) throw new Error("Failed to load teams");
-  return data.data.teams;
+  return data.data; // the full TeamsIndex: qk.teams is shared with the Teams page
 }
 
 async function fetchSeasonList() {
@@ -96,7 +96,7 @@ function buildCumulativePoints(rows: TeamRow[], topN = 8): { data: ChartRow[]; s
 /** Exhibit 2 — cumulative league points by manager (dynasty stream). */
 function DynastyStreamExhibit() {
   const teams = useQuery({ queryKey: qk.teams, queryFn: fetchTeams });
-  const stream = teams.data ? buildCumulativePoints(teams.data) : null;
+  const stream = teams.data ? buildCumulativePoints(teams.data.teams) : null;
   return (
     <Exhibit
       title="Dynasty Stream"
@@ -152,7 +152,7 @@ function LegacySpineExhibit() {
   const [picked, setPicked] = useState<number | null>(null);
 
   // Default to the longest-tenured manager — the richest spine to look at first.
-  const sorted = [...(owners.data ?? [])].sort((a, b) => b.seasons_played - a.seasons_played);
+  const sorted = [...(owners.data?.owners ?? [])].sort((a, b) => b.seasons_played - a.seasons_played);
   const ownerId = picked ?? sorted[0]?.owner_id ?? null;
 
   const seasons = useQuery({

@@ -2,11 +2,14 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  aggregationNoteText,
   capabilityGapText,
   capabilityStateLabel,
+  draftTypeLabel,
   isRendered,
   officialPointsNote,
   provenanceText,
+  scoringEraText,
   slotNoteText,
   tradeAssetsText,
 } from "@/lib/platform";
@@ -118,5 +121,52 @@ describe("Sleeper D3 copy", () => {
     expect(throughWeekText(8)).toBe("through week 8");
     expect(slotNoteText("bench_or_reserve")).toMatch(/Bench or reserve/);
     expect(slotNoteText(null)).toBeNull();
+  });
+});
+
+describe("cross-era aggregation copy (D4)", () => {
+  const partial = [{ season_year: 2026, through_week: 8 }];
+
+  it("renders nothing for a null note", () => {
+    expect(aggregationNoteText(null)).toBeNull();
+    expect(aggregationNoteText(undefined)).toBeNull();
+  });
+
+  it("names the in-progress season and its last final week", () => {
+    const note = {
+      used_seasons: [2025, 2026],
+      excluded_seasons: [],
+      partial_seasons: partial,
+      reason: "in_progress_partial",
+    };
+    expect(aggregationNoteText(note)).toBe("Includes 2026 through week 8 (in progress; subject to change).");
+    expect(aggregationNoteText({ ...note, partial_seasons: [{ season_year: 2026, through_week: 0 }] })).toBe(
+      "Includes 2026 (no week final yet) (in progress; subject to change).",
+    );
+  });
+
+  it("splits single-game and season-total records", () => {
+    const note = {
+      used_seasons: [2025, 2026],
+      excluded_seasons: [2026],
+      partial_seasons: partial,
+      reason: "season_totals_exclude_in_progress",
+    };
+    expect(aggregationNoteText(note)).toBe(
+      "Single-game records include 2026 through week 8. Season totals leave out 2026 (in progress).",
+    );
+  });
+
+  it("shows a scoring-era chip only when the league spans more than one era", () => {
+    const era = { era_id: 2, label: "2011–2025", start: 2011, end: 2025 };
+    expect(scoringEraText(era, 3)).toBe("2011–2025 scoring");
+    expect(scoringEraText(era, 1)).toBeNull();
+    expect(scoringEraText(null, 3)).toBeNull();
+  });
+
+  it("labels known draft types and hides unknown ones", () => {
+    expect(draftTypeLabel("snake")).toBe("Snake draft");
+    expect(draftTypeLabel(null)).toBeNull();
+    expect(draftTypeLabel("mystery")).toBeNull();
   });
 });

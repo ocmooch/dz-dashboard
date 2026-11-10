@@ -958,6 +958,28 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /**
+         * AggregationNote
+         * @description How a cross-season payload treated seasons that differ (Sleeper D4, `01` §5).
+         *
+         *     Present only when something was excluded or partially counted; null otherwise.
+         */
+        AggregationNote: {
+            /** Used Seasons */
+            used_seasons: number[];
+            /**
+             * Excluded Seasons
+             * @default []
+             */
+            excluded_seasons: number[];
+            /**
+             * Partial Seasons
+             * @default []
+             */
+            partial_seasons: components["schemas"]["PartialSeason"][];
+            /** Reason */
+            reason: string;
+        };
         /** AvailabilityWeek */
         AvailabilityWeek: {
             /** Week */
@@ -1485,6 +1507,8 @@ export interface components {
             /** Rounds */
             rounds: components["schemas"]["DraftRound"][];
             adp_coverage: components["schemas"]["AdpCoverage"];
+            /** Draft Type */
+            draft_type?: string | null;
         };
         /** DraftManagerTendency */
         DraftManagerTendency: {
@@ -2121,6 +2145,7 @@ export interface components {
              * @default []
              */
             meetings: components["schemas"]["H2HMeeting"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -2463,6 +2488,12 @@ export interface components {
         LeagueStories: {
             /** Stories */
             stories: components["schemas"]["StoryCard"][];
+            /**
+             * Scoring Era Count
+             * @default 0
+             */
+            scoring_era_count: number;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** LeagueTimeline */
         LeagueTimeline: {
@@ -2660,6 +2691,7 @@ export interface components {
              * @default []
              */
             commissioner_terms: components["schemas"]["CommissionerTerm"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** OwnerConsistency */
         OwnerConsistency: {
@@ -2740,6 +2772,7 @@ export interface components {
             display_name?: string | null;
             /** Seasons */
             seasons: components["schemas"]["OwnerSeasonRow"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * OwnerStory
@@ -2755,6 +2788,7 @@ export interface components {
             owner: components["schemas"]["OwnerRef"];
             /** Available */
             available: boolean;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
             /** Signature Win */
             signature_win?: {
                 [key: string]: unknown;
@@ -2794,11 +2828,13 @@ export interface components {
             display_name?: string | null;
             /** Points */
             points: components["schemas"]["TrajectoryPoint"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** OwnersList */
         OwnersList: {
             /** Owners */
             owners: components["schemas"]["OwnerCareer"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * OwnershipSpan
@@ -2824,6 +2860,13 @@ export interface components {
             weeks: number;
             /** Acquisition Type */
             acquisition_type?: string | null;
+        };
+        /** PartialSeason */
+        PartialSeason: {
+            /** Season Year */
+            season_year: number;
+            /** Through Week */
+            through_week: number;
         };
         /**
          * PlatformAccount
@@ -3106,6 +3149,12 @@ export interface components {
         RecordsBook: {
             /** Scored Era */
             scored_era: number[];
+            /**
+             * Scoring Era Count
+             * @default 0
+             */
+            scoring_era_count: number;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -3150,6 +3199,7 @@ export interface components {
             playoffs: {
                 [key: string]: unknown;
             };
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -3159,6 +3209,7 @@ export interface components {
             owners: components["schemas"]["RivalryOwner"][];
             /** Cells */
             cells: components["schemas"]["RivalryCell"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** RivalryOwner */
         RivalryOwner: {
@@ -3232,6 +3283,20 @@ export interface components {
              * @default false
              */
             pending: boolean;
+        };
+        /**
+         * ScoringEra
+         * @description Contiguous seasons with the same stored scoring rules (the rules-era marker).
+         */
+        ScoringEra: {
+            /** Era Id */
+            era_id: number;
+            /** Label */
+            label: string;
+            /** Start */
+            start: number;
+            /** End */
+            end?: number | null;
         };
         /** ScoringTrendPoint */
         ScoringTrendPoint: {
@@ -3634,6 +3699,7 @@ export interface components {
             primary_owner?: components["schemas"]["OwnerRef"] | null;
             /** Caveat */
             caveat?: string | null;
+            scoring_era?: components["schemas"]["ScoringEra"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -3897,6 +3963,7 @@ export interface components {
         TeamsIndex: {
             /** Teams */
             teams: components["schemas"]["TeamsIndexRow"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * TeamsIndexRow

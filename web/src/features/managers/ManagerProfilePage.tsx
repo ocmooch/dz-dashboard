@@ -9,6 +9,7 @@ import {
   Chip,
   DataGap,
   EmptyState,
+  ProvenanceNote,
   RecordLine,
   Sacko,
   Skeleton,
@@ -18,6 +19,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 import { ManagerStory, type OwnerStoryData } from "./ManagerStory";
@@ -290,6 +292,7 @@ export function ManagerProfilePage() {
             <Stat label="Titles" value={c.championships} unit="★" tone="accent" />
             <Stat label="Sackos" value={c.sackos} unit="💩" />
           </div>
+          <ProvenanceNote>{aggregationNoteText(c.aggregation_note)}</ProvenanceNote>
         </Card>
       )}
 

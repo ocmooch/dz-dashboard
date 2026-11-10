@@ -33,7 +33,12 @@ def is_idle(m: Any) -> bool:
 
 def is_pending(m: Any) -> bool:
     """The week is unfinished and unscored (Sleeper only; legacy rows are never pending)."""
-    return _extra(m).get("finalized") is False
+    return is_pending_extra(_extra(m))
+
+
+def is_pending_extra(extra: dict[str, Any] | None) -> bool:
+    """``is_pending`` for a bare ``matchups.extra_data`` (column-only selects)."""
+    return (extra or {}).get("finalized") is False
 
 
 def is_final_game(m: Any) -> bool:

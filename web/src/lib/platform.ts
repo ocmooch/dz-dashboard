@@ -136,3 +136,49 @@ export function tradeAssetsText(assets: {
 export function slotNoteText(note: string | null | undefined): string | null {
   return note === "bench_or_reserve" ? "Bench or reserve: this week's IR list wasn't archived." : null;
 }
+
+// ── Cross-era aggregation (Sleeper D4) ──────────────────────────────────────
+
+export type AggregationNote = components["schemas"]["AggregationNote"];
+export type ScoringEra = components["schemas"]["ScoringEra"];
+
+function partialPhrase(p: { season_year: number; through_week: number }): string {
+  return p.through_week > 0
+    ? `${p.season_year} through week ${p.through_week}`
+    : `${p.season_year} (no week final yet)`;
+}
+
+/** One line under a cross-season card: what was partly counted or left out. `null` renders nothing. */
+export function aggregationNoteText(note: AggregationNote | null | undefined): string | null {
+  if (!note) return null;
+  const partial = (note.partial_seasons ?? []).map(partialPhrase).join(", ");
+  const excluded = (note.excluded_seasons ?? []).join(", ");
+  if (note.reason === "season_totals_exclude_in_progress") {
+    if (partial && excluded)
+      return `Single-game records include ${partial}. Season totals leave out ${excluded} (in progress).`;
+    if (excluded) return `Season totals leave out ${excluded} (in progress).`;
+  }
+  if (partial) return `Includes ${partial} (in progress; subject to change).`;
+  if (excluded) return `Leaves out ${excluded}.`;
+  return null;
+}
+
+/** Neutral rules-era chip text ("2011–2025 scoring"), only when the league spans > 1 era. */
+export function scoringEraText(
+  era: ScoringEra | null | undefined,
+  eraCount: number | null | undefined,
+): string | null {
+  if (!era || (eraCount ?? 0) < 2) return null;
+  return `${era.label} scoring`;
+}
+
+const DRAFT_TYPE_LABELS: Record<string, string> = {
+  snake: "Snake draft",
+  auction: "Auction draft",
+  linear: "Linear draft",
+};
+
+/** Draft-board label for the stored draft type; `null` (nothing shown) when unknown. */
+export function draftTypeLabel(type: string | null | undefined): string | null {
+  return type ? (DRAFT_TYPE_LABELS[type] ?? null) : null;
+}

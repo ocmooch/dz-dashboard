@@ -118,3 +118,45 @@ Both golden parity suites green with no regeneration.
    the note saying so.
 
 All three confirmed as proposed.
+
+## As built (2026-11-10)
+
+Gate: backend 573 passed (incl. both golden parity suites, **no regeneration**); live golden
+`--check` 1092/0; frontend typecheck + lint + format + 236 unit; e2e 18/18 (no baseline moved).
+Click-through on the mixed fixture (`serve_e2e.py --mixed`, screenshots): the note line shows on
+Records, Stories, Managers, Manager profile and Teams; the 2026 draft board reads "12 teams · Snake
+draft"; legacy pages render nothing new.
+
+- `analytics/aggregation.py` as designed, plus `partial_seasons` / `partial_note` (the
+  sum-across-eras note, optionally scoped to an owner's seasons), `owner_season_ids`,
+  `is_failed_claim`, `scoring_era_count`. `game_state.is_pending_extra` is the dict-side pending rule
+  for column-only selects.
+- Leaks fixed: `league_history._unique_games`, `weekly_scores`, `owners.owner_consistency`. Pinned by
+  `test_live_scores_change_no_payload`: rewriting every week-9 live score in a temp copy must leave
+  **every** route's `data` byte-identical (≈330 routes, legacy matrix + 2026 season/team/box score).
+  Without the fixes it fails on 15 routes.
+- Notes (`aggregation_note`, null unless a season is partial/excluded): `/owners`, `/owners/{id}`
+  (+ `/seasons`, `/story`, `/trajectory`; owner-scoped, so a departed owner's is null),
+  head-to-head (seasons both managers played), rivalry matrix + insights, `/teams`,
+  `/league/stories`, `/records` (`season_totals_exclude_in_progress`: excluded + partial 2026).
+- Rules-era marker: `scoring_era` on every available season-scoped record and story card, plus
+  `scoring_era_count`; the SPA's badge shows only when the count is > 1. `draft_type` on the draft
+  board from `settings_snapshot.draft.type`.
+- SPA: `aggregationNoteText` / `scoringEraText` / `draftTypeLabel` in `lib/platform.ts`.
+  `qk.owners` and `qk.teams` now cache the full payload (shared by Managers/Teams and the Viz Lab).
+- Client regenerated from this branch's in-process OpenAPI (port 8800 was held by a separate
+  `dz-dashboard` process, so `npm run gen:api` would have read a stale schema); +67 lines, additive.
+
+Deviations from the plan:
+
+1. **Scoring eras on the live DB are 2010 | 2011–2025 (+ 2026 at go-live), not four.** The stored
+   rules are identical 2011–2025 (51 rules each). The "2021 change" in the audit was a one-off
+   commissioner week-17 score correction (a `league_timeline` `scoring_rules`-category event), not a
+   rule change. The rule (eras = stored scoring-rule changes) is the one the user chose; the data has
+   one fewer era. A 2024 "edited scoring settings" log entry has no values and the stored rules
+   didn't change, so it doesn't split an era.
+2. **`team_transactions` keeps its feed filter** (it lists draft picks and the team's own pick/FAAB
+   leg, which are not moves). It now shares `is_failed_claim` with the activity rule; `is_move` waits
+   for its first cross-era consumer (D6). Same for `pct_of_budget` / `normalize_within_season`.
+3. Notes are attached at the route for list-returning analytics functions (`partial_note` is still the
+   one analytics rule); `owner_career`, `records_book` and `league_stories` set them in `analytics/`.
