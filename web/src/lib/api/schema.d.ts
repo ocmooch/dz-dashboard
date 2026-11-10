@@ -160,6 +160,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/league/picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Picks */
+        get: operations["get_league_picks_v1_league_picks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons": {
         parameters: {
             query?: never;
@@ -271,6 +288,23 @@ export interface paths {
         };
         /** Get Weekly Scores */
         get: operations["get_weekly_scores_v1_seasons__season_id__weekly_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/faab-market": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Faab Market */
+        get: operations["get_faab_market_v1_seasons__season_id__faab_market_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -990,6 +1024,29 @@ export interface components {
             owning_team_id?: number | null;
             /** Is Pre Kickoff Snapshot */
             is_pre_kickoff_snapshot: boolean;
+        };
+        /** BidWar */
+        BidWar: {
+            /** Week */
+            week: number;
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            winner?: components["schemas"]["MarketTeamRef"] | null;
+            /** Winning Bid */
+            winning_bid?: number | null;
+            /** Margin */
+            margin?: number | null;
+            /** Bids */
+            bids: components["schemas"]["BidWarBid"][];
+        };
+        /** BidWarBid */
+        BidWarBid: {
+            team: components["schemas"]["MarketTeamRef"];
+            /** Bid */
+            bid?: number | null;
+            /** Won */
+            won: boolean;
+            /** Failure Reason */
+            failure_reason?: string | null;
         };
         /** BoxPlayer */
         BoxPlayer: {
@@ -1853,6 +1910,11 @@ export interface components {
             data: components["schemas"]["OwnersList"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[PickLedger] */
+        Envelope_PickLedger_: {
+            data: components["schemas"]["PickLedger"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[PlayerAvailability] */
         Envelope_PlayerAvailability_: {
             data: components["schemas"]["PlayerAvailability"];
@@ -1926,6 +1988,11 @@ export interface components {
         /** Envelope[SeasonEfficiency] */
         Envelope_SeasonEfficiency_: {
             data: components["schemas"]["SeasonEfficiency"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonFaabMarket] */
+        Envelope_SeasonFaabMarket_: {
+            data: components["schemas"]["SeasonFaabMarket"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[SeasonList] */
@@ -2012,6 +2079,45 @@ export interface components {
         Envelope_WeekMatchups_: {
             data: components["schemas"]["WeekMatchups"];
             meta: components["schemas"]["Meta"];
+        };
+        /** FaabMarketTeam */
+        FaabMarketTeam: {
+            team: components["schemas"]["MarketTeamRef"];
+            /** Spent */
+            spent: number;
+            /** Pct Of Budget */
+            pct_of_budget?: number | null;
+            /** Winning Bids */
+            winning_bids: number;
+            /** Failed Bids */
+            failed_bids?: number | null;
+            /** Largest Bid */
+            largest_bid?: number | null;
+        };
+        /** FaabTopBid */
+        FaabTopBid: {
+            /** Week */
+            week?: number | null;
+            team: components["schemas"]["MarketTeamRef"];
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            /** Bid */
+            bid?: number | null;
+        };
+        /**
+         * FailedBid
+         * @description A lost FAAB claim; ``winner`` / ``winning_bid`` when another team got the player.
+         */
+        FailedBid: {
+            /** Week */
+            week?: number | null;
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            /** Bid */
+            bid?: number | null;
+            /** Failure Reason */
+            failure_reason?: string | null;
+            winner?: components["schemas"]["MarketTeamRef"] | null;
+            /** Winning Bid */
+            winning_bid?: number | null;
         };
         /**
          * GameCard
@@ -2592,6 +2698,26 @@ export interface components {
              */
             platform_accounts: components["schemas"]["PlatformAccount"][];
         };
+        /** MarketPlayerRef */
+        MarketPlayerRef: {
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name?: string | null;
+            /** Position */
+            position?: string | null;
+        };
+        /** MarketTeamRef */
+        MarketTeamRef: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+        };
         /**
          * MatchupFlag
          * @description A superlative about a game — what made it memorable, not bare margin.
@@ -2874,6 +3000,29 @@ export interface components {
             season_year: number;
             /** Through Week */
             through_week: number;
+        };
+        /**
+         * PickLedger
+         * @description Traded future picks. ``available`` False = no season records them (``reason`` = the
+         *     capability key); on Sleeper an empty list is a real answer.
+         */
+        PickLedger: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Picks
+             * @default []
+             */
+            picks: components["schemas"]["TradedPickRow"][];
+        };
+        /** PickOwner */
+        PickOwner: {
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
         };
         /**
          * PlatformAccount
@@ -3449,6 +3598,33 @@ export interface components {
             /** Teams */
             teams: components["schemas"]["EfficiencyTeam"][];
         };
+        /** SeasonFaabMarket */
+        SeasonFaabMarket: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Is Faab Era */
+            is_faab_era: boolean;
+            /** Budget */
+            budget?: number | null;
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["FaabMarketTeam"][];
+            /**
+             * Top Bids
+             * @default []
+             */
+            top_bids: components["schemas"]["FaabTopBid"][];
+            /**
+             * Bid Wars
+             * @default []
+             */
+            bid_wars: components["schemas"]["BidWar"][];
+            failed_bids_capability?: components["schemas"]["Capability"] | null;
+        };
         /** SeasonList */
         SeasonList: {
             /** Seasons */
@@ -3946,6 +4122,54 @@ export interface components {
             /** Points */
             points: components["schemas"]["ScoringTrendPoint"][];
         };
+        /**
+         * TeamTrade
+         * @description One trade from this team's side, with every asset (Sleeper D6).
+         */
+        TeamTrade: {
+            /** Executed At */
+            executed_at?: string | null;
+            /** Week */
+            week?: number | null;
+            /** Counterpart Team Id */
+            counterpart_team_id?: number | null;
+            /** Counterpart Team Name */
+            counterpart_team_name?: string | null;
+            /**
+             * Players In
+             * @default []
+             */
+            players_in: components["schemas"]["MarketPlayerRef"][];
+            /**
+             * Players Out
+             * @default []
+             */
+            players_out: components["schemas"]["MarketPlayerRef"][];
+            /**
+             * Picks In
+             * @default []
+             */
+            picks_in: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Picks Out
+             * @default []
+             */
+            picks_out: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Faab In
+             * @default 0
+             */
+            faab_in: number;
+            /**
+             * Faab Out
+             * @default 0
+             */
+            faab_out: number;
+        };
         /** TeamTransaction */
         TeamTransaction: {
             /** Transaction Id */
@@ -3988,6 +4212,17 @@ export interface components {
             season_year: number;
             /** Transactions */
             transactions: components["schemas"]["TeamTransaction"][];
+            /**
+             * Trades
+             * @default []
+             */
+            trades: components["schemas"]["TeamTrade"][];
+            /**
+             * Failed Bids
+             * @default []
+             */
+            failed_bids: components["schemas"]["FailedBid"][];
+            failed_bids_capability?: components["schemas"]["Capability"] | null;
         };
         /** TeamsIndex */
         TeamsIndex: {
@@ -4123,6 +4358,16 @@ export interface components {
              * @default 0
              */
             faab_out: number;
+        };
+        /** TradedPickRow */
+        TradedPickRow: {
+            /** Pick Season */
+            pick_season: number;
+            /** Round */
+            round: number;
+            original_owner?: components["schemas"]["PickOwner"] | null;
+            current_owner?: components["schemas"]["PickOwner"] | null;
+            previous_owner?: components["schemas"]["PickOwner"] | null;
         };
         /** TrajectoryPoint */
         TrajectoryPoint: {
@@ -4394,6 +4639,26 @@ export interface operations {
             };
         };
     };
+    get_league_picks_v1_league_picks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PickLedger_"];
+                };
+            };
+        };
+    };
     list_seasons_v1_seasons_get: {
         parameters: {
             query?: never;
@@ -4580,6 +4845,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SeasonWeeklyScores_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_faab_market_v1_seasons__season_id__faab_market_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonFaabMarket_"];
                 };
             };
             /** @description Validation Error */

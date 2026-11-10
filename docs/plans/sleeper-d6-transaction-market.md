@@ -123,3 +123,33 @@ capability gap for failed bids with the shared copy.
 routes/teams.py}`, `web/src/lib/platform.ts`, `web/src/features/{teams,stats,draft}/*`,
 `web/src/lib/api/` (generated), `tests/test_d6_transaction_market.py`, `web/e2e/sleeper.spec.ts`,
 `PROGRESS.md`.
+
+## As built (2026-11-10)
+
+- `analytics/faab_market.py`: `season_faab_market`, `team_failed_bids`, `season_budget`, and
+  `faab_bid`, now the one bid reader (`teams` re-exports it as `_faab_bid`). `analytics/picks.py`:
+  `league_pick_ledger`. `teams.team_trades` + `trades` / `failed_bids` / `failed_bids_capability` on
+  team transactions. Routes `GET /v1/seasons/{id}/faab-market` (cached per season) and
+  `GET /v1/league/picks`.
+- **Deviation: no Draft "tab".** The pick ledger is a league-wide card at the bottom of Draft
+  (`PickLedgerCard`), not a tab: the existing Draft tabs are per-season board lenses.
+- Team page:
+  - trades render once (`tradeSummaryText`: "Got … · gave …") and their legs are left out of the feed;
+  - a "Lost bids" card (FAAB seasons only) goes through `CapabilityGate`, so legacy shows "NFL.com
+    didn't record unsuccessful waiver bids." The page reads the season's platform from `useSeasons`
+    (the team payload has none), so `team.test.tsx` now mocks `SeasonContext`.
+- Stats: a "FAAB market" tab (`features/stats/FaabMarket.tsx`) with spend, biggest bids and bid-war
+  cards; "Waiver priority era" for pre-FAAB seasons.
+- Real legacy trade legs always carry `direction` in/out and a counterpart (checked on the live DB,
+  2010–2025), so grouped legacy trades keep every player.
+- Goldens: `/faab-market` added to the season matrix and `/v1/league/picks` to the global paths;
+  fixture goldens written for the new URLs only (`DZ_UPDATE_GOLDEN=new`). Live golden unchanged at
+  1092/0.
+- **Open:**
+  - the market's `pct_of_budget` uses the base budget and ignores mid-season credits (the 2022 refund
+    the Team budget card handles), so a credited team can read above 100%;
+  - `is_move` (D4) still has no consumer.
+- **Gate:**
+  - pytest green (D6 11 + parity), ruff + mypy clean, write-check empty;
+  - contract no drift, Prettier + tsc clean, vitest 244, e2e 20/20;
+  - live 2025 FAAB market click-through done.

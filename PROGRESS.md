@@ -44,9 +44,14 @@ D1–D3 on a 2026 DB copy.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
 - Merged to `dev` (PR #130, 2026-11-10); branch deleted.
 
-**D6: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d6-transaction-market.md` (branch
-`feature/sleeper-d6-transaction-market`). New `faab_market.py` (spend, top bids, bid wars) + `picks.py`
-(traded-pick ledger) + grouped `trades` on team transactions, all additive. Next: BUILD backend.
+**D6: BUILT (2026-11-10), gate green; PR to `dev` open.** Plan + as-built:
+`docs/plans/sleeper-d6-transaction-market.md` (branch `feature/sleeper-d6-transaction-market`).
+- `faab_market.py` (spend, biggest bids, bid wars, lost bids), `picks.py` (traded-pick ledger),
+  grouped `trades` on team transactions; routes `/v1/seasons/{id}/faab-market`, `/v1/league/picks`.
+- SPA: Team trade rows list every asset + Lost bids card; Stats "FAAB market" tab; Draft pick
+  ledger card. Legacy shows the shared failed-bids gap.
+- Open: market % of budget ignores mid-season credits; `is_move` still unused.
+Next: D7 (player status), then D8.
 
 **D5: DONE (2026-11-10); merged to `dev` (PR #132).** Plan + as-built:
 `docs/plans/sleeper-d5-official-brackets.md` (branch `feature/sleeper-d5-official-brackets`).
@@ -59,7 +64,6 @@ D1–D3 on a 2026 DB copy.
 - Official divisions supported (`division_source`); `not_used` renders nothing.
 - New fixture: `decided_db_path` / `decided_client` (fully decided 6+6 playoff in weeks 6–8).
 - Open: 2010–2019 divisions view lacks Potential; Playoffs visual baseline → D8.
-Next: D6.
 
 **D4: DONE (2026-11-10); merged to `dev` (PR #131).** Plan + as-built:
 `docs/plans/sleeper-d4-cross-era-aggregation.md` (branch `feature/sleeper-d4-cross-era-aggregation`).

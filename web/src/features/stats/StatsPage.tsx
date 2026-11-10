@@ -14,12 +14,13 @@ import {
   Skeleton,
   Tabs,
 } from "@/design-system";
+import { FaabMarketView } from "@/features/stats/FaabMarket";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
-type View = "top-scorers" | "season-totals";
+type View = "top-scorers" | "season-totals" | "faab-market";
 
 async function fetchTopScorers(season: number, position: string, week: number | null) {
   const { data, error } = await api.GET("/v1/stats/top-scorers", {
@@ -83,129 +84,136 @@ export function StatsPage() {
           tabs={[
             { id: "top-scorers", label: "Top scorers" },
             { id: "season-totals", label: "Season totals" },
+            { id: "faab-market", label: "FAAB market" },
           ]}
           value={view}
           onChange={setView}
         />
       </div>
 
-      {current && !current.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
+      {view === "faab-market" ? (
+        <FaabMarketView seasonId={current?.season_id} platform={current?.platform} />
+      ) : (
+        <>
+          {current && !current.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
 
-      <Card className="p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            className="dz-select"
-            aria-label="Filter by position"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          >
-            <option value="">All positions</option>
-            {POSITIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          {view === "top-scorers" && (
-            <select
-              className="dz-select"
-              aria-label="Filter by week"
-              value={week ?? ""}
-              onChange={(e) => setWeek(e.target.value === "" ? null : Number(e.target.value))}
-            >
-              <option value="">Full season</option>
-              {Array.from({ length: 18 }, (_, i) => i + 1).map((w) => (
-                <option key={w} value={w}>
-                  Week {w}
-                </option>
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                className="dz-select"
+                aria-label="Filter by position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+              >
+                <option value="">All positions</option>
+                {POSITIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+              {view === "top-scorers" && (
+                <select
+                  className="dz-select"
+                  aria-label="Filter by week"
+                  value={week ?? ""}
+                  onChange={(e) => setWeek(e.target.value === "" ? null : Number(e.target.value))}
+                >
+                  <option value="">Full season</option>
+                  {Array.from({ length: 18 }, (_, i) => i + 1).map((w) => (
+                    <option key={w} value={w}>
+                      Week {w}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              eyebrow={view === "top-scorers" ? "best performances" : "cumulative"}
+              title={view === "top-scorers" ? "Top Scorers" : "Season Totals"}
+            />
+            {active.isLoading && (
+              <div className="space-y-2 p-5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            )}
+            {active.isError && (
+              <ErrorState message="Could not reach the analytics service." onRetry={() => active.refetch()} />
+            )}
+
+            {view === "top-scorers" &&
+              topScorers.data &&
+              (topScorers.data.scorers.length === 0 ? (
+                <EmptyState title="No scores" hint="No scored data for this scope." />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="dz-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th>Pos</th>
+                        {week == null ? null : <th className="dz-num">Wk</th>}
+                        <th className="dz-num">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topScorers.data.scorers.map((s, i) => (
+                        <tr key={`${s.player_id}-${s.week ?? "s"}`}>
+                          <td className="num text-faint">{i + 1}</td>
+                          <td>
+                            <PlayerCell id={s.player_id} name={s.name_full} sub={s.nfl_team ?? undefined} />
+                          </td>
+                          <td className="text-muted">{s.position ?? "—"}</td>
+                          {week == null ? null : <td className="dz-num text-muted">{s.week ?? "—"}</td>}
+                          <td className="dz-num">{num(s.points)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ))}
-            </select>
-          )}
-        </div>
-      </Card>
 
-      <Card>
-        <CardHeader
-          eyebrow={view === "top-scorers" ? "best performances" : "cumulative"}
-          title={view === "top-scorers" ? "Top Scorers" : "Season Totals"}
-        />
-        {active.isLoading && (
-          <div className="space-y-2 p-5">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        )}
-        {active.isError && (
-          <ErrorState message="Could not reach the analytics service." onRetry={() => active.refetch()} />
-        )}
-
-        {view === "top-scorers" &&
-          topScorers.data &&
-          (topScorers.data.scorers.length === 0 ? (
-            <EmptyState title="No scores" hint="No scored data for this scope." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="dz-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Player</th>
-                    <th>Pos</th>
-                    {week == null ? null : <th className="dz-num">Wk</th>}
-                    <th className="dz-num">Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topScorers.data.scorers.map((s, i) => (
-                    <tr key={`${s.player_id}-${s.week ?? "s"}`}>
-                      <td className="num text-faint">{i + 1}</td>
-                      <td>
-                        <PlayerCell id={s.player_id} name={s.name_full} sub={s.nfl_team ?? undefined} />
-                      </td>
-                      <td className="text-muted">{s.position ?? "—"}</td>
-                      {week == null ? null : <td className="dz-num text-muted">{s.week ?? "—"}</td>}
-                      <td className="dz-num">{num(s.points)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-
-        {view === "season-totals" &&
-          seasonTotals.data &&
-          (seasonTotals.data.totals.length === 0 ? (
-            <EmptyState title="No totals" hint="No scored data for this scope." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="dz-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Player</th>
-                    <th>Pos</th>
-                    <th className="dz-num">Weeks</th>
-                    <th className="dz-num">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seasonTotals.data.totals.map((t, i) => (
-                    <tr key={t.player_id}>
-                      <td className="num text-faint">{i + 1}</td>
-                      <td>
-                        <PlayerCell id={t.player_id} name={t.name_full} sub={t.nfl_team ?? undefined} />
-                      </td>
-                      <td className="text-muted">{t.position ?? "—"}</td>
-                      <td className="dz-num text-muted">{t.weeks_played}</td>
-                      <td className="dz-num">{num(t.total_points)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-      </Card>
+            {view === "season-totals" &&
+              seasonTotals.data &&
+              (seasonTotals.data.totals.length === 0 ? (
+                <EmptyState title="No totals" hint="No scored data for this scope." />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="dz-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th>Pos</th>
+                        <th className="dz-num">Weeks</th>
+                        <th className="dz-num">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {seasonTotals.data.totals.map((t, i) => (
+                        <tr key={t.player_id}>
+                          <td className="num text-faint">{i + 1}</td>
+                          <td>
+                            <PlayerCell id={t.player_id} name={t.name_full} sub={t.nfl_team ?? undefined} />
+                          </td>
+                          <td className="text-muted">{t.position ?? "—"}</td>
+                          <td className="dz-num text-muted">{t.weeks_played}</td>
+                          <td className="dz-num">{num(t.total_points)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+          </Card>
+        </>
+      )}
     </div>
   );
 }

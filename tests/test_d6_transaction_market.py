@@ -83,7 +83,9 @@ def test_every_failed_claim_is_accounted_for(mixed_era_db_path: Path):
         by_team = sum(len(team_failed_bids(s, tid)) for tid in per_team)
         assert by_team == len(failed) and in_wars <= len(failed)
         # a war always has a lost claim and at least two claims
-        assert all(len(w["bids"]) >= 2 and any(not b["won"] for b in w["bids"]) for w in m["bid_wars"])
+        assert all(
+            len(w["bids"]) >= 2 and any(not b["won"] for b in w["bids"]) for w in m["bid_wars"]
+        )
 
 
 def test_spend_counts_winning_bids_only(mixed_era_db_path: Path):
@@ -109,7 +111,9 @@ def test_spend_counts_winning_bids_only(mixed_era_db_path: Path):
             assert t["spent"] == spent
             assert t["pct_of_budget"] == round(spent / 100.0, 4)
         assert all(b["bid"] is not None for b in m["top_bids"])
-        assert [b["bid"] for b in m["top_bids"]] == sorted((b["bid"] for b in m["top_bids"]), reverse=True)
+        assert [b["bid"] for b in m["top_bids"]] == sorted(
+            (b["bid"] for b in m["top_bids"]), reverse=True
+        )
 
 
 def test_zero_bid_is_a_real_bid():
