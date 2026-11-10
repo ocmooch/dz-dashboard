@@ -16,6 +16,7 @@ from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
+from ff_dashboard.analytics.aggregation import owner_season_ids, partial_note
 from ff_dashboard.analytics.bracket import (
     TIER_CONSOLATION,
     postseason_classification,
@@ -28,6 +29,7 @@ from ff_dashboard.analytics.common import (
     owner_qualified_map,
     played_season_ids,
 )
+from ff_dashboard.analytics.game_state import is_pending_extra
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -297,6 +299,7 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
         **career,
         "trophy_case": trophy_case,
         "consistency": owner_consistency(session, owner_id),
+        "aggregation_note": partial_note(session, owner_season_ids(session, owner_id)),
     }
 
 
@@ -345,10 +348,13 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
             Matchup.team_id,
             Matchup.team_score,
             Matchup.opponent_team_id,
+            Matchup.extra_data,
         ).where(Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None))
     ).all()
     weekly_scores: dict[tuple[int, int], list[tuple[int, float]]] = defaultdict(list)
-    for season_id, week, team_id, score, _ in rows:
+    for season_id, week, team_id, score, _, extra in rows:
+        if is_pending_extra(extra):
+            continue  # the unfinished week is unscored (D3 rule)
         oid = team_to_owner.get(int(team_id))
         if oid is not None:
             points = float(score)

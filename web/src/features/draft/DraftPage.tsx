@@ -18,6 +18,7 @@ import { BarCompare, ScatterQuadrant } from "@/charts";
 import type { QuadrantPoint } from "@/charts";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
+import { draftTypeLabel } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type Board = Awaited<ReturnType<typeof fetchBoard>>;
@@ -812,7 +813,9 @@ export function DraftPage() {
 
           <Card>
             <CardHeader
-              eyebrow={`${board.data.num_teams ?? "—"} teams`}
+              eyebrow={[`${board.data.num_teams ?? "—"} teams`, draftTypeLabel(board.data.draft_type)]
+                .filter(Boolean)
+                .join(" · ")}
               title="Draft board"
               action={
                 <Tabs

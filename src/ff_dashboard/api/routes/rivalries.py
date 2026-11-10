@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from ff_pipeline.api._meta import build_meta
 
+from ff_dashboard.analytics.aggregation import partial_note
 from ff_dashboard.analytics.common import require_league
 from ff_dashboard.analytics.rivalries import rivalry_insights
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
@@ -16,4 +17,5 @@ router = APIRouter(tags=["rivalries"])
 @router.get("/v1/rivalries/insights", response_model=Envelope[RivalryInsights])
 def get_rivalry_insights(session: SessionDep) -> Envelope[RivalryInsights]:
     require_league(session)
-    return Envelope(data=RivalryInsights(**rivalry_insights(session)), meta=build_meta(session))
+    data = {**rivalry_insights(session), "aggregation_note": partial_note(session)}
+    return Envelope(data=RivalryInsights(**data), meta=build_meta(session))

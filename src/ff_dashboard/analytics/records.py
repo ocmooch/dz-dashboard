@@ -22,6 +22,13 @@ from ff_pipeline.repository.models import (
 )
 from sqlalchemy import and_, distinct, select
 
+from ff_dashboard.analytics.aggregation import (
+    REASON_SEASON_TOTALS,
+    aggregation_note,
+    partial_seasons,
+    scoring_era_count,
+    scoring_eras,
+)
 from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -264,6 +271,16 @@ def records_book(session: Session) -> dict[str, Any]:
 
     book.update(_record_only(session, teams, season_year))
     _label_in_progress(session, book)
+    _label_scoring_era(session, book)
+    # Single-game records count the in-progress season through its last final week; the
+    # season-total records leave it out (D3). Null on a book with no season in progress.
+    partial = partial_seasons(session)
+    book["aggregation_note"] = aggregation_note(
+        used=(season_year[sid] for sid in team_season_ids),
+        excluded=(p["season_year"] for p in partial),
+        reason=REASON_SEASON_TOTALS,
+        partial=partial,
+    )
 
     # The "closest rivalry" — the genuinely dead-even pair (win pct nearest 50/50,
     # min-sample gated; balance leads, not volume), crowned among qualified
@@ -292,6 +309,16 @@ def _label_in_progress(session: Session, book: dict[str, Any]) -> None:
     for value in book.values():
         if isinstance(value, dict) and value.get("available") and "season_year" in value:
             value["through_week"] = through.get(value.get("season_year"))  # type: ignore[arg-type]
+
+
+def _label_scoring_era(session: Session, book: dict[str, Any]) -> None:
+    """Rules-era marker (`01` §5): each season-scoped record names its scoring era, and the book
+    says how many eras the league spans (the SPA shows the chip only when that is > 1)."""
+    eras = scoring_eras(session)
+    book["scoring_era_count"] = scoring_era_count(eras)
+    for value in book.values():
+        if isinstance(value, dict) and value.get("available") and value.get("season_year"):
+            value["scoring_era"] = eras.get(value["season_year"])
 
 
 def _record_only(

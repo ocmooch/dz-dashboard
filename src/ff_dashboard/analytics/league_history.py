@@ -24,6 +24,7 @@ from ff_pipeline.repository.models import (
 )
 from sqlalchemy import distinct, func, select
 
+from ff_dashboard.analytics.aggregation import partial_note, scoring_era_count, scoring_eras
 from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import (
     displayed_seasons,
@@ -32,6 +33,7 @@ from ff_dashboard.analytics.common import (
     require_league,
 )
 from ff_dashboard.analytics.curated_events import curated_events_by_year
+from ff_dashboard.analytics.game_state import is_pending
 from ff_dashboard.analytics.historical_divisions import historical_division_season
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
@@ -953,8 +955,8 @@ def _unique_games(session: Session) -> list[_Game]:
     seen: set[tuple[int, int, int, int]] = set()
     games: list[_Game] = []
     for m in rows:
-        if m.team_score is None or m.opponent_score is None:
-            continue
+        if m.team_score is None or m.opponent_score is None or is_pending(m):
+            continue  # the unfinished week is unscored (D3 rule)
         assert m.opponent_team_id is not None
         low, high = sorted((int(m.team_id), int(m.opponent_team_id)))
         key = (int(m.season_id), int(m.week), low, high)
@@ -1121,7 +1123,16 @@ def league_stories(session: Session) -> dict[str, Any]:
         }
     )
 
-    return {"stories": story_cards}
+    # Rules-era marker (`01` §5): a game-scoped card names the scoring era it was played under.
+    eras = scoring_eras(session)
+    for card in story_cards:
+        if card.get("available") and card.get("season_year") is not None:
+            card["scoring_era"] = eras.get(card["season_year"])
+    return {
+        "stories": story_cards,
+        "scoring_era_count": scoring_era_count(eras),
+        "aggregation_note": partial_note(session),
+    }
 
 
 def manager_directory(session: Session) -> dict[str, Any]:

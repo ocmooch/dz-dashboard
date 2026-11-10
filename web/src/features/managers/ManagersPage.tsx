@@ -2,10 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  ErrorState,
+  ProvenanceNote,
+  RecordLine,
+  Skeleton,
+  Trophy,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerCareer = components["schemas"]["OwnerCareer"];
@@ -13,7 +24,7 @@ type OwnerCareer = components["schemas"]["OwnerCareer"];
 async function fetchOwners() {
   const { data, error } = await api.GET("/v1/owners");
   if (error || !data) throw new Error("Failed to load managers");
-  return data.data.owners;
+  return data.data; // the full OwnersList: qk.owners is shared with the Viz Lab
 }
 
 /** Win rate over decided games. Returns null when a manager has no games on
@@ -153,10 +164,16 @@ function SortHeader({
 }
 
 export function ManagersPage() {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const {
+    data: payload,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.owners,
     queryFn: fetchOwners,
   });
+  const data = payload?.owners;
   const [sort, setSort] = useState<SortKey>("titles");
   const [dir, setDir] = useState<SortDir>("desc");
 
@@ -267,6 +284,7 @@ export function ManagersPage() {
               is still shown; “former” marks those no longer in the league.
             </p>
           </Card>
+          <ProvenanceNote>{aggregationNoteText(payload?.aggregation_note)}</ProvenanceNote>
         </>
       )}
     </div>

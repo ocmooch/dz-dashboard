@@ -872,7 +872,20 @@ def draft_board(
         "num_teams": num_teams,
         "rounds": [{"round": r, "picks": rounds[r]} for r in sorted(rounds)],
         "adp_coverage": adp_coverage(adp_map),
+        "draft_type": draft_type(season),
     }
+
+
+#: Draft types shown as a label (`01` §5: draft metrics are unchanged across eras).
+DRAFT_TYPES = frozenset({"snake", "auction", "linear"})
+
+
+def draft_type(season: Any) -> str | None:
+    """``snake`` / ``auction`` / ``linear`` from the stored platform settings (Sleeper), else
+    ``None``: legacy seasons store no draft settings, and the type is never guessed."""
+    draft = ((getattr(season, "settings_snapshot", None) or {}).get("draft")) or {}
+    value = draft.get("type") if isinstance(draft, dict) else None
+    return value if value in DRAFT_TYPES else None
 
 
 def draft_value(

@@ -227,6 +227,33 @@ class SackoRef(TeamRef):
     source: str | None = None
 
 
+class PartialSeason(BaseModel):
+    season_year: int
+    # The in-progress season counts through its last finalized week (0 = none final yet).
+    through_week: int
+
+
+class AggregationNote(BaseModel):
+    """How a cross-season payload treated seasons that differ (Sleeper D4, `01` §5).
+
+    Present only when something was excluded or partially counted; null otherwise."""
+
+    used_seasons: list[int]
+    excluded_seasons: list[int] = []
+    partial_seasons: list[PartialSeason] = []
+    # in_progress_partial | season_totals_exclude_in_progress (copy in the SPA's lib/platform.ts)
+    reason: str
+
+
+class ScoringEra(BaseModel):
+    """Contiguous seasons with the same stored scoring rules (the rules-era marker)."""
+
+    era_id: int
+    label: str  # "2011-2020" (en dash); open-ended "2026-" while that era's season is in progress
+    start: int
+    end: int | None = None
+
+
 class OwnerRef(BaseModel):
     owner_id: int
     display_name: str | None = None
@@ -715,10 +742,15 @@ class StoryCard(BaseModel):
     secondary_team: TeamRef | None = None
     primary_owner: OwnerRef | None = None
     caveat: str | None = None
+    # Rules-era marker for a game-scoped card (null without stored rules).
+    scoring_era: ScoringEra | None = None
 
 
 class LeagueStories(BaseModel):
     stories: list[StoryCard]
+    # Distinct scoring eras across played seasons; the SPA shows era chips only when > 1.
+    scoring_era_count: int = 0
+    aggregation_note: AggregationNote | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -776,10 +808,12 @@ class OwnerCareer(BaseModel):
     trophy_case: list[TrophyEntry] = []
     consistency: OwnerConsistency | None = None
     commissioner_terms: list[CommissionerTerm] = []
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnersList(BaseModel):
     owners: list[OwnerCareer]
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnerSeasonRow(BaseModel):
@@ -805,6 +839,7 @@ class OwnerSeasons(BaseModel):
     owner_id: int
     display_name: str | None = None
     seasons: list[OwnerSeasonRow]
+    aggregation_note: AggregationNote | None = None
 
 
 class TeamsIndexRow(OwnerSeasonRow):
@@ -826,6 +861,7 @@ class TeamsIndexRow(OwnerSeasonRow):
 
 class TeamsIndex(BaseModel):
     teams: list[TeamsIndexRow]
+    aggregation_note: AggregationNote | None = None
 
 
 class TrajectoryPoint(BaseModel):
@@ -838,6 +874,7 @@ class OwnerTrajectory(BaseModel):
     owner_id: int
     display_name: str | None = None
     points: list[TrajectoryPoint]
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnerStory(BaseModel):
@@ -854,6 +891,7 @@ class OwnerStory(BaseModel):
 
     owner: OwnerRef
     available: bool
+    aggregation_note: AggregationNote | None = None
     signature_win: dict[str, Any] | None = None
     heartbreak: dict[str, Any] | None = None
     high_water_mark: dict[str, Any] | None = None
@@ -957,6 +995,7 @@ class HeadToHead(BaseModel):
     closest_meeting: H2HMeeting | None = None
     # Every meeting, chronological, oriented to A — drives the rivalry margin line.
     meetings: list[H2HMeeting] = []
+    aggregation_note: AggregationNote | None = None
 
 
 class RivalryCell(BaseModel):
@@ -975,6 +1014,7 @@ class RivalryOwner(OwnerRef):
 class RivalryMatrix(BaseModel):
     owners: list[RivalryOwner]
     cells: list[RivalryCell]
+    aggregation_note: AggregationNote | None = None
 
 
 class RivalryInsights(BaseModel):
@@ -993,6 +1033,7 @@ class RivalryInsights(BaseModel):
     intensity: dict[str, Any]
     nemeses: dict[str, Any]
     playoffs: dict[str, Any]
+    aggregation_note: AggregationNote | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1011,6 +1052,10 @@ class RecordsBook(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     scored_era: list[int]
+    # Distinct scoring eras across played seasons; each season-scoped record carries its
+    # ``scoring_era``. The SPA shows era chips only when > 1.
+    scoring_era_count: int = 0
+    aggregation_note: AggregationNote | None = None
 
 
 class ChampionshipEntry(BaseModel):
@@ -1119,6 +1164,8 @@ class DraftBoard(BaseModel):
     num_teams: int | None = None
     rounds: list[DraftRound]
     adp_coverage: AdpCoverage
+    # snake / auction when the platform stores it (Sleeper); null for legacy seasons.
+    draft_type: str | None = None
 
 
 class DraftValue(BaseModel):

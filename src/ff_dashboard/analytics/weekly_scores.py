@@ -15,6 +15,7 @@ from ff_pipeline.repository.queries import get_season
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
+from ff_dashboard.analytics.game_state import is_pending
 from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
@@ -52,6 +53,8 @@ def weekly_scores(session: Session, season_id: int) -> dict[str, Any] | None:
         .all()
     )
     for m in sorted(rows, key=lambda x: (x.team_id, x.week or 0)):
+        if is_pending(m):
+            continue  # the unfinished week is unscored: no live scores (D3 rule)
         entry = series.get(m.team_id)
         if entry is None:  # pragma: no cover - matchup team always has a Team row
             continue

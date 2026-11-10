@@ -36,6 +36,7 @@ from ff_pipeline.repository.queries import (
 )
 from sqlalchemy import func, select
 
+from ff_dashboard.analytics.aggregation import is_failed_claim
 from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -382,9 +383,6 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
 # Acquisition transactions — what changed the roster's makeup. Start/sit
 # (`lineup_change`, ~25k rows DB-wide) and league `setting_change` are not
 # acquisitions and would bury the feed, so the team-transactions view drops them.
-#: Sleeper's lost waiver claim (``status='failed'``); legacy rows carry ``status`` NULL.
-FAILED_STATUS = "failed"
-
 ACQUISITION_TXN_TYPES = frozenset({"free_agent_add", "waiver_add", "drop", "trade", "draft"})
 
 
@@ -407,7 +405,7 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
     for t in transactions_for_team(session, team_id):
         if t.transaction_type not in ACQUISITION_TXN_TYPES:
             continue
-        if t.status == FAILED_STATUS:
+        if is_failed_claim(t):
             continue  # a lost claim never changed the roster (bid wars are D6)
         if _trade_assets(t) is not None and t.team_id != team_id:
             continue  # the counterpart's pick/FAAB leg; this team's own leg says the same
@@ -623,7 +621,7 @@ def team_faab_budget(session: Session, team_id: int) -> dict[str, Any] | None:
     for txn in transactions_for_team(session, team_id):
         if txn.transaction_type != "waiver_add" or txn.team_id != team_id:
             continue
-        if txn.status == FAILED_STATUS:
+        if is_failed_claim(txn):
             continue  # a lost claim spends nothing
         bid = _faab_bid(txn.extra_data)
         if bid is None:

@@ -1,10 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+  Stat,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText, scoringEraText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type LeagueStories = components["schemas"]["LeagueStories"];
@@ -107,6 +118,9 @@ export function StoriesPage() {
                     </div>
                   )}
                   {story.caveat && <p className="text-[var(--fs-xs)] text-faint">{story.caveat}</p>}
+                  {scoringEraText(story.scoring_era, stories.data?.scoring_era_count) && (
+                    <Badge>{scoringEraText(story.scoring_era, stories.data?.scoring_era_count)}</Badge>
+                  )}
                 </>
               ) : (
                 <DataGap reason={story.reason ?? undefined} />
@@ -115,6 +129,7 @@ export function StoriesPage() {
           </Card>
         ))}
       </div>
+      <ProvenanceNote>{aggregationNoteText(stories.data?.aggregation_note)}</ProvenanceNote>
     </div>
   );
 }

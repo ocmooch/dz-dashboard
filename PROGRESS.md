@@ -42,7 +42,22 @@ D1–D3 on a 2026 DB copy.
   `e2e/sleeper.spec.ts` (Home → this week → box score; pending gap; standings/matchups). Full e2e
   18/18 after the baseline refresh. Visual click-through of 2026 done via screenshots.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
-- **Next:** D4 (cross-era aggregation audit). The live go-live is upstream's, on the user's approval.
+- Merged to `dev` (PR #130, 2026-11-10); branch deleted.
+
+**D4: BUILT (2026-11-10), gate green; PR #131 to `dev` open.** Plan + as-built:
+`docs/plans/sleeper-d4-cross-era-aggregation.md` (branch `feature/sleeper-d4-cross-era-aggregation`).
+- `analytics/aggregation.py`: counted/partial seasons, scoring eras (contiguous identical stored
+  rules; rule-less season = no era), `is_move`, `pct_of_budget`, `normalize_within_season`,
+  `aggregation_note` / `partial_note`.
+- Unfinished-week leaks fixed in stories, weekly scores and owner consistency; a differential test
+  (rewrite week-9 live scores, every route must be byte-identical) guards all routes.
+- `aggregation_note` on every cross-season payload (null on legacy); `scoring_era` +
+  `scoring_era_count` on records and stories; `draft_type` on the draft board. SPA note line +
+  era badge + draft-type label, copy in `lib/platform.ts`.
+- No legacy value moved: both parity suites green with no regeneration; live golden 1092/0.
+- Live eras: 2010 | 2011–2025 (+2026 at go-live), not the plan's four (see the as-built note).
+- `is_move` / `pct_of_budget` have no consumer yet; D6 (transaction market) is the first.
+Next: merge PR #131, then D5 (official brackets, divisions, potential points).
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
