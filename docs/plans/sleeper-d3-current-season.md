@@ -116,8 +116,8 @@ and no scores on Matchups; Box score `week_pending` gap and override note; compo
 
 e2e: journey "Home → this week's matchup → box score" on the mixed fixture (the VERIFY session).
 
-## Open question for the user (ask in BUILD, before records work)
+## Decided with the user (2026-11-10)
 
-- Records "include in-progress seasons only for completed weeks, labelled" (`01` §7): label the
-  record itself ("2026, through week 8") or a single note on the page? Default: a per-record label
-  when the record comes from the in-progress season.
+- Records from the in-progress season carry a **per-record label** ("2026, through week 8"): a
+  record row gets `through_week: int|None` (set only when its season is in progress), and the UI
+  renders the label from it.

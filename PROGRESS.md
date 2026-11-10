@@ -26,11 +26,12 @@ after which 2026 is the default season everywhere. Take D0's legacy snapshots *b
 D1–D3 on a 2026 DB copy.
 
 **D3: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d3-current-season.md` (branch
-`feature/sleeper-d3-current-season`, stacked on D2; rebase onto `dev` once PR #129 merges).
+`feature/sleeper-d3-current-season`, on `dev` after PR #129 merged). Rule: the unfinished week is
+unscored (`00` §3). Records from the in-progress season get a per-record "through week N" label.
 Next: BUILD, starting with `analytics/game_state.py` + standings. Probe found 2026 standings count the
 provisional week 9 as a tie, and week matchups name live-score winners.
 
-**D2: BUILT (2026-11-10), gate green; PR #129 to `dev` (CI green, awaiting merge).** Plan + as-built:
+**D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
 `queries.authoritative_week_points_expr` / `official_slot_points_expr`; `official_points_from_extra`
 is the one dict-side mirror (box score, team weekly, player weekly), pinned to the SQL helper by a
