@@ -1,6 +1,6 @@
 # 03 — Cross-Platform UX Rules
 
-**Status:** planned · **Repo:** `dz-dashboard` · **Applies to:** every page that shows more than one season
+**Status:** planned; corrected 2026-11-09 (see `00_UPSTREAM_STATE.md`) · **Repo:** `dz-dashboard` · **Applies to:** every page that shows more than one season
 **Builds on:** `docs/06_DESIGN_SYSTEM.md` (tokens, HUD aesthetic) — nothing here adds a new colour family or font.
 
 The goal: someone browsing 2015 and then 2026 should feel they never left the product. The
@@ -56,8 +56,12 @@ Season header                    Timeline                          Cross-season 
 | `trades_with_picks_faab` | NFL.com | "NFL.com trades only recorded players." |
 | `official_brackets` | NFL.com | Shown, with footnote: "Bracket derived from NFL.com playoff results." |
 | `potential_points` official | NFL.com | Footnote: "Potential points computed by this dashboard." |
-| `player_status_daily` | 2025 | "No injury reports are available for 2025." |
+| `player_status_daily` | NFL.com seasons | `partial`: weekly game status from nflverse reports (2010–2025 covered) |
 | `not_yet` (any) | in-progress season | "Not available until this week is final." |
+| `not_used` (any) | a season that didn't use the feature (e.g. no divisions in 2026) | **render nothing**: no copy, no `DataGap` (user rule) |
+
+The capability field from upstream is `note`, not `reason`. Provisional (in-progress) data is shown
+as current state with a "subject to change" marker, never hidden or counted as final.
 
 Copy lives in one place (`web/src/lib/platform.ts` → `capabilityCopy`) and is sourced from the
 BFF's `reason` when present, so wording stays consistent.
@@ -76,8 +80,9 @@ so Sleeper weeks inherit today's display mapping automatically and legacy screen
 | Reserve / IR | `RES` | as today |
 | Bench / team defense | `BN` / `DEF` | as today (league history shows `DEF` as "D/ST") |
 | Superflex, taxi, IDP | `Q/R/W/T`, `TAXI`, `DL`/`LB`/`DB` | **new** labels, added to the same mapping tables in `analytics/` |
-| Waiver claim (won / lost) | `waiver_add` (+ `status`) | "Waiver add" / "Waiver claim — lost" |
-| Commissioner move | `commissioner_move` | "Commissioner move" |
+| Waiver claim (won / lost) | `waiver_add` (+ `status='failed'` for lost) | "Waiver add" / "Waiver claim — lost" |
+| Draft pick / FAAB in a trade | `trade` leg with `player_id NULL`, `extra_data.picks_in/out`, `faab_in/out` | e.g. "2027 Rd 2 pick", "$7 FAAB" |
+| Commissioner move | `free_agent_add` / `drop` with `extra_data.by_commissioner` (no separate type upstream) | "Commissioner move" |
 | Manager | `owners.display_name` | league display name, never the Sleeper username |
 
 Display mapping stays in `analytics/` (e.g. `league_history.py`, `matchups.py`); the SPA does not

@@ -1,6 +1,6 @@
 # 02 — dz-dashboard Build Plan: Sleeper Era
 
-**Status:** planned, not started · **Repo:** `dz-dashboard` · **Branch per milestone:** `feature/sleeper-d<N>-<name>` → PR to `dev`
+**Status:** planned, not started; **all upstream gates met** (danger-zone S1–S8 merged 2026-11-09) · start with `00_UPSTREAM_STATE.md` · **Repo:** `dz-dashboard` · **Branch per milestone:** `feature/sleeper-d<N>-<name>` → PR to `dev`
 **Architecture:** `01_DASHBOARD_ARCHITECTURE.md` · **UX rules:** `03_CROSS_PLATFORM_UX.md`
 **Upstream gates:** `../danger-zone/docs/sleeper/02_PIPELINE_BUILD_PLAN.md`
 
@@ -24,7 +24,13 @@ Follow the repo's plan → build → verify session model: each D-milestone gets
 | D7 | Player status + profile enrichment | 2 hr | G4 | Player detail status timeline, box-score badges for 2026 |
 | D8 | UX consistency pass, visual baselines per era, docs, release | 2–3 hr | G5 | v-next promotion |
 
-Total ≈ 20–28 focused hours. D3 can start as soon as G2 lands; D5–D7 are independent of each other.
+Total ≈ 20–28 focused hours. D5–D7 are independent of each other.
+
+**Sequencing with the live go-live (`00` §1):** the live DB has no 2026 data until upstream runs
+the approved go-live sequence, and from that moment 2026 is the default season everywhere. So:
+**D0 snapshots run before the go-live**; D1–D3 are built against a 2026 DB copy; the go-live is
+requested from the user (upstream) once D3 passes; D4–D8 follow on live data. Each milestone's
+PLAN session reads the matching hotspot rows in `00` §6.
 
 ---
 
@@ -63,6 +69,9 @@ Tests: parity suite green; a Sleeper-era box score shows official points from `p
 
 **Done when:** no surface reads `nfl_com_points` directly except through the upstream helper.
 
+Upstream already proved `authoritative_week_points_expr` identical to today's expression on all
+49,401 legacy roster rows. The work is the alias plus the three direct readers (`00` §6).
+
 ## D3 — Current-season experience
 
 Files: `analytics/current_season.py`, `GET /v1/seasons/current`, Home page, `DataAsOf.tsx`
@@ -74,6 +83,10 @@ weeks; Box score for a Sleeper week mirrors a legacy box score's structure; e2e 
 "Home → this week's matchup → box score" on the mixed fixture.
 
 **Done when:** the 2026 season is browsable end to end with the same look as 2025.
+
+Must handle (`00` §4/§6): the provisional week (`finalized=false`, `is_win NULL`, live scores) as
+current state, never a result; idle postseason rows; commissioner overrides; failed claims and
+player-less trade legs in team transaction lists; `slot_certainty='bench_or_reserve'` bench rows.
 
 ## D4 — Cross-era aggregation audit
 
@@ -101,6 +114,11 @@ Files: `analytics/brackets.py` (reuses `bracket.postseason_classification` for l
 **Done when:** 2026 playoffs render from official brackets; legacy brackets look identical to today
 with a "derived" provenance note; Sacko derivation agrees on both.
 
+Upstream already writes `final_rank` = `playoff_finish` (1–12), `made_playoffs`, champion /
+runner-up / last place for Sleeper seasons, under the legacy convention (`00` §4). It withholds
+places if Sleeper's bracket ever looks loser-advances (re-probed after weeks 15 and 17).
+Divisions are `not_used` in 2026 and render nothing.
+
 ## D6 — Transaction market
 
 Files: `analytics/faab_market.py`, `analytics/picks.py`, `GET /v1/seasons/{id}/faab-market`,
@@ -110,13 +128,20 @@ Draft page (pick ledger tab), transaction rows (trade assets: players + picks + 
 **Done when:** a 2026 trade shows all its assets; bid wars visible; legacy seasons show the
 capability gap for failed bids with the shared copy.
 
+Data: failed claims are `transactions` rows with `status='failed'` (`failed_waiver_claims`); trade
+assets are player-less `trade` legs (`trade_assets`); pick ownership is `traded_picks_for_league`.
+No 2026 trades exist yet, so use the upstream synthetic fixture (`00` §7).
+
 ## D7 — Player status
 
 Files: `analytics/player_status.py` (merge sources), `GET /v1/players/{id}/status`, Player detail
 status timeline, `InjuryBadge` sourcing for 2026 box scores.
 
-**Done when:** 2026 box scores show injury designations again (the post-2024 gap closes going
-forward); 2025 remains an honest gap.
+**Done when:** 2026 box scores show injury designations; the status timeline uses
+`player_status_asof` (7-day cutoff; older = gap).
+
+Corrected: nflverse weekly reports already cover 2025, so 2025 is not a gap. Sleeper snapshots are
+weekly, after the games (no game-day capture, the user's choice).
 
 ## D8 — Consistency pass and release
 

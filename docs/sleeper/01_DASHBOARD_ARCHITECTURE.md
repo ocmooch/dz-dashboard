@@ -1,6 +1,6 @@
 # 01 — dz-dashboard Architecture for Mixed-Platform History
 
-**Status:** planned, not started · **Repo:** `dz-dashboard` (Phase 2)
+**Status:** planned, not started · corrected 2026-11-09 against the delivered pipeline (S1–S8): **read `00_UPSTREAM_STATE.md` first; it wins where they differ** · **Repo:** `dz-dashboard` (Phase 2)
 **Program plan (canonical):** `../danger-zone/docs/sleeper/00_SLEEPER_ERA_MASTER_PLAN.md`
 **Companions:** `02_DASHBOARD_BUILD_PLAN.md` (milestones D0–D8), `03_CROSS_PLATFORM_UX.md` (UX rules)
 **Upstream detail:** `../danger-zone/docs/sleeper/01_PIPELINE_ARCHITECTURE.md` §5 (schema), §8.3 (capabilities), §9.1 (read helpers)
@@ -52,7 +52,7 @@ Both changes stay inside the existing rule: "only `ff_pipeline.repository` + pur
 | Schema / endpoint | Addition |
 |-------------------|----------|
 | `SeasonListItem`, `SeasonSummary`, `LeagueTimelineSeason` | `platform: "nfl_com" \| "sleeper"`, `platform_label: str`, `capabilities: SeasonCapabilities` |
-| new `SeasonCapabilities` | `{ <capability_key>: { state: "available" \| "partial" \| "derived" \| "not_on_platform" \| "not_yet", reason: str \| null } }` — keys from the master plan §4.2 |
+| new `SeasonCapabilities` | `{ <capability_key>: { state: "available" \| "partial" \| "derived" \| "not_on_platform" \| "not_yet" \| "not_used", note: str \| null } }` — mirrors upstream `season_capabilities` (`00` §3; `not_used` renders nothing) |
 | `MetaResponse` | `platform_eras: [{platform, label, start_year, end_year \| null}]`, `current_season_id`, `current_week` |
 | `CoverageMatrix` | a `platform` column per season row; capability cells beside feed cells |
 | `LeagueEras` (existing rules/playstyle eras) | the platform switch is emitted as a `LeagueEraChange` ("Moved to Sleeper") so it appears in the existing Timeline without a new concept |
@@ -99,13 +99,13 @@ src/ff_dashboard/analytics/
 | Points for/against, records book (highest score, blowouts) | Sum/compare directly, show a rules-era marker on rows where scoring rules differ | Scoring rule changes already exist inside the NFL.com era; platform change adds one more rules era |
 | Per-player league points | Always `authoritative_week_points` (official → reconstructed fallback) | Same definition both eras |
 | Efficiency / potential points | Computed for every season by the BFF; Sleeper's official `ppts` shown as a cross-check, never mixed into the computed series | One method across eras |
-| Transaction "activity" | Counted from moves (add/drop/waiver/trade) only; lineup changes **excluded from cross-era totals** | Sleeper has no lineup-change log |
+| Transaction "activity" | Counted from moves (add/drop/waiver/trade) only; lineup changes **excluded from cross-era totals**; failed claims (`status='failed'`) and player-less pick/FAAB legs are not moves | Sleeper has no lineup-change log; upstream keeps every row (`00` §4) |
 | FAAB spend | Show raw dollars per season; cross-era comparisons use **% of that season's budget** | Budgets may differ by platform |
 | Failed bids / bid wars | Sleeper-era only; career views state "since 2026" | Not recorded before |
 | Draft (ADP, value, reach) | Unchanged; draft type (snake/auction) carried as a label | Same inputs |
 | Divisions | Official when present (Sleeper), BFF-derived for 2010–2019, none otherwise | Existing historical-division logic stays |
 | Brackets / placements | Official (Sleeper) or derived (`is_consolation`), with a provenance flag | Existing classifier stays for legacy |
-| Injury/status | nflverse reports to 2024, Sleeper snapshots from 2026; 2025 gap stays honest | Source availability |
+| Injury/status | nflverse weekly reports 2010–2025 (+2026 at go-live) for per-week game status; Sleeper weekly post-games snapshots from 2026 (`player_status_asof`, 7-day cutoff) | Source availability (corrected: 2025 *is* covered) |
 
 ## 6. Frontend changes
 
@@ -136,6 +136,9 @@ in-progress Sleeper season:
 - Data-as-of (`DataAsOf.tsx`) already keys on `pipeline_runs`; it now also shows the current NFL
   week. Not real-time: refresh follows the upstream schedule.
 - Records book and career totals include in-progress seasons only for completed weeks, labelled.
+- **User rule (2026-11-09):** while a season is active, every representation shows its *current*
+  state, marked as subject to change; at season end it is static. A game in progress is never a
+  result (no tie, no live-score win). Idle postseason team-weeks (no opponent) are not games.
 
 ## 8. Testing
 
