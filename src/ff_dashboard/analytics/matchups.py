@@ -59,6 +59,7 @@ from ff_dashboard.analytics.roster_snapshots import (
     reconstructed_note,
     snapshot_kind,
 )
+from ff_dashboard.analytics.scoring import official_points_from_extra
 from ff_dashboard.analytics.season_schedule import season_schedule
 
 if TYPE_CHECKING:
@@ -127,18 +128,17 @@ def _slot_to_position(slot: str | None) -> str | None:
 
 
 def _authoritative_points(roster_row: Any) -> float | None:
-    """The league-awarded points for a roster row, from NFL.com history.
+    """The league-awarded points for a roster row: the platform's official value.
 
-    Phase 1 stores each weekly roster row's authoritative NFL.com fantasy points
-    in ``extra_data.nfl_com_points``. This is the real league result: it exists
-    even for players nflverse never logged a stat line for (inactive / DNP / bye,
-    who legitimately scored 0.0), and the starters' values sum to the matchup's
-    ``team_score``. Returns ``None`` only when the field is absent (then the
-    caller falls back to the nflverse reconstruction).
+    Phase 1 stores each weekly roster row's official per-player points in its
+    ``extra_data`` (NFL.com ``nfl_com_points``, Sleeper ``platform_points``); see
+    :func:`ff_dashboard.analytics.scoring.official_points_from_extra`. This is the real
+    league result: it exists even for players nflverse never logged a stat line for
+    (inactive / DNP / bye, who legitimately scored 0.0), and the starters' values sum
+    to the matchup's ``team_score``. Returns ``None`` only when the field is absent
+    (then the caller falls back to the nflverse reconstruction).
     """
-    extra = roster_row.extra_data or {}
-    value = extra.get("nfl_com_points")
-    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    return official_points_from_extra(roster_row.extra_data)
 
 
 def _extra_str(roster_row: Any, key: str) -> str | None:
@@ -832,7 +832,7 @@ def _team_box(
             if isinstance(hamlin_breakdown, dict):
                 breakdown = hamlin_breakdown
 
-        # Prefer NFL.com's authoritative per-player points (they sum to the team
+        # Prefer the platform's official per-player points (they sum to the team
         # score and cover players nflverse never scored — a real 0.0, not a gap);
         # fall back to the nflverse reconstruction only when the field is absent.
         nflverse_points = scored_row[0] if scored_row is not None else None

@@ -20,13 +20,14 @@ from ff_pipeline.repository.models import (
     Team,
     TeamRoster,
 )
-from sqlalchemy import Float, cast, distinct, func, select
+from sqlalchemy import distinct, select
 
 from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.head_to_head import closest_rivalry
 from ff_dashboard.analytics.historical_team_names import period_team_name_by_slot
+from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -206,12 +207,11 @@ def records_book(session: Session) -> dict[str, Any]:
     #   1. Scope to rows the league rostered **and started** (``team_rosters``,
     #      ``is_starter``). The nflverse scoring spans the whole NFL, so its global
     #      max can be a player nobody in this league ever started.
-    #   2. Score each row the way the box score does — prefer NFL.com's authoritative
-    #      ``extra_data.nfl_com_points`` (it carries bonuses the reconstruction
-    #      omits, e.g. long-TD), fall back to the reconstruction only when absent.
+    #   2. Score each row the way the box score does — prefer the platform's official
+    #      points (they carry bonuses the reconstruction omits, e.g. long-TD), fall
+    #      back to the reconstruction only when absent (analytics/scoring.py).
     # The result is the same number the player's source box score shows.
-    nfl_points = cast(func.json_extract(TeamRoster.extra_data, "$.nfl_com_points"), Float)
-    started_points = func.coalesce(nfl_points, PlayerStatsScored.total_points)
+    started_points = authoritative_week_points()
     best_player = session.execute(
         select(
             TeamRoster.team_id,
