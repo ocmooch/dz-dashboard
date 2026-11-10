@@ -25,6 +25,12 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
+**D0: PLAN done (2026-11-10), BUILD next.** The plan is `docs/plans/sleeper-d0-golden-snapshots.md`
+on branch `feature/sleeper-d0-golden-snapshots`. Snapshots come from a frozen copy of upstream's
+pre-go-live backup (`fantasy-pre-guard-v2-20261110T140400Z.db`), per the user. The live 2026
+go-live is **held until D0–D3** (user, 2026-11-10); upstream `migrate up` is done and the 2026
+rules are signed off. BUILD starts with `scripts/snapshot_legacy_payloads.py --freeze`.
+
 **Status reconcile (2026-11-09):** every branch the paragraphs below call "in flight",
 "uncommitted" or "ready to PR" is merged to `dev` (checked against the merge log through PR #122,
 the league-name scrub + CI fix), and `main` is at **v0.4.0** (not v0.2.0 as below). The prose below
