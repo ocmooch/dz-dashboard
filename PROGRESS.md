@@ -44,7 +44,7 @@ D1–D3 on a 2026 DB copy.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
 - Merged to `dev` (PR #130, 2026-11-10); branch deleted.
 
-**D4: BUILT (2026-11-10), gate green; not yet PR'd.** Plan + as-built:
+**D4: BUILT (2026-11-10), gate green; PR #131 to `dev` open.** Plan + as-built:
 `docs/plans/sleeper-d4-cross-era-aggregation.md` (branch `feature/sleeper-d4-cross-era-aggregation`).
 - `analytics/aggregation.py`: counted/partial seasons, scoring eras (contiguous identical stored
   rules; rule-less season = no era), `is_move`, `pct_of_budget`, `normalize_within_season`,
@@ -57,7 +57,7 @@ D1–D3 on a 2026 DB copy.
 - No legacy value moved: both parity suites green with no regeneration; live golden 1092/0.
 - Live eras: 2010 | 2011–2025 (+2026 at go-live), not the plan's four (see the as-built note).
 - `is_move` / `pct_of_budget` have no consumer yet; D6 (transaction market) is the first.
-Next: PR D4 → `dev`, then D5 (official brackets, divisions, potential points).
+Next: merge PR #131, then D5 (official brackets, divisions, potential points).
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
