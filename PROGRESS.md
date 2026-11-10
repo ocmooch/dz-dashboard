@@ -132,9 +132,9 @@ history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 ## Next
 
 **Sleeper era D0 — mixed-era fixture + legacy golden snapshots** (`docs/sleeper/02` §D0, `00` §7).
-PLAN session first (`docs/plans/sleeper-d0-*.md`). One question to settle with the user there:
-may *tests* build the mixed-era fixture with upstream `ff_pipeline` loaders? (`src/` stays
-read-only either way.) Then D1 → D2 → D3 on a 2026 copy, then ask upstream for the go-live.
+PLAN session first (`docs/plans/sleeper-d0-*.md`). Settled with the user (2026-11-09): **tests may
+build the mixed-era fixture with upstream `ff_pipeline` loaders** (`00` §7); `src/` stays read-only.
+Then D1 → D2 → D3 on a 2026 copy, then ask upstream for the go-live.
 
 Earlier direction (still valid, lower priority than the Sleeper era):
 

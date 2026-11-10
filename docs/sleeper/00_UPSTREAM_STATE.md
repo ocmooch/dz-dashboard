@@ -201,7 +201,8 @@ divisions `not_used`, co-owners `not_used`, potential points `available` (offici
   NFL.com season + the 2026 Sleeper load (`tests/integration/test_sleeper_load.py` `_prepare` /
   `_load`, `test_sleeper_rich.py` `_decided` for a fully decided 6+6 bracket). A dashboard test
   fixture can reuse that path: it runs `ff_pipeline` loaders **inside tests only**. The
-  forbidden-import grep covers `src/ff_dashboard`, not `tests/`. Confirm in the D0 PLAN session
-  that the user is fine with test-only use of upstream loaders.
+  forbidden-import grep covers `src/ff_dashboard`, not `tests/`. **Approved by the user
+  (2026-11-09): tests may use the pipeline's loaders** to build the mixed-era fixture. `src/` stays
+  read-only.
 - A full 2026 DB copy: copy the live DB, then run the go-live sequence (§1) against the copy
   (`DATABASE_URL=sqlite:///<copy>`). About 2 minutes, needs network for nflverse.
