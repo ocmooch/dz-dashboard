@@ -119,6 +119,23 @@ match the new schema; never edit `schema.d.ts` by hand.
   pinned to `v1.2.0` (the earliest tag that carries those columns); bump it whenever the live DB is
   regenerated from a newer pipeline release.
 
+### After each danger-zone release
+
+danger-zone's scheduled jobs (Wed 06:00 capture, Wed 07:00 vault sync) run from
+`~/danger-zone-main`, a worktree pinned to `main` that shares the live DB. They don't use the
+`../danger-zone` dev checkout this dashboard imports from. The release checklist is in danger-zone
+`CONTRIBUTING.md` ("Releases"). Its steps that affect this repo:
+
+1. **Main copy pulled, plus `migrate up` if the release adds a migration.** Only after this does
+   the live DB carry the new schema and the weekly job write with the new code. Until then, the
+   live DB matches the previous release.
+2. **Dev checkout vs live DB.** `../danger-zone` is on `dev`, which can be ahead of `main`. If `dev`
+   adds a migration that isn't released yet, the editable dependency's ORM can be ahead of the
+   live DB. Test new schema against a DB copy until the release lands.
+3. **Pinned fallback.** If the release changed the schema, update the `tag = "vX.Y.Z"` example
+   above (and the pin, wherever it's in use) to that release. Dependency resolution happens in
+   this repo, so `uv lock` is part of that change.
+
 ---
 
 ## Common breakages
