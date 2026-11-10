@@ -108,7 +108,7 @@ BFF on the mixed fixture:
 
 Both golden parity suites green with no regeneration.
 
-## Proposed defaults to confirm with the user
+## Decided with the user (2026-11-10)
 
 1. **Rules-era marker = scoring-rule changes** (2010 | 2011–20 | 2021–25 | 2026–), not just the
    platform switch. `01` §5 says rule changes inside the NFL.com era already count.
@@ -116,3 +116,5 @@ Both golden parity suites green with no regeneration.
    (the D3 rule applied to careers), rather than leaving 2026 out until it ends.
 3. **Season-total records (best/worst season PF) skip the in-progress season** (as D3 shipped), with
    the note saying so.
+
+All three confirmed as proposed.

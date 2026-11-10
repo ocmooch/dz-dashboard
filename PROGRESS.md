@@ -48,7 +48,8 @@ D1–D3 on a 2026 DB copy.
 `feature/sleeper-d4-cross-era-aggregation`). Audit found three leftover leaks of the unfinished week
 (`league_stories`, `weekly_scores`, `owner_consistency`); no cross-era activity/FAAB metric exists
 yet (helpers now, consumers in D6); 4 scoring eras on the live DB (2010 | 2011–20 | 2021–25 | 2026).
-Next: confirm the plan's 3 proposed defaults with the user, then BUILD from `analytics/aggregation.py`.
+The user confirmed the plan's 3 defaults (scoring-rule eras; careers include 2026 with a note; season-PF
+records skip it). Next: BUILD from `analytics/aggregation.py`.
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
