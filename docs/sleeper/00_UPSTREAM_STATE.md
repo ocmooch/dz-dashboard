@@ -1,6 +1,7 @@
 # 00 — Upstream state for the Sleeper-era dashboard work (read this first)
 
-**Written 2026-11-09, after danger-zone S1–S8 merged** (`danger-zone` `dev` @ 29c9764). This is
+**Written 2026-11-09, after danger-zone S1–S8 merged** (`danger-zone` `dev` @ 29c9764); §1 go-live
+updated 2026-11-10 after S9 merged (`dev` @ f84f502). This is
 what the pipeline *actually* delivers, as opposed to what `01`–`03` (planned before the pipeline
 work) assumed. Where they differ, **this doc wins**; the corrections are also applied in place.
 Read it once per D-milestone PLAN session instead of re-exploring danger-zone.
@@ -17,13 +18,19 @@ Upstream references, by section only: `../danger-zone/docs/sleeper/04_SLEEPER_FI
   (`season_id 17`, `platform='sleeper'`, `status='in_progress'`), with 12 owners mapped to Sleeper
   users and the old NFL.com 2026 stub quarantined. There are no 2026 teams, matchups, rosters,
   transactions, rules or scores. `played_season_ids()` therefore hides 2026 today.
-- **The 2026 go-live is one approved upstream sequence (S5-D1, S6-D1, S7-D1)**, run when the
-  dashboard is ready:
-  `sleeper-league load` → `adopt-gsis --apply` → `injury-reports --season 2026` →
-  `run --source nflverse --season 2026` → `sleeper-league rules --write` →
-  `run --source team_defense --season 2026` → `sleeper-league stats` → `rescore --season 2026` →
-  `reconcile`. It is danger-zone's to run and **the user approves it**; dashboard sessions never
-  trigger it.
+- **The 2026 go-live is one approved upstream sequence (S5-D1, S6-D1, S7-D1; S9 command)**, run
+  when the dashboard is ready (danger-zone `docs/RUNBOOK.md` "Sleeper era operations (S9)"):
+  1. `ff-pipeline migrate up` (adds the guard v2 triggers; inert until a Sleeper season is sealed);
+  2. `ff-pipeline sleeper-league rules --diff 2025`, then `rules --write`;
+  3. `ff-pipeline sleeper-league update`, which runs load → `adopt-gsis --apply` →
+     `injury-reports` → nflverse → team_defense → `sleeper-league stats` → `rules --check` →
+     rescore → reconcile;
+  4. set `SLEEPER_AUTO_LOAD=true` in danger-zone's `.env`.
+
+  It is danger-zone's to run and **the user approves it**; dashboard sessions never trigger it.
+- **After step 4, 2026 data changes every Wednesday on its own**: the 06:00 ET weekly job runs
+  capture → `sleeper-league update` → full `legacy verify`. If the league's scoring settings
+  change, `update` stops before rescoring until the user signs off the new rules.
 - **The moment it runs, 2026 becomes the dashboard's default season** (latest played season), in
   every view at once. So:
   - **D0 (legacy golden snapshots from the live DB) must be taken before the go-live.**
