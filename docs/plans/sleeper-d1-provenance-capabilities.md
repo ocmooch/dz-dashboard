@@ -17,31 +17,28 @@ platform literals.
 **Out of scope:** 2026 behavior fixes in analytics (D2/D3: points, provisional weeks, opponent-less
 rows), official brackets (D5), FAAB/picks (D6), status (D7). No DB writes.
 
-## Open decisions (ask the user before BUILD)
+## Decisions (user, 2026-11-10)
 
-1. **What "every season-scoped payload" means.** Proposal: the **season-level** payloads carry
-   `platform`, `platform_label` and `capabilities`: `SeasonListItem` (`/v1/seasons`),
-   `SeasonSummary` (`/v1/seasons/{id}`) and `LeagueTimelineSeason`, as `01` §3.2 lists. Pages read
-   them once through `SeasonContext` (`01` §6) instead of every one of the ~30 per-season
-   endpoints repeating the same block. The alternative is adding the block to every season-scoped
-   response: heavier payloads and much bigger generated-client churn, with no extra information.
-2. **Sleeper usernames in `ManagerIdentity.platform_accounts`.** Upstream stores
-   `external_display_name` (the Sleeper username). The S5-D5 rule chose canonical owner names
-   over usernames for team names. Proposal: `platform_accounts` carries `platform`, `label`,
-   `first_season` and `last_season`, and **omits** the username (and never raw user ids, `01`
-   §3.2). The alternative is to show the username.
-3. **When the platform change appears.** Proposal: the "Moved to Sleeper" change appears once the
-   2026 season is a *played* season. That's the same rule that hides resultless seasons today
-   (`common.played_season_ids`), so before the go-live the live Timeline doesn't show it yet. The
-   Done-when is proven on the mixed-era fixture and on a 2026 DB copy (`00` §7 recipe).
+1. **Season-level payloads only.** `SeasonListItem`, `SeasonSummary` and `LeagueTimelineSeason`
+   carry `platform`, `platform_label` and `capabilities`. Pages read them through
+   `SeasonContext`; the per-season endpoints don't repeat them.
+2. **No Sleeper usernames.** `platform_accounts` = `platform`, `label`, `first_season`,
+   `last_season`. It never includes `external_display_name` or user ids.
+3. **The platform change shows right away**, even before 2026 has games. The "Moved to Sleeper"
+   change and `platform_eras` are computed from the `seasons` table (any status, platform set),
+   **not** from played seasons. The Timeline renders the change at 2026 although the unplayed
+   season itself stays hidden (resultless-season rule unchanged).
+   - **Approved golden impact:** the frozen golden DB holds the unplayed 2026 Sleeper row, so the
+     live `/v1/league/eras` golden gains exactly one `changes` entry. BUILD confirms the diff is
+     only that entry, then regenerates that single golden. Every other golden must stay green.
 
 ## BFF
 
 | Path | Change |
 |---|---|
-| `src/ff_dashboard/analytics/platform.py` (NEW) | `season_provenance(s, season_id) -> {platform, platform_label}` via `queries.season_platform`. `season_capabilities(s, season_id) -> dict[key, {state, note}]` via `queries.season_capabilities`, with `not_used` notes forced to `None` (silent, `00` §3). `platform_eras(s) -> [{platform, label, start_year, end_year}]` over **played** seasons, where `end_year` is None for the current platform. `capability_matrix(s) -> {keys, seasons: [{season_year, platform, cells}]}` for About. |
+| `src/ff_dashboard/analytics/platform.py` (NEW) | `season_provenance(s, season_id) -> {platform, platform_label}` via `queries.season_platform`. `season_capabilities(s, season_id) -> dict[key, {state, note}]` via `queries.season_capabilities`, with `not_used` notes forced to `None` (silent, `00` §3). `platform_eras(s) -> [{platform, label, start_year, end_year}]` over **all** seasons with a platform (decision 3), where `end_year` is None for the current platform. `capability_matrix(s) -> {keys, seasons: [{season_year, platform, cells}]}` for About. |
 | `src/ff_dashboard/api/schemas.py` | NEW `Capability{state, note}`, `SeasonCapabilities = dict[str, Capability]`, `PlatformEra`, `PlatformAccount`, `CapabilityMatrix`. Additive optional fields: `SeasonListItem` / `SeasonSummary` / `LeagueTimelineSeason` get `platform`, `platform_label`, `capabilities`; `MetaResponse` gets `platform_eras`, `current_season_id`, `current_week`; `CoverageMatrix` gets `season_platforms: dict[year, platform]` + `capabilities: dict[year, SeasonCapabilities]`; `ManagerIdentity` gets `platform_accounts`; `LeagueEraChange` gets `platform_changed: bool = False`. |
-| `src/ff_dashboard/analytics/league_history.py` | `league_eras` emits a `LeagueEraChange` (`platform_changed=True`, detail "Moved to Sleeper") at the first played season of a new platform. Playstyle era ids (`_era_key`) are **unchanged**: the platform is provenance, not a playstyle trait. |
+| `src/ff_dashboard/analytics/league_history.py` | `league_eras` emits a `LeagueEraChange` (`platform_changed=True`, detail "Moved to Sleeper") at the first season (any status) of a new platform (decision 3). Playstyle era ids (`_era_key`) are **unchanged**: the platform is provenance, not a playstyle trait. |
 | routes: `seasons.py`, `meta.py`, `league.py` (+ `owners.py` for managers) | populate the fields. A new `GET /v1/meta/capabilities` returns `CapabilityMatrix` for About. Adding a route is additive, and the D0 coverage test requires it to get a golden. |
 | `analytics/coverage.py` | fills the two new `CoverageMatrix` maps |
 
@@ -66,9 +63,9 @@ null when there isn't one.
 - **Unit** `tests/test_platform_unit.py`:
   - Each state resolves (`available`, `partial`, `derived`, `not_yet`, `not_on_platform`,
     `not_used` with its note cleared).
-  - `platform_eras` on the legacy fixture is `[nfl_com 2015–null]`, and on the mixed fixture it's
-    `[nfl_com 2015–2017, sleeper 2026–null]`.
-  - The unplayed 2018 season is excluded.
+  - `platform_eras` covers every season with a platform (decision 3): `[nfl_com 2015–null]` on the
+    legacy fixture (the unplayed 2018 still counts as NFL.com), and
+    `[nfl_com 2015–2018, sleeper 2026–null]` on the mixed fixture.
 - **Contract** `tests/test_d1_endpoints.py` (mixed fixture):
   - `/v1/seasons` and `/v1/seasons/{id}` carry platform + capabilities for both eras.
   - `/v1/meta` platform_eras + current season/week; `/v1/meta/coverage` maps.
