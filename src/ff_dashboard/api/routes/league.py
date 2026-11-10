@@ -15,6 +15,7 @@ from ff_dashboard.analytics.league_history import (
     league_timeline,
     manager_directory,
 )
+from ff_dashboard.analytics.picks import league_pick_ledger
 from ff_dashboard.analytics.platform import season_platform_fields
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 - runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
@@ -25,6 +26,7 @@ from ff_dashboard.api.schemas import (
     LeagueStories,
     LeagueTimeline,
     ManagerDirectory,
+    PickLedger,
 )
 
 router = APIRouter(tags=["league"])
@@ -61,3 +63,8 @@ def get_league_stories(session: SessionDep) -> Envelope[LeagueStories]:
 @router.get("/v1/league/managers", response_model=Envelope[ManagerDirectory])
 def get_manager_directory(session: SessionDep) -> Envelope[ManagerDirectory]:
     return Envelope(data=ManagerDirectory(**manager_directory(session)), meta=build_meta(session))
+
+
+@router.get("/v1/league/picks", response_model=Envelope[PickLedger])
+def get_league_picks(session: SessionDep) -> Envelope[PickLedger]:
+    return Envelope(data=PickLedger(**league_pick_ledger(session)), meta=build_meta(session))

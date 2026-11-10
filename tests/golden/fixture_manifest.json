@@ -2679,6 +2679,46 @@
    "status": 200,
    "sha256": "387b4e71d3b4a87e256ad0bb3866700237a5004909d5261596666f80212871d9",
    "volatile": []
+  },
+  {
+   "url": "/v1/league/picks",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "82974f409b8e3c9c704b755a8adaf0e51793ad9babe14b3244ecee73c6529c19",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8af5956619d35a3a7cf350a260b8c9a0e9609f83ccfaf7b8e940768252b18244",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "999fcdc052e3b4759641deb5381e0e0145b390b0e48cbe4f20c7b1446542c0c8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "dc0ac5852725781878af3ed379c0533295ec8176982fc6c7cba7c015f6a2bd18",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "56085dbec5308e83f55c6e3fd1588ff39de2f6add5b39b6191a10456d8f6032d",
+   "volatile": []
   }
  ]
 }

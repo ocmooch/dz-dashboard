@@ -13,6 +13,7 @@ from ff_dashboard.analytics.conferences import official_division_map, season_con
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.current_season import current_season
 from ff_dashboard.analytics.efficiency import season_efficiency, season_potential_points
+from ff_dashboard.analytics.faab_market import season_faab_market
 from ff_dashboard.analytics.platform import season_platform_fields
 from ff_dashboard.analytics.standings import (
     compute_standings,
@@ -28,6 +29,7 @@ from ff_dashboard.api.schemas import (
     SeasonBracket,
     SeasonConferences,
     SeasonEfficiency,
+    SeasonFaabMarket,
     SeasonList,
     SeasonListItem,
     SeasonSummary,
@@ -171,6 +173,18 @@ def get_weekly_scores(season_id: int, session: SessionDep) -> Envelope[SeasonWee
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=SeasonWeeklyScores(**data), meta=build_meta(session))
+
+
+@router.get("/v1/seasons/{season_id}/faab-market", response_model=Envelope[SeasonFaabMarket])
+def get_faab_market(
+    season_id: int, session: SessionDep, cache: CacheDep
+) -> Envelope[SeasonFaabMarket]:
+    data = cache.get_or_compute(
+        session, f"faab_market:{season_id}", lambda: season_faab_market(session, season_id)
+    )
+    if data is None:
+        raise not_found(f"No season with id {season_id}")
+    return Envelope(data=SeasonFaabMarket(**data), meta=build_meta(session))
 
 
 @router.get(

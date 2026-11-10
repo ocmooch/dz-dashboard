@@ -1,0 +1,122 @@
+{
+ "body": {
+  "data": {
+   "bid_wars": [],
+   "budget": 100.0,
+   "failed_bids_capability": {
+    "note": null,
+    "state": "not_on_platform"
+   },
+   "is_faab_era": true,
+   "season_id": 3,
+   "season_year": 2017,
+   "teams": [
+    {
+     "failed_bids": null,
+     "largest_bid": 10.0,
+     "pct_of_budget": 0.15,
+     "spent": 15.0,
+     "team": {
+      "owner_id": 3,
+      "owner_name": "Goose",
+      "team_id": 11,
+      "team_name": "Goose 2017"
+     },
+     "winning_bids": 3
+    },
+    {
+     "failed_bids": null,
+     "largest_bid": null,
+     "pct_of_budget": 0.0,
+     "spent": 0.0,
+     "team": {
+      "owner_id": 1,
+      "owner_name": "Maverick",
+      "team_id": 9,
+      "team_name": "Maverick 2017"
+     },
+     "winning_bids": 0
+    },
+    {
+     "failed_bids": null,
+     "largest_bid": null,
+     "pct_of_budget": 0.0,
+     "spent": 0.0,
+     "team": {
+      "owner_id": 2,
+      "owner_name": "Iceman",
+      "team_id": 10,
+      "team_name": "Iceman 2017"
+     },
+     "winning_bids": 0
+    },
+    {
+     "failed_bids": null,
+     "largest_bid": null,
+     "pct_of_budget": 0.0,
+     "spent": 0.0,
+     "team": {
+      "owner_id": 5,
+      "owner_name": "Viper",
+      "team_id": 12,
+      "team_name": "Northvale Scumbags"
+     },
+     "winning_bids": 0
+    }
+   ],
+   "top_bids": [
+    {
+     "bid": 10.0,
+     "player": {
+      "player_id": 7,
+      "player_name": "Waiver Wendell",
+      "position": "RB"
+     },
+     "team": {
+      "owner_id": 3,
+      "owner_name": "Goose",
+      "team_id": 11,
+      "team_name": "Goose 2017"
+     },
+     "week": 1
+    },
+    {
+     "bid": 5.0,
+     "player": {
+      "player_id": 1,
+      "player_name": "Lamar Jackson",
+      "position": "QB"
+     },
+     "team": {
+      "owner_id": 3,
+      "owner_name": "Goose",
+      "team_id": 11,
+      "team_name": "Goose 2017"
+     },
+     "week": 3
+    },
+    {
+     "bid": 0.0,
+     "player": {
+      "player_id": 8,
+      "player_name": "Vintage Vince",
+      "position": "WR"
+     },
+     "team": {
+      "owner_id": 3,
+      "owner_name": "Goose",
+      "team_id": 11,
+      "team_name": "Goose 2017"
+     },
+     "week": 2
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

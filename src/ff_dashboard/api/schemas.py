@@ -1686,10 +1686,121 @@ class TeamTransaction(BaseModel):
     trade_assets: TradeAssets | None = None
 
 
+class MarketTeamRef(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+
+
+class MarketPlayerRef(BaseModel):
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+
+
+class TeamTrade(BaseModel):
+    """One trade from this team's side, with every asset (Sleeper D6)."""
+
+    executed_at: str | None = None
+    week: int | None = None
+    counterpart_team_id: int | None = None
+    counterpart_team_name: str | None = None
+    players_in: list[MarketPlayerRef] = []
+    players_out: list[MarketPlayerRef] = []
+    picks_in: list[dict[str, Any]] = []
+    picks_out: list[dict[str, Any]] = []
+    faab_in: float = 0
+    faab_out: float = 0
+
+
+class FailedBid(BaseModel):
+    """A lost FAAB claim; ``winner`` / ``winning_bid`` when another team got the player."""
+
+    week: int | None = None
+    player: MarketPlayerRef | None = None
+    bid: float | None = None
+    failure_reason: str | None = None
+    winner: MarketTeamRef | None = None
+    winning_bid: float | None = None
+
+
 class TeamTransactions(BaseModel):
     team_id: int
     season_year: int
     transactions: list[TeamTransaction]
+    # Grouped trades with all assets; the per-leg rows above are unchanged (D6).
+    trades: list[TeamTrade] = []
+    # Lost claims where the platform records them; see ``failed_bids_capability`` otherwise.
+    failed_bids: list[FailedBid] = []
+    failed_bids_capability: Capability | None = None
+
+
+class FaabMarketTeam(BaseModel):
+    team: MarketTeamRef
+    spent: float
+    pct_of_budget: float | None = None
+    winning_bids: int
+    # None where the platform doesn't record lost bids (a gap, never 0).
+    failed_bids: int | None = None
+    largest_bid: float | None = None
+
+
+class FaabTopBid(BaseModel):
+    week: int | None = None
+    team: MarketTeamRef
+    player: MarketPlayerRef | None = None
+    bid: float | None = None
+
+
+class BidWarBid(BaseModel):
+    team: MarketTeamRef
+    bid: float | None = None
+    won: bool
+    failure_reason: str | None = None
+
+
+class BidWar(BaseModel):
+    week: int
+    player: MarketPlayerRef | None = None
+    winner: MarketTeamRef | None = None
+    winning_bid: float | None = None
+    margin: float | None = None
+    bids: list[BidWarBid]
+
+
+class SeasonFaabMarket(BaseModel):
+    season_id: int
+    season_year: int
+    # False for a waiver-priority (pre-FAAB) season: not applicable, not a gap.
+    is_faab_era: bool
+    budget: float | None = None
+    teams: list[FaabMarketTeam] = []
+    top_bids: list[FaabTopBid] = []
+    bid_wars: list[BidWar] = []
+    failed_bids_capability: Capability | None = None
+
+
+class PickOwner(BaseModel):
+    owner_id: int
+    owner_name: str | None = None
+
+
+class TradedPickRow(BaseModel):
+    pick_season: int
+    round: int
+    original_owner: PickOwner | None = None
+    current_owner: PickOwner | None = None
+    previous_owner: PickOwner | None = None
+
+
+class PickLedger(BaseModel):
+    """Traded future picks. ``available`` False = no season records them (``reason`` = the
+    capability key); on Sleeper an empty list is a real answer."""
+
+    available: bool
+    reason: str | None = None
+    picks: list[TradedPickRow] = []
 
 
 class TeamFaabWeek(BaseModel):
