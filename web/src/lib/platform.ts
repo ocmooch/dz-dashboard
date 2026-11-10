@@ -182,3 +182,44 @@ const DRAFT_TYPE_LABELS: Record<string, string> = {
 export function draftTypeLabel(type: string | null | undefined): string | null {
   return type ? (DRAFT_TYPE_LABELS[type] ?? null) : null;
 }
+
+/** Playoffs footnote: official (the platform's recorded bracket) vs derived (Sleeper D5). */
+export function bracketProvenanceText(
+  source: string | null | undefined,
+  platform: string | null | undefined,
+): string {
+  if (source === "official") {
+    const label = platformLabel(platform);
+    return label ? `Official bracket, as recorded by ${label}.` : "Official bracket.";
+  }
+  return provenanceText("official_brackets", platform) ?? "Bracket derived from who played whom.";
+}
+
+/** Banner for an undecided official bracket: seeds are current state, not history (`00` §3). */
+export const PROVISIONAL_BRACKET_TEXT =
+  "Seeds and pairings reflect the current standings and may change until the playoffs are decided.";
+
+/** Standings footnote for potential points (computed for every era; `01` §3 row 101). */
+export function potentialPointsNote(
+  uncertainWeeks: readonly number[] | null | undefined,
+  platform: string | null | undefined,
+): string {
+  const base = "Potential points = the best possible lineup each week, computed by this dashboard.";
+  const weeks = uncertainWeeks ?? [];
+  if (!weeks.length) return base;
+  const label = platformLabel(platform) || "the platform";
+  const contiguous = weeks.every((w, i) => i === 0 || w === weeks[i - 1] + 1);
+  const span =
+    weeks.length === 1
+      ? `Week ${weeks[0]}`
+      : contiguous
+        ? `Weeks ${weeks[0]}–${weeks[weeks.length - 1]}`
+        : `Weeks ${weeks.join(", ")}`;
+  return `${base} ${span}: an injured-reserve player may sit on the bench, so it can run above ${label}'s figure.`;
+}
+
+/** Tooltip for the platform's own potential-points figure, a cross-check only. */
+export function officialPotentialText(value: string, platform: string | null | undefined): string {
+  const label = platformLabel(platform) || "Platform";
+  return `${label}'s own figure: ${value}`;
+}

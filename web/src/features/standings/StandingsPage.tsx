@@ -12,6 +12,7 @@ import {
   DataGap,
   EraMarker,
   ErrorState,
+  ProvenanceNote,
   RecordLine,
   Sacko,
   Skeleton,
@@ -25,6 +26,7 @@ import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { officialPotentialText, potentialPointsNote } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -182,6 +184,21 @@ function DivisionTable({
   );
 }
 
+/** Potential points (computed for every era); the platform's own figure is a cross-check. */
+function PotentialCell({
+  computed,
+  official,
+  platform,
+}: {
+  computed: number | null | undefined;
+  official: number | null | undefined;
+  platform: string | null | undefined;
+}) {
+  if (computed == null) return <DataGap reason="no_solvable_lineups" size="sm" />;
+  const title = official != null ? officialPotentialText(num(official), platform) : undefined;
+  return <span title={title}>{num(computed)}</span>;
+}
+
 export function StandingsPage() {
   const { current } = useSeasons();
   const seasonId = current?.season_id;
@@ -336,6 +353,9 @@ export function StandingsPage() {
                         <th className="dz-num">Win%</th>
                         <th className="dz-num">PF</th>
                         <th className="dz-num">PA</th>
+                        <th className="dz-num" title="Best possible lineup each week">
+                          Potential
+                        </th>
                         {showFinalPlacement && <th className="dz-num">Finish</th>}
                         <th className="dz-num">Streak</th>
                       </tr>
@@ -359,6 +379,13 @@ export function StandingsPage() {
                           <td className="dz-num text-muted">{pct(r.win_pct)}</td>
                           <td className="dz-num">{num(r.points_for)}</td>
                           <td className="dz-num text-muted">{num(r.points_against)}</td>
+                          <td className="dz-num text-muted">
+                            <PotentialCell
+                              computed={r.potential_points}
+                              official={r.potential_points_official}
+                              platform={current?.platform}
+                            />
+                          </td>
                           {showFinalPlacement && (
                             <td className="dz-num">
                               <PlacementCell finalRank={r.final_rank} isSacko={r.is_sacko} />
@@ -371,6 +398,11 @@ export function StandingsPage() {
                       ))}
                     </tbody>
                   </table>
+                  <div className="px-5 pb-4">
+                    <ProvenanceNote>
+                      {potentialPointsNote(data.potential_points_uncertain_weeks, current?.platform)}
+                    </ProvenanceNote>
+                  </div>
                 </div>
               )}
             </Card>

@@ -90,6 +90,16 @@ def compute_standings(
     except Exception:
         pass
 
+    # Official divisions (the platform recorded ``teams.division``; Sleeper D5) replace the
+    # stored NFL.com conferences. Unused on every legacy season. Lazy: conferences → standings.
+    from ff_dashboard.analytics.conferences import official_division_map
+
+    official_divs = official_division_map(session, season)
+    for tid, (cid, cname) in official_divs.items():
+        team_conf_ids[tid] = cid
+        if cid is not None:
+            conf_names[cid] = cname
+
     matchups = list(
         session.execute(
             select(Matchup)

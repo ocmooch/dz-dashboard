@@ -17,6 +17,7 @@ from ff_dashboard.analytics.historical_divisions import (
 from ff_dashboard.analytics.standings import compute_standings
 
 if TYPE_CHECKING:
+    from ff_pipeline.repository.models import Season
     from sqlalchemy.orm import Session
 
 
@@ -77,10 +78,17 @@ def _mapped_source(
 
 
 def conference_map(session: Session, season_id: int) -> dict[int, tuple[int | None, str | None]]:
-    """Return internal team → historical division ID/name, or ``{}`` on any gap."""
+    """Return internal team → division ID/name, or ``{}`` on any gap.
+
+    Official divisions (the platform recorded ``teams.division``; Sleeper D5) win; otherwise the
+    reviewed historical divisions (NFL.com 2010-2019). No divisions → ``{}`` (renders nothing).
+    """
     season = get_season(session, season_id)
     if season is None:
         return {}
+    official = official_division_map(session, season)
+    if official:
+        return official
     source, mapping, issues = _mapped_source(session, season_id, season.year)
     if source is None or issues:
         return {}
@@ -90,6 +98,29 @@ def conference_map(session: Session, season_id: int) -> dict[int, tuple[int | No
         for team in division.teams:
             result[mapping[team.nfl_team_id]] = (conference_id, division.name)
     return result
+
+
+def official_division_map(
+    session: Session, season: Season
+) -> dict[int, tuple[int | None, str | None]]:
+    """Team → (id, name) from the platform's own ``teams.division``; ``{}`` when unused.
+
+    The name is the league's division name from the settings snapshot when present, else
+    "Division N"."""
+    teams = [
+        (int(t.team_id), t.division)
+        for t in session.scalars(select(Team).where(Team.season_id == season.season_id))
+        if t.division
+    ]
+    if not teams:
+        return {}
+    meta = (season.settings_snapshot or {}).get("metadata") or {}
+    out: dict[int, tuple[int | None, str | None]] = {}
+    for team_id, div in teams:
+        n = int(div) if str(div).isdigit() else None
+        name = meta.get(f"division_{div}") or (f"Division {div}" if n is not None else str(div))
+        out[team_id] = (season.year * 10 + n if n is not None else None, name)
+    return out
 
 
 def _result(matchup: Matchup) -> str | None:

@@ -43,6 +43,8 @@ const STANDINGS = {
       win_pct: 0.786,
       streak: { result: "W", length: 3 },
       final_rank: 1,
+      potential_points: 1800,
+      potential_points_official: 1810,
     },
     {
       rank: 2,
@@ -58,8 +60,10 @@ const STANDINGS = {
       win_pct: 0.643,
       streak: { result: "L", length: 1 },
       final_rank: 2,
+      potential_points: null,
     },
   ],
+  potential_points_uncertain_weeks: [1, 2, 3],
 };
 
 const TIMELINE = {
@@ -417,5 +421,15 @@ describe("StandingsPage", () => {
         ),
       ).toBe(true);
     });
+  });
+
+  it("shows potential points, a gap (never 0) and the cross-check", async () => {
+    renderPage();
+    expect(await screen.findByText("Potential")).toBeInTheDocument();
+    expect(screen.getByTitle("Platform's own figure: 1,810.00")).toBeInTheDocument();
+    expect(screen.getByText(/No weekly lineups to solve/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Weeks 1–3: an injured-reserve player may sit on the bench/i),
+    ).toBeInTheDocument();
   });
 });

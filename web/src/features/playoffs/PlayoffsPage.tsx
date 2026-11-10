@@ -2,12 +2,24 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Card, CardHeader, Chip, DataGap, EraMarker, ErrorState, Skeleton } from "@/design-system";
+import {
+  AWAITING_FINAL_LABEL,
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  EraMarker,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+} from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, teamAvatarUrl } from "@/lib/format";
+import { PROVISIONAL_BRACKET_TEXT, bracketProvenanceText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type BracketSection = components["schemas"]["BracketSection"];
@@ -91,19 +103,18 @@ function GameCard({
   byeTeamIds: Set<number>;
 }) {
   const isChamp = variant === "championship";
-  return (
-    <Link
-      to={`/matchups/${game.matchup_id}`}
-      className={[
-        "block rounded-[var(--radius)] border bg-[var(--surface-0)] transition-colors hover:border-[var(--accent)]",
-        isChamp ? "border-[var(--accent)] p-3.5 shadow-sm" : "border-[var(--border)] p-3",
-        variant === "secondary" ? "opacity-70" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {game.game_label && (
-        <div className="mb-2">
+  const className = [
+    "block rounded-[var(--radius)] border bg-[var(--surface-0)]",
+    game.matchup_id != null ? "transition-colors hover:border-[var(--accent)]" : "",
+    isChamp ? "border-[var(--accent)] p-3.5 shadow-sm" : "border-[var(--border)] p-3",
+    variant === "secondary" ? "opacity-70" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const body = (
+    <>
+      {(game.game_label || game.week_pending) && (
+        <div className="mb-2 flex items-center justify-between gap-2">
           <span
             className={`text-[10px] font-semibold uppercase tracking-widest ${
               isChamp ? "text-[var(--accent)]" : "text-muted"
@@ -111,15 +122,30 @@ function GameCard({
           >
             {game.game_label}
           </span>
+          {game.week_pending && <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>}
         </div>
       )}
       <div className="space-y-0.5">
-        {game.team_a && <TeamRow team={game.team_a} byeTeamIds={byeTeamIds} />}
-        {game.team_b && <TeamRow team={game.team_b} byeTeamIds={byeTeamIds} />}
+        {game.team_a ? <TeamRow team={game.team_a} byeTeamIds={byeTeamIds} /> : <TbdRow />}
+        {game.team_b ? <TeamRow team={game.team_b} byeTeamIds={byeTeamIds} /> : <TbdRow />}
       </div>
+    </>
+  );
+  // An official bracket game not played yet has no matchup to open.
+  if (game.matchup_id == null) return <div className={className}>{body}</div>;
+  return (
+    <Link to={`/matchups/${game.matchup_id}`} className={className}>
+      {body}
     </Link>
   );
 }
+
+// A bracket slot whose team is decided by an earlier game.
+function TbdRow() {
+  return <div className="px-2.5 py-1.5 text-[var(--fs-sm)] text-faint">TBD</div>;
+}
+
+const gameKey = (game: BracketGame, i: number) => game.matchup_id ?? `slot-${i}`;
 
 // ── Bye slot (first-round bye display) ───────────────────────────────────────
 
@@ -168,8 +194,8 @@ function RoundColumn({
       </div>
 
       {/* Primary games */}
-      {mainGames.map((game) => (
-        <GameCard key={game.matchup_id} game={game} variant={champVariant} byeTeamIds={byeTeamIds} />
+      {mainGames.map((game, i) => (
+        <GameCard key={gameKey(game, i)} game={game} variant={champVariant} byeTeamIds={byeTeamIds} />
       ))}
 
       {/* First-round bye slots (shown only in round 1) */}
@@ -187,8 +213,8 @@ function RoundColumn({
       {/* Secondary finals games (3rd/5th place, etc.) */}
       {secondaryGames.length > 0 && (
         <div className="mt-1 flex flex-col gap-2 border-t border-[var(--hairline)] pt-3">
-          {secondaryGames.map((game) => (
-            <GameCard key={game.matchup_id} game={game} variant="secondary" byeTeamIds={byeTeamIds} />
+          {secondaryGames.map((game, i) => (
+            <GameCard key={gameKey(game, i)} game={game} variant="secondary" byeTeamIds={byeTeamIds} />
           ))}
         </div>
       )}
@@ -275,6 +301,11 @@ export function PlayoffsPage() {
 
       {data?.available && (
         <div className="space-y-5">
+          {data.is_provisional && (
+            <p className="px-1 text-[var(--fs-sm)] text-muted" role="status">
+              {PROVISIONAL_BRACKET_TEXT}
+            </p>
+          )}
           {data.playoff_bracket && (
             <BracketSection
               title="Championship Bracket"
@@ -301,6 +332,9 @@ export function PlayoffsPage() {
           )}
 
           {data.caveat && <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>}
+          <div className="px-1">
+            <ProvenanceNote>{bracketProvenanceText(data.source, current?.platform)}</ProvenanceNote>
+          </div>
 
           {power.data && power.data.rows.length > 0 && (
             <Card>
