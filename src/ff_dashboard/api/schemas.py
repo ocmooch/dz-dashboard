@@ -8,7 +8,7 @@ analytics-specific and additive.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from ff_pipeline.api.schemas import (
     Envelope,
@@ -221,8 +221,9 @@ class TeamRef(BaseModel):
 
 
 class SackoRef(TeamRef):
-    """The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket) or
-    "recorded" (the stored last-place team, where the bracket can't be split)."""
+    """The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket), "recorded"
+    (the stored last-place team, where the bracket can't be split) or "official" (the platform's
+    bracket decided it; Sleeper)."""
 
     source: str | None = None
 
@@ -480,13 +481,17 @@ class ByeTeam(BaseModel):
 
 
 class BracketGame(BaseModel):
-    matchup_id: int
+    # None for an official bracket game whose week hasn't been played yet (Sleeper D5).
+    matchup_id: int | None = None
     is_playoff: bool = False
     is_consolation: bool | None = None
     game_label: str | None = None  # "Championship", "3rd Place", "7th Place", etc.
     team_a: BracketTeam | None = None
     team_b: BracketTeam | None = None
     winner_team_id: int | None = None
+    # Official brackets only: the place the winner takes (1 = title game), and an unfinished week.
+    placement: int | None = None
+    week_pending: bool = False
 
 
 class BracketRound(BaseModel):
@@ -512,6 +517,10 @@ class SeasonBracket(BaseModel):
     consolation_distinguished: bool = False
     playoff_bracket: BracketSection | None = None
     consolation_bracket: BracketSection | None = None
+    # "official" = the platform's recorded brackets (Sleeper); "derived" = rebuilt from who played
+    # whom (NFL.com). ``is_provisional``: an active season's seeds/pairings, subject to change.
+    source: Literal["official", "derived"] = "derived"
+    is_provisional: bool = False
 
 
 # ---------------------------------------------------------------------------

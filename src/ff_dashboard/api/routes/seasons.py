@@ -7,7 +7,7 @@ from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 from ff_pipeline.repository.queries import get_season, get_team
 
-from ff_dashboard.analytics.bracket import season_bracket
+from ff_dashboard.analytics.brackets import season_brackets
 from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
 from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
@@ -151,7 +151,7 @@ def get_efficiency(season_id: int, session: SessionDep) -> Envelope[SeasonEffici
 
 @router.get("/v1/seasons/{season_id}/bracket", response_model=Envelope[SeasonBracket])
 def get_season_bracket(season_id: int, session: SessionDep) -> Envelope[SeasonBracket]:
-    data = season_bracket(session, season_id)
+    data = season_brackets(session, season_id)
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=SeasonBracket(**data), meta=build_meta(session))

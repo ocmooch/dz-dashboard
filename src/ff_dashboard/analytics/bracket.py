@@ -19,6 +19,7 @@ from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
 from ff_dashboard.analytics.conferences import conference_map
+from ff_dashboard.analytics.game_state import is_idle
 from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
@@ -279,6 +280,8 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
     seen: set[tuple[int, frozenset[int]]] = set()
     game_dicts: list[dict[str, Any]] = []
     for m in rows:
+        if is_idle(m):
+            continue  # a Sleeper bye / already-placed team-week is not a bracket game
         pair = frozenset(
             {m.team_id, m.opponent_team_id} if m.opponent_team_id is not None else {m.team_id}
         )
@@ -415,6 +418,14 @@ def postseason_classification(session: Session, season_id: int) -> dict[str, Any
     season = get_season(session, season_id)
     if season is None:
         return _empty_classification(season_id, None)
+
+    # A season with official brackets (Sleeper) is classified from them, not from connectivity:
+    # Sleeper plays its 5th/11th-place games a round early, which the connectivity rule misreads.
+    from ff_dashboard.analytics.brackets import official_classification
+
+    official = official_classification(session, season)
+    if official is not None:
+        return official
 
     regular_weeks = regular_season_weeks(session, season)
     rows = list(

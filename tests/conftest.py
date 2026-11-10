@@ -1363,6 +1363,26 @@ def mixed_client(mixed_era_db_path: Path, fixture_db_path: Path) -> Iterator[Tes
     eng.dispose()
 
 
+@pytest.fixture(scope="session")
+def decided_db_path(fixture_db_path: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The mixed-era fixture with a fully decided 2026 playoff in weeks 6-8 (Sleeper D5)."""
+    from tests.sleeper_fixture import build_mixed_era_db
+
+    out = tmp_path_factory.mktemp("dzdecided") / "fantasy.db"
+    return build_mixed_era_db(fixture_db_path, out, LEAGUE_ID, decided=True)
+
+
+@pytest.fixture
+def decided_client(decided_db_path: Path, fixture_db_path: Path) -> Iterator[TestClient]:
+    eng = create_readonly_engine(f"sqlite:///{decided_db_path}")
+    app = create_app(
+        eng, cache=AnalyticsCache(), cors_origins=[], assets_root=fixture_db_path.parent / "assets"
+    )
+    with TestClient(app) as c:
+        yield c
+    eng.dispose()
+
+
 @pytest.fixture
 def empty_engine(tmp_path: Path) -> Iterator[Engine]:
     """Schema-only database (no rows) — for 503 / 'pipeline never ran' tests."""

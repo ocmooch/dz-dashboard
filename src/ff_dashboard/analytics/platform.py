@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 NOT_USED = "not_used"
+AVAILABLE = "available"
 DEFAULT_PLATFORM = "nfl_com"
 
 
