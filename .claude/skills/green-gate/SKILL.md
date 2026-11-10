@@ -26,6 +26,7 @@ git grep -nE "INSERT|UPDATE |DELETE |upsert|crawler|normalizer" src/ff_dashboard
 
 ```bash
 npm run gen:api && git diff --exit-code web/src/lib/api && echo "contract: no drift"
+npm run format:check > /tmp/format.log 2>&1; echo "format exit=$?"   # Prettier only; fix with npm run format
 npm run typecheck > /tmp/tsc.log 2>&1; echo "tsc exit=$?"; tail -n 20 /tmp/tsc.log
 npm run test > /tmp/vitest.log 2>&1; echo "vitest exit=$?"; tail -n 20 /tmp/vitest.log
 ```
