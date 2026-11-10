@@ -25,7 +25,18 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
-**D1: BUILT (2026-11-10), gate green; PR to `dev`, then D2.** Plan + as-built:
+**D2: BUILT (2026-11-10), gate green; PR to `dev`, then D3.** Plan + as-built:
+`docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
+`queries.authoritative_week_points_expr` / `official_slot_points_expr`; `official_points_from_extra`
+is the one dict-side mirror (box score, team weekly, player weekly), pinned to the SQL helper by a
+test. Records' best player week uses the shared helper. No contract change; live golden 1092/0.
+D3 follow-ups found here:
+- the box score gates on `seasons_scored` (any `player_stats_scored` row), so an un-rescored Sleeper
+  season shows `season_unscored` even though `platform_points` exist;
+- a commissioner override makes `total_score` (`custom_points`) differ from the starters' sum
+  (`points_official`) with no explanation shown.
+
+**D1: BUILT and merged (PR #127).** Plan + as-built:
 `docs/plans/sleeper-d1-provenance-capabilities.md`. The user's decisions:
 - season-level payloads only;
 - no Sleeper usernames;

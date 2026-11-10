@@ -20,7 +20,7 @@ from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.matchups import _identity_cluster_members, classify_zero
-from ff_dashboard.analytics.scoring import authoritative_week_points
+from ff_dashboard.analytics.scoring import authoritative_week_points, official_points_from_extra
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -130,12 +130,12 @@ def player_scoring(session: Session, player_id: int, season_year: int) -> dict[s
     for week, extra in roster_rows:
         if not isinstance(extra, dict):
             continue
-        value = extra.get("nfl_com_points")
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
+        value = official_points_from_extra(extra)
+        if value is None:
             continue
         week_num = int(week)
         opponent = extra.get("opponent")
-        roster_points_by_week[week_num] = float(value)
+        roster_points_by_week[week_num] = value
         opponent_by_week[week_num] = opponent if isinstance(opponent, str) else None
 
     weeks: list[dict[str, Any]] = []
