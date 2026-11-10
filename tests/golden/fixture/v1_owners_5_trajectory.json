@@ -1,0 +1,21 @@
+{
+ "body": {
+  "data": {
+   "display_name": "Viper",
+   "owner_id": 5,
+   "points": [
+    {
+     "final_rank": null,
+     "points_for": 230.0,
+     "season_year": 2017
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

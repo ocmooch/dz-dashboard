@@ -1,0 +1,188 @@
+{
+ "body": {
+  "data": {
+   "position": null,
+   "scorers": [
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "points": 30.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 4
+    },
+    {
+     "name_full": "Ice IR Guy",
+     "nfl_team": "MIA",
+     "player_id": 28,
+     "points": 30.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice QB Two",
+     "nfl_team": "CIN",
+     "player_id": 17,
+     "points": 26.0,
+     "position": "QB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice QB One",
+     "nfl_team": "BAL",
+     "player_id": 16,
+     "points": 24.0,
+     "position": "QB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "points": 22.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "points": 20.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 2
+    },
+    {
+     "name_full": "Ice RB Three",
+     "nfl_team": "PHI",
+     "player_id": 20,
+     "points": 20.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice RB One",
+     "nfl_team": "NYG",
+     "player_id": 18,
+     "points": 18.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice WR One",
+     "nfl_team": "GB",
+     "player_id": 21,
+     "points": 15.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice WR Three",
+     "nfl_team": "CHI",
+     "player_id": 23,
+     "points": 12.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice WR Two",
+     "nfl_team": "DET",
+     "player_id": 22,
+     "points": 11.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Relocation Reggie",
+     "nfl_team": "OAK",
+     "player_id": 10,
+     "points": 10.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice RB Two",
+     "nfl_team": "DAL",
+     "player_id": 19,
+     "points": 9.0,
+     "position": "RB",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice D/ST",
+     "nfl_team": "PIT",
+     "player_id": 27,
+     "points": 9.0,
+     "position": "DEF",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice TE One",
+     "nfl_team": "KC",
+     "player_id": 25,
+     "points": 8.0,
+     "position": "TE",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Ice K One",
+     "nfl_team": "BUF",
+     "player_id": 26,
+     "points": 7.0,
+     "position": "K",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Relocation Reggie",
+     "nfl_team": "OAK",
+     "player_id": 10,
+     "points": 5.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 2
+    },
+    {
+     "name_full": "Ice WR Four",
+     "nfl_team": "LA",
+     "player_id": 24,
+     "points": 5.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    },
+    {
+     "name_full": "Mismatch Guy",
+     "nfl_team": "KC",
+     "player_id": 33,
+     "points": 0.0,
+     "position": "WR",
+     "season_year": 2017,
+     "week": 1
+    }
+   ],
+   "season_year": 2017,
+   "week": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

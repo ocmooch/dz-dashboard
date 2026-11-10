@@ -1,0 +1,33 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "best_season": {
+    "points": 7.0,
+    "season_year": 2017
+   },
+   "best_week": {
+    "points": 7.0,
+    "season_year": 2017,
+    "week": 1
+   },
+   "league_roster_span": {
+    "first_rostered_season": 2017,
+    "last_rostered_season": 2017
+   },
+   "most_rostered_by": {
+    "display_name": "Iceman",
+    "owner_id": 2,
+    "weeks": 1
+   },
+   "player_id": 26,
+   "reason": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

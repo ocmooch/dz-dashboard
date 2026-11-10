@@ -1,0 +1,50 @@
+{
+ "body": {
+  "data": {
+   "seasons": [
+    {
+     "champion": {
+      "owner_id": 4,
+      "owner_name": "Slider",
+      "team_id": 4,
+      "team_name": "Dynasty Crew"
+     },
+     "is_scored": false,
+     "season_id": 1,
+     "season_year": 2015,
+     "status": "completed"
+    },
+    {
+     "champion": {
+      "owner_id": 1,
+      "owner_name": "Maverick",
+      "team_id": 5,
+      "team_name": "Maverick 2016"
+     },
+     "is_scored": true,
+     "season_id": 2,
+     "season_year": 2016,
+     "status": "completed"
+    },
+    {
+     "champion": {
+      "owner_id": 1,
+      "owner_name": "Maverick",
+      "team_id": 9,
+      "team_name": "Maverick 2017"
+     },
+     "is_scored": true,
+     "season_id": 3,
+     "season_year": 2017,
+     "status": "completed"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

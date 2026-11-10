@@ -1,0 +1,113 @@
+{
+ "body": {
+  "data": {
+   "explainer": "Power score blends four within-season z-scores (each team measured against its peers that year): 0.4 x points-for per game, 0.25 x all-play win pct, 0.2 x actual win pct, and 0.15 x points-for per game over the last 3 weeks. All-play compares each team's weekly score against every other team that week, so the model rewards schedule-resistant scoring without needing player-level data. Points-for, all-play, and recent form all track scoring, so this is really a points-dominant lens on the season \u2014 a way to re-sort the table by strength and see who over- or under-performs their record, not a prediction.",
+   "regular_season_weeks": 2,
+   "rows": [
+    {
+     "all_play_win_pct": 1.0,
+     "losses": 0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for": 270.0,
+     "points_for_per_game": 135.0,
+     "power_score": 1.4949,
+     "rank": 1,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 135.0,
+     "standings_rank": 1,
+     "team_id": 5,
+     "team_name": "Maverick 2016",
+     "ties": 0,
+     "win_pct": 1.0,
+     "wins": 2,
+     "z_all_play_win_pct": 1.3416,
+     "z_points_for": 1.5939,
+     "z_recent": 1.5939,
+     "z_win_pct": 1.4142
+    },
+    {
+     "all_play_win_pct": 0.6667,
+     "losses": 1,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for": 210.5,
+     "points_for_per_game": 105.25,
+     "power_score": 0.1006,
+     "rank": 2,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 105.25,
+     "standings_rank": 2,
+     "team_id": 7,
+     "team_name": "Dynasty Crew",
+     "ties": 0,
+     "win_pct": 0.5,
+     "wins": 1,
+     "z_all_play_win_pct": 0.4473,
+     "z_points_for": -0.0203,
+     "z_recent": -0.0203,
+     "z_win_pct": 0.0
+    },
+    {
+     "all_play_win_pct": 0.3333,
+     "losses": 1,
+     "owner_id": 4,
+     "owner_name": "Slider",
+     "points_for": 194.5,
+     "points_for_per_game": 97.25,
+     "power_score": -0.3618,
+     "rank": 3,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 97.25,
+     "standings_rank": 3,
+     "team_id": 8,
+     "team_name": "Slider 2016",
+     "ties": 0,
+     "win_pct": 0.5,
+     "wins": 1,
+     "z_all_play_win_pct": -0.4473,
+     "z_points_for": -0.4544,
+     "z_recent": -0.4544,
+     "z_win_pct": 0.0
+    },
+    {
+     "all_play_win_pct": 0.0,
+     "losses": 2,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for": 170.0,
+     "points_for_per_game": 85.0,
+     "power_score": -1.2338,
+     "rank": 4,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 85.0,
+     "standings_rank": 4,
+     "team_id": 6,
+     "team_name": "Iceman 2016",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0,
+     "z_all_play_win_pct": -1.3416,
+     "z_points_for": -1.1191,
+     "z_recent": -1.1191,
+     "z_win_pct": -1.4142
+    }
+   ],
+   "season_id": 2,
+   "season_year": 2016,
+   "through_week": 2,
+   "weights": {
+    "all_play_win_pct": 0.25,
+    "points_for_per_game": 0.4,
+    "recent_points_for_per_game": 0.15,
+    "win_pct": 0.2
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

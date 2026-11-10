@@ -1,0 +1,99 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "caveat": "Post-regular-season matchups from the source data. The championship and consolation brackets are separated by who actually played whom, not by source flags.",
+   "consolation_bracket": {
+    "bye_teams": [],
+    "rounds": [
+     {
+      "bye_teams": [],
+      "games": [
+       {
+        "game_label": null,
+        "is_consolation": true,
+        "is_playoff": true,
+        "matchup_id": 27,
+        "team_a": {
+         "conference_name": null,
+         "is_sacko": false,
+         "is_winner": true,
+         "owner_id": 3,
+         "owner_name": "Goose",
+         "score": 90.0,
+         "team_id": 3,
+         "team_name": "Goose 2015"
+        },
+        "team_b": {
+         "conference_name": null,
+         "is_sacko": true,
+         "is_winner": false,
+         "owner_id": 2,
+         "owner_name": "Iceman",
+         "score": 50.0,
+         "team_id": 2,
+         "team_name": "Iceman 2015"
+        },
+        "winner_team_id": 3
+       }
+      ],
+      "round_label": "Finals",
+      "round_num": 1
+     }
+    ],
+    "size": 2
+   },
+   "consolation_distinguished": true,
+   "playoff_bracket": {
+    "bye_teams": [],
+    "rounds": [
+     {
+      "bye_teams": [],
+      "games": [
+       {
+        "game_label": null,
+        "is_consolation": false,
+        "is_playoff": true,
+        "matchup_id": 25,
+        "team_a": {
+         "conference_name": null,
+         "is_sacko": false,
+         "is_winner": true,
+         "owner_id": 4,
+         "owner_name": "Slider",
+         "score": 120.0,
+         "team_id": 4,
+         "team_name": "Dynasty Crew"
+        },
+        "team_b": {
+         "conference_name": null,
+         "is_sacko": false,
+         "is_winner": false,
+         "owner_id": 1,
+         "owner_name": "Maverick",
+         "score": 110.0,
+         "team_id": 1,
+         "team_name": "Maverick 2015"
+        },
+        "winner_team_id": 4
+       }
+      ],
+      "round_label": "Finals",
+      "round_num": 1
+     }
+    ],
+    "size": 2
+   },
+   "reason": null,
+   "regular_season_weeks": 2,
+   "season_id": 1,
+   "season_year": 2015
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

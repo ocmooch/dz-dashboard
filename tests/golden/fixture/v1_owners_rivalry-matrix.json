@@ -1,0 +1,191 @@
+{
+ "body": {
+  "data": {
+   "cells": [
+    {
+     "a": 1,
+     "a_win_pct": null,
+     "b": 1,
+     "games": 0
+    },
+    {
+     "a": 1,
+     "a_win_pct": 0.6667,
+     "b": 2,
+     "games": 3
+    },
+    {
+     "a": 1,
+     "a_win_pct": 0.5,
+     "b": 3,
+     "games": 2
+    },
+    {
+     "a": 1,
+     "a_win_pct": 0.0,
+     "b": 4,
+     "games": 1
+    },
+    {
+     "a": 1,
+     "a_win_pct": 1.0,
+     "b": 5,
+     "games": 1
+    },
+    {
+     "a": 2,
+     "a_win_pct": 0.3333,
+     "b": 1,
+     "games": 3
+    },
+    {
+     "a": 2,
+     "a_win_pct": null,
+     "b": 2,
+     "games": 0
+    },
+    {
+     "a": 2,
+     "a_win_pct": 0.5,
+     "b": 3,
+     "games": 2
+    },
+    {
+     "a": 2,
+     "a_win_pct": 0.0,
+     "b": 4,
+     "games": 2
+    },
+    {
+     "a": 2,
+     "a_win_pct": null,
+     "b": 5,
+     "games": 0
+    },
+    {
+     "a": 3,
+     "a_win_pct": 0.5,
+     "b": 1,
+     "games": 2
+    },
+    {
+     "a": 3,
+     "a_win_pct": 0.5,
+     "b": 2,
+     "games": 2
+    },
+    {
+     "a": 3,
+     "a_win_pct": null,
+     "b": 3,
+     "games": 0
+    },
+    {
+     "a": 3,
+     "a_win_pct": 0.5,
+     "b": 4,
+     "games": 2
+    },
+    {
+     "a": 3,
+     "a_win_pct": 1.0,
+     "b": 5,
+     "games": 1
+    },
+    {
+     "a": 4,
+     "a_win_pct": 1.0,
+     "b": 1,
+     "games": 1
+    },
+    {
+     "a": 4,
+     "a_win_pct": 1.0,
+     "b": 2,
+     "games": 2
+    },
+    {
+     "a": 4,
+     "a_win_pct": 0.5,
+     "b": 3,
+     "games": 2
+    },
+    {
+     "a": 4,
+     "a_win_pct": null,
+     "b": 4,
+     "games": 0
+    },
+    {
+     "a": 4,
+     "a_win_pct": null,
+     "b": 5,
+     "games": 0
+    },
+    {
+     "a": 5,
+     "a_win_pct": 0.0,
+     "b": 1,
+     "games": 1
+    },
+    {
+     "a": 5,
+     "a_win_pct": null,
+     "b": 2,
+     "games": 0
+    },
+    {
+     "a": 5,
+     "a_win_pct": 0.0,
+     "b": 3,
+     "games": 1
+    },
+    {
+     "a": 5,
+     "a_win_pct": null,
+     "b": 4,
+     "games": 0
+    },
+    {
+     "a": 5,
+     "a_win_pct": null,
+     "b": 5,
+     "games": 0
+    }
+   ],
+   "owners": [
+    {
+     "display_name": "Maverick",
+     "is_active": true,
+     "owner_id": 1
+    },
+    {
+     "display_name": "Iceman",
+     "is_active": true,
+     "owner_id": 2
+    },
+    {
+     "display_name": "Goose",
+     "is_active": true,
+     "owner_id": 3
+    },
+    {
+     "display_name": "Slider",
+     "is_active": false,
+     "owner_id": 4
+    },
+    {
+     "display_name": "Viper",
+     "is_active": true,
+     "owner_id": 5
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

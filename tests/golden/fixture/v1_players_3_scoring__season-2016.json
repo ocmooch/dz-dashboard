@@ -1,0 +1,37 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "player_id": 3,
+   "reason": null,
+   "season_year": 2016,
+   "total_points": 37.0,
+   "weeks": [
+    {
+     "breakdown": {
+      "receiving": 15.0
+     },
+     "points": 15.0,
+     "week": 1,
+     "zero_detail": null,
+     "zero_reason": null
+    },
+    {
+     "breakdown": {
+      "receiving": 22.0
+     },
+     "points": 22.0,
+     "week": 2,
+     "zero_detail": null,
+     "zero_reason": null
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

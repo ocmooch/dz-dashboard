@@ -1,0 +1,132 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "bracket_tier": "championship",
+     "flags": [
+      {
+       "detail": "The title game",
+       "kind": "championship",
+       "label": "Championship",
+       "team_id": null,
+       "tone": "win"
+      },
+      {
+       "detail": "230.0 combined \u2014 season's highest",
+       "kind": "shootout",
+       "label": "Shootout",
+       "team_id": null,
+       "tone": "accent"
+      },
+      {
+       "detail": "110.0 \u2014 would have beaten every other team this week",
+       "kind": "tough_luck",
+       "label": "Tough luck",
+       "team_id": 1,
+       "tone": "warn"
+      }
+     ],
+     "game_label": "Championship",
+     "is_playoff": true,
+     "margin": 10.0,
+     "matchup_id": 25,
+     "team_a": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 2
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Slider",
+      "score": 120.0,
+      "team_id": 4,
+      "team_name": "Dynasty Crew"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Maverick",
+      "score": 110.0,
+      "team_id": 1,
+      "team_name": "Maverick 2015"
+     },
+     "winner_team_id": 4
+    },
+    {
+     "bracket_tier": "consolation",
+     "flags": [
+      {
+       "detail": "Consolation bracket",
+       "kind": "consolation",
+       "label": "Consolation",
+       "team_id": null,
+       "tone": "muted"
+      },
+      {
+       "detail": "50.0 \u2014 season's lowest team score",
+       "kind": "dud",
+       "label": "Dud",
+       "team_id": 2,
+       "tone": "muted"
+      },
+      {
+       "detail": "140.0 combined \u2014 season's coldest",
+       "kind": "cold_snap",
+       "label": "Cold snap",
+       "team_id": null,
+       "tone": "muted"
+      }
+     ],
+     "game_label": "Toilet Bowl",
+     "is_playoff": true,
+     "margin": 40.0,
+     "matchup_id": 27,
+     "team_a": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Goose",
+      "score": 90.0,
+      "team_id": 3,
+      "team_name": "Goose 2015"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 2,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": true,
+      "is_winner": false,
+      "owner_name": "Iceman",
+      "score": 50.0,
+      "team_id": 2,
+      "team_name": "Iceman 2015"
+     },
+     "winner_team_id": 3
+    }
+   ],
+   "is_scored": false,
+   "season_id": 1,
+   "season_year": 2015,
+   "week": 3
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

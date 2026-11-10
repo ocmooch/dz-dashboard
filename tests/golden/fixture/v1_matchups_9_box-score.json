@@ -1,0 +1,167 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "away": {
+    "beat_projection_by": null,
+    "bench_points": 0.0,
+    "lineup": [],
+    "optimal_total": 0.0,
+    "owner_name": "Iceman",
+    "points_left_on_bench": 0.0,
+    "roster_reconstructed": false,
+    "roster_reconstructed_note": null,
+    "starter_points": 0.0,
+    "team_id": 6,
+    "team_name": "Iceman 2016",
+    "total_score": 80.0
+   },
+   "bracket_tier": null,
+   "flags": [
+    {
+     "detail": "70.0-point margin",
+     "kind": "blowout",
+     "label": "Blowout",
+     "team_id": null,
+     "tone": "loss"
+    },
+    {
+     "detail": "150.0 \u2014 season's highest team score",
+     "kind": "season_high",
+     "label": "Season high",
+     "team_id": 5,
+     "tone": "win"
+    },
+    {
+     "detail": "80.0 \u2014 season's lowest team score",
+     "kind": "dud",
+     "label": "Dud",
+     "team_id": 6,
+     "tone": "muted"
+    },
+    {
+     "detail": "230.0 combined \u2014 season's highest",
+     "kind": "shootout",
+     "label": "Shootout",
+     "team_id": null,
+     "tone": "accent"
+    },
+    {
+     "detail": "Christian McCaffrey 30.0 \u2014 top performance of the season",
+     "kind": "monster_game",
+     "label": "Monster game",
+     "team_id": 5,
+     "tone": "win"
+    },
+    {
+     "detail": "Ravens D/ST 7.0 \u2014 top performance of the season",
+     "kind": "monster_game",
+     "label": "Monster game",
+     "team_id": 5,
+     "tone": "win"
+    }
+   ],
+   "game_label": null,
+   "home": {
+    "beat_projection_by": null,
+    "bench_points": 0.0,
+    "lineup": [
+     {
+      "available": true,
+      "breakdown": {
+       "receiving": 12.0,
+       "rushing": 18.0
+      },
+      "context_detail": null,
+      "context_label": null,
+      "hamlin_substitute": null,
+      "injury_body_part": null,
+      "injury_practice_status": null,
+      "injury_secondary": null,
+      "injury_status": null,
+      "is_starter": true,
+      "league_points": 30.0,
+      "lineup_value": "neutral",
+      "nfl_game_status": null,
+      "nfl_opponent": null,
+      "player_id": 2,
+      "player_name": "Christian McCaffrey",
+      "position": "RB",
+      "projection": null,
+      "projection_available": false,
+      "projection_delta": null,
+      "projection_reason": "projections_not_captured",
+      "reason": null,
+      "reserve_eligibility_status": null,
+      "roster_slot": "RB",
+      "roster_status": null,
+      "roster_status_label": null,
+      "team_point_share": 0.2,
+      "zero_detail": null,
+      "zero_reason": null
+     },
+     {
+      "available": true,
+      "breakdown": {
+       "interceptions": 2.0,
+       "points_allowed": 2.0,
+       "sacks": 3.0
+      },
+      "context_detail": null,
+      "context_label": null,
+      "hamlin_substitute": null,
+      "injury_body_part": null,
+      "injury_practice_status": null,
+      "injury_secondary": null,
+      "injury_status": null,
+      "is_starter": true,
+      "league_points": 7.0,
+      "lineup_value": "neutral",
+      "nfl_game_status": null,
+      "nfl_opponent": null,
+      "player_id": 5,
+      "player_name": "Ravens D/ST",
+      "position": "DEF",
+      "projection": null,
+      "projection_available": false,
+      "projection_delta": null,
+      "projection_reason": "projections_not_captured",
+      "reason": null,
+      "reserve_eligibility_status": null,
+      "roster_slot": "DEF",
+      "roster_status": null,
+      "roster_status_label": null,
+      "team_point_share": 0.0467,
+      "zero_detail": null,
+      "zero_reason": null
+     }
+    ],
+    "optimal_total": 37.0,
+    "owner_name": "Maverick",
+    "points_left_on_bench": 0.0,
+    "roster_reconstructed": false,
+    "roster_reconstructed_note": null,
+    "starter_points": 37.0,
+    "team_id": 5,
+    "team_name": "Maverick 2016",
+    "total_score": 150.0
+   },
+   "is_playoff": false,
+   "margin": 70.0,
+   "matchup_id": 9,
+   "projection_reason": "projections_not_captured",
+   "projections_available": false,
+   "reason": null,
+   "resolution_note": null,
+   "season_year": 2016,
+   "week": 1,
+   "winner_team_id": 5
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

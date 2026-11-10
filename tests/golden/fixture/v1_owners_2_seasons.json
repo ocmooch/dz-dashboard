@@ -1,0 +1,61 @@
+{
+ "body": {
+  "data": {
+   "display_name": "Iceman",
+   "owner_id": 2,
+   "seasons": [
+    {
+     "final_rank": 4,
+     "is_champion": false,
+     "is_sacko": true,
+     "losses": 2,
+     "made_playoffs": false,
+     "points_for": 200.0,
+     "result": "Sacko",
+     "season_id": 1,
+     "season_year": 2015,
+     "team_id": 2,
+     "team_name": "Iceman 2015",
+     "ties": 0,
+     "wins": 0
+    },
+    {
+     "final_rank": null,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 2,
+     "made_playoffs": null,
+     "points_for": 170.0,
+     "result": null,
+     "season_id": 2,
+     "season_year": 2016,
+     "team_id": 6,
+     "team_name": "Iceman 2016",
+     "ties": 0,
+     "wins": 0
+    },
+    {
+     "final_rank": null,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 0,
+     "made_playoffs": null,
+     "points_for": 235.0,
+     "result": null,
+     "season_id": 3,
+     "season_year": 2017,
+     "team_id": 10,
+     "team_name": "Iceman 2017",
+     "ties": 0,
+     "wins": 2
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -25,6 +25,26 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
+**D0: BUILT (2026-11-10), gate green; PR to `dev` next, then D1.** Plan:
+`docs/plans/sleeper-d0-golden-snapshots.md`. Branch: `feature/sleeper-d0-golden-snapshots`.
+- **Live golden:** `data/golden/fantasy-golden-20261110.db` (gitignored, read-only). It's a frozen
+  copy of upstream's pre-go-live backup, per the user. It has 1,091 requests across every `/v1`
+  route for 2010/2013/2016/2020/2024/2025. The JSON is in `data/golden/live/` (gitignored, real
+  names); the hashes are in `tests/golden/live_manifest.json` (committed, name-free). Check with
+  `uv run python scripts/snapshot_legacy_payloads.py --check` (0 failing), or run
+  `test_live_legacy_parity`, which skips on machines without the DB.
+- **Fixture golden (CI):** 333 requests under `tests/golden/fixture/`, written from the legacy-only
+  fixture. They hold on it, and the 254 pinned ones still hold with a Sleeper 2026 season loaded.
+- **Mixed-era fixture:** `tests/sleeper_fixture.py` (`mixed_era_db_path` / `mixed_client`). It
+  loads upstream's pseudonymized Sleeper fixtures through the packaged loader, with 4 owners
+  shared with the legacy fixture. It covers every `01` §8 scenario, asserted in
+  `tests/test_mixed_era_fixture.py`. A commissioner move is the one overlay the builder adds.
+- **Every later milestone:** both parity tests must stay green. An intentional legacy change
+  needs the user's approval, then a regenerate (`DZ_UPDATE_GOLDEN=1 ... -k write_fixture_golden`
+  / `--write`).
+- The live 2026 go-live is **held until D0–D3** (user, 2026-11-10). Upstream `migrate up` is done
+  and the 2026 rules are signed off.
+
 **Status reconcile (2026-11-09):** every branch the paragraphs below call "in flight",
 "uncommitted" or "ready to PR" is merged to `dev` (checked against the merge log through PR #122,
 the league-name scrub + CI fix), and `main` is at **v0.4.0** (not v0.2.0 as below). The prose below

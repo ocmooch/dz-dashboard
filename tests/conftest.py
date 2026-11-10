@@ -1343,6 +1343,26 @@ def client(engine: Engine) -> Iterator[TestClient]:
         yield c
 
 
+@pytest.fixture(scope="session")
+def mixed_era_db_path(fixture_db_path: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The legacy fixture + a Sleeper 2026 season sharing owners (Sleeper D0, `01` §8)."""
+    from tests.sleeper_fixture import build_mixed_era_db
+
+    out = tmp_path_factory.mktemp("dzmixed") / "fantasy.db"
+    return build_mixed_era_db(fixture_db_path, out, LEAGUE_ID)
+
+
+@pytest.fixture
+def mixed_client(mixed_era_db_path: Path, fixture_db_path: Path) -> Iterator[TestClient]:
+    eng = create_readonly_engine(f"sqlite:///{mixed_era_db_path}")
+    app = create_app(
+        eng, cache=AnalyticsCache(), cors_origins=[], assets_root=fixture_db_path.parent / "assets"
+    )
+    with TestClient(app) as c:
+        yield c
+    eng.dispose()
+
+
 @pytest.fixture
 def empty_engine(tmp_path: Path) -> Iterator[Engine]:
     """Schema-only database (no rows) — for 503 / 'pipeline never ran' tests."""

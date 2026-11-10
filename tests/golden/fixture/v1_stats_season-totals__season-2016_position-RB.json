@@ -1,0 +1,24 @@
+{
+ "body": {
+  "data": {
+   "position": "RB",
+   "season_year": 2016,
+   "totals": [
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "position": "RB",
+     "total_points": 55.0,
+     "weeks_played": 2
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,125 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "bracket_tier": null,
+     "flags": [
+      {
+       "detail": "230.0 combined \u2014 season's highest",
+       "kind": "shootout",
+       "label": "Shootout",
+       "team_id": null,
+       "tone": "accent"
+      },
+      {
+       "detail": "110.0 \u2014 would have beaten every other team this week",
+       "kind": "tough_luck",
+       "label": "Tough luck",
+       "team_id": 7,
+       "tone": "warn"
+      },
+      {
+       "detail": "Christian McCaffrey 25.0 \u2014 top performance of the season",
+       "kind": "monster_game",
+       "label": "Monster game",
+       "team_id": 5,
+       "tone": "win"
+      }
+     ],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 10.0,
+     "matchup_id": 13,
+     "team_a": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Maverick",
+      "score": 120.0,
+      "team_id": 5,
+      "team_name": "Maverick 2016"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Goose",
+      "score": 110.0,
+      "team_id": 7,
+      "team_name": "Dynasty Crew"
+     },
+     "winner_team_id": 5
+    },
+    {
+     "bracket_tier": null,
+     "flags": [
+      {
+       "detail": "decided by 5.0",
+       "kind": "nailbiter",
+       "label": "Nailbiter",
+       "team_id": null,
+       "tone": "accent"
+      },
+      {
+       "detail": "185.0 combined \u2014 season's coldest",
+       "kind": "cold_snap",
+       "label": "Cold snap",
+       "team_id": null,
+       "tone": "muted"
+      }
+     ],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 5.0,
+     "matchup_id": 15,
+     "team_a": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Slider",
+      "score": 95.0,
+      "team_id": 8,
+      "team_name": "Slider 2016"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Iceman",
+      "score": 90.0,
+      "team_id": 6,
+      "team_name": "Iceman 2016"
+     },
+     "winner_team_id": 8
+    }
+   ],
+   "is_scored": true,
+   "season_id": 2,
+   "season_year": 2016,
+   "week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

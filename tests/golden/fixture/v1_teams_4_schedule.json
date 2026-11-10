@@ -1,0 +1,52 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "is_playoff": false,
+     "margin": 30.0,
+     "matchup_id": 3,
+     "opponent_owner_name": "Goose",
+     "opponent_score": 90.0,
+     "opponent_team_id": 3,
+     "opponent_team_name": "Goose 2015",
+     "result": "W",
+     "team_score": 120.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "margin": 30.0,
+     "matchup_id": 7,
+     "opponent_owner_name": "Iceman",
+     "opponent_score": 100.0,
+     "opponent_team_id": 2,
+     "opponent_team_name": "Iceman 2015",
+     "result": "W",
+     "team_score": 130.0,
+     "week": 2
+    },
+    {
+     "is_playoff": true,
+     "margin": 10.0,
+     "matchup_id": 25,
+     "opponent_owner_name": "Maverick",
+     "opponent_score": 110.0,
+     "opponent_team_id": 1,
+     "opponent_team_name": "Maverick 2015",
+     "result": "W",
+     "team_score": 120.0,
+     "week": 3
+    }
+   ],
+   "season_year": 2015,
+   "team_id": 4
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

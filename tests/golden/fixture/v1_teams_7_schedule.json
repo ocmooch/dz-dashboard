@@ -1,0 +1,40 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "is_playoff": false,
+     "margin": 1.0,
+     "matchup_id": 11,
+     "opponent_owner_name": "Slider",
+     "opponent_score": 99.5,
+     "opponent_team_id": 8,
+     "opponent_team_name": "Slider 2016",
+     "result": "W",
+     "team_score": 100.5,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "margin": -10.0,
+     "matchup_id": 14,
+     "opponent_owner_name": "Maverick",
+     "opponent_score": 120.0,
+     "opponent_team_id": 5,
+     "opponent_team_name": "Maverick 2016",
+     "result": "L",
+     "team_score": 110.0,
+     "week": 2
+    }
+   ],
+   "season_year": 2016,
+   "team_id": 7
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

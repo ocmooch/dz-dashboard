@@ -1,0 +1,104 @@
+{
+ "body": {
+  "data": {
+   "rank_basis": "computed",
+   "regular_season_weeks": 2,
+   "rows": [
+    {
+     "conference_id": null,
+     "conference_name": null,
+     "final_rank": null,
+     "is_sacko": false,
+     "losses": 0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_against": 190.0,
+     "points_for": 270.0,
+     "rank": 1,
+     "streak": {
+      "length": 2,
+      "result": "W"
+     },
+     "team_id": 5,
+     "team_name": "Maverick 2016",
+     "ties": 0,
+     "win_pct": 1.0,
+     "wins": 2
+    },
+    {
+     "conference_id": null,
+     "conference_name": null,
+     "final_rank": null,
+     "is_sacko": false,
+     "losses": 1,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_against": 219.5,
+     "points_for": 210.5,
+     "rank": 2,
+     "streak": {
+      "length": 1,
+      "result": "L"
+     },
+     "team_id": 7,
+     "team_name": "Dynasty Crew",
+     "ties": 0,
+     "win_pct": 0.5,
+     "wins": 1
+    },
+    {
+     "conference_id": null,
+     "conference_name": null,
+     "final_rank": null,
+     "is_sacko": false,
+     "losses": 1,
+     "owner_id": 4,
+     "owner_name": "Slider",
+     "points_against": 190.5,
+     "points_for": 194.5,
+     "rank": 3,
+     "streak": {
+      "length": 1,
+      "result": "W"
+     },
+     "team_id": 8,
+     "team_name": "Slider 2016",
+     "ties": 0,
+     "win_pct": 0.5,
+     "wins": 1
+    },
+    {
+     "conference_id": null,
+     "conference_name": null,
+     "final_rank": null,
+     "is_sacko": false,
+     "losses": 2,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_against": 245.0,
+     "points_for": 170.0,
+     "rank": 4,
+     "streak": {
+      "length": 2,
+      "result": "L"
+     },
+     "team_id": 6,
+     "team_name": "Iceman 2016",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0
+    }
+   ],
+   "season_id": 2,
+   "season_year": 2016,
+   "through_week": 2,
+   "tiebreak_caveat": true
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

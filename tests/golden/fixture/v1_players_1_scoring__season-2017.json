@@ -1,0 +1,39 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "player_id": 1,
+   "reason": null,
+   "season_year": 2017,
+   "total_points": 53.5,
+   "weeks": [
+    {
+     "breakdown": {
+      "passing": 25.5,
+      "rushing": 10.0
+     },
+     "points": 35.5,
+     "week": 1,
+     "zero_detail": null,
+     "zero_reason": null
+    },
+    {
+     "breakdown": {
+      "passing": 14.0,
+      "rushing": 4.0
+     },
+     "points": 18.0,
+     "week": 2,
+     "zero_detail": null,
+     "zero_reason": null
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

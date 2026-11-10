@@ -1,0 +1,85 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "insights": [
+    {
+     "confidence": "medium",
+     "facts": [
+      {
+       "label": "Actual wins",
+       "unit": null,
+       "value": 1.0
+      },
+      {
+       "label": "Expected (all-play) wins",
+       "unit": null,
+       "value": 1.33
+      },
+      {
+       "label": "Luck gap",
+       "unit": "wins",
+       "value": 0.33
+      },
+      {
+       "label": "All-play win %",
+       "unit": "%",
+       "value": 66.7
+      }
+     ],
+     "kind": "schedule_luck",
+     "narration": "In 2016, Goose was the league's unluckiest manager \u2014 1 win despite an all-play r\u00e9sum\u00e9 worth 1.33 wins, a 0.33 wins gap, the largest in the league. The schedule, not the roster, set the record.",
+     "provenance": {
+      "endpoint": "/v1/seasons/2/standings/insights",
+      "metric": "standings.schedule_luck"
+     },
+     "subject": {
+      "owner_id": 3,
+      "owner_name": "Goose"
+     },
+     "title": "Schedule luck \u2014 2016"
+    },
+    {
+     "confidence": "high",
+     "facts": [
+      {
+       "label": "Drafted at",
+       "unit": "overall",
+       "value": 1
+      },
+      {
+       "label": "Consensus ADP",
+       "unit": null,
+       "value": 8.4
+      },
+      {
+       "label": "Picks ahead of market",
+       "unit": null,
+       "value": 7.4
+      }
+     ],
+     "kind": "draft_market",
+     "narration": "The draft's biggest reach: Travis Kelce went #1 overall, 7.4 picks ahead of a consensus ADP of 8.4. Drafted well before the market would have.",
+     "provenance": {
+      "endpoint": "/v1/seasons/2/draft/value",
+      "metric": "draft.market_axis"
+     },
+     "subject": {
+      "owner_id": 2,
+      "owner_name": "Iceman"
+     },
+     "title": "Biggest reach \u2014 2016 draft"
+    }
+   ],
+   "notes": [],
+   "season_id": 2,
+   "season_year": 2016
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

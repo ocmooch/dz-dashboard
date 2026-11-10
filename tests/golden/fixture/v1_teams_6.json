@@ -1,0 +1,30 @@
+{
+ "body": {
+  "data": {
+   "final_rank": null,
+   "is_champion": false,
+   "is_sacko": false,
+   "is_scored": true,
+   "losses": 2,
+   "made_playoffs": null,
+   "owner_id": 2,
+   "owner_name": "Iceman",
+   "points_against": 245.0,
+   "points_for": 170.0,
+   "rank": 4,
+   "rank_basis": "computed",
+   "season_id": 2,
+   "season_year": 2016,
+   "team_id": 6,
+   "team_name": "Iceman 2016",
+   "ties": 0,
+   "wins": 0
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,28 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "away": null,
+   "bracket_tier": "championship",
+   "flags": [],
+   "game_label": "Championship",
+   "home": null,
+   "is_playoff": true,
+   "margin": null,
+   "matchup_id": 25,
+   "projection_reason": null,
+   "projections_available": true,
+   "reason": "season_unscored",
+   "resolution_note": null,
+   "season_year": 2015,
+   "week": 3,
+   "winner_team_id": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

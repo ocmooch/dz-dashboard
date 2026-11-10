@@ -1,0 +1,52 @@
+{
+ "body": {
+  "data": {
+   "avg_finish": null,
+   "best_finish": null,
+   "championships": 0,
+   "commissioner_terms": [
+    {
+     "from_year": 2017,
+     "notes": "Fixture current commissioner",
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "seasons": 2,
+     "to_year": null
+    }
+   ],
+   "consistency": {
+    "above_median_rate": 0.5,
+    "available": true,
+    "average_weekly_rank": 3.0,
+    "best_season_points_for": 230.0,
+    "best_season_year": 2017,
+    "floor_week_rate": 0.5,
+    "rank_among_owners": 1,
+    "reason": null,
+    "signature": "floor risk",
+    "top_week_rate": 0.0,
+    "weekly_points_stdev": 5.0,
+    "weekly_volatility": 0.32,
+    "weeks_sampled": 2
+   },
+   "display_name": "Viper",
+   "is_active": true,
+   "latest_team_id": 12,
+   "owner_id": 5,
+   "qualified": true,
+   "sackos": 0,
+   "seasons_played": 1,
+   "total_losses": 2,
+   "total_points_for": 230.0,
+   "total_ties": 0,
+   "total_wins": 0,
+   "trophy_case": []
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

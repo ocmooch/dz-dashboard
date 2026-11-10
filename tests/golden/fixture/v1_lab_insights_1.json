@@ -1,0 +1,54 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "insights": [
+    {
+     "confidence": "medium",
+     "facts": [
+      {
+       "label": "Actual wins",
+       "unit": null,
+       "value": 0.0
+      },
+      {
+       "label": "Expected (all-play) wins",
+       "unit": null,
+       "value": 0.67
+      },
+      {
+       "label": "Luck gap",
+       "unit": "wins",
+       "value": 0.67
+      },
+      {
+       "label": "All-play win %",
+       "unit": "%",
+       "value": 33.3
+      }
+     ],
+     "kind": "schedule_luck",
+     "narration": "In 2015, Iceman was the league's unluckiest manager \u2014 0 wins despite an all-play r\u00e9sum\u00e9 worth 0.67 wins, a 0.67 wins gap, the largest in the league. The schedule, not the roster, set the record.",
+     "provenance": {
+      "endpoint": "/v1/seasons/1/standings/insights",
+      "metric": "standings.schedule_luck"
+     },
+     "subject": {
+      "owner_id": 2,
+      "owner_name": "Iceman"
+     },
+     "title": "Schedule luck \u2014 2015"
+    }
+   ],
+   "notes": [],
+   "season_id": 1,
+   "season_year": 2015
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,30 @@
+{
+ "body": {
+  "data": {
+   "final_rank": null,
+   "is_champion": false,
+   "is_sacko": false,
+   "is_scored": true,
+   "losses": 2,
+   "made_playoffs": null,
+   "owner_id": 5,
+   "owner_name": "Viper",
+   "points_against": 300.4,
+   "points_for": 230.0,
+   "rank": 4,
+   "rank_basis": "computed",
+   "season_id": 3,
+   "season_year": 2017,
+   "team_id": 12,
+   "team_name": "Northvale Scumbags",
+   "ties": 0,
+   "wins": 0
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

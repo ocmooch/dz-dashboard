@@ -1,0 +1,86 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "is_scored": true,
+   "moves": [
+    {
+     "action": "retain",
+     "player_id": 9,
+     "player_name": "DNP Dana",
+     "position": "RB",
+     "week": 1
+    },
+    {
+     "action": "drop",
+     "player_id": 32,
+     "player_name": "Bye Week Guy",
+     "position": "WR",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 29,
+     "player_name": "Goose D/ST",
+     "position": "DEF",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 33,
+     "player_name": "Mismatch Guy",
+     "position": "WR",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 31,
+     "player_name": "No Stat Bench Guy",
+     "position": "WR",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 13,
+     "player_name": "No-Contest Nate",
+     "position": "QB",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 14,
+     "player_name": "No-Contest Ned",
+     "position": "WR",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 15,
+     "player_name": "No-Contest Zeb",
+     "position": "RB",
+     "week": 2
+    },
+    {
+     "action": "drop",
+     "player_id": 30,
+     "player_name": "Viper D/ST",
+     "position": "DEF",
+     "week": 2
+    }
+   ],
+   "reconstructed_weeks": [],
+   "roster_weeks": [
+    1,
+    2
+   ],
+   "season_year": 2017,
+   "team_id": 11
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

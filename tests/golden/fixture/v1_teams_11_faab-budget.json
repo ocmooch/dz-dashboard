@@ -1,0 +1,48 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "final_remaining": 85.0,
+   "is_faab_era": true,
+   "season_budget": 100.0,
+   "season_year": 2017,
+   "team_id": 11,
+   "total_spent": 15.0,
+   "weeks": [
+    {
+     "adjustment": null,
+     "budget": 100.0,
+     "cumulative_spent": 10.0,
+     "note": null,
+     "remaining": 90.0,
+     "spent": 10.0,
+     "week": 1
+    },
+    {
+     "adjustment": null,
+     "budget": 100.0,
+     "cumulative_spent": 10.0,
+     "note": null,
+     "remaining": 90.0,
+     "spent": 0.0,
+     "week": 2
+    },
+    {
+     "adjustment": null,
+     "budget": 100.0,
+     "cumulative_spent": 15.0,
+     "note": null,
+     "remaining": 85.0,
+     "spent": 5.0,
+     "week": 3
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

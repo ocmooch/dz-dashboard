@@ -1,0 +1,23 @@
+{
+ "body": {
+  "data": {
+   "adp_coverage": {
+    "limited": false,
+    "note": null,
+    "sources": []
+   },
+   "available": false,
+   "num_teams": null,
+   "reason": "draft_not_captured",
+   "rounds": [],
+   "season_id": 3,
+   "season_year": 2017
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

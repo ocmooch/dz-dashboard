@@ -1,0 +1,109 @@
+{
+ "body": {
+  "data": {
+   "owners": [
+    {
+     "avg_finish": 2.0,
+     "best_finish": 2,
+     "championships": 2,
+     "commissioner_terms": [],
+     "consistency": null,
+     "display_name": "Maverick",
+     "is_active": true,
+     "latest_team_id": 9,
+     "owner_id": 1,
+     "qualified": true,
+     "sackos": 0,
+     "seasons_played": 3,
+     "total_losses": 2,
+     "total_points_for": 735.4,
+     "total_ties": 0,
+     "total_wins": 4,
+     "trophy_case": []
+    },
+    {
+     "avg_finish": 1.0,
+     "best_finish": 1,
+     "championships": 1,
+     "commissioner_terms": [],
+     "consistency": null,
+     "display_name": "Slider",
+     "is_active": false,
+     "latest_team_id": 8,
+     "owner_id": 4,
+     "qualified": false,
+     "sackos": 0,
+     "seasons_played": 2,
+     "total_losses": 1,
+     "total_points_for": 444.5,
+     "total_ties": 0,
+     "total_wins": 3,
+     "trophy_case": []
+    },
+    {
+     "avg_finish": 3.0,
+     "best_finish": 3,
+     "championships": 0,
+     "commissioner_terms": [],
+     "consistency": null,
+     "display_name": "Goose",
+     "is_active": true,
+     "latest_team_id": 11,
+     "owner_id": 3,
+     "qualified": true,
+     "sackos": 0,
+     "seasons_played": 3,
+     "total_losses": 3,
+     "total_points_for": 670.5,
+     "total_ties": 0,
+     "total_wins": 3,
+     "trophy_case": []
+    },
+    {
+     "avg_finish": 4.0,
+     "best_finish": 4,
+     "championships": 0,
+     "commissioner_terms": [],
+     "consistency": null,
+     "display_name": "Iceman",
+     "is_active": true,
+     "latest_team_id": 10,
+     "owner_id": 2,
+     "qualified": true,
+     "sackos": 1,
+     "seasons_played": 3,
+     "total_losses": 4,
+     "total_points_for": 605.0,
+     "total_ties": 0,
+     "total_wins": 2,
+     "trophy_case": []
+    },
+    {
+     "avg_finish": null,
+     "best_finish": null,
+     "championships": 0,
+     "commissioner_terms": [],
+     "consistency": null,
+     "display_name": "Viper",
+     "is_active": true,
+     "latest_team_id": 12,
+     "owner_id": 5,
+     "qualified": true,
+     "sackos": 0,
+     "seasons_played": 1,
+     "total_losses": 2,
+     "total_points_for": 230.0,
+     "total_ties": 0,
+     "total_wins": 0,
+     "trophy_case": []
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

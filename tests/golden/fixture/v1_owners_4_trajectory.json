@@ -1,0 +1,26 @@
+{
+ "body": {
+  "data": {
+   "display_name": "Slider",
+   "owner_id": 4,
+   "points": [
+    {
+     "final_rank": 1,
+     "points_for": 250.0,
+     "season_year": 2015
+    },
+    {
+     "final_rank": null,
+     "points_for": 194.5,
+     "season_year": 2016
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

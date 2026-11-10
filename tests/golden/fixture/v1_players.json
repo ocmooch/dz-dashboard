@@ -1,0 +1,240 @@
+{
+ "body": {
+  "data": {
+   "limit": 50,
+   "offset": 0,
+   "players": [
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Bye Week Guy",
+     "nfl_team": "DET",
+     "player_id": 32,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2016,
+     "last_rostered_season": 2017,
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "DNP Dana",
+     "nfl_team": "TB",
+     "player_id": 9,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Goose D/ST",
+     "nfl_team": "DEN",
+     "player_id": 29,
+     "position": "DEF"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice D/ST",
+     "nfl_team": "PIT",
+     "player_id": 27,
+     "position": "DEF"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice IR Guy",
+     "nfl_team": "MIA",
+     "player_id": 28,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice K One",
+     "nfl_team": "BUF",
+     "player_id": 26,
+     "position": "K"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice QB One",
+     "nfl_team": "BAL",
+     "player_id": 16,
+     "position": "QB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice QB Two",
+     "nfl_team": "CIN",
+     "player_id": 17,
+     "position": "QB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice RB One",
+     "nfl_team": "NYG",
+     "player_id": 18,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice RB Three",
+     "nfl_team": "PHI",
+     "player_id": 20,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice RB Two",
+     "nfl_team": "DAL",
+     "player_id": 19,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice TE One",
+     "nfl_team": "KC",
+     "player_id": 25,
+     "position": "TE"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice WR Four",
+     "nfl_team": "LA",
+     "player_id": 24,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice WR One",
+     "nfl_team": "GB",
+     "player_id": 21,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice WR Three",
+     "nfl_team": "CHI",
+     "player_id": 23,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Ice WR Two",
+     "nfl_team": "DET",
+     "player_id": 22,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Mismatch Guy",
+     "nfl_team": "KC",
+     "player_id": 33,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "No Stat Bench Guy",
+     "nfl_team": "SEA",
+     "player_id": 31,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "No-Contest Nate",
+     "nfl_team": "CIN",
+     "player_id": 13,
+     "position": "QB"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "No-Contest Ned",
+     "nfl_team": "BUF",
+     "player_id": 14,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "No-Contest Zeb",
+     "nfl_team": "BUF",
+     "player_id": 15,
+     "position": "RB"
+    },
+    {
+     "first_rostered_season": 2016,
+     "last_rostered_season": 2016,
+     "name_full": "Ravens D/ST",
+     "nfl_team": "BAL",
+     "player_id": 5,
+     "position": "DEF"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Relocation Reggie",
+     "nfl_team": "LV",
+     "player_id": 10,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Split Sam",
+     "nfl_team": "LAC",
+     "player_id": 11,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2015,
+     "last_rostered_season": 2015,
+     "name_full": "Vintage Vince",
+     "nfl_team": "GB",
+     "player_id": 8,
+     "position": "WR"
+    },
+    {
+     "first_rostered_season": 2017,
+     "last_rostered_season": 2017,
+     "name_full": "Viper D/ST",
+     "nfl_team": "MIA",
+     "player_id": 30,
+     "position": "DEF"
+    },
+    {
+     "first_rostered_season": 2016,
+     "last_rostered_season": 2016,
+     "name_full": "Waiver Wendell",
+     "nfl_team": "DEN",
+     "player_id": 7,
+     "position": "RB"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

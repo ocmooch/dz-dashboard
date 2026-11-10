@@ -1,0 +1,35 @@
+{
+ "body": {
+  "data": {
+   "coverage": {
+    "availability_current_season_only": true,
+    "dst_scoring_complete": true,
+    "reconstruction_complete": true,
+    "scored_year_max": 2017,
+    "scored_year_min": 2016,
+    "seasons_present": [
+     2015,
+     2016,
+     2017
+    ],
+    "seasons_scored": [
+     2016,
+     2017
+    ]
+   },
+   "latest_run": {
+    "finished_at": "2018-01-02T12:00:00",
+    "mode": "reconstruct",
+    "run_id": 1,
+    "started_at": "2018-01-02T12:00:00",
+    "status": "success"
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

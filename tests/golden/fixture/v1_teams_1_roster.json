@@ -1,0 +1,45 @@
+{
+ "body": {
+  "data": {
+   "is_scored": false,
+   "players": [
+    {
+     "acquisition_type": "draft",
+     "acquisition_week": 1,
+     "context_detail": null,
+     "context_label": null,
+     "injury_body_part": null,
+     "injury_practice_status": null,
+     "injury_secondary": null,
+     "injury_status": null,
+     "is_empty": false,
+     "is_starter": true,
+     "league_points": null,
+     "nfl_team": "GB",
+     "player_id": 8,
+     "player_name": "Vintage Vince",
+     "position": "WR",
+     "roster_slot": "WR",
+     "zero_detail": null,
+     "zero_reason": null
+    }
+   ],
+   "roster_reconstructed": false,
+   "roster_reconstructed_note": null,
+   "season_year": 2015,
+   "team_id": 1,
+   "week": 2,
+   "weeks_available": [
+    1,
+    2,
+    3
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

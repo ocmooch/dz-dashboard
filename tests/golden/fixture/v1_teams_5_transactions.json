@@ -1,0 +1,31 @@
+{
+ "body": {
+  "data": {
+   "season_year": 2016,
+   "team_id": 5,
+   "transactions": [
+    {
+     "counterpart_team_id": null,
+     "counterpart_team_name": null,
+     "direction": "add",
+     "effective_week": 0,
+     "executed_at": "2016-09-01T18:03:00",
+     "extra_data": null,
+     "faab_bid": null,
+     "notes": null,
+     "player_id": 2,
+     "player_name": "Christian McCaffrey",
+     "transaction_id": 4,
+     "transaction_type": "draft",
+     "waiver_priority_used": null
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

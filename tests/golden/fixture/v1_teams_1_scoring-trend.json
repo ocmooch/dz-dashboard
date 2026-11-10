@@ -1,0 +1,35 @@
+{
+ "body": {
+  "data": {
+   "is_scored": false,
+   "points": [
+    {
+     "is_playoff": false,
+     "league_avg": 105.0,
+     "team_score": 110.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "league_avg": 107.5,
+     "team_score": 95.0,
+     "week": 2
+    },
+    {
+     "is_playoff": true,
+     "league_avg": 92.5,
+     "team_score": 110.0,
+     "week": 3
+    }
+   ],
+   "season_year": 2015,
+   "team_id": 1
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}
