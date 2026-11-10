@@ -74,6 +74,7 @@ GLOBAL_PATHS = (
     "/v1/rivalries/insights",
     "/v1/draft/tendencies",
     "/v1/seasons",
+    "/v1/seasons/current",
     "/v1/teams",
     "/v1/players",
     "/v1/players?position=QB&limit=500",

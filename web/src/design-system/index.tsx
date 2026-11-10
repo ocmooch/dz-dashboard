@@ -220,11 +220,24 @@ export function Chip({
 export const UNSCORED_SEASON_NOTE =
   "Per-player fantasy scoring isn't available for this season yet — values that depend on it show a gap marker, never a zero.";
 
+/** An unfinished week (Sleeper D3): its games are pairings only, unscored until the week is final. */
+export const AWAITING_FINAL_LABEL = "Awaiting final";
+
+/** "through week 8 · week 9 awaiting final" — the in-progress-season qualifier (BFF-computed weeks). */
+export function throughWeekText(throughWeek: number | null | undefined, pendingWeek?: number | null): string {
+  const parts: string[] = [];
+  if (throughWeek != null && throughWeek > 0) parts.push(`through week ${throughWeek}`);
+  if (pendingWeek != null) parts.push(`week ${pendingWeek} ${AWAITING_FINAL_LABEL.toLowerCase()}`);
+  return parts.join(" · ");
+}
+
 /** The honesty component: shown wherever a metric is absent. Never a fake 0.
  *  Renders the dashed + hatched affordance with an amber diamond (drawn in CSS). */
 export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" | "sm" }) {
   const labels: Record<string, string> = {
     season_unscored: "Per-player scoring not available for this season",
+    week_pending: "This week isn't final yet — scores appear once the week is final",
+    no_current_season: "No season in progress",
     no_scored_data: "No scored data for this scope",
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",

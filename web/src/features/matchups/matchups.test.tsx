@@ -675,3 +675,94 @@ describe("BoxScorePage", () => {
     expect(screen.getByText("-5.00")).toHaveClass("text-loss");
   });
 });
+
+describe("Sleeper D3: unfinished week and Sleeper box scores", () => {
+  const pendingTeam = (team_id: number, team_name: string) => ({
+    team_id,
+    team_name,
+    owner_name: null,
+    score: null,
+    is_winner: false,
+    is_sacko: false,
+    entering_record: { wins: 4, losses: 4, ties: 0 },
+  });
+
+  it("shows a pending week as pairings awaiting final, with no scores", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/weeks/{week}/matchups")
+        return Promise.resolve(
+          envelope({
+            season_id: 1,
+            season_year: 2026,
+            week: 9,
+            is_scored: true,
+            pending: true,
+            games: [
+              {
+                matchup_id: 125,
+                is_playoff: false,
+                pending: true,
+                team_a: pendingTeam(30, "Charlie"),
+                team_b: pendingTeam(31, "Delta"),
+                margin: null,
+                winner_team_id: null,
+                flags: [],
+              },
+            ],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<MatchupsPage />, "/matchups?week=9");
+    expect(await screen.findByText("Charlie")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting final")).toBeInTheDocument();
+    expect(screen.getByText(/isn.t final yet/)).toBeInTheDocument();
+    expect(screen.getAllByLabelText("No score yet")).toHaveLength(2);
+    expect(screen.queryByText("0.00")).not.toBeInTheDocument();
+  });
+
+  it("shows a pending week's box score as a week_pending gap", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 125,
+          season_year: 2026,
+          week: 9,
+          available: false,
+          reason: "week_pending",
+          is_playoff: false,
+          official_points_source: "sleeper",
+          commissioner_override: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/125");
+    expect(await screen.findByText(/This week isn.t final yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Team totals can still be reviewed/)).not.toBeInTheDocument();
+  });
+
+  it("notes a commissioner override and the official points source", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          season_year: 2026,
+          official_points_source: "sleeper",
+          commissioner_override: { official: 112.46, custom: 117.46 },
+          home: {
+            ...BOX.home,
+            lineup: BOX.home.lineup.map((p) =>
+              p.roster_slot === "BN" ? { ...p, slot_note: "bench_or_reserve" } : p,
+            ),
+          },
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    expect(
+      await screen.findByText(/Sleeper scored this team 112.46; the commissioner awarded 117.46/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Official player points from Sleeper\./)).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Bench or reserve/).length).toBeGreaterThan(0);
+  });
+});

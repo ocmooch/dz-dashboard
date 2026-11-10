@@ -2,7 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  ErrorState,
+  Skeleton,
+  throughWeekText,
+  Trophy,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -33,6 +43,8 @@ type RecordValue = {
   opponent_name?: string | null;
   season_year?: number | null;
   week?: number | null;
+  // set only when the record's season is still in progress: its last finalized week.
+  through_week?: number | null;
   // deep-link context — each record carries enough to reach its source.
   matchup_id?: number | null;
   player_id?: number | null;
@@ -65,6 +77,7 @@ function who(rec: RecordValue): string {
   else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year) parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
+  if (rec.through_week != null) parts.push(`season in progress, ${throughWeekText(rec.through_week)}`);
   return parts.join(" — ") || "—";
 }
 

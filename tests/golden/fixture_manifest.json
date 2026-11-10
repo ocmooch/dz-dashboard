@@ -2671,6 +2671,14 @@
    "status": 200,
    "sha256": "75f94cec03c54f84eed7c3068767b9d9cbb8911afdd48637b14f34c65ab27e1d",
    "volatile": []
+  },
+  {
+   "url": "/v1/seasons/current",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "387b4e71d3b4a87e256ad0bb3866700237a5004909d5261596666f80212871d9",
+   "volatile": []
   }
  ]
 }

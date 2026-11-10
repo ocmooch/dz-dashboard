@@ -106,6 +106,28 @@ def current_season(session: Session) -> dict[str, int | None]:
     return {"current_season_id": None, "current_week": None}
 
 
+def week_state(session: Session, season_id: int) -> dict[str, Any]:
+    """Which weeks count (D3): ``{is_final, last_finalized_week, pending_week, pending_weeks}``.
+
+    A final season (every NFL.com season) counts all its weeks. An in-progress season counts only
+    finalized weeks; ``pending_week`` is the first unfinished week (unscored, "awaiting final")."""
+    fresh = queries.season_freshness(session, season_id)
+    if fresh is None:
+        return {
+            "is_final": True,
+            "last_finalized_week": None,
+            "pending_week": None,
+            "pending_weeks": (),
+        }
+    pending = tuple(fresh.provisional_weeks)
+    return {
+        "is_final": fresh.is_final,
+        "last_finalized_week": fresh.last_finalized_week,
+        "pending_week": pending[0] if pending else None,
+        "pending_weeks": pending,
+    }
+
+
 def capability_matrix(session: Session) -> dict[str, Any]:
     """Seasons by capabilities for About: ``{keys, seasons: [{season_year, platform, cells}]}``."""
     rows: list[dict[str, Any]] = []

@@ -1,9 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { capabilityGapText, capabilityStateLabel, isRendered, provenanceText } from "@/lib/platform";
+import {
+  capabilityGapText,
+  capabilityStateLabel,
+  isRendered,
+  officialPointsNote,
+  provenanceText,
+  slotNoteText,
+  tradeAssetsText,
+} from "@/lib/platform";
 
-import { CapabilityGate, EraMarker, ProvenanceNote } from "./index";
+import { CapabilityGate, EraMarker, ProvenanceNote, throughWeekText } from "./index";
 
 describe("EraMarker", () => {
   it("renders the platform label as a neutral uppercase mono marker", () => {
@@ -93,5 +101,22 @@ describe("lib/platform copy", () => {
       "Bracket derived from NFL.com playoff results.",
     );
     expect(provenanceText("official_brackets", "sleeper")).toBeNull();
+  });
+});
+
+describe("Sleeper D3 copy", () => {
+  it("describes the pick/FAAB side of a trade", () => {
+    expect(
+      tradeAssetsText({ picks_in: [], picks_out: [{ season: 2027, round: 2 }], faab_in: 7, faab_out: 0 }),
+    ).toBe("Draft pick / FAAB: sent 2027 round 2 pick, received $7 FAAB");
+  });
+
+  it("names the official points source and the in-progress weeks", () => {
+    expect(officialPointsNote("sleeper")).toBe("Official player points from Sleeper.");
+    expect(officialPointsNote(null)).toBeNull();
+    expect(throughWeekText(8, 9)).toBe("through week 8 · week 9 awaiting final");
+    expect(throughWeekText(8)).toBe("through week 8");
+    expect(slotNoteText("bench_or_reserve")).toMatch(/Bench or reserve/);
+    expect(slotNoteText(null)).toBeNull();
   });
 });

@@ -27,6 +27,7 @@ from ff_dashboard.analytics.common import (
     owner_prominence_map,
     team_owner_map,
 )
+from ff_dashboard.analytics.game_state import is_pending
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -90,8 +91,8 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
         # Count each game once: only the row whose owner is the lower id.
         if a_owner > b_owner:
             continue
-        if m.team_score is None or m.opponent_score is None:
-            continue
+        if m.team_score is None or m.opponent_score is None or is_pending(m):
+            continue  # an unfinished week is unscored, never a meeting result (D3)
 
         key: Pair = (a_owner, b_owner)
         agg = pairs.setdefault(key, _blank_pair())

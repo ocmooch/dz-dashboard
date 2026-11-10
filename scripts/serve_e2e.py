@@ -18,24 +18,54 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PORT = 8810
+#: ``--mixed`` serves the mixed-era fixture (legacy + a Sleeper 2026 season, Sleeper D3) on its
+#: own port, so the Sleeper journeys never change the legacy suite's default season.
+MIXED_PORT = 8811
+
+
+def _wait_for_build(timeout: float = 180.0) -> None:
+    """The legacy server (:8810) comes up only after ``npm run build``; wait for it, so this
+    server mounts the freshly built SPA (Playwright starts both web servers at once)."""
+    import time
+    import urllib.request
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/health", timeout=2):
+                return
+        except OSError:
+            time.sleep(1)
+    raise SystemExit("legacy e2e server never came up; is the SPA build failing?")
 
 
 def main() -> None:
     # Make the test package importable so we reuse the one fixture-DB builder.
     sys.path.insert(0, str(PROJECT_ROOT))
     import uvicorn
-    from tests.conftest import _build_database
+    from tests.conftest import LEAGUE_ID, _build_database
 
+    mixed = "--mixed" in sys.argv[1:]
+    port = MIXED_PORT if mixed else PORT
     e2e_dir = PROJECT_ROOT / "web" / ".e2e"
     e2e_dir.mkdir(parents=True, exist_ok=True)
-    db_path = e2e_dir / "fixture.db"
-    for stale in (db_path, Path(f"{db_path}-wal"), Path(f"{db_path}-shm")):
-        stale.unlink(missing_ok=True)
-    _build_database(db_path)
+    legacy_path = e2e_dir / ("legacy-for-mixed.db" if mixed else "fixture.db")
+    db_path = e2e_dir / ("mixed.db" if mixed else "fixture.db")
+    for path in {legacy_path, db_path}:
+        for stale in (path, Path(f"{path}-wal"), Path(f"{path}-shm")):
+            stale.unlink(missing_ok=True)
+    _build_database(legacy_path)
+    if mixed:
+        from tests.sleeper_fixture import build_mixed_era_db
+
+        build_mixed_era_db(legacy_path, db_path, LEAGUE_ID)
+
+    if mixed:
+        _wait_for_build()
 
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["DASHBOARD_STATIC_DIR"] = str(PROJECT_ROOT / "web" / "dist")
-    os.environ["DASHBOARD_PORT"] = str(PORT)
+    os.environ["DASHBOARD_PORT"] = str(port)
 
     # The compact e2e fixture intentionally has four teams per season, while
     # the reviewed production artifact has twelve. Supply a deterministic
@@ -91,7 +121,7 @@ def main() -> None:
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=PORT,
+        port=port,
         log_level="warning",
     )
 

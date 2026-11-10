@@ -20,13 +20,15 @@ from ff_pipeline.repository.models import (
     Team,
     TeamRoster,
 )
-from sqlalchemy import distinct, select
+from sqlalchemy import and_, distinct, select
 
 from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.game_state import is_idle, is_pending
 from ff_dashboard.analytics.head_to_head import closest_rivalry
 from ff_dashboard.analytics.historical_team_names import period_team_name_by_slot
+from ff_dashboard.analytics.platform import week_state
 from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
@@ -104,11 +106,15 @@ def records_book(session: Session) -> dict[str, Any]:
         c["week"] = week
         return c
 
-    matchups = list(
+    # Only final games set a record: an unfinished week is unscored and an idle postseason
+    # team-week is not a game (Sleeper D3).
+    all_rows = list(
         session.execute(select(Matchup).where(Matchup.season_id.in_(team_season_ids)))
         .scalars()
         .all()
     )
+    pending_weeks = {(season_year.get(m.season_id), m.week) for m in all_rows if is_pending(m)}
+    matchups = [m for m in all_rows if not is_pending(m) and not is_idle(m)]
 
     book: dict[str, Any] = {
         "scored_era": sorted(scored),
@@ -231,6 +237,12 @@ def records_book(session: Session) -> dict[str, Any]:
         )
         .where(TeamRoster.is_starter.is_(True))
         .where(started_points.is_not(None))
+        .where(
+            *(
+                ~and_(TeamRoster.season_year == yr, TeamRoster.week == wk)
+                for yr, wk in pending_weeks
+            )
+        )
         .order_by(started_points.desc())
         .limit(1)
     ).first()
@@ -251,6 +263,7 @@ def records_book(session: Session) -> dict[str, Any]:
         }
 
     book.update(_record_only(session, teams, season_year))
+    _label_in_progress(session, book)
 
     # The "closest rivalry" — the genuinely dead-even pair (win pct nearest 50/50,
     # min-sample gated; balance leads, not volume), crowned among qualified
@@ -260,6 +273,25 @@ def records_book(session: Session) -> dict[str, Any]:
         {"available": True, **rivalry} if rivalry is not None else _unavailable("no_meetings")
     )
     return book
+
+
+def _in_progress_through(session: Session) -> dict[int, int | None]:
+    """``{season_year: last finalized week}`` for seasons still in progress."""
+    out: dict[int, int | None] = {}
+    for s in session.execute(select(Season)).scalars().all():
+        weeks = week_state(session, s.season_id)
+        if not weeks["is_final"]:
+            out[int(s.year)] = weeks["last_finalized_week"]
+    return out
+
+
+def _label_in_progress(session: Session, book: dict[str, Any]) -> None:
+    """Per-record label (user, 2026-11-10): a record set in a season still in progress carries
+    ``through_week`` ("2026, through week 8"); every other record carries ``None``."""
+    through = _in_progress_through(session)
+    for value in book.values():
+        if isinstance(value, dict) and value.get("available") and "season_year" in value:
+            value["through_week"] = through.get(value.get("season_year"))  # type: ignore[arg-type]
 
 
 def _record_only(
@@ -308,7 +340,9 @@ def _record_only(
     # Best / worst single-season regular-season points-for, from matchups.
     from ff_dashboard.analytics.owners import _standings_index
 
-    index = _standings_index(session)
+    # A season-total record needs a complete season: a season in progress is left out.
+    partial = set(_in_progress_through(session))
+    index = {k: r for k, r in _standings_index(session).items() if r["season_year"] not in partial}
     best_pf: dict[str, Any] = _unavailable("no_standings")
     worst_pf: dict[str, Any] = _unavailable("no_standings")
     if index:

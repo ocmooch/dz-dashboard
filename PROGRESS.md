@@ -25,14 +25,34 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
-**D2: BUILT (2026-11-10), gate green; PR to `dev`, then D3.** Plan + as-built:
+**D3: DONE (2026-11-10), verified; PR to `dev` open.** Plan: `docs/plans/sleeper-d3-current-season.md`
+(branch `feature/sleeper-d3-current-season`). Rule: the unfinished week is unscored (`00` §3).
+- BFF: `analytics/game_state.py` is the one game/pending/idle/override rule, used by standings
+  (+timeline, all-play), week matchups, box score (`week_pending`, `official_points_source`,
+  `commissioner_override`, `slot_note`), team schedule/trend/roster, team transactions (failed
+  claims dropped, own pick/FAAB leg as `trade_assets`), FAAB budget, records (`through_week` label;
+  in-progress season left out of season-PF records), h2h, flag thresholds. `platform.week_state()`
+  is the week-window helper. `GET /v1/seasons/current` (`analytics/current_season.py`) needs a played
+  season, so the pre-go-live live DB answers `no_current_season`. Only the new route's golden added.
+- SPA: Home `ThisWeek`, `DataAsOf` week qualifier, pending cards ("Awaiting final"), override note,
+  points-source footnote (on every box score, so the legacy box-score visual baseline was refreshed),
+  `*` bench-or-reserve hint, Standings/Records/team labels. Copy in `lib/platform.ts` + design system.
+  Home's old Standings / Top-scorers cards now name the season they show (was "Season 2026" over 2017).
+- e2e: new `sleeper` Playwright project on :8811 (`serve_e2e.py --mixed`, mixed-era fixture) with
+  `e2e/sleeper.spec.ts` (Home → this week → box score; pending gap; standings/matchups). Full e2e
+  18/18 after the baseline refresh. Visual click-through of 2026 done via screenshots.
+- Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
+- **Next:** D4 (cross-era aggregation audit). The live go-live is upstream's, on the user's approval.
+
+**D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
 `queries.authoritative_week_points_expr` / `official_slot_points_expr`; `official_points_from_extra`
 is the one dict-side mirror (box score, team weekly, player weekly), pinned to the SQL helper by a
 test. Records' best player week uses the shared helper. No contract change; live golden 1092/0.
 D3 follow-ups found here:
-- the box score gates on `seasons_scored` (any `player_stats_scored` row), so an un-rescored Sleeper
-  season shows `season_unscored` even though `platform_points` exist;
+- the box score gates on `seasons_scored`, so an un-rescored Sleeper season shows
+  `season_unscored` even though `platform_points` exist. This is by design (`01` §7: `is_scored`
+  stays the gate; the go-live rescore sets it);
 - a commissioner override makes `total_score` (`custom_points`) differ from the starters' sum
   (`points_official`) with no explanation shown.
 

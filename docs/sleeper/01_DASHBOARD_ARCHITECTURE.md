@@ -137,7 +137,9 @@ in-progress Sleeper season:
   week. Not real-time: refresh follows the upstream schedule.
 - Records book and career totals include in-progress seasons only for completed weeks, labelled.
 - **User rule (2026-11-09):** while a season is active, every representation shows its *current*
-  state, marked as subject to change; at season end it is static. A game in progress is never a
+  state, marked as subject to change; at season end it is static. **Refined 2026-11-10:** the
+  unfinished week is unscored: no live scores, no result, nothing counted until the capture
+  finalizes it (`00` §3). A game in progress is never a
   result (no tie, no live-score win). Idle postseason team-weeks (no opponent) are not games.
 
 ## 8. Testing

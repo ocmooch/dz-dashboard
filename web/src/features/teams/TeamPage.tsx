@@ -7,6 +7,7 @@ import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import { ResultTimeline } from "@/features/teams/ResultTimeline";
 import {
+  AWAITING_FINAL_LABEL,
   Badge,
   Card,
   CardHeader,
@@ -26,6 +27,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
+import { slotNoteText, tradeAssetsText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
@@ -149,6 +151,17 @@ function RosterCard({ teamId }: { teamId: number }) {
           </div>
         </div>
       )}
+      {data?.week_pending && (
+        <div className="px-5 pt-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">{AWAITING_FINAL_LABEL}</span>
+            Week {data.week} isn&rsquo;t final yet, so player points appear once the week is final.
+          </div>
+        </div>
+      )}
       {data && data.players.length > 0 && (
         <div className="overflow-x-auto">
           <table className="dz-table">
@@ -173,7 +186,13 @@ function RosterCard({ teamId }: { teamId: number }) {
                   </tr>
                 ) : (
                   <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                    <td className="font-mono text-[var(--fs-xs)] text-muted">{p.roster_slot ?? "—"}</td>
+                    <td
+                      className="font-mono text-[var(--fs-xs)] text-muted"
+                      title={slotNoteText(p.slot_note) ?? undefined}
+                    >
+                      {p.roster_slot ?? "—"}
+                      {p.slot_note && <span aria-label={slotNoteText(p.slot_note) ?? undefined}>*</span>}
+                    </td>
                     <td>
                       <Link to={`/players/${p.player_id}`} className="hover:text-accent">
                         <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
@@ -189,7 +208,12 @@ function RosterCard({ teamId }: { teamId: number }) {
                     </td>
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="dz-num">
-                      {p.league_points == null ? (
+                      {data.week_pending ? (
+                        // Unscored until the week is final; the note above explains it once.
+                        <span className="text-faint" aria-label="No score yet">
+                          –
+                        </span>
+                      ) : p.league_points == null ? (
                         <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
                       ) : (
                         <PlayerScoreCell
@@ -246,11 +270,15 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
                     vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                   </Link>
                   {g.is_playoff && <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>}
-                  <span className="num shrink-0">
-                    <span className={tone}>{num(g.team_score)}</span>
-                    <span className="text-faint"> – </span>
-                    <span className="text-muted">{num(g.opponent_score)}</span>
-                  </span>
+                  {g.pending ? (
+                    <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
+                  ) : (
+                    <span className="num shrink-0">
+                      <span className={tone}>{num(g.team_score)}</span>
+                      <span className="text-faint"> – </span>
+                      <span className="text-muted">{num(g.opponent_score)}</span>
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -535,6 +563,7 @@ function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
 }
 
 function transactionTitle(t: TeamTransaction) {
+  if (t.trade_assets) return tradeAssetsText(t.trade_assets);
   return t.player_name ?? "Transaction";
 }
 

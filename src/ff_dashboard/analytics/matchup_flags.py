@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, TeamRoster
 from sqlalchemy import select
 
+from ff_dashboard.analytics.game_state import is_pending
 from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
@@ -50,9 +51,11 @@ def season_score_context(session: Session, season_id: int, season_year: int) -> 
     query. Computed once per ``week_matchups`` / ``box_score`` call and reused for
     every game; the callers are themselves cached per (season, week) / matchup.
     """
-    rows = list(
-        session.execute(select(Matchup).where(Matchup.season_id == season_id)).scalars().all()
-    )
+    rows = [
+        m
+        for m in session.execute(select(Matchup).where(Matchup.season_id == season_id)).scalars()
+        if not is_pending(m)  # an unfinished week's live scores set no superlative (D3)
+    ]
 
     # Single-team extremes: only real games (a bye is not a "low score" superlative).
     team_scores = [

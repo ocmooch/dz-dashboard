@@ -39,6 +39,7 @@ from sqlalchemy import func, select
 from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.game_state import game_result, is_idle, is_pending, slot_note
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
@@ -50,6 +51,7 @@ from ff_dashboard.analytics.matchups import (
     classify_zero,
     roster_sort_key,
 )
+from ff_dashboard.analytics.platform import week_state
 from ff_dashboard.analytics.roster_snapshots import (
     is_reconstructed_week,
     reconstructed_note,
@@ -167,6 +169,8 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         )
 
     is_scored = season.year in set(seasons_scored(session))
+    # An unfinished week is unscored: its roster shows, its live per-player points don't.
+    week_pending = effective_week in week_state(session, season.season_id)["pending_weeks"]
     # When the displayed week's whole roster is a reconstructed audit snapshot,
     # the per-player attribution/slots are approximate — surface one caveat so the
     # team page reads the audit week the same way the box score does (shared rule).
@@ -199,7 +203,9 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         nflverse_points = scored_row[0] if scored_row is not None else None
         if points is None and scored_row is not None:
             points = nflverse_points
-        if is_scored and points is None and roster_row.roster_slot not in DEF_SLOTS:
+        if week_pending:
+            points = None
+        elif is_scored and points is None and roster_row.roster_slot not in DEF_SLOTS:
             # Same weekly-player rule as the box score: in a scored season, a
             # non-DST roster row with neither an NFL.com score nor an nflverse
             # stat line is an absence/DNP, not a scoring-data gap.
@@ -218,6 +224,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "position": player.position,
                 "nfl_team": season_teams.get(player.player_id) or player.nfl_team,
                 "roster_slot": roster_row.roster_slot,
+                "slot_note": slot_note(roster_row.extra_data),
                 "is_starter": bool(roster_row.is_starter),
                 "is_empty": False,
                 "league_points": league_points,
@@ -262,6 +269,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
         "week": effective_week,
         "weeks_available": weeks_available,
         "is_scored": is_scored,
+        "week_pending": week_pending,
         "roster_reconstructed": roster_reconstructed,
         "roster_reconstructed_note": (
             reconstructed_note(effective_week) if roster_reconstructed else None
@@ -283,33 +291,32 @@ def team_schedule(session: Session, team_id: int) -> dict[str, Any] | None:
     owners = owner_name_map(session)
     games: list[dict[str, Any]] = []
     for m in matchups_for_team(session, team_id):
+        if is_idle(m):
+            continue  # idle postseason team-week (bye / placed): not a game
+        pending = is_pending(m)
         opp = get_team(session, m.opponent_team_id) if m.opponent_team_id is not None else None
-        result: str | None = None
-        if m.is_win is True:
-            result = "W"
-        elif m.is_win is False:
-            result = "L"
-        elif m.team_score is not None and m.opponent_score is not None:
-            result = "T"
+        result = game_result(m)
         margin = (
             round(m.team_score - m.opponent_score, 2)
-            if m.team_score is not None and m.opponent_score is not None
+            if not pending and m.team_score is not None and m.opponent_score is not None
             else None
         )
+        # An unfinished week is listed as a pending game: no live score, no result.
+        team_score = None if pending else m.team_score
+        opp_score = None if pending else m.opponent_score
         games.append(
             {
                 "matchup_id": m.matchup_id,
                 "week": m.week,
                 "is_playoff": bool(m.is_playoff),
+                "pending": pending,
                 "opponent_team_id": m.opponent_team_id,
                 "opponent_team_name": period_team_name(opp, season.year)
                 if opp is not None
                 else None,
                 "opponent_owner_name": owners.get(opp.owner_id) if opp is not None else None,
-                "team_score": round(m.team_score, 2) if m.team_score is not None else None,
-                "opponent_score": round(m.opponent_score, 2)
-                if m.opponent_score is not None
-                else None,
+                "team_score": round(team_score, 2) if team_score is not None else None,
+                "opponent_score": round(opp_score, 2) if opp_score is not None else None,
                 "result": result,
                 "margin": margin,
             }
@@ -340,11 +347,16 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
     for m in session.execute(
         select(Matchup).where(Matchup.season_id == season.season_id)
     ).scalars():
-        if m.team_score is not None:
+        if m.team_score is not None and not is_pending(m) and not is_idle(m):
             by_week_scores[m.week].append(m.team_score)
         by_week_playoff[m.week] = by_week_playoff.get(m.week, False) or bool(m.is_playoff)
 
-    own = {m.week: m for m in matchups_for_team(session, team_id)}
+    # Unfinished weeks are unscored and idle postseason rows are not games: neither is plotted.
+    own = {
+        m.week: m
+        for m in matchups_for_team(session, team_id)
+        if not is_pending(m) and not is_idle(m)
+    }
     points: list[dict[str, Any]] = []
     for week in sorted(own):
         scores = by_week_scores.get(week, [])
@@ -370,6 +382,9 @@ def team_scoring_trend(session: Session, team_id: int) -> dict[str, Any] | None:
 # Acquisition transactions — what changed the roster's makeup. Start/sit
 # (`lineup_change`, ~25k rows DB-wide) and league `setting_change` are not
 # acquisitions and would bury the feed, so the team-transactions view drops them.
+#: Sleeper's lost waiver claim (``status='failed'``); legacy rows carry ``status`` NULL.
+FAILED_STATUS = "failed"
+
 ACQUISITION_TXN_TYPES = frozenset({"free_agent_add", "waiver_add", "drop", "trade", "draft"})
 
 
@@ -392,6 +407,10 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
     for t in transactions_for_team(session, team_id):
         if t.transaction_type not in ACQUISITION_TXN_TYPES:
             continue
+        if t.status == FAILED_STATUS:
+            continue  # a lost claim never changed the roster (bid wars are D6)
+        if _trade_assets(t) is not None and t.team_id != team_id:
+            continue  # the counterpart's pick/FAAB leg; this team's own leg says the same
         player = get_player(session, t.player_id) if t.player_id is not None else None
         counterpart = (
             get_team(session, t.counterpart_team_id) if t.counterpart_team_id is not None else None
@@ -413,10 +432,25 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
                 else None,
                 "notes": t.notes,
                 "extra_data": t.extra_data,
+                "status": t.status,
+                "trade_assets": _trade_assets(t),
             }
         )
 
     return {"team_id": team_id, "season_year": season.year, "transactions": items}
+
+
+def _trade_assets(t: Any) -> dict[str, Any] | None:
+    """The pick/FAAB side of a trade: the player-less leg Sleeper records per team (00 §4)."""
+    if t.transaction_type != "trade" or t.player_id is not None:
+        return None
+    extra = t.extra_data or {}
+    return {
+        "picks_in": list(extra.get("picks_in") or []),
+        "picks_out": list(extra.get("picks_out") or []),
+        "faab_in": extra.get("faab_in") or 0,
+        "faab_out": extra.get("faab_out") or 0,
+    }
 
 
 def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
@@ -589,6 +623,8 @@ def team_faab_budget(session: Session, team_id: int) -> dict[str, Any] | None:
     for txn in transactions_for_team(session, team_id):
         if txn.transaction_type != "waiver_add" or txn.team_id != team_id:
             continue
+        if txn.status == FAILED_STATUS:
+            continue  # a lost claim spends nothing
         bid = _faab_bid(txn.extra_data)
         if bid is None:
             continue
