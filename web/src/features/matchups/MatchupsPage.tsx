@@ -2,15 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, WeekStepper } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  EmptyState,
+  ErrorState,
+  UNSCORED_SEASON_NOTE,
+  Skeleton,
+  WeekStepper,
+} from "@/design-system";
 import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
-type GameCard = NonNullable<
-  Awaited<ReturnType<typeof fetchWeekMatchups>>
->["games"][number];
+type GameCard = NonNullable<Awaited<ReturnType<typeof fetchWeekMatchups>>>["games"][number];
 
 async function fetchWeekMatchups(seasonId: number, week: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/weeks/{week}/matchups", {
@@ -42,7 +50,11 @@ function TeamSide({
   const signedMargin = margin == null ? null : winner ? margin : -margin;
   return (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
-      <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} avatarUrl={teamAvatarUrl(team.team_id)} />
+      <Chip
+        name={team.team_name ?? team.owner_name}
+        sub={team.owner_name ?? undefined}
+        avatarUrl={teamAvatarUrl(team.team_id)}
+      />
       {team.is_sacko && (
         <span className="shrink-0 text-[var(--fs-sm)]" title="Sacko — toilet-bowl loser" aria-label="Sacko">
           💩
@@ -53,7 +65,9 @@ function TeamSide({
           {num(team.score)}
         </span>
         {signedMargin != null && (
-          <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+          <span
+            className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}
+          >
             {signedMargin > 0 ? "+" : ""}
             {num(signedMargin)}
           </span>
@@ -103,8 +117,7 @@ export function MatchupsPage() {
     queryFn: () => fetchSeasonSummary(seasonId as number),
     enabled: seasonId != null,
   });
-  const maxWeek =
-    (summary.data?.regular_season_weeks ?? 0) + (summary.data?.playoff_weeks ?? 0) || 18;
+  const maxWeek = (summary.data?.regular_season_weeks ?? 0) + (summary.data?.playoff_weeks ?? 0) || 18;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: seasonId ? qk.weekMatchups(seasonId, week) : ["matchups", "none"],
@@ -127,9 +140,7 @@ export function MatchupsPage() {
         <WeekStepper week={week} max={maxWeek} onChange={setWeek} />
       </div>
 
-      {data && !data.is_scored && (
-        <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
-      )}
+      {data && !data.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
 
       <Card>
         <CardHeader eyebrow={`week ${week}`} title="Games" />

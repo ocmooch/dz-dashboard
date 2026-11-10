@@ -143,7 +143,12 @@ const POWER = {
   season_year: 2016,
   through_week: 14,
   regular_season_weeks: 14,
-  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  weights: {
+    points_for_per_game: 0.4,
+    all_play_win_pct: 0.25,
+    win_pct: 0.2,
+    recent_points_for_per_game: 0.15,
+  },
   explainer: "Power score blends four within-season z-scores per the documented weights.",
   rows: [powerRow(1, "Iceman", 1.54, 1, 2), powerRow(2, "Goose", -0.32, -1, 1)],
 };
@@ -153,19 +158,33 @@ const POWER_TIMELINE = {
   season_year: 2016,
   regular_season_weeks: 14,
   teams: [
-    { team_id: 10, team_name: "Iceman 2016", owner_name: "Iceman", points: [
-      { week: 1, rank: 2, power_score: 0.4 },
-      { week: 2, rank: 1, power_score: 1.54 },
-    ] },
-    { team_id: 11, team_name: "Goose 2016", owner_name: "Goose", points: [
-      { week: 1, rank: 1, power_score: 0.8 },
-      { week: 2, rank: 2, power_score: -0.32 },
-    ] },
+    {
+      team_id: 10,
+      team_name: "Iceman 2016",
+      owner_name: "Iceman",
+      points: [
+        { week: 1, rank: 2, power_score: 0.4 },
+        { week: 2, rank: 1, power_score: 1.54 },
+      ],
+    },
+    {
+      team_id: 11,
+      team_name: "Goose 2016",
+      owner_name: "Goose",
+      points: [
+        { week: 1, rank: 1, power_score: 0.8 },
+        { week: 2, rank: 2, power_score: -0.32 },
+      ],
+    },
   ],
 };
 
 let insightsResponse: unknown = INSIGHTS;
-let conferencesResponse: unknown = { available: false, reason: "no_conferences_this_season", conferences: [] };
+let conferencesResponse: unknown = {
+  available: false,
+  reason: "no_conferences_this_season",
+  conferences: [],
+};
 let conferencesError = false;
 let regularSeasonWeeks = 14;
 
@@ -192,7 +211,16 @@ const CONFERENCES = {
       conference_id: 20182,
       division_number: 2,
       name: "Essos",
-      teams: [{ ...DIVISION_TEAM, ...STANDINGS.rows[1], overall_rank: 2, conference_rank: 1, division_wins: 4, division_losses: 3 }],
+      teams: [
+        {
+          ...DIVISION_TEAM,
+          ...STANDINGS.rows[1],
+          overall_rank: 2,
+          conference_rank: 1,
+          division_wins: 4,
+          division_losses: 3,
+        },
+      ],
     },
   ],
 };
@@ -385,8 +413,7 @@ describe("StandingsPage", () => {
       expect(
         get.mock.calls.some(
           (call) =>
-            call[0] === "/v1/seasons/{season_id}/conferences" &&
-            call[1]?.params?.query?.through_week === 13,
+            call[0] === "/v1/seasons/{season_id}/conferences" && call[1]?.params?.query?.through_week === 13,
         ),
       ).toBe(true);
     });

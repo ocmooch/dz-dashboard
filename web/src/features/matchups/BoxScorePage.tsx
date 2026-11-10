@@ -72,7 +72,6 @@ function ContextBadge({ p }: { p: BoxPlayer }) {
   );
 }
 
-
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);
@@ -108,10 +107,21 @@ function LineupTable({ team }: { team: BoxTeam }) {
         <tr>
           <th>Slot</th>
           <th>Player</th>
-          <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
-          <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
-          <th className="dz-num" title="Actual vs projected (+/− delta).">Value</th>
-          <th className="dz-num" title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores.">Pts</th>
+          <th className="dz-num" title="Pre-game projected fantasy points">
+            Proj
+          </th>
+          <th className="dz-num" title="Player's share of their team's total points scored">
+            Share
+          </th>
+          <th className="dz-num" title="Actual vs projected (+/− delta).">
+            Value
+          </th>
+          <th
+            className="dz-num"
+            title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores."
+          >
+            Pts
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -166,17 +176,11 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             gap chip on every row. */}
         {p.projection != null ? num(p.projection) : "—"}
       </td>
-      <td className="dz-num text-faint">
-        {p.team_point_share != null ? pct(p.team_point_share) : "—"}
-      </td>
+      <td className="dz-num text-faint">{p.team_point_share != null ? pct(p.team_point_share) : "—"}</td>
       <td className="dz-num">
         <span
           className={
-            p.projection_delta == null
-              ? "text-faint"
-              : p.projection_delta >= 0
-                ? "text-win"
-                : "text-loss"
+            p.projection_delta == null ? "text-faint" : p.projection_delta >= 0 ? "text-win" : "text-loss"
           }
           title={
             p.projection != null && p.league_points != null && p.projection_delta != null
@@ -234,7 +238,9 @@ function TeamColumn({
               {num(team.total_score)}
             </span>
             {signedMargin != null && (
-              <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+              <span
+                className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}
+              >
                 {signedMargin > 0 ? "+" : ""}
                 {num(signedMargin)}
               </span>
@@ -343,8 +349,8 @@ export function BoxScorePage() {
           role="note"
         >
           <span className="dz-eyebrow mr-1 text-faint">note</span>
-          Projection data isn’t available for the {data.season_year} season, so the Proj and Value
-          columns are blank. Scoring is unaffected.
+          Projection data isn’t available for the {data.season_year} season, so the Proj and Value columns are
+          blank. Scoring is unaffected.
         </div>
       )}
 
@@ -358,9 +364,7 @@ export function BoxScorePage() {
         </div>
       )}
 
-      {data && data.available && data.flags && data.flags.length > 0 && (
-        <MatchupFlags flags={data.flags} />
-      )}
+      {data && data.available && data.flags && data.flags.length > 0 && <MatchupFlags flags={data.flags} />}
 
       {data && data.available && data.home && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

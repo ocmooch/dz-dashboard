@@ -45,8 +45,10 @@ const INSIGHTS = {
 
 function mockEndpoints(insights: unknown = INSIGHTS) {
   mockGet.mockImplementation((path: string) => {
-    if (path === "/v1/seasons") return Promise.resolve({ data: { data: { seasons: SEASON_LIST }, meta: {} } });
-    if (path === "/v1/lab/insights/{season_id}") return Promise.resolve({ data: { data: insights, meta: {} } });
+    if (path === "/v1/seasons")
+      return Promise.resolve({ data: { data: { seasons: SEASON_LIST }, meta: {} } });
+    if (path === "/v1/lab/insights/{season_id}")
+      return Promise.resolve({ data: { data: insights, meta: {} } });
     return Promise.resolve({ error: { detail: "unexpected" } });
   });
 }

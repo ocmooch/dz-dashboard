@@ -65,6 +65,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      - name: Formatting (Prettier, the only web formatter)
+        run: npm run format:check
       - name: No platform literals outside lib/platform.ts (Sleeper D1)
         run: ../scripts/check_platform_literals.sh
       # `npm run build` is `tsc --noEmit && vite build`, so it is the type gate;

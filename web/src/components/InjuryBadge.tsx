@@ -29,11 +29,7 @@ export function InjuryBadge({ status, bodyPart, secondary, practiceStatus }: Inj
   // "Out" already implies a missed practice, so don't repeat it as a practice code.
   const showPractice = !!practiceStatus && !(status === "Out" && practiceStatus === "Out");
 
-  const bodyInline = bodyPart
-    ? secondary
-      ? `${bodyPart}/${secondary}`
-      : bodyPart
-    : null;
+  const bodyInline = bodyPart ? (secondary ? `${bodyPart}/${secondary}` : bodyPart) : null;
   const parts = [short, bodyInline, showPractice ? practiceStatus : null].filter(Boolean);
   const label = parts.join(" · ");
 

@@ -38,7 +38,9 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
-      flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
+      flags: [
+        { kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" },
+      ],
       winner_team_id: 10,
     },
     {
@@ -47,7 +49,9 @@ const WEEK_GAMES = {
       team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 180.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
       margin: 60.4,
-      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" }],
+      flags: [
+        { kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" },
+      ],
       winner_team_id: 12,
     },
   ],
@@ -336,9 +340,7 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
-    expect(
-      await screen.findByText(/Per-player scoring not available for this season/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Per-player scoring not available for this season/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View week 1 matchups/i })).toHaveAttribute(
       "href",
       "/matchups?week=1",
@@ -466,7 +468,9 @@ describe("BoxScorePage", () => {
     renderWithProviders(<BoxScorePage />, "/matchups/712");
 
     // A single page-level note explains the blank columns…
-    expect(await screen.findByText(/Projection data isn.t available for the 2017 season/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Projection data isn.t available for the 2017 season/),
+    ).toBeInTheDocument();
     // …and no per-player projection gap chip is rendered.
     expect(screen.queryByText("Projections not captured for this season/week")).toBeNull();
   });

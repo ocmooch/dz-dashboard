@@ -34,15 +34,11 @@ function InsightCard({ insight }: { insight: Insight }) {
         eyebrow="insight"
         title={insight.title}
         action={
-          <Badge variant={CONFIDENCE_VARIANT[insight.confidence]}>
-            {insight.confidence} confidence
-          </Badge>
+          <Badge variant={CONFIDENCE_VARIANT[insight.confidence]}>{insight.confidence} confidence</Badge>
         }
       />
       <div className="space-y-4 p-5">
-        <p className="max-w-2xl text-[var(--fs-md)] leading-relaxed text-text">
-          {insight.narration}
-        </p>
+        <p className="max-w-2xl text-[var(--fs-md)] leading-relaxed text-text">{insight.narration}</p>
 
         <div className="flex flex-wrap gap-2">
           {insight.facts.map((f) => (
@@ -91,9 +87,9 @@ export function InsightsLabPage() {
         <div className="dz-eyebrow mb-1">Experimental</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Insights Lab</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          The non-visual parallel to the Viz Lab: findings the analytics layer computes and
-          narrates as text, each number traceable to a tested metric. A narrator (a template
-          today, a model later) only arranges the facts — it never computes one.
+          The non-visual parallel to the Viz Lab: findings the analytics layer computes and narrates as text,
+          each number traceable to a tested metric. A narrator (a template today, a model later) only arranges
+          the facts — it never computes one.
         </p>
       </div>
 

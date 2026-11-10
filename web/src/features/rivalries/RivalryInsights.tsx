@@ -144,13 +144,7 @@ function FormerDivider() {
   );
 }
 
-function MatchupLink({
-  matchupId,
-  children,
-}: {
-  matchupId?: number | null;
-  children: React.ReactNode;
-}) {
+function MatchupLink({ matchupId, children }: { matchupId?: number | null; children: React.ReactNode }) {
   if (matchupId == null) return <>{children}</>;
   return (
     <Link to={`/matchups/${matchupId}`} className="hover:text-accent">
@@ -176,8 +170,7 @@ function IntensityBand({ band }: { band: RivalryInsightsData["intensity"] }) {
             {band.leaderboard.map((r, i) => {
               const departed = pairDeparted(r.owner_a, r.owner_b);
               const prev = band.leaderboard![i - 1];
-              const firstDeparted =
-                departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
+              const firstDeparted = departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
               return (
                 <Fragment key={`${r.owner_a.owner_id}-${r.owner_b.owner_id}`}>
                   {firstDeparted && <FormerDivider />}
@@ -208,8 +201,8 @@ function IntensityBand({ band }: { band: RivalryInsightsData["intensity"] }) {
           </ol>
         )}
         <p className="mt-4 text-[var(--fs-xs)] text-faint">
-          Heat blends how even the series is, how close the games run, how recently they met,
-          how often, and how much was at stake. Ties to the records book — never a black box.
+          Heat blends how even the series is, how close the games run, how recently they met, how often, and
+          how much was at stake. Ties to the records book — never a black box.
         </p>
       </div>
     </Card>
@@ -261,28 +254,21 @@ function PairRankList({
           {rows.map((p, i) => {
             const departed = pairDeparted(p.owner_a, p.owner_b);
             const prev = rows[i - 1];
-            const firstDeparted =
-              departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
+            const firstDeparted = departed && (i === 0 || !pairDeparted(prev.owner_a, prev.owner_b));
             return (
               <Fragment key={`${p.owner_a.owner_id}-${p.owner_b.owner_id}`}>
                 {firstDeparted && <FormerDivider />}
-                <li
-                  className={`flex items-baseline justify-between gap-3 ${departed ? "opacity-60" : ""}`}
-                >
+                <li className={`flex items-baseline justify-between gap-3 ${departed ? "opacity-60" : ""}`}>
                   <span className="min-w-0 truncate">
                     <span className="num mr-2 text-faint">{i + 1}</span>
-                    <Link
-                      to={pairTo(p.owner_a, p.owner_b)}
-                      className="font-semibold hover:text-accent"
-                    >
+                    <Link to={pairTo(p.owner_a, p.owner_b)} className="font-semibold hover:text-accent">
                       {name(p.owner_a)} <span className="text-faint">vs</span> {name(p.owner_b)}
                     </Link>
                   </span>
                   <span className="num shrink-0 text-[var(--fs-sm)] text-muted">
                     {kind === "played" ? (
                       <>
-                        {p.games}g ·{" "}
-                        <RecordLine wins={p.a_wins} losses={p.b_wins} ties={p.ties} />
+                        {p.games}g · <RecordLine wins={p.a_wins} losses={p.b_wins} ties={p.ties} />
                       </>
                     ) : (
                       <>
@@ -347,9 +333,7 @@ function StreaksBand({ band }: { band: RivalryInsightsData["streaks"] }) {
           <div>
             <div className="dz-eyebrow mb-1">Longest ever</div>
             <div>
-              <span className="font-display text-[26px] font-bold text-accent">
-                {band.longest.length}
-              </span>{" "}
+              <span className="font-display text-[26px] font-bold text-accent">{band.longest.length}</span>{" "}
               <Link
                 to={pairTo(band.longest.owner, band.longest.opponent)}
                 className="font-semibold text-text hover:text-accent"
@@ -413,8 +397,8 @@ function NemesesBand({ band }: { band: RivalryInsightsData["nemeses"] }) {
           </div>
         )}
         <p className="mt-3 text-[var(--fs-xs)] text-faint">
-          Worst and best all-time records against any one manager (minimum shared games). A
-          quiet gap means no rivalry has crossed that bar yet — never a fake 0–0.
+          Worst and best all-time records against any one manager (minimum shared games). A quiet gap means no
+          rivalry has crossed that bar yet — never a fake 0–0.
         </p>
       </div>
     </Card>
@@ -451,14 +435,9 @@ function OppCell({
         <DataGap reason="insufficient_rivalry_history" size="sm" />
       )}
       {departed && (
-        <Link
-          to={pairTo(owner, departed.opponent)}
-          className="mt-1 block opacity-60 hover:text-accent"
-        >
+        <Link to={pairTo(owner, departed.opponent)} className="mt-1 block opacity-60 hover:text-accent">
           <span className="text-[var(--fs-xs)] text-faint">vs former </span>
-          <span className={`text-[var(--fs-xs)] font-semibold ${toneClass}`}>
-            {name(departed.opponent)}
-          </span>
+          <span className={`text-[var(--fs-xs)] font-semibold ${toneClass}`}>{name(departed.opponent)}</span>
           <span className="num ml-1 text-[var(--fs-xs)] text-faint">
             {departed.wins}–{departed.losses}
             {departed.ties ? `–${departed.ties}` : ""}

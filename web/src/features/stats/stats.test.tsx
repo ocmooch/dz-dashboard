@@ -21,8 +21,24 @@ const TOP_SCORERS = {
   week: null,
   position: null,
   scorers: [
-    { player_id: 3, name_full: "Justin Jefferson", position: "WR", nfl_team: "MIN", season_year: 2017, week: null, points: 58 },
-    { player_id: 1, name_full: "Lamar Jackson", position: "QB", nfl_team: "BAL", season_year: 2017, week: null, points: 53.5 },
+    {
+      player_id: 3,
+      name_full: "Justin Jefferson",
+      position: "WR",
+      nfl_team: "MIN",
+      season_year: 2017,
+      week: null,
+      points: 58,
+    },
+    {
+      player_id: 1,
+      name_full: "Lamar Jackson",
+      position: "QB",
+      nfl_team: "BAL",
+      season_year: 2017,
+      week: null,
+      points: 53.5,
+    },
   ],
 };
 
@@ -30,7 +46,14 @@ const SEASON_TOTALS = {
   season_year: 2017,
   position: null,
   totals: [
-    { player_id: 3, name_full: "Justin Jefferson", position: "WR", nfl_team: "MIN", total_points: 58, weeks_played: 2 },
+    {
+      player_id: 3,
+      name_full: "Justin Jefferson",
+      position: "WR",
+      nfl_team: "MIN",
+      total_points: 58,
+      weeks_played: 2,
+    },
   ],
 };
 

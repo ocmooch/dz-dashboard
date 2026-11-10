@@ -74,9 +74,9 @@ describe("ProvenanceNote", () => {
 
 describe("lib/platform copy", () => {
   it("prefers the BFF note, then the 03 §3 copy, then a plain fallback", () => {
-    expect(capabilityGapText("faab_failed_bids", { state: "not_on_platform", note: "From BFF" }, "nfl_com")).toBe(
-      "From BFF",
-    );
+    expect(
+      capabilityGapText("faab_failed_bids", { state: "not_on_platform", note: "From BFF" }, "nfl_com"),
+    ).toBe("From BFF");
     expect(capabilityGapText("faab_failed_bids", { state: "not_on_platform" }, "nfl_com")).toBe(
       "NFL.com didn't record unsuccessful waiver bids.",
     );
@@ -89,7 +89,9 @@ describe("lib/platform copy", () => {
     expect(isRendered({ state: "not_used" })).toBe(false);
     expect(isRendered({ state: "not_on_platform" })).toBe(true);
     expect(capabilityStateLabel("not_used")).toBe("");
-    expect(provenanceText("official_brackets", "nfl_com")).toBe("Bracket derived from NFL.com playoff results.");
+    expect(provenanceText("official_brackets", "nfl_com")).toBe(
+      "Bracket derived from NFL.com playoff results.",
+    );
     expect(provenanceText("official_brackets", "sleeper")).toBeNull();
   });
 });

@@ -39,10 +39,9 @@ type Pairwise = {
 };
 
 async function fetchPairwise(a: number, b: number): Promise<Pairwise> {
-  const { data, error } = await api.GET(
-    "/v1/owners/{owner_id}/head-to-head/{other_owner_id}",
-    { params: { path: { owner_id: a, other_owner_id: b } } },
-  );
+  const { data, error } = await api.GET("/v1/owners/{owner_id}/head-to-head/{other_owner_id}", {
+    params: { path: { owner_id: a, other_owner_id: b } },
+  });
   if (error || !data) throw new Error("Failed to load head-to-head");
   return data.data as unknown as Pairwise;
 }
@@ -95,9 +94,7 @@ export function PairwisePage() {
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
         <Card className="p-8">
@@ -114,7 +111,11 @@ export function PairwisePage() {
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
               <Stat label={`${aName} wins`} value={data.a_wins ?? 0} tone="win" />
               <Stat label={`${bName} wins`} value={data.b_wins ?? 0} tone="loss" />
-              <Stat label="Games" value={data.games_played} unit={data.ties ? `· ${data.ties} tie` : undefined} />
+              <Stat
+                label="Games"
+                value={data.games_played}
+                unit={data.ties ? `· ${data.ties} tie` : undefined}
+              />
               <Stat
                 label={`${aName} win %`}
                 value={data.a_win_pct != null ? `${Math.round(data.a_win_pct * 100)}%` : "—"}

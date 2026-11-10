@@ -159,7 +159,11 @@ const axisTick = () => {
 export function LineTrend({ data, series, xKey, xLabel = xKey, title, height }: CartesianProps) {
   const t = chartTheme();
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}
+    >
       <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -190,8 +194,9 @@ function barTooltip({
 }: TooltipProps<number | string, string>): React.ReactElement | null {
   if (!active || !payload?.length) return null;
   const t = chartTheme();
-  const note = payload.find((p) => typeof p.payload?.__note === "string")?.payload
-    ?.__note as string | undefined;
+  const note = payload.find((p) => typeof p.payload?.__note === "string")?.payload?.__note as
+    | string
+    | undefined;
   return (
     <div
       style={{
@@ -218,17 +223,37 @@ function barTooltip({
   );
 }
 
-export function BarCompare({ data, series, xKey, xLabel = xKey, title, height, minPointSize }: CartesianProps) {
+export function BarCompare({
+  data,
+  series,
+  xKey,
+  xLabel = xKey,
+  title,
+  height,
+  minPointSize,
+}: CartesianProps) {
   const t = chartTheme();
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}
+    >
       <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
         <Tooltip content={barTooltip} cursor={{ fill: t.grid, opacity: 0.4 }} />
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? seriesColor(i)} radius={[3, 3, 0, 0]} minPointSize={minPointSize} isAnimationActive={false} />
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            name={s.label}
+            fill={s.color ?? seriesColor(i)}
+            radius={[3, 3, 0, 0]}
+            minPointSize={minPointSize}
+            isAnimationActive={false}
+          />
         ))}
       </BarChart>
     </ChartFrame>
@@ -255,7 +280,11 @@ export function DivergingBars({
   const h = height ?? Math.max(180, data.length * 28 + 48);
   const longest = Math.max(8, ...data.map((d) => d.label.length));
   return (
-    <ChartFrame title={title} height={h} table={<DataTable data={rows} series={series} xKey="label" xLabel="Entry" />}>
+    <ChartFrame
+      title={title}
+      height={h}
+      table={<DataTable data={rows} series={series} xKey="label" xLabel="Entry" />}
+    >
       <BarChart layout="vertical" data={data} margin={{ top: 8, right: 28, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={t.grid} horizontal={false} />
         <XAxis type="number" stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -284,7 +313,11 @@ export function DivergingBars({
 export function StackedBreakdown({ data, series, xKey, xLabel = xKey, title, height }: CartesianProps) {
   const t = chartTheme();
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}
+    >
       <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -292,7 +325,14 @@ export function StackedBreakdown({ data, series, xKey, xLabel = xKey, title, hei
         <Tooltip {...tooltipProps()} cursor={{ fill: t.grid, opacity: 0.4 }} />
         <Legend wrapperStyle={{ fontFamily: t.fontMono, fontSize: 11, color: t.text }} />
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} stackId="x" fill={s.color ?? seriesColor(i)} isAnimationActive={false} />
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            name={s.label}
+            stackId="x"
+            fill={s.color ?? seriesColor(i)}
+            isAnimationActive={false}
+          />
         ))}
       </BarChart>
     </ChartFrame>
@@ -323,7 +363,11 @@ function makeRankDot(marker: SeriesDef["marker"], lastIndex: number, color: stri
 export function StreamArea({ data, series, xKey, xLabel = xKey, title, height = 300 }: CartesianProps) {
   const t = chartTheme();
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}
+    >
       <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -364,7 +408,11 @@ export function RankFlow({
   const t = chartTheme();
   const lastIndex = data.length - 1;
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={data} series={series} xKey={xKey} xLabel={xLabel} />}
+    >
       <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey={xKey} stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -468,7 +516,11 @@ export function LegacySpine({
   }));
   const series: SeriesDef[] = [{ key: "finish", label: "Finish" }];
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={rows} series={series} xKey="year" xLabel="Season" />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={rows} series={series} xKey="year" xLabel="Season" />}
+    >
       <LineChart data={rows} margin={{ top: 12, right: 14, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey="year" stroke={t.axis} tick={axisTick()} tickLine={false} />
@@ -525,7 +577,11 @@ export function Heatmap({
   return (
     <figure className="m-0 overflow-x-auto" aria-label={title}>
       <figcaption className="sr-only">{title}</figcaption>
-      <div role="grid" className="grid gap-px" style={{ gridTemplateColumns: template, minWidth: cols.length * 32 + 64 }}>
+      <div
+        role="grid"
+        className="grid gap-px"
+        style={{ gridTemplateColumns: template, minWidth: cols.length * 32 + 64 }}
+      >
         <div role="columnheader" aria-hidden />
         {cols.map((c, ci) => (
           <div
@@ -723,10 +779,30 @@ export function ScatterQuadrant({
         <ReferenceLine x={0} stroke={t.borderStrong} />
         <ReferenceLine y={0} stroke={t.borderStrong} />
         <Tooltip content={quadrantTooltip} cursor={{ stroke: t.grid }} />
-        <Scatter name="value that hit" data={byTone.value_hit} fill={colors.value_hit} isAnimationActive={false} />
-        <Scatter name="reach that busted" data={byTone.reach_bust} fill={colors.reach_bust} isAnimationActive={false} />
-        <Scatter name="reach that hit" data={byTone.reach_hit} fill={colors.reach_hit} isAnimationActive={false} />
-        <Scatter name="value that missed" data={byTone.value_miss} fill={colors.value_miss} isAnimationActive={false} />
+        <Scatter
+          name="value that hit"
+          data={byTone.value_hit}
+          fill={colors.value_hit}
+          isAnimationActive={false}
+        />
+        <Scatter
+          name="reach that busted"
+          data={byTone.reach_bust}
+          fill={colors.reach_bust}
+          isAnimationActive={false}
+        />
+        <Scatter
+          name="reach that hit"
+          data={byTone.reach_hit}
+          fill={colors.reach_hit}
+          isAnimationActive={false}
+        />
+        <Scatter
+          name="value that missed"
+          data={byTone.value_miss}
+          fill={colors.value_miss}
+          isAnimationActive={false}
+        />
         <Scatter name="mixed story" data={byTone.mixed} fill={colors.mixed} isAnimationActive={false} />
       </ScatterChart>
     </ChartFrame>
@@ -736,10 +812,7 @@ export function ScatterQuadrant({
 // ── Beeswarm / strip ─────────────────────────────────────────────────────────
 // One horizontal strip per group (e.g. a team's weekly scores) with deterministic
 // jitter so the spread — boom/bust vs steady — reads at a glance.
-function beeTooltip({
-  active,
-  payload,
-}: TooltipProps<number | string, string>): React.ReactElement | null {
+function beeTooltip({ active, payload }: TooltipProps<number | string, string>): React.ReactElement | null {
   if (!active || !payload?.length) return null;
   const t = chartTheme();
   const p = payload[0]?.payload as { group: string; x: number } | undefined;
@@ -874,20 +947,39 @@ export function MarginLine({
     const positive = (p?.margin ?? 0) >= 0;
     return (
       <g key={`m-${index}`}>
-        <circle cx={cx} cy={cy} r={champ ? 6 : 3.5} fill={positive ? t.win : t.loss} stroke={champ ? t.gold : "none"} strokeWidth={champ ? 2 : 0} />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={champ ? 6 : 3.5}
+          fill={positive ? t.win : t.loss}
+          stroke={champ ? t.gold : "none"}
+          strokeWidth={champ ? 2 : 0}
+        />
         {champ && <title>{`Championship · ${p?.label}`}</title>}
       </g>
     );
   }
   return (
-    <ChartFrame title={title} height={height} table={<DataTable data={rows} series={series} xKey="label" xLabel={xLabel} />}>
+    <ChartFrame
+      title={title}
+      height={height}
+      table={<DataTable data={rows} series={series} xKey="label" xLabel={xLabel} />}
+    >
       <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={t.grid} vertical={false} />
         <XAxis dataKey="label" stroke={t.axis} tick={axisTick()} tickLine={false} />
         <YAxis stroke={t.axis} tick={axisTick()} tickLine={false} width={40} />
         <Tooltip {...tooltipProps()} />
         <ReferenceLine y={0} stroke={t.borderStrong} />
-        <Line type="monotone" dataKey="margin" name="Margin" stroke={seriesColor(0)} strokeWidth={2} dot={MarginDot} isAnimationActive={false} />
+        <Line
+          type="monotone"
+          dataKey="margin"
+          name="Margin"
+          stroke={seriesColor(0)}
+          strokeWidth={2}
+          dot={MarginDot}
+          isAnimationActive={false}
+        />
       </LineChart>
     </ChartFrame>
   );
@@ -980,7 +1072,15 @@ export function MetricScatter({
           tickLine={false}
           label={{ value: xLabel, position: "insideBottom", offset: -8, fill: t.axis, fontSize: 11 }}
         />
-        <YAxis type="number" dataKey="y" name={yLabel} stroke={t.axis} tick={axisTick()} tickLine={false} width={44} />
+        <YAxis
+          type="number"
+          dataKey="y"
+          name={yLabel}
+          stroke={t.axis}
+          tick={axisTick()}
+          tickLine={false}
+          width={44}
+        />
         <ZAxis range={[60, 60]} />
         <ReferenceLine x={0} stroke={t.borderStrong} />
         <ReferenceLine y={0} stroke={t.borderStrong} />

@@ -10,9 +10,7 @@ describe("InjuryBadge", () => {
   });
 
   it("joins primary and secondary body parts inline", () => {
-    render(
-      <InjuryBadge status="Out" bodyPart="Hamstring" secondary="Back" practiceStatus="DNP" />,
-    );
+    render(<InjuryBadge status="Out" bodyPart="Hamstring" secondary="Back" practiceStatus="DNP" />);
     expect(screen.getByText("Out · Hamstring/Back · DNP")).toBeInTheDocument();
   });
 

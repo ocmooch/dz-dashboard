@@ -40,9 +40,7 @@ describe("cartesian chart wrappers", () => {
   });
 
   it("RankFlow renders with a reversed rank axis figure", () => {
-    render(
-      <RankFlow data={data} series={series} xKey="wk" xLabel="Week" title="Rank flow" teamCount={2} />,
-    );
+    render(<RankFlow data={data} series={series} xKey="wk" xLabel="Week" title="Rank flow" teamCount={2} />);
     expect(screen.getByRole("figure", { name: "Rank flow" })).toBeInTheDocument();
     expect(screen.getAllByText("Alpha").length).toBeGreaterThan(0);
   });
@@ -53,7 +51,15 @@ describe("cartesian chart wrappers", () => {
       { key: "b", label: "Bravo", marker: "sacko" as const },
     ];
     render(
-      <RankFlow data={data} series={marked} xKey="wk" xLabel="Week" title="Race" teamCount={2} animate={false} />,
+      <RankFlow
+        data={data}
+        series={marked}
+        xKey="wk"
+        xLabel="Week"
+        title="Race"
+        teamCount={2}
+        animate={false}
+      />,
     );
     expect(screen.getByRole("figure", { name: "Race" })).toBeInTheDocument();
   });

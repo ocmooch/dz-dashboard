@@ -47,7 +47,10 @@ test("records book shows the known highest team score", async ({ page }) => {
 test("records → click a record deep-links to its source matchup box score", async ({ page }) => {
   await page.goto("/records");
   // Each record card links to its source via an aria-label "… — view source".
-  await page.getByRole("link", { name: /view source/ }).first().click();
+  await page
+    .getByRole("link", { name: /view source/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/matchups\/\d+$/);
   await expect(page.getByRole("heading", { name: "Box Score" })).toBeVisible();
 });

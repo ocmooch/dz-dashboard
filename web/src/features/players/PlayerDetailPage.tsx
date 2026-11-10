@@ -317,9 +317,7 @@ export function PlayerDetailPage() {
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && (
         <>

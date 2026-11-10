@@ -134,9 +134,7 @@ function RosterCard({ teamId }: { teamId: number }) {
           ))}
         </div>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
       {data && data.players.length === 0 && (
         <EmptyState title="No roster recorded" hint="No roster snapshot for this week." />
       )}
@@ -175,9 +173,7 @@ function RosterCard({ teamId }: { teamId: number }) {
                   </tr>
                 ) : (
                   <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                    <td className="font-mono text-[var(--fs-xs)] text-muted">
-                      {p.roster_slot ?? "—"}
-                    </td>
+                    <td className="font-mono text-[var(--fs-xs)] text-muted">{p.roster_slot ?? "—"}</td>
                     <td>
                       <Link to={`/players/${p.player_id}`} className="hover:text-accent">
                         <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
@@ -200,7 +196,11 @@ function RosterCard({ teamId }: { teamId: number }) {
                           points={p.league_points}
                           zeroReason={p.zero_reason}
                           zeroDetail={p.zero_detail}
-                          zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
+                          zeroLabel={
+                            ["Bye", "DNP", "Out"].includes(p.context_label ?? "")
+                              ? p.context_label
+                              : undefined
+                          }
                           injuryBodyPart={p.injury_body_part}
                           muted={!p.is_starter}
                         />
@@ -234,13 +234,9 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
           </div>
           <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
             {data.games.map((g) => {
-              const tone =
-                g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
+              const tone = g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
               return (
-                <li
-                  key={g.matchup_id}
-                  className="flex items-center gap-2 px-5 py-1.5 text-[var(--fs-sm)]"
-                >
+                <li key={g.matchup_id} className="flex items-center gap-2 px-5 py-1.5 text-[var(--fs-sm)]">
                   <span className={`num w-4 font-bold ${tone}`}>{g.result ?? "—"}</span>
                   <span className="num w-10 text-faint">wk {g.week}</span>
                   <Link
@@ -249,9 +245,7 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
                   >
                     vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                   </Link>
-                  {g.is_playoff && (
-                    <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>
-                  )}
+                  {g.is_playoff && <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>}
                   <span className="num shrink-0">
                     <span className={tone}>{num(g.team_score)}</span>
                     <span className="text-faint"> – </span>
@@ -349,9 +343,7 @@ type WeekGroup = { week: number; count: number; body: React.ReactNode };
  *  the most recent week starts open so the latest moves are visible at a glance.
  *  Users expand/collapse at the week boundary. */
 function WeekAccordion({ groups }: { groups: WeekGroup[] }) {
-  const [open, setOpen] = useState<Set<number>>(
-    () => new Set(groups.length ? [groups[0].week] : []),
-  );
+  const [open, setOpen] = useState<Set<number>>(() => new Set(groups.length ? [groups[0].week] : []));
   const toggle = (w: number) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -491,8 +483,7 @@ function TransactionsCard({ teamId }: { teamId: number }) {
       <CardHeader eyebrow="estimated from roster snapshots" title="Transactions" />
       <div className="px-5 pb-1 pt-3">
         <Badge variant="gap">
-          Derived from week-to-week rosters — the exact transaction log wasn&apos;t available for
-          this season.
+          Derived from week-to-week rosters — the exact transaction log wasn&apos;t available for this season.
         </Badge>
       </div>
       {moves.isLoading && <Skeleton className="m-5 h-32" />}
@@ -605,9 +596,7 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
           Spent {money(spent)} of {money(budget)}
         </div>
         {adjusted && (
-          <div className="text-[var(--fs-xs)] text-faint">
-            Base {money(baseBudget)}, adjusted mid-season
-          </div>
+          <div className="text-[var(--fs-xs)] text-faint">Base {money(baseBudget)}, adjusted mid-season</div>
         )}
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
           <div
@@ -623,10 +612,7 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
       </div>
       <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
         {data.weeks.map((w) => (
-          <li
-            key={w.week}
-            className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]"
-          >
+          <li key={w.week} className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]">
             <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {w.week}</span>
             <span className="num shrink-0 text-text">
               {w.spent > 0 ? `-${money(w.spent)}` : <span className="text-faint">—</span>}
@@ -705,9 +691,7 @@ export function TeamPage() {
   return (
     <div className="dz-rise space-y-4">
       <div>
-        <div className="dz-eyebrow mb-1">
-          {data ? `Season ${data.season_year}` : "Team"}
-        </div>
+        <div className="dz-eyebrow mb-1">{data ? `Season ${data.season_year}` : "Team"}</div>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">
             {data?.team_name ?? "Team"}
@@ -724,9 +708,7 @@ export function TeamPage() {
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && (
         <>

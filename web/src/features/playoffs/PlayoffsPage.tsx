@@ -96,9 +96,7 @@ function GameCard({
       to={`/matchups/${game.matchup_id}`}
       className={[
         "block rounded-[var(--radius)] border bg-[var(--surface-0)] transition-colors hover:border-[var(--accent)]",
-        isChamp
-          ? "border-[var(--accent)] p-3.5 shadow-sm"
-          : "border-[var(--border)] p-3",
+        isChamp ? "border-[var(--accent)] p-3.5 shadow-sm" : "border-[var(--border)] p-3",
         variant === "secondary" ? "opacity-70" : "",
       ]
         .filter(Boolean)
@@ -133,9 +131,7 @@ function ByeSlot({ team }: { team: ByeTeam }) {
         sub={team.team_name ? (team.owner_name ?? undefined) : undefined}
         avatarUrl={teamAvatarUrl(team.team_id)}
       />
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-faint">
-        Bye
-      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-faint">Bye</span>
     </div>
   );
 }
@@ -157,9 +153,7 @@ function RoundColumn({
   let secondaryGames: BracketGame[] = [];
 
   if (isLast && round.games.length > 1) {
-    const sorted = [...round.games].sort(
-      (a, b) => gameRank(a.game_label) - gameRank(b.game_label)
-    );
+    const sorted = [...round.games].sort((a, b) => gameRank(a.game_label) - gameRank(b.game_label));
     mainGames = [sorted[0]];
     secondaryGames = sorted.slice(1);
   }
@@ -167,11 +161,7 @@ function RoundColumn({
   const champVariant = isLast && mainGames.length === 1 ? "championship" : "regular";
 
   return (
-    <div
-      className={`flex flex-col gap-2.5 ${
-        !isLast ? "border-r border-[var(--hairline)]" : ""
-      }`}
-    >
+    <div className={`flex flex-col gap-2.5 ${!isLast ? "border-r border-[var(--hairline)]" : ""}`}>
       {/* Round label */}
       <div className="pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted">
         {round.round_label}
@@ -179,12 +169,7 @@ function RoundColumn({
 
       {/* Primary games */}
       {mainGames.map((game) => (
-        <GameCard
-          key={game.matchup_id}
-          game={game}
-          variant={champVariant}
-          byeTeamIds={byeTeamIds}
-        />
+        <GameCard key={game.matchup_id} game={game} variant={champVariant} byeTeamIds={byeTeamIds} />
       ))}
 
       {/* First-round bye slots (shown only in round 1) */}
@@ -203,12 +188,7 @@ function RoundColumn({
       {secondaryGames.length > 0 && (
         <div className="mt-1 flex flex-col gap-2 border-t border-[var(--hairline)] pt-3">
           {secondaryGames.map((game) => (
-            <GameCard
-              key={game.matchup_id}
-              game={game}
-              variant="secondary"
-              byeTeamIds={byeTeamIds}
-            />
+            <GameCard key={game.matchup_id} game={game} variant="secondary" byeTeamIds={byeTeamIds} />
           ))}
         </div>
       )}
@@ -282,9 +262,7 @@ export function PlayoffsPage() {
 
       {isLoading && <Skeleton className="h-96 w-full" />}
 
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
         <Card>
@@ -322,9 +300,7 @@ export function PlayoffsPage() {
             </Card>
           )}
 
-          {data.caveat && (
-            <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>
-          )}
+          {data.caveat && <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>}
 
           {power.data && power.data.rows.length > 0 && (
             <Card>
@@ -332,7 +308,10 @@ export function PlayoffsPage() {
                 eyebrow="who entered the bracket strongest · all-play adjusted"
                 title="Power at playoff entry"
                 action={
-                  <Link to="/standings?lens=power" className="text-[var(--fs-sm)] text-accent hover:underline">
+                  <Link
+                    to="/standings?lens=power"
+                    className="text-[var(--fs-sm)] text-accent hover:underline"
+                  >
                     week-by-week lens →
                   </Link>
                 }
