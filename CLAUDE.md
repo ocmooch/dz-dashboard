@@ -38,6 +38,11 @@ disagree with the backend because the frontend does no math.
   claims and player-less pick/FAAB legs; official points come from
   `queries.authoritative_week_points_expr`. Capability `not_used` renders nothing.
 - **Don't merge milestones.** Finish one cleanly before the next.
+- **Formatters: only the declared ones, only on your files.** Python: `uv run ruff format`.
+  `web/`: Prettier (pinned in `web/package.json`, config `web/.prettierrc.json`, width 110) via
+  `npm run format`; CI runs `npm run format:check`. Never run another formatter (or `npx`
+  with an unpinned version). If `git diff --stat` after formatting shows far more lines than you
+  edited, stop and revert.
 - Commit trailers: `AI-Model` / `Prompted-By` / `Reviewed-By`. **Never** `Co-Authored-By: Claude`.
   Git model: `feature/*` → `dev` → `main`.
 
@@ -113,7 +118,8 @@ uv run mypy src/ff_dashboard
 Frontend (in `web/`):
 ```
 npm run gen:api && git diff --exit-code web/src/lib/api   # contract drift check
-npm run typecheck && npm run lint
+npm run format:check     # Prettier; `npm run format` to fix (the only web formatter)
+npm run typecheck
 npm run test
 npm run test:e2e          # slow + noisy; VERIFY session only, redirect output to a file
 ```
