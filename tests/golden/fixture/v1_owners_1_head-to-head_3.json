@@ -1,0 +1,75 @@
+{
+ "body": {
+  "data": {
+   "a_win_pct": 0.5,
+   "a_wins": 1,
+   "available": true,
+   "avg_margin_for_a": 0.0,
+   "b_wins": 1,
+   "closest_meeting": {
+    "a_score": null,
+    "b_score": null,
+    "is_championship": false,
+    "is_playoff": false,
+    "margin_for_a": -10.0,
+    "matchup_id": 6,
+    "season_year": 2015,
+    "week": 2
+   },
+   "cumulative_margin_for_a": 0.0,
+   "games_played": 2,
+   "highest_scoring_meeting": {
+    "a_score": 120.0,
+    "b_score": 110.0,
+    "matchup_id": 13,
+    "season_year": 2016,
+    "week": 2
+   },
+   "meetings": [
+    {
+     "a_score": 95.0,
+     "b_score": 105.0,
+     "is_championship": false,
+     "is_playoff": false,
+     "margin_for_a": -10.0,
+     "matchup_id": 6,
+     "season_year": 2015,
+     "week": 2
+    },
+    {
+     "a_score": 120.0,
+     "b_score": 110.0,
+     "is_championship": false,
+     "is_playoff": false,
+     "margin_for_a": 10.0,
+     "matchup_id": 13,
+     "season_year": 2016,
+     "week": 2
+    }
+   ],
+   "most_lopsided_meeting": {
+    "margin_for_a": -10.0,
+    "matchup_id": 6,
+    "season_year": 2015,
+    "week": 2
+   },
+   "owner_a": {
+    "display_name": "Maverick",
+    "owner_id": 1
+   },
+   "owner_b": {
+    "display_name": "Goose",
+    "owner_id": 3
+   },
+   "playoff_meetings": 0,
+   "reason": null,
+   "ties": 0
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,30 @@
+{
+ "body": {
+  "data": {
+   "final_rank": null,
+   "is_champion": false,
+   "is_sacko": false,
+   "is_scored": true,
+   "losses": 1,
+   "made_playoffs": null,
+   "owner_id": 3,
+   "owner_name": "Goose",
+   "points_against": 240.0,
+   "points_for": 265.0,
+   "rank": 2,
+   "rank_basis": "computed",
+   "season_id": 3,
+   "season_year": 2017,
+   "team_id": 11,
+   "team_name": "Goose 2017",
+   "ties": 0,
+   "wins": 1
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

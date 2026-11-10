@@ -1,0 +1,51 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "reason": null,
+   "season_id": 3,
+   "season_year": 2017,
+   "teams": [
+    {
+     "captured": 0.0,
+     "efficiency_pct": 0.0,
+     "optimal": 7.0,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for": 265.0,
+     "team_id": 11,
+     "team_name": "Goose 2017",
+     "weeks": 1
+    },
+    {
+     "captured": 113.0,
+     "efficiency_pct": 0.8968,
+     "optimal": 126.0,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for": 235.0,
+     "team_id": 10,
+     "team_name": "Iceman 2017",
+     "weeks": 1
+    },
+    {
+     "captured": 22.0,
+     "efficiency_pct": 1.0,
+     "optimal": 22.0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for": 260.4,
+     "team_id": 9,
+     "team_name": "Maverick 2017",
+     "weeks": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

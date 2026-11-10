@@ -1,0 +1,80 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "definition": "Draft tendencies aggregate the market (reach/value) axis across every captured draft for a manager. Reach rate is the share of their ADP-covered picks taken earlier than consensus; mean delta is the average gap between actual slot and ADP (positive = tends to wait/find value, negative = tends to reach); discipline is the average distance from consensus (lower = sticks closer to the board). Only picks with a blended ADP count.",
+   "managers": [
+    {
+     "by_position": [
+      {
+       "mean_delta": -7.4,
+       "n": 1,
+       "position": "TE"
+      }
+     ],
+     "discipline": 7.4,
+     "mean_delta": -7.4,
+     "n_picks_with_adp": 1,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "qualified": true,
+     "reach_rate": 1.0,
+     "sufficient": false,
+     "team_name": "Iceman 2016",
+     "value_rate": 0.0
+    },
+    {
+     "by_position": [
+      {
+       "mean_delta": 0.0,
+       "n": 1,
+       "position": "QB"
+      }
+     ],
+     "discipline": 0.0,
+     "mean_delta": 0.0,
+     "n_picks_with_adp": 1,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "qualified": true,
+     "reach_rate": 0.0,
+     "sufficient": false,
+     "team_name": "Dynasty Crew",
+     "value_rate": 0.0
+    },
+    {
+     "by_position": [
+      {
+       "mean_delta": 3.0,
+       "n": 1,
+       "position": "RB"
+      }
+     ],
+     "discipline": 3.0,
+     "mean_delta": 3.0,
+     "n_picks_with_adp": 1,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "qualified": true,
+     "reach_rate": 0.0,
+     "sufficient": false,
+     "team_name": "Maverick 2016",
+     "value_rate": 0.0
+    }
+   ],
+   "min_picks": 8,
+   "reason": null,
+   "weights": {
+    "ffc": 0.5,
+    "mfl": 0.3,
+    "sleeper": 0.2
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

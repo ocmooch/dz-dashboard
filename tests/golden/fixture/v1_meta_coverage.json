@@ -1,0 +1,258 @@
+{
+ "body": {
+  "data": {
+   "feeds": {
+    "availability": [
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     }
+    ],
+    "injuries": [
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     }
+    ],
+    "projections": [
+     {
+      "projected_points_count": 2,
+      "projected_stats_count": 0,
+      "reason": null,
+      "row_count": 2,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": 0,
+      "projected_stats_count": 0,
+      "reason": "projections_not_captured",
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "absent",
+      "week": 3
+     },
+     {
+      "projected_points_count": 0,
+      "projected_stats_count": 1,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 4
+     }
+    ],
+    "rosters": [
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2015,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2015,
+      "status": "present",
+      "week": 2
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 2,
+      "season_year": 2016,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 2,
+      "season_year": 2016,
+      "status": "present",
+      "week": 2
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 25,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 2
+     }
+    ],
+    "scored_stats": [
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 5,
+      "season_year": 2016,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 4,
+      "season_year": 2016,
+      "status": "present",
+      "week": 2
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 19,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 4,
+      "season_year": 2017,
+      "status": "present",
+      "week": 2
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 4
+     }
+    ],
+    "transactions": [
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 4,
+      "season_year": 2016,
+      "status": "present",
+      "week": 0
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 1
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 3,
+      "season_year": 2017,
+      "status": "present",
+      "week": 2
+     },
+     {
+      "projected_points_count": null,
+      "projected_stats_count": null,
+      "reason": null,
+      "row_count": 1,
+      "season_year": 2017,
+      "status": "present",
+      "week": 3
+     }
+    ]
+   },
+   "reason_codes": {
+    "current_season_only": "Source only records the current season.",
+    "genuine_zero": "A real zero, not a missing-data gap.",
+    "identity_split_candidate": "A rostered player has a same-name stats/injury twin.",
+    "not_captured": "Source never recorded this cell.",
+    "pre_league": "Raw source rows predate the league coverage window.",
+    "projection_points_not_scored": "Projection rows exist but projected fantasy points were not scored.",
+    "projections_not_captured": "Projection feed has no row for this season/week.",
+    "source_identity_mismatch": "An NFL.com external ID is attached to a player from an impossible career era or position.",
+    "unscored_season": "Season has no per-player scored-stat rows."
+   },
+   "relevance": {
+    "excluded_players": 4,
+    "identity_split_candidate_count": 1,
+    "identity_split_candidates": [
+     {
+      "members": [
+       {
+        "gsis_id": null,
+        "injured": false,
+        "name_full": "Split Sam",
+        "nfl_com_player_id": "NFL-SPLIT",
+        "nfl_team": "LAC",
+        "player_id": 11,
+        "position": "WR",
+        "rostered": true,
+        "scored": false
+       },
+       {
+        "gsis_id": "GSIS-SPLIT",
+        "injured": true,
+        "name_full": "Split Sam",
+        "nfl_com_player_id": null,
+        "nfl_team": "LAC",
+        "player_id": 12,
+        "position": "WR",
+        "rostered": false,
+        "scored": true
+       }
+      ],
+      "name_full": "Split Sam",
+      "reason": "identity_split_candidate"
+     }
+    ],
+    "league_relevant_players": 29,
+    "league_rostered_players": 28,
+    "season_position_divergence_count": 0,
+    "season_position_divergences": [],
+    "source_identity_mismatch_count": 0,
+    "source_identity_mismatches": [],
+    "total_players": 33
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

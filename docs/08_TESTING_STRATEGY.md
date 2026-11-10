@@ -39,6 +39,30 @@ the analytics equivalent of Phase 1's scoring fixtures. It must encode **known a
 Generate it programmatically in `conftest.py` (insert rows via the reused
 `ff_pipeline.repository` models) so it stays in sync with the schema.
 
+### Legacy golden snapshots (Sleeper D0)
+
+The parity baseline for the Sleeper era: nothing about 2010–2025 may change. The comparison is
+`golden ⊆ current`. New keys are allowed (additive contract fields); a changed or missing value, a
+list-length change, or a different status fails. Failures print paths and short scalars only, never
+payloads.
+
+- **Fixture golden** (`tests/golden/fixture/`, CI): every request of the matrix over the legacy
+  fixture. `test_fixture_legacy_parity` checks it on the legacy-only fixture.
+  `test_fixture_parity_survives_a_sleeper_season` re-checks the *pinned* requests (scoped to one
+  legacy season, team or matchup) on the mixed-era fixture. `test_fixture_golden_covers_every_v1_route`
+  fails when a new `/v1` route lacks a golden.
+- **Live golden** (local only): a frozen copy of the pre-go-live DB (`data/golden/`, gitignored) and
+  `scripts/snapshot_legacy_payloads.py`. The JSON stays outside git because it holds real names;
+  `tests/golden/live_manifest.json` commits the request list and hashes. Because parity re-runs
+  against the same frozen file, only code changes can fail it. Avatars are read from upstream's
+  content-addressed asset store, whose files never change in place.
+- **Mixed-era fixture** (`tests/sleeper_fixture.py`, `mixed_era_db_path` / `mixed_client`): the
+  legacy fixture plus a Sleeper 2026 season, loaded through ff-pipeline's packaged loader from
+  upstream's pseudonymized fixtures. Tests only; `src/` stays read-only.
+- An intentional legacy change needs the user's approval first. Then regenerate:
+  `DZ_UPDATE_GOLDEN=1 uv run pytest tests/test_legacy_parity.py -k write_fixture_golden`, and
+  `scripts/snapshot_legacy_payloads.py --write`.
+
 ### Unit tests — one per analytics metric
 
 Tests live **flat in `tests/`**, grouped by roadmap milestone rather than a nested

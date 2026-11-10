@@ -1,0 +1,211 @@
+{
+ "body": {
+  "data": {
+   "adp_coverage": {
+    "limited": false,
+    "note": null,
+    "sources": [
+     "ffc",
+     "mfl"
+    ]
+   },
+   "available": true,
+   "num_teams": 4,
+   "reason": null,
+   "rounds": [
+    {
+     "picks": [
+      {
+       "adp": 8.4,
+       "adp_available": true,
+       "adp_delta": -7.4,
+       "adp_format": "full_ppr",
+       "adp_format_fallback": false,
+       "adp_reason": null,
+       "adp_source_spread": 1.0,
+       "adp_sources": [
+        "ffc",
+        "mfl"
+       ],
+       "available": true,
+       "impact": -13.67,
+       "impact_components": {
+        "base_value": -13.67,
+        "bench_weeks": 0,
+        "cost_weight": 1.0,
+        "ir_weeks": 0,
+        "normalized_value": -13.67,
+        "opportunity_available": false,
+        "opportunity_weight": 1.0,
+        "position_mean": 0.0,
+        "position_stddev": 1.0,
+        "weighted_eligible": true,
+        "weighted_reason": null
+       },
+       "market_label": "reach",
+       "nfl_team": "KC",
+       "overall": 1,
+       "owner_id": 2,
+       "owner_name": "Iceman",
+       "pick_in_round": 1,
+       "player_id": 4,
+       "player_name": "Travis Kelce",
+       "position": "TE",
+       "reason": null,
+       "round": 1,
+       "season_points": 22.0,
+       "season_year": 2016,
+       "team_id": 6,
+       "team_name": "Iceman 2016",
+       "value": -13.67,
+       "zero_detail": null,
+       "zero_reason": null
+      },
+      {
+       "adp": 2.0,
+       "adp_available": true,
+       "adp_delta": 0.0,
+       "adp_format": "full_ppr",
+       "adp_format_fallback": false,
+       "adp_reason": null,
+       "adp_source_spread": 0.0,
+       "adp_sources": [
+        "ffc"
+       ],
+       "available": true,
+       "impact": 4.0,
+       "impact_components": {
+        "base_value": 7.5,
+        "bench_weeks": 0,
+        "cost_weight": 0.5333,
+        "ir_weeks": 0,
+        "normalized_value": 7.5,
+        "opportunity_available": false,
+        "opportunity_weight": 1.0,
+        "position_mean": 0.0,
+        "position_stddev": 1.0,
+        "weighted_eligible": true,
+        "weighted_reason": null
+       },
+       "market_label": "on_market",
+       "nfl_team": "BAL",
+       "overall": 2,
+       "owner_id": 3,
+       "owner_name": "Goose",
+       "pick_in_round": 2,
+       "player_id": 1,
+       "player_name": "Lamar Jackson",
+       "position": "QB",
+       "reason": null,
+       "round": 1,
+       "season_points": 48.0,
+       "season_year": 2016,
+       "team_id": 7,
+       "team_name": "Dynasty Crew",
+       "value": 7.5,
+       "zero_detail": null,
+       "zero_reason": null
+      },
+      {
+       "adp": null,
+       "adp_available": false,
+       "adp_delta": null,
+       "adp_format": null,
+       "adp_format_fallback": false,
+       "adp_reason": "no_market_data",
+       "adp_source_spread": null,
+       "adp_sources": [],
+       "available": true,
+       "impact": -1.87,
+       "impact_components": {
+        "base_value": -3.5,
+        "bench_weeks": 0,
+        "cost_weight": 0.5333,
+        "ir_weeks": 0,
+        "normalized_value": -3.5,
+        "opportunity_available": false,
+        "opportunity_weight": 1.0,
+        "position_mean": 0.0,
+        "position_stddev": 1.0,
+        "weighted_eligible": true,
+        "weighted_reason": null
+       },
+       "market_label": null,
+       "nfl_team": "MIN",
+       "overall": 3,
+       "owner_id": 4,
+       "owner_name": "Slider",
+       "pick_in_round": 3,
+       "player_id": 3,
+       "player_name": "Justin Jefferson",
+       "position": "WR",
+       "reason": null,
+       "round": 1,
+       "season_points": 37.0,
+       "season_year": 2016,
+       "team_id": 8,
+       "team_name": "Slider 2016",
+       "value": -3.5,
+       "zero_detail": null,
+       "zero_reason": null
+      },
+      {
+       "adp": 1.0,
+       "adp_available": true,
+       "adp_delta": 3.0,
+       "adp_format": "full_ppr",
+       "adp_format_fallback": false,
+       "adp_reason": null,
+       "adp_source_spread": 0.0,
+       "adp_sources": [
+        "ffc"
+       ],
+       "available": true,
+       "impact": 8.33,
+       "impact_components": {
+        "base_value": 8.33,
+        "bench_weeks": 0,
+        "cost_weight": 1.0,
+        "ir_weeks": 0,
+        "normalized_value": 8.33,
+        "opportunity_available": true,
+        "opportunity_weight": 1.0,
+        "position_mean": 0.0,
+        "position_stddev": 1.0,
+        "weighted_eligible": true,
+        "weighted_reason": null
+       },
+       "market_label": "on_market",
+       "nfl_team": "SF",
+       "overall": 4,
+       "owner_id": 1,
+       "owner_name": "Maverick",
+       "pick_in_round": 4,
+       "player_id": 2,
+       "player_name": "Christian McCaffrey",
+       "position": "RB",
+       "reason": null,
+       "round": 1,
+       "season_points": 55.0,
+       "season_year": 2016,
+       "team_id": 5,
+       "team_name": "Maverick 2016",
+       "value": 8.33,
+       "zero_detail": null,
+       "zero_reason": null
+      }
+     ],
+     "round": 1
+    }
+   ],
+   "season_id": 2,
+   "season_year": 2016
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

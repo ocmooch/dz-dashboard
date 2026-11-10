@@ -125,6 +125,21 @@ forbidden-import grep still covers only `src/ff_dashboard`.
 **"Passes on `dev` unchanged":** after the BUILD commit, both parity tests are green with no edits
 to `src/`. VERIFY runs the full gate once.
 
+## As built (2026-11-10)
+
+- The live matrix has 1,091 requests (all 55 `/v1` routes; 1,090 return 200 and 1 is the
+  avatar-less 404). There are 0 volatile paths across two runs, `--check` shows 0 failing, and it
+  takes about 40s.
+- The fixture matrix has 333 requests, 254 of them pinned. All pinned ones hold on the mixed-era
+  fixture, with no expected-diff list needed.
+- The avatar requests cover every selected team that has one, plus one without. Bytes are hashed
+  and read from upstream's content-addressed store (live), not from the frozen DB.
+- The upstream fixtures already had the blank team name (1 user, shown as the "<owner>'s Team"
+  fallback). The commissioner move is the only overlay the builder adds.
+- `--freeze` opens the source backup with `immutable=1`. An earlier `mode=ro` open created empty
+  `-wal`/`-shm` files next to the backup; they were checked as empty and removed, and the backup
+  passed `quick_check`.
+
 ## Out of scope
 
 No `src/ff_dashboard` changes, no frontend, no 2026 behavior (D1–D3), no live go-live.

@@ -1,0 +1,44 @@
+{
+ "body": {
+  "data": {
+   "adp_coverage": {
+    "limited": false,
+    "note": null,
+    "sources": []
+   },
+   "adp_definition": "ADP is the consensus average draft position blended across public sources (Fantasy Football Calculator, MyFantasyLeague, Sleeper), weighted FFC 0.5, MFL 0.3, SLEEPER 0.2 and matched to this league's format (full-PPR; half-PPR in 2010), 12-team. It is the closest public market to this league \u2014 not its own valuations. Reach / value is the gap between where the league drafted a player and the consensus, judged against a tolerance that grows with draft depth: a pick well earlier than its ADP is a reach, well later is a value, and anything inside the depth-scaled cushion reads as on-market. The cushion is tight at the top (where the elite tier is interchangeable and ordering is preference) and widens deeper into the draft (where exact slot matters less).",
+   "adp_weights": {
+    "ffc": 0.5,
+    "mfl": 0.3,
+    "sleeper": 0.2
+   },
+   "available": false,
+   "busts": [],
+   "definition": "Pick value = a player's regular-season fantasy points that season minus the league-wide average for players drafted within \u00b12 of the same overall slot (computed from every captured draft). Positive = a steal (outscored its slot); negative = a bust.",
+   "impact_definition": "Draft impact = position-normalized pick value scaled by how the pick was spent and carried. Every position \u2014 including kickers and defenses \u2014 is compared with its own kind before ranking together, so the scores stay on one scale. An early-round bust (or a late-round steal) weighs more than the same value late (or early); and a bust carried all year on the active bench costs more than one stashed on IR / reserve. Opportunity cost amplifies weighted busts only. Positive impact = weighted steal; negative impact = weighted bust.",
+   "leaderboard_limit": 9,
+   "picks": [],
+   "points_busts": [],
+   "points_steals": [],
+   "reaches": [],
+   "reason": "draft_not_captured",
+   "season_id": 3,
+   "season_year": 2017,
+   "slot_window": 2,
+   "steals": [],
+   "values": [],
+   "weights": {
+    "cost_curve": 1.0,
+    "cost_floor": 0.3,
+    "opp_bench_weight": 1.0,
+    "opp_ir_weight": 0.25
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

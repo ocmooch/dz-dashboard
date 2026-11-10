@@ -1,0 +1,52 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "is_playoff": false,
+     "margin": -30.0,
+     "matchup_id": 4,
+     "opponent_owner_name": "Slider",
+     "opponent_score": 120.0,
+     "opponent_team_id": 4,
+     "opponent_team_name": "Dynasty Crew",
+     "result": "L",
+     "team_score": 90.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "margin": 10.0,
+     "matchup_id": 5,
+     "opponent_owner_name": "Maverick",
+     "opponent_score": 95.0,
+     "opponent_team_id": 1,
+     "opponent_team_name": "Maverick 2015",
+     "result": "W",
+     "team_score": 105.0,
+     "week": 2
+    },
+    {
+     "is_playoff": true,
+     "margin": 40.0,
+     "matchup_id": 27,
+     "opponent_owner_name": "Iceman",
+     "opponent_score": 50.0,
+     "opponent_team_id": 2,
+     "opponent_team_name": "Iceman 2015",
+     "result": "W",
+     "team_score": 90.0,
+     "week": 3
+    }
+   ],
+   "season_year": 2015,
+   "team_id": 3
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

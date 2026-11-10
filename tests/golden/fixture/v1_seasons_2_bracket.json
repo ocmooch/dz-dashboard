@@ -1,0 +1,21 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "caveat": "Post-regular-season matchups from the source data. The championship and consolation brackets are separated by who actually played whom, not by source flags.",
+   "consolation_bracket": null,
+   "consolation_distinguished": false,
+   "playoff_bracket": null,
+   "reason": "bracket_unavailable",
+   "regular_season_weeks": 2,
+   "season_id": 2,
+   "season_year": 2016
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

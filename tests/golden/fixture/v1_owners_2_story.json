@@ -1,0 +1,78 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "favorite_victim": null,
+   "heartbreak": {
+    "is_playoff": true,
+    "margin": 40.0,
+    "matchup_id": 28,
+    "opponent": {
+     "display_name": "Goose",
+     "owner_id": 3
+    },
+    "opponent_score": 90.0,
+    "owner_score": 50.0,
+    "season_year": 2015,
+    "week": 3
+   },
+   "high_water_mark": {
+    "matchup_id": 19,
+    "opponent": {
+     "display_name": "Goose",
+     "owner_id": 3
+    },
+    "opponent_score": 125.0,
+    "score": 130.0,
+    "season_year": 2017,
+    "week": 1
+   },
+   "luckiest_season": {
+    "actual_wins": 2.0,
+    "expected_wins": 1.0,
+    "luck_delta": 1.0,
+    "season_year": 2017
+   },
+   "nemesis": {
+    "games": 3,
+    "losses": 2,
+    "opponent": {
+     "display_name": "Maverick",
+     "owner_id": 1
+    },
+    "ties": 0,
+    "win_pct": 0.3333,
+    "wins": 1
+   },
+   "owner": {
+    "display_name": "Iceman",
+    "owner_id": 2
+   },
+   "signature_win": {
+    "is_playoff": false,
+    "margin": 5.0,
+    "matchup_id": 22,
+    "opponent": {
+     "display_name": "Maverick",
+     "owner_id": 1
+    },
+    "opponent_score": 100.0,
+    "owner_score": 105.0,
+    "season_year": 2017,
+    "week": 2
+   },
+   "unluckiest_season": {
+    "actual_wins": 0.0,
+    "expected_wins": 0.67,
+    "luck_delta": -0.67,
+    "season_year": 2015
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

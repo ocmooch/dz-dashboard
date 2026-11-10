@@ -1,0 +1,51 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "favorite_victim": null,
+   "heartbreak": {
+    "is_playoff": false,
+    "margin": 30.0,
+    "matchup_id": 23,
+    "opponent": {
+     "display_name": "Goose",
+     "owner_id": 3
+    },
+    "opponent_score": 140.0,
+    "owner_score": 110.0,
+    "season_year": 2017,
+    "week": 2
+   },
+   "high_water_mark": {
+    "matchup_id": 17,
+    "opponent": {
+     "display_name": "Maverick",
+     "owner_id": 1
+    },
+    "opponent_score": 160.4,
+    "score": 120.0,
+    "season_year": 2017,
+    "week": 1
+   },
+   "luckiest_season": null,
+   "nemesis": null,
+   "owner": {
+    "display_name": "Viper",
+    "owner_id": 5
+   },
+   "signature_win": null,
+   "unluckiest_season": {
+    "actual_wins": 0.0,
+    "expected_wins": 0.67,
+    "luck_delta": -0.67,
+    "season_year": 2017
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,75 @@
+{
+ "body": {
+  "data": {
+   "champions_recorded": 3,
+   "commissioners": [
+    {
+     "from_year": 2015,
+     "notes": "Fixture commissioner term",
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "seasons": 2,
+     "to_year": 2016
+    },
+    {
+     "from_year": 2017,
+     "notes": "Fixture current commissioner",
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "seasons": 2,
+     "to_year": null
+    }
+   ],
+   "completed_seasons": 3,
+   "current_era": {
+    "certainty": "scraped",
+    "defining_change": "Earliest recorded ruleset",
+    "division_structure": "2 divisions of 6",
+    "end_year": 2017,
+    "era_id": "era-1",
+    "label": "No flex",
+    "league_size": 4,
+    "lineup": "No flex",
+    "playoff_weeks": 1,
+    "ppr": null,
+    "regular_season_weeks": 2,
+    "scoring_provenance": "nfl_com_authoritative_total",
+    "season_years": [
+     2015,
+     2016,
+     2017
+    ],
+    "start_year": 2015,
+    "verification_status": "known_source_gap",
+    "waiver_system": null
+   },
+   "current_year": 2017,
+   "data_caveats": [
+    {
+     "code": "rules_not_fully_scraped",
+     "label": "Detailed scoring and roster-slot rules are not yet fully captured.",
+     "scope": "rules_and_eras"
+    },
+    {
+     "code": "player_scoring_by_season",
+     "label": "Player scoring availability is season-specific and shown per season.",
+     "scope": "season_context"
+    }
+   ],
+   "league_id": "DZTEST",
+   "league_size_max": 4,
+   "league_size_min": 4,
+   "name": "Danger Zone Test League",
+   "platform": "nfl_com",
+   "scored_seasons": 2,
+   "season_count": 3,
+   "start_year": 2015
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

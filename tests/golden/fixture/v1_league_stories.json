@@ -1,0 +1,103 @@
+{
+ "body": {
+  "data": {
+   "stories": [
+    {
+     "available": true,
+     "caveat": null,
+     "matchup_id": 9,
+     "metric_label": "Margin",
+     "metric_value": 70.0,
+     "primary_owner": null,
+     "primary_team": {
+      "owner_id": 1,
+      "owner_name": "Maverick",
+      "team_id": 5,
+      "team_name": "Maverick 2016"
+     },
+     "reason": null,
+     "season_year": 2016,
+     "secondary_team": {
+      "owner_id": 2,
+      "owner_name": "Iceman",
+      "team_id": 6,
+      "team_name": "Iceman 2016"
+     },
+     "story_id": "biggest-blowout",
+     "title": "Biggest blowout",
+     "week": 1
+    },
+    {
+     "available": true,
+     "caveat": "Regular-season and postseason games are included when present.",
+     "matchup_id": null,
+     "metric_label": "Losses by 5 or fewer",
+     "metric_value": 1,
+     "primary_owner": {
+      "display_name": "Slider",
+      "owner_id": 4
+     },
+     "primary_team": null,
+     "reason": null,
+     "season_year": null,
+     "secondary_team": null,
+     "story_id": "close-loss-magnet",
+     "title": "Close-loss magnet",
+     "week": null
+    },
+    {
+     "available": true,
+     "caveat": "Lost to the weekly high score by 10.00.",
+     "matchup_id": 26,
+     "metric_label": "Losing score",
+     "metric_value": 110.0,
+     "primary_owner": null,
+     "primary_team": {
+      "owner_id": 1,
+      "owner_name": "Maverick",
+      "team_id": 1,
+      "team_name": "Maverick 2015"
+     },
+     "reason": null,
+     "season_year": 2015,
+     "secondary_team": {
+      "owner_id": 4,
+      "owner_name": "Slider",
+      "team_id": 4,
+      "team_name": "Dynasty Crew"
+     },
+     "story_id": "worst-beat",
+     "title": "Worst beat",
+     "week": 3
+    },
+    {
+     "available": true,
+     "caveat": "Counts season-scoped team names, not durable manager identity.",
+     "items": [
+      {
+       "seasons": 2,
+       "team_name": "Dynasty Crew"
+      }
+     ],
+     "matchup_id": null,
+     "metric_label": "Repeated names",
+     "metric_value": 1,
+     "primary_owner": null,
+     "primary_team": null,
+     "reason": null,
+     "season_year": null,
+     "secondary_team": null,
+     "story_id": "team-name-hall",
+     "title": "Team-name hall of fame",
+     "week": null
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

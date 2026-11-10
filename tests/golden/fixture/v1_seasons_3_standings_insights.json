@@ -1,0 +1,91 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "most_blessed": {
+    "actual_wins": 2.0,
+    "all_play_win_pct": 0.5,
+    "expected_wins": 1.0,
+    "luck_delta": 1.0,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "points_for_rank": 3,
+    "standings_rank": 1,
+    "team_id": 10,
+    "team_name": "Iceman 2017"
+   },
+   "most_robbed": {
+    "actual_wins": 0.0,
+    "all_play_win_pct": 0.3333,
+    "expected_wins": 0.67,
+    "luck_delta": -0.67,
+    "owner_id": 5,
+    "owner_name": "Viper",
+    "points_for_rank": 4,
+    "standings_rank": 4,
+    "team_id": 12,
+    "team_name": "Northvale Scumbags"
+   },
+   "reason": null,
+   "season_id": 3,
+   "season_year": 2017,
+   "teams": [
+    {
+     "actual_wins": 2.0,
+     "all_play_win_pct": 0.5,
+     "expected_wins": 1.0,
+     "luck_delta": 1.0,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for_rank": 3,
+     "standings_rank": 1,
+     "team_id": 10,
+     "team_name": "Iceman 2017"
+    },
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.5,
+     "expected_wins": 1.0,
+     "luck_delta": 0.0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for_rank": 2,
+     "standings_rank": 3,
+     "team_id": 9,
+     "team_name": "Maverick 2017"
+    },
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.6667,
+     "expected_wins": 1.33,
+     "luck_delta": -0.33,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for_rank": 1,
+     "standings_rank": 2,
+     "team_id": 11,
+     "team_name": "Goose 2017"
+    },
+    {
+     "actual_wins": 0.0,
+     "all_play_win_pct": 0.3333,
+     "expected_wins": 0.67,
+     "luck_delta": -0.67,
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "points_for_rank": 4,
+     "standings_rank": 4,
+     "team_id": 12,
+     "team_name": "Northvale Scumbags"
+    }
+   ],
+   "through_week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

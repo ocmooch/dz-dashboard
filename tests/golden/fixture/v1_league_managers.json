@@ -1,0 +1,118 @@
+{
+ "body": {
+  "data": {
+   "managers": [
+    {
+     "active_years": [
+      2015,
+      2016,
+      2017
+     ],
+     "aliases": [],
+     "display_name": "Goose",
+     "human_name": null,
+     "identity_source": "nfl_com_owner_record",
+     "is_active": true,
+     "joined_year": 2015,
+     "left_year": null,
+     "manager_id": 3,
+     "nfl_user_id": null,
+     "seasons_managed": 3,
+     "team_names": [
+      "Dynasty Crew",
+      "Goose 2015",
+      "Goose 2017"
+     ]
+    },
+    {
+     "active_years": [
+      2015,
+      2016,
+      2017
+     ],
+     "aliases": [],
+     "display_name": "Iceman",
+     "human_name": null,
+     "identity_source": "nfl_com_owner_record",
+     "is_active": true,
+     "joined_year": 2015,
+     "left_year": null,
+     "manager_id": 2,
+     "nfl_user_id": null,
+     "seasons_managed": 3,
+     "team_names": [
+      "Iceman 2015",
+      "Iceman 2016",
+      "Iceman 2017"
+     ]
+    },
+    {
+     "active_years": [
+      2015,
+      2016,
+      2017
+     ],
+     "aliases": [],
+     "display_name": "Maverick",
+     "human_name": null,
+     "identity_source": "nfl_com_owner_record",
+     "is_active": true,
+     "joined_year": 2015,
+     "left_year": null,
+     "manager_id": 1,
+     "nfl_user_id": null,
+     "seasons_managed": 3,
+     "team_names": [
+      "Maverick 2015",
+      "Maverick 2016",
+      "Maverick 2017"
+     ]
+    },
+    {
+     "active_years": [
+      2015,
+      2016
+     ],
+     "aliases": [],
+     "display_name": "Slider",
+     "human_name": null,
+     "identity_source": "nfl_com_owner_record",
+     "is_active": false,
+     "joined_year": 2015,
+     "left_year": 2016,
+     "manager_id": 4,
+     "nfl_user_id": null,
+     "seasons_managed": 2,
+     "team_names": [
+      "Dynasty Crew",
+      "Slider 2016"
+     ]
+    },
+    {
+     "active_years": [
+      2017
+     ],
+     "aliases": [],
+     "display_name": "Viper",
+     "human_name": null,
+     "identity_source": "nfl_com_owner_record",
+     "is_active": true,
+     "joined_year": 2017,
+     "left_year": null,
+     "manager_id": 5,
+     "nfl_user_id": null,
+     "seasons_managed": 1,
+     "team_names": [
+      "Northvale Scumbags"
+     ]
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,91 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "most_blessed": {
+    "actual_wins": 1.0,
+    "all_play_win_pct": 0.3333,
+    "expected_wins": 0.67,
+    "luck_delta": 0.33,
+    "owner_id": 4,
+    "owner_name": "Slider",
+    "points_for_rank": 3,
+    "standings_rank": 3,
+    "team_id": 8,
+    "team_name": "Slider 2016"
+   },
+   "most_robbed": {
+    "actual_wins": 1.0,
+    "all_play_win_pct": 0.6667,
+    "expected_wins": 1.33,
+    "luck_delta": -0.33,
+    "owner_id": 3,
+    "owner_name": "Goose",
+    "points_for_rank": 2,
+    "standings_rank": 2,
+    "team_id": 7,
+    "team_name": "Dynasty Crew"
+   },
+   "reason": null,
+   "season_id": 2,
+   "season_year": 2016,
+   "teams": [
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.3333,
+     "expected_wins": 0.67,
+     "luck_delta": 0.33,
+     "owner_id": 4,
+     "owner_name": "Slider",
+     "points_for_rank": 3,
+     "standings_rank": 3,
+     "team_id": 8,
+     "team_name": "Slider 2016"
+    },
+    {
+     "actual_wins": 2.0,
+     "all_play_win_pct": 1.0,
+     "expected_wins": 2.0,
+     "luck_delta": 0.0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for_rank": 1,
+     "standings_rank": 1,
+     "team_id": 5,
+     "team_name": "Maverick 2016"
+    },
+    {
+     "actual_wins": 0.0,
+     "all_play_win_pct": 0.0,
+     "expected_wins": 0.0,
+     "luck_delta": 0.0,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for_rank": 4,
+     "standings_rank": 4,
+     "team_id": 6,
+     "team_name": "Iceman 2016"
+    },
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.6667,
+     "expected_wins": 1.33,
+     "luck_delta": -0.33,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for_rank": 2,
+     "standings_rank": 2,
+     "team_id": 7,
+     "team_name": "Dynasty Crew"
+    }
+   ],
+   "through_week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

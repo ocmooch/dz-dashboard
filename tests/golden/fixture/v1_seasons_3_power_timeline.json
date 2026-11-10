@@ -1,0 +1,89 @@
+{
+ "body": {
+  "data": {
+   "regular_season_weeks": 2,
+   "season_id": 3,
+   "season_year": 2017,
+   "teams": [
+    {
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points": [
+      {
+       "power_score": 1.4637,
+       "rank": 1,
+       "week": 1
+      },
+      {
+       "power_score": 0.4604,
+       "rank": 2,
+       "week": 2
+      }
+     ],
+     "team_id": 9,
+     "team_name": "Maverick 2017"
+    },
+    {
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points": [
+      {
+       "power_score": 0.1772,
+       "rank": 2,
+       "week": 1
+      },
+      {
+       "power_score": -0.1704,
+       "rank": 3,
+       "week": 2
+      }
+     ],
+     "team_id": 10,
+     "team_name": "Iceman 2017"
+    },
+    {
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points": [
+      {
+       "power_score": -0.6212,
+       "rank": 3,
+       "week": 1
+      },
+      {
+       "power_score": 0.9795,
+       "rank": 1,
+       "week": 2
+      }
+     ],
+     "team_id": 11,
+     "team_name": "Goose 2017"
+    },
+    {
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "points": [
+      {
+       "power_score": -1.0196,
+       "rank": 4,
+       "week": 1
+      },
+      {
+       "power_score": -1.2695,
+       "rank": 4,
+       "week": 2
+      }
+     ],
+     "team_id": 12,
+     "team_name": "Northvale Scumbags"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

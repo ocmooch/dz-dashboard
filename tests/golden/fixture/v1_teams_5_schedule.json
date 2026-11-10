@@ -1,0 +1,40 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "is_playoff": false,
+     "margin": 70.0,
+     "matchup_id": 9,
+     "opponent_owner_name": "Iceman",
+     "opponent_score": 80.0,
+     "opponent_team_id": 6,
+     "opponent_team_name": "Iceman 2016",
+     "result": "W",
+     "team_score": 150.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "margin": 10.0,
+     "matchup_id": 13,
+     "opponent_owner_name": "Goose",
+     "opponent_score": 110.0,
+     "opponent_team_id": 7,
+     "opponent_team_name": "Dynasty Crew",
+     "result": "W",
+     "team_score": 120.0,
+     "week": 2
+    }
+   ],
+   "season_year": 2016,
+   "team_id": 5
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

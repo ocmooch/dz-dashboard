@@ -1,0 +1,31 @@
+{
+ "body": {
+  "data": {
+   "season_year": 2017,
+   "team_id": 10,
+   "transactions": [
+    {
+     "counterpart_team_id": null,
+     "counterpart_team_name": null,
+     "direction": "in",
+     "effective_week": 2,
+     "executed_at": "2017-09-12T10:15:00",
+     "extra_data": null,
+     "faab_bid": null,
+     "notes": "Iceman",
+     "player_id": 3,
+     "player_name": "Justin Jefferson",
+     "transaction_id": 5,
+     "transaction_type": "waiver_add",
+     "waiver_priority_used": 4
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

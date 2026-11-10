@@ -1,0 +1,24 @@
+{
+ "body": {
+  "data": {
+   "is_scored": false,
+   "players": [],
+   "roster_reconstructed": false,
+   "roster_reconstructed_note": null,
+   "season_year": 2015,
+   "team_id": 3,
+   "week": 3,
+   "weeks_available": [
+    1,
+    2,
+    3
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

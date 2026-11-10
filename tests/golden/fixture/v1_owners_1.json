@@ -1,0 +1,74 @@
+{
+ "body": {
+  "data": {
+   "avg_finish": 2.0,
+   "best_finish": 2,
+   "championships": 2,
+   "commissioner_terms": [
+    {
+     "from_year": 2015,
+     "notes": "Fixture commissioner term",
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "seasons": 2,
+     "to_year": 2016
+    }
+   ],
+   "consistency": {
+    "above_median_rate": 0.714,
+    "available": true,
+    "average_weekly_rank": 2.14,
+    "best_season_points_for": 270.0,
+    "best_season_year": 2016,
+    "floor_week_rate": 0.286,
+    "rank_among_owners": 4,
+    "reason": null,
+    "signature": "ceiling scorer",
+    "top_week_rate": 0.429,
+    "weekly_points_stdev": 23.15,
+    "weekly_volatility": 1.03,
+    "weeks_sampled": 7
+   },
+   "display_name": "Maverick",
+   "is_active": true,
+   "latest_team_id": 9,
+   "owner_id": 1,
+   "qualified": true,
+   "sackos": 0,
+   "seasons_played": 3,
+   "total_losses": 2,
+   "total_points_for": 735.4,
+   "total_ties": 0,
+   "total_wins": 4,
+   "trophy_case": [
+    {
+     "finish": 2,
+     "is_champion": false,
+     "is_sacko": false,
+     "season_year": 2015,
+     "team_name": "Maverick 2015"
+    },
+    {
+     "finish": null,
+     "is_champion": true,
+     "is_sacko": false,
+     "season_year": 2016,
+     "team_name": "Maverick 2016"
+    },
+    {
+     "finish": null,
+     "is_champion": true,
+     "is_sacko": false,
+     "season_year": 2017,
+     "team_name": "Maverick 2017"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

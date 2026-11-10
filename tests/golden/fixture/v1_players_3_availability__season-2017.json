@@ -1,0 +1,24 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "player_id": 3,
+   "reason": null,
+   "season_year": 2017,
+   "weeks": [
+    {
+     "is_pre_kickoff_snapshot": true,
+     "owning_team_id": 10,
+     "status": "owned",
+     "week": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

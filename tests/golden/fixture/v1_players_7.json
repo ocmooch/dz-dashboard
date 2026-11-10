@@ -1,0 +1,29 @@
+{
+ "body": {
+  "data": {
+   "birth_date": null,
+   "espn_id": null,
+   "first_rostered_season": 2016,
+   "gsis_id": "G7",
+   "is_active": true,
+   "last_rostered_season": 2016,
+   "last_season": null,
+   "name_first": null,
+   "name_full": "Waiver Wendell",
+   "name_last": null,
+   "nfl_com_player_id": null,
+   "nfl_team": "DEN",
+   "player_id": 7,
+   "position": "RB",
+   "rookie_year": null,
+   "sleeper_id": null,
+   "yahoo_id": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

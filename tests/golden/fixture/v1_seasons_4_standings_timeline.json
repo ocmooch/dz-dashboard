@@ -1,0 +1,45 @@
+{
+ "body": {
+  "data": {
+   "regular_season_weeks": 0,
+   "season_id": 4,
+   "season_year": 2018,
+   "teams": [
+    {
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points": [],
+     "team_id": 15,
+     "team_name": "Goose 2018"
+    },
+    {
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points": [],
+     "team_id": 14,
+     "team_name": "Iceman 2018"
+    },
+    {
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points": [],
+     "team_id": 13,
+     "team_name": "Maverick 2018"
+    },
+    {
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "points": [],
+     "team_id": 16,
+     "team_name": "Viper 2018"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

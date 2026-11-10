@@ -1,0 +1,313 @@
+{
+ "body": {
+  "data": {
+   "intensity": {
+    "available": false,
+    "reason": "insufficient_rivalry_history"
+   },
+   "nemeses": {
+    "available": true,
+    "managers": [
+     {
+      "favorite_victim": {
+       "games": 3,
+       "losses": 1,
+       "opponent": {
+        "display_name": "Iceman",
+        "is_active": true,
+        "owner_id": 2,
+        "prominence": 2
+       },
+       "ties": 0,
+       "win_pct": 0.6667,
+       "wins": 2
+      },
+      "favorite_victim_departed": null,
+      "nemesis": null,
+      "nemesis_departed": null,
+      "owner": {
+       "display_name": "Maverick",
+       "is_active": true,
+       "owner_id": 1,
+       "prominence": 2
+      }
+     },
+     {
+      "favorite_victim": null,
+      "favorite_victim_departed": null,
+      "nemesis": {
+       "games": 3,
+       "losses": 2,
+       "opponent": {
+        "display_name": "Maverick",
+        "is_active": true,
+        "owner_id": 1,
+        "prominence": 2
+       },
+       "ties": 0,
+       "win_pct": 0.3333,
+       "wins": 1
+      },
+      "nemesis_departed": null,
+      "owner": {
+       "display_name": "Iceman",
+       "is_active": true,
+       "owner_id": 2,
+       "prominence": 2
+      }
+     },
+     {
+      "favorite_victim": null,
+      "favorite_victim_departed": null,
+      "nemesis": null,
+      "nemesis_departed": null,
+      "owner": {
+       "display_name": "Goose",
+       "is_active": true,
+       "owner_id": 3,
+       "prominence": 2
+      }
+     },
+     {
+      "favorite_victim": null,
+      "favorite_victim_departed": null,
+      "nemesis": null,
+      "nemesis_departed": null,
+      "owner": {
+       "display_name": "Viper",
+       "is_active": true,
+       "owner_id": 5,
+       "prominence": 2
+      }
+     }
+    ]
+   },
+   "playoffs": {
+    "available": true,
+    "rivalries": [
+     {
+      "a_wins": 0,
+      "b_wins": 1,
+      "finals_meeting": null,
+      "last_meeting": {
+       "matchup_id": 26,
+       "season_year": 2015,
+       "week": 3
+      },
+      "owner_a": {
+       "display_name": "Maverick",
+       "owner_id": 1
+      },
+      "owner_b": {
+       "display_name": "Slider",
+       "owner_id": 4
+      },
+      "playoff_meetings": 1,
+      "ties": 0
+     }
+    ]
+   },
+   "records": {
+    "available": true,
+    "biggest_blowout": {
+     "bracket_tier": null,
+     "combined": 230.0,
+     "is_championship": false,
+     "is_consolation": false,
+     "is_playoff": false,
+     "loser": {
+      "display_name": "Iceman",
+      "is_active": true,
+      "owner_id": 2,
+      "prominence": 2
+     },
+     "loser_score": 80.0,
+     "margin": 70.0,
+     "matchup_id": 9,
+     "season_year": 2016,
+     "week": 1,
+     "winner": {
+      "display_name": "Maverick",
+      "is_active": true,
+      "owner_id": 1,
+      "prominence": 2
+     },
+     "winner_score": 150.0
+    },
+    "closest_game": {
+     "bracket_tier": null,
+     "combined": 200.0,
+     "is_championship": false,
+     "is_consolation": false,
+     "is_playoff": false,
+     "loser": {
+      "display_name": "Slider",
+      "is_active": false,
+      "owner_id": 4,
+      "prominence": 0
+     },
+     "loser_score": 99.5,
+     "margin": 1.0,
+     "matchup_id": 11,
+     "season_year": 2016,
+     "week": 1,
+     "winner": {
+      "display_name": "Goose",
+      "is_active": true,
+      "owner_id": 3,
+      "prominence": 2
+     },
+     "winner_score": 100.5
+    },
+    "dead_even": [],
+    "highest_scoring_duel": {
+     "bracket_tier": null,
+     "combined": 280.4,
+     "is_championship": false,
+     "is_consolation": false,
+     "is_playoff": false,
+     "loser": {
+      "display_name": "Viper",
+      "is_active": true,
+      "owner_id": 5,
+      "prominence": 2
+     },
+     "loser_score": 120.0,
+     "margin": 40.4,
+     "matchup_id": 17,
+     "season_year": 2017,
+     "week": 1,
+     "winner": {
+      "display_name": "Maverick",
+      "is_active": true,
+      "owner_id": 1,
+      "prominence": 2
+     },
+     "winner_score": 160.4
+    },
+    "most_played": [
+     {
+      "a_wins": 2,
+      "b_wins": 1,
+      "games": 3,
+      "owner_a": {
+       "display_name": "Maverick",
+       "is_active": true,
+       "owner_id": 1,
+       "prominence": 2
+      },
+      "owner_b": {
+       "display_name": "Iceman",
+       "is_active": true,
+       "owner_id": 2,
+       "prominence": 2
+      },
+      "ties": 0
+     },
+     {
+      "a_wins": 1,
+      "b_wins": 1,
+      "games": 2,
+      "owner_a": {
+       "display_name": "Maverick",
+       "is_active": true,
+       "owner_id": 1,
+       "prominence": 2
+      },
+      "owner_b": {
+       "display_name": "Goose",
+       "is_active": true,
+       "owner_id": 3,
+       "prominence": 2
+      },
+      "ties": 0
+     },
+     {
+      "a_wins": 1,
+      "b_wins": 1,
+      "games": 2,
+      "owner_a": {
+       "display_name": "Iceman",
+       "is_active": true,
+       "owner_id": 2,
+       "prominence": 2
+      },
+      "owner_b": {
+       "display_name": "Goose",
+       "is_active": true,
+       "owner_id": 3,
+       "prominence": 2
+      },
+      "ties": 0
+     },
+     {
+      "a_wins": 1,
+      "b_wins": 0,
+      "games": 1,
+      "owner_a": {
+       "display_name": "Maverick",
+       "is_active": true,
+       "owner_id": 1,
+       "prominence": 2
+      },
+      "owner_b": {
+       "display_name": "Viper",
+       "is_active": true,
+       "owner_id": 5,
+       "prominence": 2
+      },
+      "ties": 0
+     },
+     {
+      "a_wins": 1,
+      "b_wins": 0,
+      "games": 1,
+      "owner_a": {
+       "display_name": "Goose",
+       "is_active": true,
+       "owner_id": 3,
+       "prominence": 2
+      },
+      "owner_b": {
+       "display_name": "Viper",
+       "is_active": true,
+       "owner_id": 5,
+       "prominence": 2
+      },
+      "ties": 0
+     }
+    ]
+   },
+   "streaks": {
+    "active": [],
+    "available": true,
+    "longest": {
+     "active": false,
+     "from_matchup_id": 1,
+     "from_year": 2015,
+     "last_matchup_id": 9,
+     "length": 2,
+     "opponent": {
+      "display_name": "Iceman",
+      "is_active": true,
+      "owner_id": 2,
+      "prominence": 2
+     },
+     "owner": {
+      "display_name": "Maverick",
+      "is_active": true,
+      "owner_id": 1,
+      "prominence": 2
+     },
+     "to_year": 2016
+    }
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

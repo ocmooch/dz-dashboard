@@ -1,0 +1,73 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "favorite_victim": {
+    "games": 3,
+    "losses": 1,
+    "opponent": {
+     "display_name": "Iceman",
+     "owner_id": 2
+    },
+    "ties": 0,
+    "win_pct": 0.6667,
+    "wins": 2
+   },
+   "heartbreak": {
+    "is_playoff": true,
+    "margin": 10.0,
+    "matchup_id": 26,
+    "opponent": {
+     "display_name": "Slider",
+     "owner_id": 4
+    },
+    "opponent_score": 120.0,
+    "owner_score": 110.0,
+    "season_year": 2015,
+    "week": 3
+   },
+   "high_water_mark": {
+    "matchup_id": 17,
+    "opponent": {
+     "display_name": "Viper",
+     "owner_id": 5
+    },
+    "opponent_score": 120.0,
+    "score": 160.4,
+    "season_year": 2017,
+    "week": 1
+   },
+   "luckiest_season": {
+    "actual_wins": 1.0,
+    "expected_wins": 0.67,
+    "luck_delta": 0.33,
+    "season_year": 2015
+   },
+   "nemesis": null,
+   "owner": {
+    "display_name": "Maverick",
+    "owner_id": 1
+   },
+   "signature_win": {
+    "is_playoff": false,
+    "margin": 70.0,
+    "matchup_id": 9,
+    "opponent": {
+     "display_name": "Iceman",
+     "owner_id": 2
+    },
+    "opponent_score": 80.0,
+    "owner_score": 150.0,
+    "season_year": 2016,
+    "week": 1
+   },
+   "unluckiest_season": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}
