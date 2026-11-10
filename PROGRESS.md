@@ -42,7 +42,13 @@ D1–D3 on a 2026 DB copy.
   `e2e/sleeper.spec.ts` (Home → this week → box score; pending gap; standings/matchups). Full e2e
   18/18 after the baseline refresh. Visual click-through of 2026 done via screenshots.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
-- **Next:** D4 (cross-era aggregation audit). The live go-live is upstream's, on the user's approval.
+- Merged to `dev` (PR #130, 2026-11-10); branch deleted.
+
+**D4: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d4-cross-era-aggregation.md` (branch
+`feature/sleeper-d4-cross-era-aggregation`). Audit found three leftover leaks of the unfinished week
+(`league_stories`, `weekly_scores`, `owner_consistency`); no cross-era activity/FAAB metric exists
+yet (helpers now, consumers in D6); 4 scoring eras on the live DB (2010 | 2011–20 | 2021–25 | 2026).
+Next: confirm the plan's 3 proposed defaults with the user, then BUILD from `analytics/aggregation.py`.
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
