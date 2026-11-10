@@ -60,6 +60,7 @@ SEASON_ENDPOINTS = (
 GLOBAL_PATHS = (
     "/v1/meta",
     "/v1/meta/coverage",
+    "/v1/meta/capabilities",
     "/v1/league/overview",
     "/v1/league/timeline",
     "/v1/league/eras",

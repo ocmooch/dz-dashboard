@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react
 import { useState } from "react";
 
 import { initials, record } from "@/lib/format";
+import { capabilityGapText, isRendered, isShowable, type Capability } from "@/lib/platform";
 
 // The durable primitive layer. Pages compose these; they hold no business logic.
 // Styling lives in styles/global.css (the `dz-*` classes) reading tokens.css.
@@ -248,6 +249,43 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
       {labels[reason ?? ""] ?? reason ?? "Data not available"}
     </span>
   );
+}
+
+/** Era marker (Sleeper D1, `03` §2): a neutral, uppercase mono platform label. Never coloured
+ *  by platform, never animated. Used in the season header, the Timeline and chart boundaries. */
+export function EraMarker({ label }: { label?: string | null }) {
+  if (!label) return null;
+  return (
+    <span className="dz-era-marker font-mono text-[var(--fs-xs)] uppercase tracking-[0.14em] text-muted">
+      {label}
+    </span>
+  );
+}
+
+/** Renders children when the capability's data is showable; otherwise the standard `DataGap`
+ *  with the capability's copy. `not_used` renders nothing at all (user rule). */
+export function CapabilityGate({
+  capKey,
+  cap,
+  platform,
+  children,
+  size = "md",
+}: {
+  capKey: string;
+  cap: Capability | null | undefined;
+  platform: string | null | undefined;
+  children: ReactNode;
+  size?: "md" | "sm";
+}) {
+  if (!isRendered(cap)) return null;
+  if (isShowable(cap)) return <>{children}</>;
+  return <DataGap reason={capabilityGapText(capKey, cap, platform)} size={size} />;
+}
+
+/** One-line provenance footnote ("official / computed / derived"), under a table or chart. */
+export function ProvenanceNote({ children }: { children: ReactNode }) {
+  if (children == null || children === "") return null;
+  return <p className="dz-provenance mt-2 text-[var(--fs-xs)] text-faint">{children}</p>;
 }
 
 /** Championship / podium marker for trophy cases. */

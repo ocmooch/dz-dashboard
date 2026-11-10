@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Card, CardHeader, Chip, DataGap, EraMarker, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { teamAvatarUrl } from "@/lib/format";
@@ -13,6 +13,7 @@ type LeagueTimelineSeason = components["schemas"]["LeagueTimelineSeason"];
 type LeagueChangeDetail = components["schemas"]["LeagueChangeDetail"];
 type CommissionerTerm = components["schemas"]["CommissionerTerm"];
 type LeagueEra = components["schemas"]["LeagueEra"];
+type LeagueEraChange = components["schemas"]["LeagueEraChange"];
 
 async function fetchTimeline(): Promise<LeagueTimeline> {
   const { data, error } = await api.GET("/v1/league/timeline");
@@ -141,8 +142,28 @@ function EraStrip({ eras }: { eras: LeagueEra[] }) {
   );
 }
 
+/** Platform boundary on the Timeline (Sleeper D1, `03` §2): a dashed rule with the new
+ *  platform's era marker and "Moved to X — YEAR". Shown even before that season has games. */
+function PlatformBoundary({ change }: { change: LeagueEraChange }) {
+  const detail = change.details?.find((d) => d.category === "platform");
+  if (!detail) return null;
+  return (
+    <div
+      data-testid="platform-boundary"
+      className="flex items-center gap-3 border-y border-dashed border-[var(--border-strong)] px-5 py-3"
+    >
+      <EraMarker label={detail.after} />
+      <span className="font-medium text-text">
+        {detail.title} — {change.season_year}
+      </span>
+      <span className="text-[var(--fs-xs)] text-faint">{detail.summary}</span>
+    </div>
+  );
+}
+
 function categoryLabel(category: string) {
   const labels: Record<string, string> = {
+    platform: "Platform",
     data_quality: "Data quality",
     league_size: "League structure",
     participants: "Managers",
@@ -538,6 +559,20 @@ function SeasonEntry({
   );
 }
 
+function SeasonEntryWithBoundary({
+  boundaries,
+  ...props
+}: { boundaries: LeagueEraChange[] } & Parameters<typeof SeasonEntry>[0]) {
+  return (
+    <>
+      {boundaries.map((change) => (
+        <PlatformBoundary key={`platform-${change.season_year}`} change={change} />
+      ))}
+      <SeasonEntry {...props} />
+    </>
+  );
+}
+
 export function LeagueHistoryPage() {
   const timeline = useQuery({ queryKey: qk.leagueTimeline, queryFn: fetchTimeline });
   const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
@@ -552,6 +587,19 @@ export function LeagueHistoryPage() {
   const latest = timeline.data?.seasons.at(-1);
   const commissioners = overview.data?.commissioners ?? [];
   const eras = erasQuery.data?.eras ?? [];
+  const platformChanges = (erasQuery.data?.changes ?? []).filter((c) => c.platform_changed);
+  // Newest first: a boundary sits above the newest season older than the switch.
+  const boundaryBefore = new Map<number, LeagueEraChange[]>();
+  const leadingBoundaries: LeagueEraChange[] = [];
+  for (const change of platformChanges) {
+    const firstOlder = seasons.find((s) => s.season_year < change.season_year);
+    if (firstOlder === undefined || firstOlder === seasons[0]) leadingBoundaries.push(change);
+    else
+      boundaryBefore.set(firstOlder.season_id, [
+        ...(boundaryBefore.get(firstOlder.season_id) ?? []),
+        change,
+      ]);
+  }
 
   // Anchor each era to its most-recent season so the strip's cells scroll into place.
   const eraAnchorBySeasonId = new Map<number, string>();
@@ -640,9 +688,13 @@ export function LeagueHistoryPage() {
         <div className="divide-y divide-[var(--hairline)]">
           {timeline.isLoading &&
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="m-5 h-20" />)}
+          {leadingBoundaries.map((change) => (
+            <PlatformBoundary key={`platform-${change.season_year}`} change={change} />
+          ))}
           {seasons.map((season) => (
-            <SeasonEntry
+            <SeasonEntryWithBoundary
               key={season.season_id}
+              boundaries={boundaryBefore.get(season.season_id) ?? []}
               season={season}
               anchorId={eraAnchorBySeasonId.get(season.season_id)}
               commissioner={

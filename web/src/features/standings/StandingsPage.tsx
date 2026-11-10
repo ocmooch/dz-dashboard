@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import { DivergingBars, RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Sacko, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
+import { Badge, Card, CardHeader, Chip, DataGap, EraMarker, ErrorState, RecordLine, Sacko, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
@@ -226,7 +226,10 @@ export function StandingsPage() {
     <div className="dz-rise space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
+          <div className="dz-eyebrow mb-1 flex items-center gap-2">
+            Season {current?.season_year ?? ""}
+            <EraMarker label={current?.platform_label} />
+          </div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Standings</h1>
         </div>
         <div className="flex items-center gap-3">

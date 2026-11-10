@@ -12,6 +12,7 @@ from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, req
 from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
 from ff_dashboard.analytics.efficiency import season_efficiency
+from ff_dashboard.analytics.platform import season_platform_fields
 from ff_dashboard.analytics.standings import (
     compute_standings,
     season_summary,
@@ -62,6 +63,7 @@ def list_seasons(session: SessionDep) -> Envelope[SeasonList]:
                 status=s.status,
                 is_scored=s.year in scored,
                 champion=champion,
+                **season_platform_fields(session, s.season_id),
             )
         )
     return Envelope(data=SeasonList(seasons=items), meta=build_meta(session))
@@ -72,7 +74,10 @@ def get_season_summary(season_id: int, session: SessionDep) -> Envelope[SeasonSu
     season = get_season(session, season_id)
     if season is None:
         raise not_found(f"No season with id {season_id}")
-    return Envelope(data=SeasonSummary(**season_summary(session, season)), meta=build_meta(session))
+    data = SeasonSummary(
+        **season_summary(session, season), **season_platform_fields(session, season_id)
+    )
+    return Envelope(data=data, meta=build_meta(session))
 
 
 @router.get("/v1/seasons/{season_id}/standings", response_model=Envelope[Standings])

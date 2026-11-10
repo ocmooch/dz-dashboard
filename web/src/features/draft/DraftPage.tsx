@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Button, Card, CardHeader, DataGap, ErrorState, Skeleton, Tabs } from "@/design-system";
+import { Badge, Button, Card, CardHeader, DataGap, EraMarker, ErrorState, Skeleton, Tabs } from "@/design-system";
 import { BarCompare, ScatterQuadrant } from "@/charts";
 import type { QuadrantPoint } from "@/charts";
 import { api } from "@/lib/api/client";
@@ -558,7 +558,10 @@ export function DraftPage() {
     <div className="dz-rise space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
+          <div className="dz-eyebrow mb-1 flex items-center gap-2">
+            Season {current?.season_year ?? ""}
+            <EraMarker label={current?.platform_label} />
+          </div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Draft</h1>
         </div>
       </div>

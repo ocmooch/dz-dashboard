@@ -2663,6 +2663,14 @@
    "status": 404,
    "sha256": "6dff880e68d8c0a63974b3023c1d957df82e4a65b3804720a9ee500342c8dcab",
    "volatile": []
+  },
+  {
+   "url": "/v1/meta/capabilities",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "75f94cec03c54f84eed7c3068767b9d9cbb8911afdd48637b14f34c65ab27e1d",
+   "volatile": []
   }
  ]
 }

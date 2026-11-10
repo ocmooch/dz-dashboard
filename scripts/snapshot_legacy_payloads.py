@@ -3,6 +3,8 @@
     uv run python scripts/snapshot_legacy_payloads.py --freeze <upstream backup.db>
     uv run python scripts/snapshot_legacy_payloads.py --write    # golden JSON + manifest
     uv run python scripts/snapshot_legacy_payloads.py --check    # re-run and diff (golden ⊆ current)
+    uv run python scripts/snapshot_legacy_payloads.py --accept URL [URL ...]
+        # re-record only these requests (adds new ones): for a user-approved change
 
 The golden DB and JSON live under ``data/golden/`` (gitignored: they hold real names). Only
 ``tests/golden/live_manifest.json`` (request list, hashes, volatile paths; ids, no names) is
@@ -158,6 +160,37 @@ def check(db: Path | None = None) -> int:
     return failures
 
 
+def accept(urls: list[str]) -> None:
+    """Re-record only ``urls`` (approved changes / new routes). Every other golden is untouched."""
+    from tests.golden_parity import Req
+
+    manifest = json.loads(MANIFEST.read_text())
+    if file_sha(GOLDEN_DB) != manifest["golden_db_sha256"]:
+        sys.exit("golden DB sha256 differs from the manifest; refusing")
+    by_url = {e["url"]: e for e in manifest["requests"]}
+    reqs = [Req(u, by_url[u]["pinned"] if u in by_url else False) for u in urls]
+    first, second = _run(reqs, GOLDEN_DB), _run(reqs, GOLDEN_DB)
+    for r in reqs:
+        a, b = first[r.url].to_json(), second[r.url].to_json()
+        vol = volatile_paths(a, b)
+        payload = strip_paths(a, vol)
+        (LIVE_DIR / slug(r.url)).write_text(json.dumps(payload, sort_keys=True, ensure_ascii=False))
+        entry = {
+            "url": r.url,
+            "pinned": r.pinned,
+            "binary": r.binary,
+            "status": a["status"],
+            "sha256": canonical_sha(payload),
+            "volatile": vol,
+        }
+        if r.url in by_url:
+            by_url[r.url].update(entry)
+        else:
+            manifest["requests"].append(entry)
+        print(f"accepted {r.url} (status {a['status']})")
+    MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -166,6 +199,7 @@ def main() -> int:
     g.add_argument("--freeze", type=Path, metavar="BACKUP_DB")
     g.add_argument("--write", action="store_true")
     g.add_argument("--check", action="store_true")
+    g.add_argument("--accept", nargs="+", metavar="URL")
     a = ap.parse_args()
     os.environ.setdefault("LOG_LEVEL", "WARNING")
     if a.freeze:
@@ -173,6 +207,9 @@ def main() -> int:
         return 0
     if a.write:
         write()
+        return 0
+    if a.accept:
+        accept(a.accept)
         return 0
     return 1 if check() else 0
 

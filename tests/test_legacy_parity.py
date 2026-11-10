@@ -8,6 +8,7 @@
 
 Regenerate the fixture golden only for an *approved* intentional change:
 ``DZ_UPDATE_GOLDEN=1 uv run pytest tests/test_legacy_parity.py -k write_fixture_golden``.
+Add goldens for new routes only (existing ones untouched): ``DZ_UPDATE_GOLDEN=new``.
 """
 
 from __future__ import annotations
@@ -61,16 +62,20 @@ def _failures(client: TestClient, entries: list[dict[str, object]]) -> list[str]
 
 @pytest.mark.skipif(not os.environ.get("DZ_UPDATE_GOLDEN"), reason="writer; set DZ_UPDATE_GOLDEN=1")
 def test_write_fixture_golden(fixture_db_path: Path) -> None:
-    reqs = build_matrix(fixture_db_path)
+    only_new = os.environ["DZ_UPDATE_GOLDEN"] == "new"
+    kept = _manifest() if only_new else []
+    known = {str(e["url"]) for e in kept}
+    reqs = [r for r in build_matrix(fixture_db_path) if r.url not in known]
     assets = fixture_db_path.parent / "assets"
     with client_for(fixture_db_path, assets) as c:
         first = {r.url: fetch(c, r).to_json() for r in reqs}
     with client_for(fixture_db_path, assets) as c:
         second = {r.url: fetch(c, r).to_json() for r in reqs}
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
-    for old in FIXTURE_DIR.glob("*.json"):
-        old.unlink()
-    entries = []
+    if not only_new:
+        for old in FIXTURE_DIR.glob("*.json"):
+            old.unlink()
+    entries: list[dict[str, object]] = list(kept)
     for r in reqs:
         vol = volatile_paths(first[r.url], second[r.url])
         payload = strip_paths(first[r.url], vol)

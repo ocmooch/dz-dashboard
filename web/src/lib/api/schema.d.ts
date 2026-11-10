@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/meta/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capabilities
+         * @description Seasons by capabilities with each state (About page, Sleeper D1).
+         */
+        get: operations["capabilities_v1_meta_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/league/overview": {
         parameters: {
             query?: never;
@@ -1157,6 +1177,40 @@ export interface components {
             /** Conference Name */
             conference_name?: string | null;
         };
+        /**
+         * Capability
+         * @description One capability for one season. ``state`` mirrors upstream ``season_capabilities``:
+         *     available | partial | derived | not_yet | not_on_platform | not_used. ``not_used`` has no
+         *     note and renders nothing.
+         */
+        Capability: {
+            /** State */
+            state: string;
+            /** Note */
+            note?: string | null;
+        };
+        /** CapabilityMatrix */
+        CapabilityMatrix: {
+            /** Keys */
+            keys: string[];
+            /** Seasons */
+            seasons: components["schemas"]["CapabilityMatrixSeason"][];
+        };
+        /** CapabilityMatrixSeason */
+        CapabilityMatrixSeason: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Platform */
+            platform: string;
+            /** Platform Label */
+            platform_label: string;
+            /** Cells */
+            cells: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+        };
         /** ChampionshipEntry */
         ChampionshipEntry: {
             /** Season Year */
@@ -1296,6 +1350,22 @@ export interface components {
             /** Reason Codes */
             reason_codes: {
                 [key: string]: string;
+            };
+            /**
+             * Season Platforms
+             * @default {}
+             */
+            season_platforms: {
+                [key: string]: string;
+            };
+            /**
+             * Capabilities
+             * @default {}
+             */
+            capabilities: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["Capability"];
+                };
             };
         };
         /** CoverageRelevance */
@@ -1575,6 +1645,11 @@ export interface components {
         /** Envelope[BoxScore] */
         Envelope_BoxScore_: {
             data: components["schemas"]["BoxScore"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[CapabilityMatrix] */
+        Envelope_CapabilityMatrix_: {
+            data: components["schemas"]["CapabilityMatrix"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[ChampionshipHistory] */
@@ -2235,6 +2310,11 @@ export interface components {
              */
             scoring_availability_changed: boolean;
             /**
+             * Platform Changed
+             * @default false
+             */
+            platform_changed: boolean;
+            /**
              * Details
              * @default []
              */
@@ -2345,6 +2425,14 @@ export interface components {
             /** Era Id */
             era_id: string;
             changes: components["schemas"]["SeasonChangeFlags"];
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
         };
         /** ManagerDirectory */
         ManagerDirectory: {
@@ -2380,6 +2468,11 @@ export interface components {
             seasons_managed: number;
             /** Identity Source */
             identity_source: string;
+            /**
+             * Platform Accounts
+             * @default []
+             */
+            platform_accounts: components["schemas"]["PlatformAccount"][];
         };
         /**
          * MatchupFlag
@@ -2427,6 +2520,15 @@ export interface components {
         MetaResponse: {
             latest_run: components["schemas"]["LatestRun"];
             coverage: components["schemas"]["Coverage"];
+            /**
+             * Platform Eras
+             * @default []
+             */
+            platform_eras: components["schemas"]["PlatformEra"][];
+            /** Current Season Id */
+            current_season_id?: number | null;
+            /** Current Week */
+            current_week?: number | null;
         };
         /** OwnerCareer */
         OwnerCareer: {
@@ -2642,6 +2744,31 @@ export interface components {
             weeks: number;
             /** Acquisition Type */
             acquisition_type?: string | null;
+        };
+        /**
+         * PlatformAccount
+         * @description A manager's account on one platform. Never a username or user id (D1 decision 2).
+         */
+        PlatformAccount: {
+            /** Platform */
+            platform: string;
+            /** Label */
+            label: string;
+            /** First Season */
+            first_season?: number | null;
+            /** Last Season */
+            last_season?: number | null;
+        };
+        /** PlatformEra */
+        PlatformEra: {
+            /** Platform */
+            platform: string;
+            /** Label */
+            label: string;
+            /** Start Year */
+            start_year: number;
+            /** End Year */
+            end_year?: number | null;
         };
         /** PlayerAvailability */
         PlayerAvailability: {
@@ -3169,6 +3296,14 @@ export interface components {
             /** Is Scored */
             is_scored: boolean;
             champion?: components["schemas"]["TeamRef"] | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
         };
         /** SeasonPositionDivergence */
         SeasonPositionDivergence: {
@@ -3205,6 +3340,14 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
         };
         /** SeasonTotal */
         SeasonTotal: {
@@ -3901,6 +4044,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_CoverageMatrix_"];
+                };
+            };
+        };
+    };
+    capabilities_v1_meta_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CapabilityMatrix_"];
                 };
             };
         };
