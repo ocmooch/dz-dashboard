@@ -3,7 +3,17 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, Tabs } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  EmptyState,
+  ErrorState,
+  UNSCORED_SEASON_NOTE,
+  Skeleton,
+  Tabs,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -79,9 +89,7 @@ export function StatsPage() {
         />
       </div>
 
-      {current && !current.is_scored && (
-        <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
-      )}
+      {current && !current.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -129,14 +137,12 @@ export function StatsPage() {
           </div>
         )}
         {active.isError && (
-          <ErrorState
-            message="Could not reach the analytics service."
-            onRetry={() => active.refetch()}
-          />
+          <ErrorState message="Could not reach the analytics service." onRetry={() => active.refetch()} />
         )}
 
-        {view === "top-scorers" && topScorers.data && (
-          topScorers.data.scorers.length === 0 ? (
+        {view === "top-scorers" &&
+          topScorers.data &&
+          (topScorers.data.scorers.length === 0 ? (
             <EmptyState title="No scores" hint="No scored data for this scope." />
           ) : (
             <div className="overflow-x-auto">
@@ -165,11 +171,11 @@ export function StatsPage() {
                 </tbody>
               </table>
             </div>
-          )
-        )}
+          ))}
 
-        {view === "season-totals" && seasonTotals.data && (
-          seasonTotals.data.totals.length === 0 ? (
+        {view === "season-totals" &&
+          seasonTotals.data &&
+          (seasonTotals.data.totals.length === 0 ? (
             <EmptyState title="No totals" hint="No scored data for this scope." />
           ) : (
             <div className="overflow-x-auto">
@@ -198,8 +204,7 @@ export function StatsPage() {
                 </tbody>
               </table>
             </div>
-          )
-        )}
+          ))}
       </Card>
     </div>
   );

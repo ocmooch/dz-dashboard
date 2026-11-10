@@ -107,7 +107,14 @@ const INSIGHTS = {
     managers: [
       {
         owner: { owner_id: 1, display_name: "Alpha" },
-        nemesis: { opponent: { owner_id: 2, display_name: "Bravo" }, games: 27, wins: 9, losses: 18, ties: 0, win_pct: 0.333 },
+        nemesis: {
+          opponent: { owner_id: 2, display_name: "Bravo" },
+          games: 27,
+          wins: 9,
+          losses: 18,
+          ties: 0,
+          win_pct: 0.333,
+        },
         favorite_victim: null,
         favorite_victim_departed: {
           opponent: { owner_id: 3, display_name: "Charlie", is_active: false },

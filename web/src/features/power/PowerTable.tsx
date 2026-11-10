@@ -8,11 +8,7 @@ import type { PowerRanking } from "./usePower";
 function DeltaTag({ delta }: { delta: number }) {
   if (delta === 0) return <span className="text-faint">—</span>;
   const tone = delta > 0 ? "win" : "loss";
-  return (
-    <Badge variant={tone}>
-      {delta > 0 ? `▲ ${delta}` : `▼ ${Math.abs(delta)}`}
-    </Badge>
-  );
+  return <Badge variant={tone}>{delta > 0 ? `▲ ${delta}` : `▼ ${Math.abs(delta)}`}</Badge>;
 }
 
 /** The power-ranking table + "how this is computed" explainer. Presentational —
@@ -40,7 +36,11 @@ export function PowerTable({ data }: { data: PowerRanking }) {
               <tr key={r.team_id}>
                 <td className="num text-faint">{r.rank}</td>
                 <td>
-                  <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
+                  <Chip
+                    name={r.team_name ?? r.owner_name}
+                    sub={r.owner_name ?? undefined}
+                    avatarUrl={teamAvatarUrl(r.team_id)}
+                  />
                 </td>
                 <td className="dz-num font-semibold text-accent">{num(r.power_score)}</td>
                 <td className="dz-num">

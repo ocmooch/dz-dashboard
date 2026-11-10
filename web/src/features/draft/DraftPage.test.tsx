@@ -98,7 +98,12 @@ const BOARD = {
   rounds: [
     {
       round: 1,
-      picks: [KELCE, pick(2, "Lamar Jackson", "Goose", 48, 7.5), pick(3, "Justin Jefferson", "Slider", 37, -3.5), CMC],
+      picks: [
+        KELCE,
+        pick(2, "Lamar Jackson", "Goose", 48, 7.5),
+        pick(3, "Justin Jefferson", "Slider", 37, -3.5),
+        CMC,
+      ],
     },
     {
       round: 2,
@@ -114,7 +119,12 @@ const VALUE = {
   reason: null,
   definition: "Pick value = a player's regular-season fantasy points minus the slot average.",
   slot_window: 2,
-  picks: [CMC, pick(2, "Lamar Jackson", "Goose", 48, 7.5), pick(3, "Justin Jefferson", "Slider", 37, -3.5), KELCE],
+  picks: [
+    CMC,
+    pick(2, "Lamar Jackson", "Goose", 48, 7.5),
+    pick(3, "Justin Jefferson", "Slider", 37, -3.5),
+    KELCE,
+  ],
   steals: [CMC],
   busts: [KELCE],
   points_steals: [CMC],
@@ -323,7 +333,13 @@ describe("DraftPage", () => {
 
   it("expands each leaderboard three entries at a time and preserves dotted initials", async () => {
     const steals = Array.from({ length: 9 }, (_, index) => ({
-      ...pick(index + 1, index === 3 ? "A.J. Green" : `Steal Player ${index + 1}`, "A Very Long Historical Team Name", 100, 20 - index),
+      ...pick(
+        index + 1,
+        index === 3 ? "A.J. Green" : `Steal Player ${index + 1}`,
+        "A Very Long Historical Team Name",
+        100,
+        20 - index,
+      ),
       impact: 3 - index / 10,
     }));
     get.mockImplementation((path: string) => {
@@ -363,7 +379,13 @@ describe("DraftPage", () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")
         return Promise.resolve(
-          envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr] }, { round: 2, picks: [noImpact] }] }),
+          envelope({
+            ...BOARD,
+            rounds: [
+              { round: 1, picks: [wr] },
+              { round: 2, picks: [noImpact] },
+            ],
+          }),
         );
       if (path === "/v1/seasons/{season_id}/draft/value")
         return Promise.resolve(
@@ -514,7 +536,9 @@ describe("DraftPage", () => {
     };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")
-        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [KELCE, CMC, reachHit, valueMiss] }] }));
+        return Promise.resolve(
+          envelope({ ...BOARD, rounds: [{ round: 1, picks: [KELCE, CMC, reachHit, valueMiss] }] }),
+        );
       if (path === "/v1/seasons/{season_id}/draft/value")
         return Promise.resolve(
           envelope({

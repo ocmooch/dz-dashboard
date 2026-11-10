@@ -61,12 +61,10 @@ function who(rec: RecordValue): string {
   const parts: string[] = [];
   if (rec.player_name) parts.push(rec.player_name);
   if (rec.winner_name && rec.loser_name) parts.push(`${rec.winner_name} def. ${rec.loser_name}`);
-  else if (rec.team_name && rec.opponent_name)
-    parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
+  else if (rec.team_name && rec.opponent_name) parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
   else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
-  if (rec.season_year)
-    parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
+  if (rec.season_year) parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
   return parts.join(" — ") || "—";
 }
 
@@ -232,9 +230,7 @@ export function RecordsPage() {
     queryFn: fetchRecords,
   });
 
-  const era = Array.isArray(data?.scored_era as unknown)
-    ? (data!.scored_era as unknown as number[])
-    : null;
+  const era = Array.isArray(data?.scored_era as unknown) ? (data!.scored_era as unknown as number[]) : null;
   const rivalry = data?.closest_rivalry as RecordValue | undefined;
   const rivalryNames =
     rivalry?.owner_a?.display_name && rivalry?.owner_b?.display_name
@@ -242,10 +238,7 @@ export function RecordsPage() {
       : "—";
   const [trophyQuery, setTrophyQuery] = useState("");
   const visibleRecords = useMemo(
-    () =>
-      RECORDS.filter((r) =>
-        r.label.toLowerCase().includes(trophyQuery.trim().toLowerCase()),
-      ),
+    () => RECORDS.filter((r) => r.label.toLowerCase().includes(trophyQuery.trim().toLowerCase())),
     [trophyQuery],
   );
 
@@ -270,9 +263,7 @@ export function RecordsPage() {
           ))}
         </div>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
       {data && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

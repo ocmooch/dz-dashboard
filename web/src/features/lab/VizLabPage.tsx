@@ -53,7 +53,12 @@ async function fetchEfficiency(seasonId: number) {
   return data.data;
 }
 
-type TeamRow = { owner_id: number; owner_name?: string | null; season_year?: number | null; points_for: number };
+type TeamRow = {
+  owner_id: number;
+  owner_name?: string | null;
+  season_year?: number | null;
+  points_for: number;
+};
 
 /** Cumulative league points by manager across seasons → StreamArea rows. Limited to
  *  the top-N all-time scorers so the bands stay readable; pure presentation. */
@@ -65,8 +70,13 @@ function buildCumulativePoints(rows: TeamRow[], topN = 8): { data: ChartRow[]; s
     o.total += r.points_for ?? 0;
     totals.set(r.owner_id, o);
   }
-  const top = [...totals.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, topN).map(([id]) => id);
-  const years = [...new Set(rows.map((r) => r.season_year).filter((y): y is number => y != null))].sort((a, b) => a - b);
+  const top = [...totals.entries()]
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, topN)
+    .map(([id]) => id);
+  const years = [...new Set(rows.map((r) => r.season_year).filter((y): y is number => y != null))].sort(
+    (a, b) => a - b,
+  );
   const running = new Map<number, number>();
   const data: ChartRow[] = years.map((y) => {
     const row: ChartRow = { year: String(y) };
@@ -316,7 +326,10 @@ function EfficiencyExhibit() {
           points={points}
         />
       ) : (
-        <EmptyState title="No solvable lineups" hint="This season has no full lineups to score efficiency from." />
+        <EmptyState
+          title="No solvable lineups"
+          hint="This season has no full lineups to score efficiency from."
+        />
       )}
     </Exhibit>
   );
@@ -329,8 +342,8 @@ export function VizLabPage() {
         <div className="dz-eyebrow mb-1">Experimental</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Viz Lab</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          A holding space for new data-visualization components while they prove out and find
-          their permanent home in the dashboard. Things here will move, change, or graduate.
+          A holding space for new data-visualization components while they prove out and find their permanent
+          home in the dashboard. Things here will move, change, or graduate.
         </p>
       </div>
 

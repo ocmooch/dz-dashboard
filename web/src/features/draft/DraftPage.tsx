@@ -3,7 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Button, Card, CardHeader, DataGap, EraMarker, ErrorState, Skeleton, Tabs } from "@/design-system";
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  DataGap,
+  EraMarker,
+  ErrorState,
+  Skeleton,
+  Tabs,
+} from "@/design-system";
 import { BarCompare, ScatterQuadrant } from "@/charts";
 import type { QuadrantPoint } from "@/charts";
 import { api } from "@/lib/api/client";
@@ -347,13 +357,7 @@ function LeaderboardList({
   return (
     <div className="space-y-1 p-3">
       {shown.map((pick, index) => (
-        <PickLine
-          key={pick.overall}
-          pick={pick}
-          rank={index + 1}
-          lens={lens}
-          onFocus={onFocus}
-        />
+        <PickLine key={pick.overall} pick={pick} rank={index + 1} lens={lens} onFocus={onFocus} />
       ))}
       {picks.length > 3 && (
         <div className="flex justify-end gap-2 px-2 pt-1">
@@ -377,9 +381,11 @@ function LeaderboardList({
  *  sample is dimmed but never hidden — the honest pick count stays visible. */
 function TendencyRow({ m }: { m: Manager }) {
   const tendency =
-    m.mean_delta > 0 ? { label: "waits", amount: m.mean_delta, tone: "text-win" }
-    : m.mean_delta < 0 ? { label: "reaches", amount: Math.abs(m.mean_delta), tone: "text-loss" }
-    : { label: "on market", amount: 0, tone: "text-muted" };
+    m.mean_delta > 0
+      ? { label: "waits", amount: m.mean_delta, tone: "text-win" }
+      : m.mean_delta < 0
+        ? { label: "reaches", amount: Math.abs(m.mean_delta), tone: "text-loss" }
+        : { label: "on market", amount: 0, tone: "text-muted" };
   const positions = m.by_position
     .map((p) => {
       const label = p.mean_delta > 0 ? "waits" : p.mean_delta < 0 ? "reaches" : "on market";
@@ -391,7 +397,11 @@ function TendencyRow({ m }: { m: Manager }) {
       <td className="py-1.5 pr-3">
         <span className="font-medium text-text">{m.owner_name ?? m.team_name ?? "—"}</span>
         {!m.qualified && <span className="dz-eyebrow ml-1 text-faint">(short stint)</span>}
-        {positions && <span className="block truncate text-[var(--fs-xs)] text-faint" title={positions}>{positions}</span>}
+        {positions && (
+          <span className="block truncate text-[var(--fs-xs)] text-faint" title={positions}>
+            {positions}
+          </span>
+        )}
       </td>
       <td className="py-1.5 pr-3 text-right num">{m.n_picks_with_adp}</td>
       <td className="py-1.5 pr-3 text-right num">{Math.round(m.reach_rate * 100)}%</td>
@@ -439,7 +449,10 @@ export function DraftPage() {
   const teams = useMemo(() => {
     const byId = new Map<number, string>();
     for (const pick of value.data?.picks ?? []) {
-      byId.set(pick.team_id, pick.owner_name ? `${pick.owner_name} — ${pick.team_name ?? "Team"}` : (pick.team_name ?? "Team"));
+      byId.set(
+        pick.team_id,
+        pick.owner_name ? `${pick.owner_name} — ${pick.team_name ?? "Team"}` : (pick.team_name ?? "Team"),
+      );
     }
     return Array.from(byId, ([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
   }, [value.data?.picks]);
@@ -462,13 +475,17 @@ export function DraftPage() {
   // Outcome axis (weighted / points) shares the steals|busts shape; the market
   // axis swaps in reaches|values (drafted earlier vs later than consensus).
   const leftPicks =
-    lens === "weighted" ? (value.data?.steals ?? [])
-    : lens === "points" ? (value.data?.points_steals ?? [])
-    : (value.data?.reaches ?? []);
+    lens === "weighted"
+      ? (value.data?.steals ?? [])
+      : lens === "points"
+        ? (value.data?.points_steals ?? [])
+        : (value.data?.reaches ?? []);
   const rightPicks =
-    lens === "weighted" ? (value.data?.busts ?? [])
-    : lens === "points" ? (value.data?.points_busts ?? [])
-    : (value.data?.values ?? []);
+    lens === "weighted"
+      ? (value.data?.busts ?? [])
+      : lens === "points"
+        ? (value.data?.points_busts ?? [])
+        : (value.data?.values ?? []);
   const leftMeta =
     lens === "market"
       ? { title: "Reaches", eyebrow: "took earlier than consensus" }
@@ -477,8 +494,7 @@ export function DraftPage() {
     lens === "market"
       ? { title: "Values", eyebrow: "waited longer than consensus" }
       : { title: "Busts", eyebrow: "fell short of their slot" };
-  const metricOf = (p: Pick) =>
-    lens === "weighted" ? p.impact : lens === "market" ? p.adp_delta : p.value;
+  const metricOf = (p: Pick) => (lens === "weighted" ? p.impact : lens === "market" ? p.adp_delta : p.value);
   // Picks matching the filter controls, independent of whether they have a
   // value for the active lens. Kept separate from `chartRows` so the empty
   // state can tell "nothing matched the filter" apart from "matched, but this
@@ -583,8 +599,8 @@ export function DraftPage() {
           <div className="space-y-3 p-5">
             <DataGap reason={board.data.reason ?? undefined} />
             <p className="max-w-prose text-[var(--fs-sm)] text-muted">
-              The Phase 1 reconstruction didn&rsquo;t capture this league&rsquo;s draft, so there
-              are no picks to show. Rather than invent a board, the dashboard says so plainly.
+              The Phase 1 reconstruction didn&rsquo;t capture this league&rsquo;s draft, so there are no picks
+              to show. Rather than invent a board, the dashboard says so plainly.
             </p>
           </div>
         </Card>
@@ -594,59 +610,63 @@ export function DraftPage() {
         <>
           {value.data?.available && (leftPicks.length > 0 || rightPicks.length > 0) && (
             <div className="space-y-2">
-            <Tabs
-              tabs={[
-                { id: "weighted", label: "Weighted" },
-                { id: "points", label: "Points" },
-                { id: "market", label: "Reach / value" },
-              ]}
-              value={lens}
-              onChange={setLens}
-            />
-            {lens === "market" && value.data?.adp_coverage?.limited && value.data.adp_coverage.note && (
-              <p className="max-w-prose text-[var(--fs-xs)] text-faint">{value.data.adp_coverage.note}</p>
-            )}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader eyebrow={leftMeta.eyebrow} title={leftMeta.title} />
-                {leftPicks.length === 0 ? (
-                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear {leftMeta.title.toLowerCase()}.</p>
-                ) : (
-                  <LeaderboardList
-                    picks={leftPicks}
-                    lens={lens}
-                    visible={stealsVisible}
-                    onVisible={setStealsVisible}
-                    onFocus={setFocusedOverall}
-                  />
-                )}
-              </Card>
-              <Card>
-                <CardHeader eyebrow={rightMeta.eyebrow} title={rightMeta.title} />
-                {rightPicks.length === 0 ? (
-                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">No clear {rightMeta.title.toLowerCase()}.</p>
-                ) : (
-                  <LeaderboardList
-                    picks={rightPicks}
-                    lens={lens}
-                    visible={bustsVisible}
-                    onVisible={setBustsVisible}
-                    onFocus={setFocusedOverall}
-                  />
-                )}
-              </Card>
-            </div>
-            {lens === "weighted" && value.data.impact_definition && (
-              <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">
-                {value.data.impact_definition}
-              </p>
-            )}
-            {lens === "points" && value.data.definition && (
-              <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.definition}</p>
-            )}
-            {lens === "market" && value.data.adp_definition && (
-              <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.adp_definition}</p>
-            )}
+              <Tabs
+                tabs={[
+                  { id: "weighted", label: "Weighted" },
+                  { id: "points", label: "Points" },
+                  { id: "market", label: "Reach / value" },
+                ]}
+                value={lens}
+                onChange={setLens}
+              />
+              {lens === "market" && value.data?.adp_coverage?.limited && value.data.adp_coverage.note && (
+                <p className="max-w-prose text-[var(--fs-xs)] text-faint">{value.data.adp_coverage.note}</p>
+              )}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <Card>
+                  <CardHeader eyebrow={leftMeta.eyebrow} title={leftMeta.title} />
+                  {leftPicks.length === 0 ? (
+                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">
+                      No clear {leftMeta.title.toLowerCase()}.
+                    </p>
+                  ) : (
+                    <LeaderboardList
+                      picks={leftPicks}
+                      lens={lens}
+                      visible={stealsVisible}
+                      onVisible={setStealsVisible}
+                      onFocus={setFocusedOverall}
+                    />
+                  )}
+                </Card>
+                <Card>
+                  <CardHeader eyebrow={rightMeta.eyebrow} title={rightMeta.title} />
+                  {rightPicks.length === 0 ? (
+                    <p className="px-2 py-1.5 text-[var(--fs-sm)] text-faint">
+                      No clear {rightMeta.title.toLowerCase()}.
+                    </p>
+                  ) : (
+                    <LeaderboardList
+                      picks={rightPicks}
+                      lens={lens}
+                      visible={bustsVisible}
+                      onVisible={setBustsVisible}
+                      onFocus={setFocusedOverall}
+                    />
+                  )}
+                </Card>
+              </div>
+              {lens === "weighted" && value.data.impact_definition && (
+                <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">
+                  {value.data.impact_definition}
+                </p>
+              )}
+              {lens === "points" && value.data.definition && (
+                <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.definition}</p>
+              )}
+              {lens === "market" && value.data.adp_definition && (
+                <p className="max-w-prose px-1 text-[var(--fs-xs)] text-faint">{value.data.adp_definition}</p>
+              )}
             </div>
           )}
 
@@ -660,10 +680,17 @@ export function DraftPage() {
                       ? "drafted earlier (reach) / later (value) than consensus"
                       : "points above / below slot expectation"
                 }
-                title={lens === "weighted" ? "Weighted impact" : lens === "market" ? "Reach / value" : "Pick value"}
+                title={
+                  lens === "weighted" ? "Weighted impact" : lens === "market" ? "Reach / value" : "Pick value"
+                }
               />
               <div className="flex flex-wrap gap-2 px-5 pt-5">
-                <select aria-label="Filter by position" className="dz-input" value={position} onChange={(e) => setPosition(e.target.value)}>
+                <select
+                  aria-label="Filter by position"
+                  className="dz-input"
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                >
                   <option value="">All positions</option>
                   {positions.map((p) => (
                     <option key={p} value={p ?? ""}>
@@ -671,7 +698,12 @@ export function DraftPage() {
                     </option>
                   ))}
                 </select>
-                <select aria-label="Filter by round" className="dz-input" value={round} onChange={(e) => setRound(e.target.value)}>
+                <select
+                  aria-label="Filter by round"
+                  className="dz-input"
+                  value={round}
+                  onChange={(e) => setRound(e.target.value)}
+                >
                   <option value="">All rounds</option>
                   {rounds.map((r) => (
                     <option key={r} value={r}>
@@ -679,7 +711,12 @@ export function DraftPage() {
                     </option>
                   ))}
                 </select>
-                <select aria-label="Filter by team" className="dz-input" value={team} onChange={(e) => setTeam(e.target.value)}>
+                <select
+                  aria-label="Filter by team"
+                  className="dz-input"
+                  value={team}
+                  onChange={(e) => setTeam(e.target.value)}
+                >
                   <option value="">All teams</option>
                   {teams.map((option) => (
                     <option key={option.id} value={option.id}>
@@ -687,9 +724,18 @@ export function DraftPage() {
                     </option>
                   ))}
                 </select>
-                <select aria-label="Sort chart" className="dz-input" value={chartOrder} onChange={(e) => setChartOrder(e.target.value as ChartOrder)}>
+                <select
+                  aria-label="Sort chart"
+                  className="dz-input"
+                  value={chartOrder}
+                  onChange={(e) => setChartOrder(e.target.value as ChartOrder)}
+                >
                   <option value="metric">
-                    {lens === "weighted" ? "Weighted rank" : lens === "market" ? "Reach / value rank" : "Points rank"}
+                    {lens === "weighted"
+                      ? "Weighted rank"
+                      : lens === "market"
+                        ? "Reach / value rank"
+                        : "Points rank"}
                   </option>
                   <option value="draft">Draft order</option>
                 </select>
@@ -726,9 +772,7 @@ export function DraftPage() {
                   </p>
                 )}
                 {lens === "points" && value.data?.definition && (
-                  <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">
-                    {value.data.definition}
-                  </p>
+                  <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">{value.data.definition}</p>
                 )}
               </div>
             </Card>
@@ -739,9 +783,15 @@ export function DraftPage() {
               <CardHeader eyebrow="market axis × outcome axis" title="Reach / value vs outcome" />
               <div className="p-5">
                 <div className="mb-3 flex flex-wrap gap-3 text-[var(--fs-xs)] text-faint">
-                  <span><span className="text-win">Green</span> = value that hit</span>
-                  <span><span className="text-loss">Red</span> = reach that busted</span>
-                  <span><span className="text-accent">Gold</span> = reach that hit or value that missed</span>
+                  <span>
+                    <span className="text-win">Green</span> = value that hit
+                  </span>
+                  <span>
+                    <span className="text-loss">Red</span> = reach that busted
+                  </span>
+                  <span>
+                    <span className="text-accent">Gold</span> = reach that hit or value that missed
+                  </span>
                 </div>
                 <ScatterQuadrant
                   points={quadrantPoints}
@@ -752,9 +802,9 @@ export function DraftPage() {
                 />
                 <p className="mt-3 max-w-prose text-[var(--fs-xs)] text-faint">
                   Right side means the league waited longer than consensus; left side means it paid up.
-                  Up-right waited and it hit; down-left reached and it busted; up-left reached but it
-                  worked; down-right waited and still missed. Only picks with both a consensus
-                  ADP and a weighted impact appear.
+                  Up-right waited and it hit; down-left reached and it busted; up-left reached but it worked;
+                  down-right waited and still missed. Only picks with both a consensus ADP and a weighted
+                  impact appear.
                 </p>
               </div>
             </Card>
@@ -809,55 +859,58 @@ export function DraftPage() {
         </>
       )}
 
-      {board.data?.available && lens === "market" && tendencies.data?.available && tendencies.data.managers.length > 0 && (
-        <Card>
-          <CardHeader
-            eyebrow="experimental · across every captured draft"
-            title="Manager market tendencies"
-            action={<Badge variant="gap">work in progress</Badge>}
-          />
-          <div className="space-y-3 p-5">
-            <p className="max-w-prose text-[var(--fs-sm)] text-muted">
-              This is a directional read on draft style, not a grade. It asks whether a manager
-              usually pays above consensus, waits for value, or stays close to the public board.
-              It will get stronger with more context, so sample size stays visible.
-            </p>
-            <div className="grid grid-cols-1 gap-3 text-[var(--fs-xs)] text-faint md:grid-cols-3">
-              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
-                <div className="dz-eyebrow mb-1 text-loss">Reach rate</div>
-                Share of ADP-covered picks taken before the public market expected.
+      {board.data?.available &&
+        lens === "market" &&
+        tendencies.data?.available &&
+        tendencies.data.managers.length > 0 && (
+          <Card>
+            <CardHeader
+              eyebrow="experimental · across every captured draft"
+              title="Manager market tendencies"
+              action={<Badge variant="gap">work in progress</Badge>}
+            />
+            <div className="space-y-3 p-5">
+              <p className="max-w-prose text-[var(--fs-sm)] text-muted">
+                This is a directional read on draft style, not a grade. It asks whether a manager usually pays
+                above consensus, waits for value, or stays close to the public board. It will get stronger
+                with more context, so sample size stays visible.
+              </p>
+              <div className="grid grid-cols-1 gap-3 text-[var(--fs-xs)] text-faint md:grid-cols-3">
+                <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                  <div className="dz-eyebrow mb-1 text-loss">Reach rate</div>
+                  Share of ADP-covered picks taken before the public market expected.
+                </div>
+                <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                  <div className="dz-eyebrow mb-1 text-win">Typical lean</div>
+                  "Waits" means later than consensus; "reaches" means earlier than consensus.
+                </div>
+                <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
+                  <div className="dz-eyebrow mb-1">Discipline</div>
+                  Average distance from consensus. Lower means closer to the board.
+                </div>
               </div>
-              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
-                <div className="dz-eyebrow mb-1 text-win">Typical lean</div>
-                "Waits" means later than consensus; "reaches" means earlier than consensus.
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[var(--fs-sm)]">
+                  <thead className="dz-eyebrow text-faint">
+                    <tr>
+                      <th className="pb-2 pr-3">Manager</th>
+                      <th className="pb-2 pr-3 text-right">Picks</th>
+                      <th className="pb-2 pr-3 text-right">Reach rate</th>
+                      <th className="pb-2 pr-3 text-right">Typical lean</th>
+                      <th className="pb-2 pr-3 text-right">Discipline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tendencies.data.managers.map((m) => (
+                      <TendencyRow key={m.owner_id} m={m} />
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="rounded-[var(--radius-sm)] border border-[var(--hairline)] p-3">
-                <div className="dz-eyebrow mb-1">Discipline</div>
-                Average distance from consensus. Lower means closer to the board.
-              </div>
+              <p className="max-w-prose text-[var(--fs-xs)] text-faint">{tendencies.data.definition}</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[var(--fs-sm)]">
-                <thead className="dz-eyebrow text-faint">
-                  <tr>
-                    <th className="pb-2 pr-3">Manager</th>
-                    <th className="pb-2 pr-3 text-right">Picks</th>
-                    <th className="pb-2 pr-3 text-right">Reach rate</th>
-                    <th className="pb-2 pr-3 text-right">Typical lean</th>
-                    <th className="pb-2 pr-3 text-right">Discipline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tendencies.data.managers.map((m) => (
-                    <TendencyRow key={m.owner_id} m={m} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="max-w-prose text-[var(--fs-xs)] text-faint">{tendencies.data.definition}</p>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
     </div>
   );
 }

@@ -63,14 +63,8 @@ describe("RecordsPage", () => {
     renderWithProviders(<RecordsPage />, ["/records"]);
     const highest = await screen.findByRole("link", { name: /Highest team score/i });
     expect(highest).toHaveAttribute("href", "/matchups/7");
-    expect(screen.getByRole("link", { name: /Best player week/i })).toHaveAttribute(
-      "href",
-      "/players/99",
-    );
-    expect(screen.getByRole("link", { name: /Most championships/i })).toHaveAttribute(
-      "href",
-      "/managers/1",
-    );
+    expect(screen.getByRole("link", { name: /Best player week/i })).toHaveAttribute("href", "/players/99");
+    expect(screen.getByRole("link", { name: /Most championships/i })).toHaveAttribute("href", "/managers/1");
   });
 
   it("renders the championship dynasty timeline", async () => {

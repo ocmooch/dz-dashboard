@@ -32,7 +32,12 @@ const POWER = {
   season_year: 2017,
   through_week: 2,
   regular_season_weeks: 2,
-  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  weights: {
+    points_for_per_game: 0.4,
+    all_play_win_pct: 0.25,
+    win_pct: 0.2,
+    recent_points_for_per_game: 0.15,
+  },
   explainer: "Power score blends four within-season z-scores per the documented weights.",
   // Iceman is rated one spot above his record (a riser); Goose one below (a faller).
   rows: [row(1, "Iceman", 1.54, 1, 2), row(2, "Goose", -0.32, -1, 1)],

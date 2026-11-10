@@ -127,12 +127,17 @@ export function ManagerStory({ story }: { story: OwnerStoryData }) {
           <Tile eyebrow="Signature win" to={matchup(sig.matchup_id)} tone="win">
             A <span className="num">{num(sig.margin)}</span>-point beating of {name(sig.opponent)}
             <div className="num mt-0.5 text-[var(--fs-sm)] text-muted">
-              {num(sig.owner_score)} – {num(sig.opponent_score)} · <When year={sig.season_year} week={sig.week} />
+              {num(sig.owner_score)} – {num(sig.opponent_score)} ·{" "}
+              <When year={sig.season_year} week={sig.week} />
             </div>
           </Tile>
         )}
         {hb && (
-          <Tile eyebrow={hb.is_playoff ? "Playoff heartbreak" : "Heartbreak"} to={matchup(hb.matchup_id)} tone="loss">
+          <Tile
+            eyebrow={hb.is_playoff ? "Playoff heartbreak" : "Heartbreak"}
+            to={matchup(hb.matchup_id)}
+            tone="loss"
+          >
             {hb.is_playoff ? "Knocked out by " : "Lost to "}
             {name(hb.opponent)} by <span className="num">{num(hb.margin)}</span>
             <div className="num mt-0.5 text-[var(--fs-sm)] text-muted">

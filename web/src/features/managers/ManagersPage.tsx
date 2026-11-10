@@ -48,7 +48,15 @@ const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
   avgFinish: (a, b) => (b.avg_finish ?? Infinity) - (a.avg_finish ?? Infinity),
 };
 
-function LegendCard({ label, name, value }: { label: string; name: string | null | undefined; value: string }) {
+function LegendCard({
+  label,
+  name,
+  value,
+}: {
+  label: string;
+  name: string | null | undefined;
+  value: string;
+}) {
   return (
     <Card className="p-4">
       <div className="dz-eyebrow mb-2">{label}</div>
@@ -70,17 +78,45 @@ function LeagueLegends({ owners }: { owners: OwnerCareer[] }) {
   const eligible = owners.filter((o) => o.qualified);
   const winPctPool = eligible.length > 0 ? eligible : owners;
 
-  const mostTitles = top(owners, (o) => o.championships, (a, b) => a - b);
-  const bestWinPct = top(winPctPool, (o) => winPct(o) ?? -1, (a, b) => a - b);
-  const mostPoints = top(owners, (o) => o.total_points_for, (a, b) => a - b);
-  const mostSeasons = top(owners, (o) => o.seasons_played, (a, b) => a - b);
+  const mostTitles = top(
+    owners,
+    (o) => o.championships,
+    (a, b) => a - b,
+  );
+  const bestWinPct = top(
+    winPctPool,
+    (o) => winPct(o) ?? -1,
+    (a, b) => a - b,
+  );
+  const mostPoints = top(
+    owners,
+    (o) => o.total_points_for,
+    (a, b) => a - b,
+  );
+  const mostSeasons = top(
+    owners,
+    (o) => o.seasons_played,
+    (a, b) => a - b,
+  );
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <LegendCard label="Most titles" name={mostTitles.display_name} value={`${mostTitles.championships} ★`} />
+      <LegendCard
+        label="Most titles"
+        name={mostTitles.display_name}
+        value={`${mostTitles.championships} ★`}
+      />
       <LegendCard label="Best win %" name={bestWinPct.display_name} value={pct(winPct(bestWinPct))} />
-      <LegendCard label="Most points" name={mostPoints.display_name} value={num(mostPoints.total_points_for, 0)} />
-      <LegendCard label="Most seasons" name={mostSeasons.display_name} value={`${mostSeasons.seasons_played}`} />
+      <LegendCard
+        label="Most points"
+        name={mostPoints.display_name}
+        value={num(mostPoints.total_points_for, 0)}
+      />
+      <LegendCard
+        label="Most seasons"
+        name={mostSeasons.display_name}
+        value={`${mostSeasons.seasons_played}`}
+      />
     </div>
   );
 }
@@ -170,9 +206,7 @@ export function ManagersPage() {
           <Skeleton className="h-64 w-full" />
         </>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && data.length > 0 && (
         <>
@@ -216,7 +250,9 @@ export function ManagersPage() {
                         <RecordLine wins={o.total_wins} losses={o.total_losses} ties={o.total_ties} />
                       </td>
                       <td className="dz-num num">{num(o.total_points_for, 0)}</td>
-                      <td className="dz-num">{o.championships > 0 ? <Trophy count={o.championships} /> : "—"}</td>
+                      <td className="dz-num">
+                        {o.championships > 0 ? <Trophy count={o.championships} /> : "—"}
+                      </td>
                       <td className="dz-num num">{ordinal(o.best_finish)}</td>
                       <td className="dz-num num">{o.avg_finish == null ? "—" : o.avg_finish.toFixed(1)}</td>
                     </tr>
@@ -225,10 +261,9 @@ export function ManagersPage() {
               </table>
             </div>
             <p className="px-4 pb-4 pt-1 text-[var(--fs-xs)] text-faint">
-              When sorting by win %, best, or average finish, active managers are
-              listed first, then former managers with a long stint, then those with a
-              short stint who have left — a one- or two-season run can flatter a rate,
-              so it never ranks above an active or long-tenured manager. Every manager
+              When sorting by win %, best, or average finish, active managers are listed first, then former
+              managers with a long stint, then those with a short stint who have left — a one- or two-season
+              run can flatter a rate, so it never ranks above an active or long-tenured manager. Every manager
               is still shown; “former” marks those no longer in the league.
             </p>
           </Card>

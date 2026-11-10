@@ -78,7 +78,9 @@ function SeasonRow({ row }: { row: OwnerSeasonRow }) {
       <td className="dz-num">
         <RecordLine wins={row.wins} losses={row.losses} ties={row.ties} />
       </td>
-      <td className="dz-num num">{scored(row) ? num(row.points_for) : <DataGap reason="season_unscored" size="sm" />}</td>
+      <td className="dz-num num">
+        {scored(row) ? num(row.points_for) : <DataGap reason="season_unscored" size="sm" />}
+      </td>
       <td className="dz-num num">{ordinal(row.final_rank)}</td>
       <td className="dz-num">
         {row.is_champion ? (
@@ -104,10 +106,18 @@ function RivalrySnapshot({ ownerId, matrix }: { ownerId: number; matrix: Rivalry
     .sort((x, y) => (y.a_win_pct ?? 0) - (x.a_win_pct ?? 0));
 
   if (rivals.length === 0) {
-    return <EmptyState title="No head-to-head history" hint="This manager hasn't met another owner in a scored game yet." />;
+    return (
+      <EmptyState
+        title="No head-to-head history"
+        hint="This manager hasn't met another owner in a scored game yet."
+      />
+    );
   }
   const best = rivals.slice(0, 3);
-  const worst = rivals.slice(-3).reverse().filter((c) => !best.includes(c));
+  const worst = rivals
+    .slice(-3)
+    .reverse()
+    .filter((c) => !best.includes(c));
 
   const Line = ({ b, winPct, games }: { b: number; winPct: number; games: number }) => (
     <Link
@@ -191,7 +201,11 @@ export function ManagerProfilePage() {
   const enabled = Number.isFinite(ownerId);
 
   const career = useQuery({ queryKey: qk.owner(ownerId), queryFn: () => fetchCareer(ownerId), enabled });
-  const seasons = useQuery({ queryKey: qk.ownerSeasons(ownerId), queryFn: () => fetchSeasons(ownerId), enabled });
+  const seasons = useQuery({
+    queryKey: qk.ownerSeasons(ownerId),
+    queryFn: () => fetchSeasons(ownerId),
+    enabled,
+  });
   const matrix = useQuery({ queryKey: qk.rivalryMatrix, queryFn: fetchRivalryMatrix, enabled });
   const story = useQuery({ queryKey: qk.ownerStory(ownerId), queryFn: () => fetchStory(ownerId), enabled });
 
@@ -234,7 +248,9 @@ export function ManagerProfilePage() {
       <div>
         <div className="dz-eyebrow mb-1">Manager{span ? ` · ${span}` : ""}</div>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">{c?.display_name ?? "—"}</h1>
+          <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">
+            {c?.display_name ?? "—"}
+          </h1>
           {c && c.championships > 0 && <Trophy label="Champion" count={c.championships} />}
           {c && c.sackos > 0 && <Sacko count={c.sackos} />}
           {latestSeason && (
@@ -282,7 +298,10 @@ export function ManagerProfilePage() {
           <CardHeader eyebrow="trophy case" title="Hardware" />
           <div className="flex gap-3 overflow-x-auto p-5">
             {c.trophy_case.map((t, i) => (
-              <div key={i} className={`dz-card min-w-[150px] shrink-0 p-3 ${t.is_champion ? "dz-card--hover" : ""}`}>
+              <div
+                key={i}
+                className={`dz-card min-w-[150px] shrink-0 p-3 ${t.is_champion ? "dz-card--hover" : ""}`}
+              >
                 <div className="num text-[var(--fs-sm)] text-faint">{t.season_year ?? "—"}</div>
                 <div className="mt-1 flex items-center gap-1.5">
                   {t.is_champion ? (
@@ -306,16 +325,8 @@ export function ManagerProfilePage() {
           <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-3 lg:grid-cols-6">
             {c.consistency.available ? (
               <>
-                <Stat
-                  label="Signature"
-                  value={c.consistency.signature ?? "—"}
-                  tone="accent"
-                />
-                <Stat
-                  label="Ceiling weeks"
-                  value={rate(c.consistency.top_week_rate)}
-                  unit="top quartile"
-                />
+                <Stat label="Signature" value={c.consistency.signature ?? "—"} tone="accent" />
+                <Stat label="Ceiling weeks" value={rate(c.consistency.top_week_rate)} unit="top quartile" />
                 <Stat
                   label="Floor weeks"
                   value={rate(c.consistency.floor_week_rate)}
@@ -363,7 +374,10 @@ export function ManagerProfilePage() {
                 seasons={spineSeasons}
               />
             ) : (
-              <EmptyState title="Not enough seasons" hint="A legacy spine needs at least two ranked seasons on record." />
+              <EmptyState
+                title="Not enough seasons"
+                hint="A legacy spine needs at least two ranked seasons on record."
+              />
             ))}
         </div>
       </Card>
@@ -394,9 +408,7 @@ export function ManagerProfilePage() {
         </div>
       </Card>
 
-      {c && (c.commissioner_terms?.length ?? 0) > 0 && (
-        <CommissionerCard terms={c.commissioner_terms!} />
-      )}
+      {c && (c.commissioner_terms?.length ?? 0) > 0 && <CommissionerCard terms={c.commissioner_terms!} />}
 
       <Card>
         <CardHeader eyebrow="head-to-head" title="Rivalries" />

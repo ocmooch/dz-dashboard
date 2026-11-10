@@ -130,8 +130,8 @@ export function AboutPage() {
         <div className="dz-eyebrow mb-1">the honest picture</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Coverage &amp; About</h1>
         <p className="mt-2 max-w-2xl text-muted">
-          What this dashboard knows, how fresh it is, and where the data genuinely runs out. Nothing
-          here is fabricated — absent data is labeled, never shown as a zero.
+          What this dashboard knows, how fresh it is, and where the data genuinely runs out. Nothing here is
+          fabricated — absent data is labeled, never shown as a zero.
         </p>
       </div>
 
@@ -142,9 +142,7 @@ export function AboutPage() {
         </div>
       )}
 
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && (
         <>
@@ -169,10 +167,7 @@ export function AboutPage() {
                     : "—"
                 }
               />
-              <Stat
-                label="run"
-                value={data.latest_run.run_id != null ? `#${data.latest_run.run_id}` : "—"}
-              />
+              <Stat label="run" value={data.latest_run.run_id != null ? `#${data.latest_run.run_id}` : "—"} />
             </div>
           </Card>
 
@@ -180,11 +175,7 @@ export function AboutPage() {
             <CardHeader eyebrow="what's in the database" title="Season coverage" />
             <div className="grid grid-cols-1 gap-5 p-1 sm:grid-cols-3">
               <Stat label="seasons on record" value={yearRange(data.coverage.seasons_present)} />
-              <Stat
-                label="scored seasons"
-                value={yearRange(data.coverage.seasons_scored)}
-                tone="accent"
-              />
+              <Stat label="scored seasons" value={yearRange(data.coverage.seasons_scored)} tone="accent" />
               <Stat
                 label="historical reconstruction"
                 value={data.coverage.reconstruction_complete ? "complete" : "pending"}
@@ -192,8 +183,8 @@ export function AboutPage() {
               />
             </div>
             <p className="px-1 pt-3 text-[var(--fs-sm)] text-muted">
-              Per-player scoring covers {yearRange(data.coverage.seasons_scored)}. A season without
-              it — for example one still in progress — shows a data-gap marker, not a zero.
+              Per-player scoring covers {yearRange(data.coverage.seasons_scored)}. A season without it — for
+              example one still in progress — shows a data-gap marker, not a zero.
             </p>
           </Card>
 
@@ -233,7 +224,9 @@ export function AboutPage() {
                   />
                   <GapRow
                     domain="Player availability (FA / owned)"
-                    status={data.coverage.availability_current_season_only ? "current season only" : "full history"}
+                    status={
+                      data.coverage.availability_current_season_only ? "current season only" : "full history"
+                    }
                     tone={data.coverage.availability_current_season_only ? "gap" : "win"}
                     note="History was never snapshotted; past-season availability is not reconstructable."
                   />
@@ -256,9 +249,7 @@ export function AboutPage() {
                           }`
                         : "verified"
                     }
-                    tone={
-                      matrix?.relevance.source_identity_mismatch_count ? "loss" : "win"
-                    }
+                    tone={matrix?.relevance.source_identity_mismatch_count ? "loss" : "win"}
                     note={
                       matrix?.relevance.source_identity_mismatch_count
                         ? "NFL.com records are attached to player identities that conflict with their NFL career era or fantasy position."
@@ -297,8 +288,8 @@ export function AboutPage() {
                 </p>
               </div>
               <p className="border-t border-[var(--border)] pt-3 text-[var(--fs-sm)] text-faint">
-                This dashboard reads only the Phase&nbsp;1 pipeline database. It never calls
-                NFL.com, nflverse, or Sleeper directly, and never writes back.
+                This dashboard reads only the Phase&nbsp;1 pipeline database. It never calls NFL.com,
+                nflverse, or Sleeper directly, and never writes back.
               </p>
             </div>
           </Card>

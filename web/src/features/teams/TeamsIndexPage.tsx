@@ -3,15 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import {
-  Card,
-  Chip,
-  ErrorState,
-  RecordLine,
-  Skeleton,
-  Tabs,
-  Trophy,
-} from "@/design-system";
+import { Card, Chip, ErrorState, RecordLine, Skeleton, Tabs, Trophy } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { ordinal, teamAvatarUrl } from "@/lib/format";
@@ -73,7 +65,9 @@ function Section({
 /** One team's row inside a section — links to the team page. */
 function TeamRowItem({ t, showSeason }: { t: TeamRow; showSeason: boolean }) {
   const sub = showSeason
-    ? (t.season_year != null ? `${t.season_year}` : undefined)
+    ? t.season_year != null
+      ? `${t.season_year}`
+      : undefined
     : (t.owner_name ?? undefined);
   return (
     <Link
@@ -115,8 +109,7 @@ export function TeamsIndexPage() {
     if (groupBy === "season") {
       for (const t of rows) {
         const key = String(t.season_year ?? "—");
-        if (!out.has(key))
-          out.set(key, { title: key, rows: [], prominence: 0, isActive: true });
+        if (!out.has(key)) out.set(key, { title: key, rows: [], prominence: 0, isActive: true });
         out.get(key)!.rows.push(t);
       }
     } else {
@@ -139,9 +132,7 @@ export function TeamsIndexPage() {
       // prominence desc, then tenure (team count) desc, then name.
       entries.sort(
         (a, b) =>
-          b.prominence - a.prominence ||
-          b.rows.length - a.rows.length ||
-          a.title.localeCompare(b.title),
+          b.prominence - a.prominence || b.rows.length - a.rows.length || a.title.localeCompare(b.title),
       );
     }
     return entries;
@@ -186,9 +177,7 @@ export function TeamsIndexPage() {
       </div>
 
       {isLoading && <Skeleton className="h-64 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data &&
         groups.map((g) => (

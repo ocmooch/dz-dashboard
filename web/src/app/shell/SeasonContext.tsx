@@ -34,10 +34,7 @@ async function fetchSeasons(): Promise<SeasonInfo[]> {
 
 export function SeasonProvider({ children }: { children: ReactNode }) {
   const { data, isLoading } = useQuery({ queryKey: qk.seasons, queryFn: fetchSeasons });
-  const seasons = useMemo(
-    () => [...(data ?? [])].sort((a, b) => b.season_year - a.season_year),
-    [data],
-  );
+  const seasons = useMemo(() => [...(data ?? [])].sort((a, b) => b.season_year - a.season_year), [data]);
   const [seasonId, setSeasonId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -46,9 +43,7 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
 
   const current = seasons.find((s) => s.season_id === seasonId) ?? seasons[0] ?? null;
 
-  return (
-    <Ctx.Provider value={{ seasons, current, setSeasonId, isLoading }}>{children}</Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ seasons, current, setSeasonId, isLoading }}>{children}</Ctx.Provider>;
 }
 
 export function useSeasons(): SeasonCtx {

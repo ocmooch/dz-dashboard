@@ -28,22 +28,19 @@ export const qk = {
   draftValue: (seasonId: number) => ["draft", seasonId, "value"] as const,
   draftTendencies: () => ["draft", "tendencies"] as const,
   bracket: (seasonId: number) => ["bracket", seasonId] as const,
-  conferences: (seasonId: number, week?: number) =>
-    ["conferences", seasonId, week ?? "latest"] as const,
+  conferences: (seasonId: number, week?: number) => ["conferences", seasonId, week ?? "latest"] as const,
   power: (seasonId: number, week?: number) => ["power", seasonId, week ?? "latest"] as const,
   powerTimeline: (seasonId: number) => ["power", seasonId, "timeline"] as const,
   standingsTimeline: (seasonId: number) => ["standings", seasonId, "timeline"] as const,
   players: (filters: Record<string, unknown>) => ["players", filters] as const,
   player: (playerId: number) => ["player", playerId] as const,
-  playerScoring: (playerId: number, season: number) =>
-    ["player", playerId, "scoring", season] as const,
+  playerScoring: (playerId: number, season: number) => ["player", playerId, "scoring", season] as const,
   playerOwnership: (playerId: number) => ["player", playerId, "ownership"] as const,
   playerInsights: (playerId: number) => ["player", playerId, "insights"] as const,
   playerAvailability: (playerId: number, season: number) =>
     ["player", playerId, "availability", season] as const,
   topScorers: (filters: Record<string, unknown>) => ["stats", "top-scorers", filters] as const,
-  seasonTotals: (filters: Record<string, unknown>) =>
-    ["stats", "season-totals", filters] as const,
+  seasonTotals: (filters: Record<string, unknown>) => ["stats", "season-totals", filters] as const,
   teams: ["teams"] as const,
   team: (teamId: number) => ["team", teamId] as const,
   teamRoster: (teamId: number, week: number | null) => ["team", teamId, "roster", week] as const,

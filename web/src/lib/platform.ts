@@ -32,8 +32,7 @@ const GAP_COPY: Record<string, Record<string, string>> = {
     sleeper: "Lineup-change history isn't available from Sleeper.",
   },
   setting_change_log: {
-    sleeper:
-      "Sleeper doesn't publish a settings change log. Current settings are shown.",
+    sleeper: "Sleeper doesn't publish a settings change log. Current settings are shown.",
   },
   faab_failed_bids: {
     nfl_com: "NFL.com didn't record unsuccessful waiver bids.",
@@ -77,16 +76,11 @@ export function capabilityGapText(
   const byPlatform = platform ? GAP_COPY[key]?.[platform] : undefined;
   if (byPlatform) return byPlatform;
   const label = platformLabel(platform);
-  return label
-    ? `${humanize(key)} isn't available from ${label}.`
-    : `${humanize(key)} isn't available.`;
+  return label ? `${humanize(key)} isn't available from ${label}.` : `${humanize(key)} isn't available.`;
 }
 
 /** A footnote for derived/computed data, or null when none applies. */
-export function provenanceText(
-  key: string,
-  platform: string | null | undefined,
-): string | null {
+export function provenanceText(key: string, platform: string | null | undefined): string | null {
   return (platform && PROVENANCE_COPY[key]?.[platform]) || null;
 }
 

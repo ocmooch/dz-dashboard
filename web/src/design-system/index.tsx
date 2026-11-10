@@ -16,12 +16,18 @@ export function Card({
   className?: string;
   hover?: boolean;
 }) {
-  return (
-    <section className={`dz-card ${hover ? "dz-card--hover" : ""} ${className}`}>{children}</section>
-  );
+  return <section className={`dz-card ${hover ? "dz-card--hover" : ""} ${className}`}>{children}</section>;
 }
 
-export function CardHeader({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) {
+export function CardHeader({
+  eyebrow,
+  title,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  action?: ReactNode;
+}) {
   return (
     <header className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-5 py-4">
       <div>
@@ -60,7 +66,9 @@ export function Stat({
     <div>
       <div className="dz-eyebrow mb-1">{label}</div>
       <div className="flex items-baseline gap-1.5">
-        <span className={`font-display text-[30px] font-bold leading-none tracking-wide ${color}`}>{value}</span>
+        <span className={`font-display text-[30px] font-bold leading-none tracking-wide ${color}`}>
+          {value}
+        </span>
         {unit && <span className="font-mono text-[var(--fs-sm)] text-muted">{unit}</span>}
       </div>
     </div>
@@ -232,17 +240,14 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     unscored_tenure:
       "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
     bracket_unavailable: "Bracket data isn't available for this season",
-    consolation_indistinguishable:
-      "No consolation bracket was recorded for this season",
+    consolation_indistinguishable: "No consolation bracket was recorded for this season",
     conference_membership_unavailable:
       "Conference membership data for historical seasons is not yet available",
     roster_history_unavailable:
       "Week-by-week roster history isn't available for this season, so adds and drops can't be derived",
     projections_not_captured: "Projections not captured for this season/week",
-    projection_points_not_scored:
-      "Projection rows exist, but projected fantasy points were not scored",
-    identity_split_candidate:
-      "Player identity split detected; stats may live under a source twin",
+    projection_points_not_scored: "Projection rows exist, but projected fantasy points were not scored",
+    identity_split_candidate: "Player identity split detected; stats may live under a source twin",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">
@@ -291,7 +296,10 @@ export function ProvenanceNote({ children }: { children: ReactNode }) {
 /** Championship / podium marker for trophy cases. */
 export function Trophy({ label, count }: { label?: string; count?: number }) {
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-accent" title={label}>
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-accent"
+      title={label}
+    >
       <span aria-hidden>★</span>
       {count != null && <span className="num">{count}</span>}
       {label && <span className="text-muted">{label}</span>}
@@ -395,7 +403,10 @@ export function Tabs<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div role="tablist" className="inline-flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-1">
+    <div
+      role="tablist"
+      className="inline-flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-1"
+    >
       {tabs.map((t) => {
         const active = t.id === value;
         return (
@@ -450,7 +461,14 @@ export function Sparkline({
       aria-label="trend sparkline"
       preserveAspectRatio="none"
     >
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
