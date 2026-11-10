@@ -25,29 +25,24 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
-**D3: BUILT (2026-11-10), gates green; VERIFY next.** Plan: `docs/plans/sleeper-d3-current-season.md`
+**D3: DONE (2026-11-10), verified; PR to `dev` open.** Plan: `docs/plans/sleeper-d3-current-season.md`
 (branch `feature/sleeper-d3-current-season`). Rule: the unfinished week is unscored (`00` §3).
-- BFF: `analytics/game_state.py` (is_game / is_idle / is_pending / game_result /
-  commissioner_override / slot_note) is used by standings (+timeline, all-play), week matchups
-  (`pending` pairings, null scores), box score (`week_pending` gap, `official_points_source`,
-  `commissioner_override`, lineup `slot_note`), team schedule/trend/roster (`pending`,
-  `week_pending`), team transactions (failed claims dropped, own pick/FAAB leg as `trade_assets`),
-  FAAB budget (failed bids spend nothing), records (pending/idle excluded, `through_week` label on
-  season-scoped records, in-progress season left out of season-PF records), h2h, flag thresholds.
-  `platform.week_state()` is the one week-window helper. New `analytics/current_season.py` +
-  `GET /v1/seasons/current` (requires a played season, so the pre-go-live live DB answers
-  `no_current_season`). Golden: only the new route was added (`DZ_UPDATE_GOLDEN=new`); legacy
-  untouched. Tests: `test_d3_game_state.py`, `test_d3_current_season.py` (BE 548 pass).
-- SPA: Home `ThisWeek` block, `DataAsOf` week qualifier, Matchups pending cards ("Awaiting final"),
-  Box Score override note + points-source footnote + `*` bench-or-reserve hint, Standings
-  "through week N · week N+1 awaiting final", team schedule/roster/transactions, Records label.
-  Copy lives in `lib/platform.ts` + design-system (`AWAITING_FINAL_LABEL`, `throughWeekText`).
-  FE 231 pass; format, typecheck, platform-literal check clean; client regenerated.
-- Deviations from the plan: `CurrentSeason` carries no `data_as_of` (the envelope `meta` already
-  does); `GameTeam.is_winner` stays `false` (not null) on pending games.
-- **Next (VERIFY):** visual click-through of 2026 on a mixed-era BFF
-  (`DATABASE_URL=sqlite:///<mixed copy> uv run dz-dashboard serve` + `npm run dev`), the e2e journey
-  "Home → this week's matchup → box score" on the mixed fixture, then PR → `dev`.
+- BFF: `analytics/game_state.py` is the one game/pending/idle/override rule, used by standings
+  (+timeline, all-play), week matchups, box score (`week_pending`, `official_points_source`,
+  `commissioner_override`, `slot_note`), team schedule/trend/roster, team transactions (failed
+  claims dropped, own pick/FAAB leg as `trade_assets`), FAAB budget, records (`through_week` label;
+  in-progress season left out of season-PF records), h2h, flag thresholds. `platform.week_state()`
+  is the week-window helper. `GET /v1/seasons/current` (`analytics/current_season.py`) needs a played
+  season, so the pre-go-live live DB answers `no_current_season`. Only the new route's golden added.
+- SPA: Home `ThisWeek`, `DataAsOf` week qualifier, pending cards ("Awaiting final"), override note,
+  points-source footnote (on every box score, so the legacy box-score visual baseline was refreshed),
+  `*` bench-or-reserve hint, Standings/Records/team labels. Copy in `lib/platform.ts` + design system.
+  Home's old Standings / Top-scorers cards now name the season they show (was "Season 2026" over 2017).
+- e2e: new `sleeper` Playwright project on :8811 (`serve_e2e.py --mixed`, mixed-era fixture) with
+  `e2e/sleeper.spec.ts` (Home → this week → box score; pending gap; standings/matchups). Full e2e
+  18/18 after the baseline refresh. Visual click-through of 2026 done via screenshots.
+- Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
+- **Next:** D4 (cross-era aggregation audit). The live go-live is upstream's, on the user's approval.
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream

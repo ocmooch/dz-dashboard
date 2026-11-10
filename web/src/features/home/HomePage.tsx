@@ -189,7 +189,7 @@ export function HomePage() {
 
         <Card>
           <CardHeader
-            eyebrow={phase.phase === "offseason" ? "past season" : "this season"}
+            eyebrow={scorerSeason != null ? `season ${scorerSeason}` : "past season"}
             title="Top scorers"
           />
           <div className="space-y-2 p-5">
@@ -213,7 +213,7 @@ export function HomePage() {
 
         <Card>
           <CardHeader
-            eyebrow={`season ${current?.season_year ?? ""}`}
+            eyebrow={`season ${standings.data?.season_year ?? ""}`}
             title="Standings"
             action={
               <Link to="/standings" className="dz-badge dz-badge--accent">

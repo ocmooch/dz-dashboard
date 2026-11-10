@@ -31,10 +31,11 @@ export function ThisWeek() {
         title="This week"
         action={<EraMarker label={data.platform_label} />}
       />
-      <div className="grid grid-cols-1 gap-6 p-5 lg:grid-cols-3">
-        <section className="space-y-3 lg:col-span-2">
+      {/* Games take the full width (scored cards need it); standings follow below. */}
+      <div className="space-y-6 p-5">
+        <section className="space-y-6">
           {data.pending_week != null && data.pending_pairings.length > 0 && (
-            <div>
+            <div data-testid="this-week-pending">
               <div className="mb-2 flex items-center gap-2">
                 <h3 className="dz-eyebrow">Week {data.pending_week}</h3>
                 <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
@@ -47,7 +48,7 @@ export function ThisWeek() {
             </div>
           )}
           {data.last_finalized_week != null && data.latest_results.length > 0 && (
-            <div>
+            <div data-testid="this-week-results">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="dz-eyebrow">Week {data.last_finalized_week} results</h3>
                 <Link to={`/matchups?week=${data.last_finalized_week}`} className="dz-badge dz-badge--accent">

@@ -346,6 +346,15 @@ export function BoxScorePage() {
       {data && !data.available && (
         <Card className="space-y-4 p-8">
           <DataGap reason={data.reason ?? undefined} />
+          {data.commissioner_override && (
+            <p className="text-[var(--fs-sm)] text-muted" role="note">
+              {commissionerOverrideNote(
+                data.official_points_source,
+                num(data.commissioner_override.official),
+                num(data.commissioner_override.custom),
+              )}
+            </p>
+          )}
           {data.reason !== "week_pending" && (
             <p className="text-[var(--fs-sm)] text-muted">
               Team totals can still be reviewed from the weekly matchups view.

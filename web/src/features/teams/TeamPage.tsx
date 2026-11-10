@@ -151,6 +151,17 @@ function RosterCard({ teamId }: { teamId: number }) {
           </div>
         </div>
       )}
+      {data?.week_pending && (
+        <div className="px-5 pt-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">{AWAITING_FINAL_LABEL}</span>
+            Week {data.week} isn&rsquo;t final yet, so player points appear once the week is final.
+          </div>
+        </div>
+      )}
       {data && data.players.length > 0 && (
         <div className="overflow-x-auto">
           <table className="dz-table">
@@ -197,17 +208,13 @@ function RosterCard({ teamId }: { teamId: number }) {
                     </td>
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="dz-num">
-                      {p.league_points == null ? (
-                        <DataGap
-                          reason={
-                            data.week_pending
-                              ? "week_pending"
-                              : data.is_scored
-                                ? "no_scored_data"
-                                : "season_unscored"
-                          }
-                          size="sm"
-                        />
+                      {data.week_pending ? (
+                        // Unscored until the week is final; the note above explains it once.
+                        <span className="text-faint" aria-label="No score yet">
+                          –
+                        </span>
+                      ) : p.league_points == null ? (
+                        <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
                       ) : (
                         <PlayerScoreCell
                           points={p.league_points}
