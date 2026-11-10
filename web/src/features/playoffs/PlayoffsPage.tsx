@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton } from "@/design-system";
+import { Card, CardHeader, Chip, DataGap, EraMarker, ErrorState, Skeleton } from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
@@ -273,7 +273,10 @@ export function PlayoffsPage() {
   return (
     <div className="dz-rise space-y-5">
       <div>
-        <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
+        <div className="dz-eyebrow mb-1 flex items-center gap-2">
+          Season {current?.season_year ?? ""}
+          <EraMarker label={current?.platform_label} />
+        </div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Playoffs</h1>
       </div>
 

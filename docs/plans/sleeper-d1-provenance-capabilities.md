@@ -84,6 +84,33 @@ null when there isn't one.
 - **Guard:** the platform-literal grep passes on the tree and fails on a planted literal (tested by
   the script's own self-check).
 
+## As built (2026-11-10)
+
+- **BFF:** `analytics/platform.py`, the schema fields above, `/v1/meta/capabilities`, the
+  platform change in `league_eras`, and `platform_accounts` in `manager_directory`. Accounts
+  follow played seasons, like `active_years`.
+- **Parity:** the fixture goldens are untouched. Two goldens were recorded with the new tools,
+  leaving every other golden as it was:
+  - the new route, via `DZ_UPDATE_GOLDEN=new` (fixture) and `--accept` (live);
+  - live `/v1/league/eras`, via `--accept`, after confirming its only diff is the one approved
+    2026 "Moved to Sleeper" entry.
+  - Afterwards `--check` reports 1,092 requests, 0 failing.
+- **Frontend:**
+  - `lib/platform.ts`, plus `EraMarker`, `CapabilityGate` and `ProvenanceNote`.
+  - `SeasonInfo` fields, and the era marker in the Standings, Playoffs and Draft season eyebrows.
+  - A Timeline `PlatformBoundary` row, and the About capability matrix card.
+  - The client is regenerated (additive, and `gen:api:check` is in sync).
+- **Guard:** `scripts/check_platform_literals.sh`, plus a CI step in the frontend job. It
+  blocks *comparisons* (`===`, `!==`, `case`) against platform literals, so plain labels (the
+  player-detail id-source labels) stay allowed.
+- **Gate:** pytest 518 passed, 1 skipped; ruff, mypy and the write-grep clean; vitest 224
+  passed; build passes; the literal guard is clean.
+  - `npm run lint` doesn't exist in `web/package.json`. It's listed in CLAUDE.md, but it's a
+    gap that predates D1.
+- **Verify:** the Done-when was checked through the BFF on the frozen golden DB: the Timeline
+  change at 2026, platform eras, a 17-by-21 matrix, and season fields. A visual click-through in
+  a browser is still to do; this session has no browser.
+
 ## Verify
 
 Full gate (backend + frontend: gen:api drift, typecheck, lint, vitest). Click through About, the

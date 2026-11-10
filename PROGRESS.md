@@ -25,8 +25,15 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
-**D1: PLAN written (2026-11-10)**: `docs/plans/sleeper-d1-provenance-capabilities.md` on
-`feature/sleeper-d1-provenance`. Its 3 open decisions get the user's answer before BUILD.
+**D1: BUILT (2026-11-10), gate green; PR to `dev`, then D2.** Plan + as-built:
+`docs/plans/sleeper-d1-provenance-capabilities.md`. The user's decisions:
+- season-level payloads only;
+- no Sleeper usernames;
+- the platform change shows before 2026 has games, approved as one live-golden change (the
+  `/v1/league/eras` entry).
+
+New golden tools: `scripts/snapshot_legacy_payloads.py --accept URL` and
+`DZ_UPDATE_GOLDEN=new`. The visual click-through is still open (no browser in the build session).
 
 **D0: DONE (2026-11-10, PR #126 merged).** Plan:
 `docs/plans/sleeper-d0-golden-snapshots.md`. Branch: `feature/sleeper-d0-golden-snapshots`.

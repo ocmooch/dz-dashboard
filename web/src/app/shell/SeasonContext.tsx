@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
+import type { Capability } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 export type SeasonInfo = {
@@ -10,6 +11,10 @@ export type SeasonInfo = {
   status?: string | null;
   is_scored: boolean;
   champion?: { owner_name?: string | null; team_name?: string | null } | null;
+  /** Sleeper D1: provenance + capabilities, read once here instead of per page. */
+  platform?: string | null;
+  platform_label?: string | null;
+  capabilities?: Record<string, Capability> | null;
 };
 
 type SeasonCtx = {

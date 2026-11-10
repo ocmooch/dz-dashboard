@@ -141,15 +141,57 @@ class CoverageFeedCell(BaseModel):
     projected_stats_count: int | None = None
 
 
+# ---------------------------------------------------------------------------
+# Provenance + capabilities (Sleeper D1)
+# ---------------------------------------------------------------------------
+
+
+class Capability(BaseModel):
+    """One capability for one season. ``state`` mirrors upstream ``season_capabilities``:
+    available | partial | derived | not_yet | not_on_platform | not_used. ``not_used`` has no
+    note and renders nothing."""
+
+    state: str
+    note: str | None = None
+
+
+SeasonCapabilities = dict[str, Capability]
+
+
+class PlatformEra(BaseModel):
+    platform: str
+    label: str
+    start_year: int
+    end_year: int | None = None
+
+
+class CapabilityMatrixSeason(BaseModel):
+    season_id: int
+    season_year: int
+    platform: str
+    platform_label: str
+    cells: SeasonCapabilities
+
+
+class CapabilityMatrix(BaseModel):
+    keys: list[str]
+    seasons: list[CapabilityMatrixSeason]
+
+
 class CoverageMatrix(BaseModel):
     relevance: CoverageRelevance
     feeds: dict[str, list[CoverageFeedCell]]
     reason_codes: dict[str, str]
+    season_platforms: dict[int, str] = {}
+    capabilities: dict[int, SeasonCapabilities] = {}
 
 
 class MetaResponse(BaseModel):
     latest_run: LatestRun
     coverage: Coverage
+    platform_eras: list[PlatformEra] = []
+    current_season_id: int | None = None
+    current_week: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +243,9 @@ class SeasonListItem(BaseModel):
     status: str | None = None
     is_scored: bool
     champion: TeamRef | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class SeasonList(BaseModel):
@@ -216,6 +261,9 @@ class SeasonSummary(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class Streak(BaseModel):
@@ -554,6 +602,9 @@ class LeagueTimelineSeason(BaseModel):
     source: str
     era_id: str
     changes: SeasonChangeFlags
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class LeagueOverview(BaseModel):
@@ -606,6 +657,7 @@ class LeagueEraChange(BaseModel):
     league_size_changed: bool = False
     schedule_changed: bool = False
     scoring_availability_changed: bool = False
+    platform_changed: bool = False
     details: list[LeagueChangeDetail] = []
 
 
@@ -613,6 +665,15 @@ class LeagueEras(BaseModel):
     league: LeagueInfo
     eras: list[LeagueEra]
     changes: list[LeagueEraChange]
+
+
+class PlatformAccount(BaseModel):
+    """A manager's account on one platform. Never a username or user id (D1 decision 2)."""
+
+    platform: str
+    label: str
+    first_season: int | None = None
+    last_season: int | None = None
 
 
 class ManagerIdentity(BaseModel):
@@ -628,6 +689,7 @@ class ManagerIdentity(BaseModel):
     team_names: list[str]
     seasons_managed: int
     identity_source: str
+    platform_accounts: list[PlatformAccount] = []
 
 
 class ManagerDirectory(BaseModel):

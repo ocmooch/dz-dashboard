@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { Badge, Card, CardHeader, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Badge, Card, CardHeader, EraMarker, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
+import { capabilityStateLabel } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchMeta() {
@@ -14,6 +15,76 @@ async function fetchCoverage() {
   const { data, error } = await api.GET("/v1/meta/coverage");
   if (error || !data) throw new Error("Failed to load integrity coverage");
   return data.data;
+}
+
+async function fetchCapabilities() {
+  const { data, error } = await api.GET("/v1/meta/capabilities");
+  if (error || !data) throw new Error("Failed to load capabilities");
+  return data.data;
+}
+
+function humanizeKey(key: string): string {
+  const s = key.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Platform eras + the seasons-by-capabilities matrix (Sleeper D1). `not_used` cells are blank. */
+function CapabilityMatrixCard() {
+  const meta = useQuery({ queryKey: qk.meta, queryFn: fetchMeta });
+  const caps = useQuery({ queryKey: qk.capabilities, queryFn: fetchCapabilities });
+  const eras = meta.data?.platform_eras ?? [];
+  const matrix = caps.data;
+  return (
+    <div data-testid="capability-matrix">
+      <Card className="p-5">
+        <CardHeader eyebrow="platforms" title="What each season's platform recorded" />
+        {eras.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-4 p-1">
+            {eras.map((e) => (
+              <span key={`${e.platform}-${e.start_year}`} className="flex items-center gap-2">
+                <EraMarker label={e.label} />
+                <span className="num text-muted">
+                  {e.start_year}–{e.end_year ?? ""}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+        {caps.isLoading && <Skeleton className="h-40 w-full" />}
+        {matrix && (
+          <div className="overflow-x-auto">
+            <table className="dz-table text-[var(--fs-xs)]">
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  {matrix.seasons.map((s) => (
+                    <th key={s.season_id} className="num" title={s.platform_label}>
+                      {s.season_year}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.keys.map((key) => (
+                  <tr key={key}>
+                    <td className="font-medium text-text">{humanizeKey(key)}</td>
+                    {matrix.seasons.map((s) => {
+                      const cell = s.cells[key];
+                      return (
+                        <td key={s.season_id} className="text-muted" title={cell?.note ?? undefined}>
+                          {cell ? capabilityStateLabel(cell.state) : ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
 }
 
 function yearRange(years: number[]): string {
@@ -198,6 +269,8 @@ export function AboutPage() {
               </table>
             </div>
           </Card>
+
+          <CapabilityMatrixCard />
 
           <Card className="p-5">
             <CardHeader eyebrow="provenance" title="Sources & attribution" />

@@ -31,7 +31,17 @@ document, so the contract is enforced at build time.
 | Endpoint | Description |
 |----------|-------------|
 | `GET /health` | `{"status":"ok"}` liveness |
-| `GET /v1/meta` | Data freshness: latest pipeline run, per-source health, coverage summary (which seasons are scored, whether reconstruction is complete) — powers the "data as of" indicator and gap banners |
+| `GET /v1/meta` | Data freshness: latest pipeline run, per-source health, coverage summary (which seasons are scored, whether reconstruction is complete) — powers the "data as of" indicator and gap banners. Sleeper D1 adds `platform_eras` (`[{platform, label, start_year, end_year}]`, every season with a platform, played or not), `current_season_id` and `current_week` |
+| `GET /v1/meta/capabilities` | Sleeper D1: seasons by capabilities (`{keys, seasons: [{season_id, season_year, platform, platform_label, cells: {key: {state, note}}}]}`) for About. States mirror upstream `season_capabilities`; `not_used` has no note and renders nothing |
+
+**Sleeper D1, additive fields.** `SeasonListItem` (`/v1/seasons`), `SeasonSummary`
+(`/v1/seasons/{id}`) and `LeagueTimelineSeason` (`/v1/league/timeline`) carry `platform`,
+`platform_label` and `capabilities`. Other per-season endpoints don't repeat them; the SPA reads
+them once through `SeasonContext`. `CoverageMatrix` gains `season_platforms` and `capabilities`
+(by year). `LeagueEraChange` gains `platform_changed`, and the switch is a detail with
+`category: "platform"` ("Moved to Sleeper"), shown even before that season has games.
+`ManagerIdentity` gains `platform_accounts` (`platform`, `label`, `first_season`, `last_season`;
+never usernames or user ids).
 
 ### Home / command center
 

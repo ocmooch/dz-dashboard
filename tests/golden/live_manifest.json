@@ -50,7 +50,7 @@
    "pinned": false,
    "binary": false,
    "status": 200,
-   "sha256": "a8c224ff1b9914e8a9725b9efbae548710cd5b447bf135ad4df642dd92887f3f",
+   "sha256": "591b1109ff3e883d8f2aae10cec168c6db527235d3c8a96ed776ec8bdd1fd6b1",
    "volatile": []
   },
   {
@@ -8739,6 +8739,14 @@
    "binary": true,
    "status": 404,
    "sha256": "ee459b8a36c500832cbbd65e9a5f2aeb291d48aca1364e8d70a601aa00f381c3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/meta/capabilities",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "bedacbc76b7cfc52840fd5e91a29e2736982ca477b5d9ce6c04695bb2e2a0bd4",
    "volatile": []
   }
  ]

@@ -170,6 +170,36 @@ beforeEach(() => {
 });
 
 describe("LeagueHistoryPage", () => {
+  it("renders the move to Sleeper as a Timeline boundary, even before 2026 has games", async () => {
+    const moved = {
+      season_year: 2026,
+      platform_changed: true,
+      details: [
+        {
+          category: "platform",
+          title: "Moved to Sleeper",
+          summary: "The league moved from NFL.com to Sleeper.",
+          before: "NFL.com",
+          after: "Sleeper",
+          source: "seasons.platform",
+          certainty: "verified",
+          changed_at: null,
+        },
+      ],
+    };
+    mockGet.mockImplementation((path: string) => {
+      if (path === "/v1/league/timeline") return Promise.resolve(envelope(TIMELINE));
+      if (path === "/v1/league/eras")
+        return Promise.resolve(envelope({ ...ERAS, changes: [...(ERAS.changes ?? []), moved] }));
+      return Promise.resolve(envelope({}));
+    });
+    renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
+    const boundary = await screen.findByTestId("platform-boundary");
+    expect(boundary).toHaveTextContent("Moved to Sleeper — 2026");
+    expect(boundary.querySelector(".dz-era-marker")).toHaveTextContent("Sleeper");
+    expect(screen.getAllByTestId("platform-boundary")).toHaveLength(1);
+  });
+
   it("renders seasons with champion and change detail", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
     expect(await screen.findByText("League Timeline")).toBeInTheDocument();

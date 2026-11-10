@@ -42,6 +42,7 @@ from ff_dashboard.analytics.league_changes import (
     classify,
     setting_change_events,
 )
+from ff_dashboard.analytics.platform import platform_changes
 
 # Tier for state-table-derived changes (the setting_change classifier sets its own).
 _CATEGORY_TIER: dict[str, str] = {
@@ -863,7 +864,42 @@ def league_eras(session: Session) -> dict[str, Any]:
         or row["changes"]["scoring_availability_changed"]
         or row["changes"]["details"]
     ]
+    _add_platform_changes(session, changes)
     return {"league": timeline["league"], "eras": eras, "changes": changes}
+
+
+def _add_platform_changes(session: Session, changes: list[dict[str, Any]]) -> None:
+    """Emit each platform switch as an era change (Sleeper D1).
+
+    It comes from the ``seasons`` table, so it shows even before the new platform's first game
+    (user decision, D1 plan decision 3). It merges into an existing change for that year."""
+    for sw in platform_changes(session):
+        detail = {
+            "category": "platform",
+            "title": f"Moved to {sw['to_label']}",
+            "summary": f"The league moved from {sw['from_label']} to {sw['to_label']}.",
+            "before": sw["from_label"],
+            "after": sw["to_label"],
+            "source": "seasons.platform",
+            "certainty": "verified",
+            "changed_at": None,
+        }
+        existing = next((c for c in changes if c["season_year"] == sw["season_year"]), None)
+        if existing is None:
+            changes.append(
+                {
+                    "season_year": sw["season_year"],
+                    "league_size_changed": False,
+                    "schedule_changed": False,
+                    "scoring_availability_changed": False,
+                    "platform_changed": True,
+                    "details": [detail],
+                }
+            )
+        else:
+            existing["platform_changed"] = True
+            existing["details"] = [*existing["details"], detail]
+    changes.sort(key=lambda c: int(c["season_year"]))
 
 
 def league_overview(session: Session) -> dict[str, Any]:
@@ -1095,6 +1131,10 @@ def manager_directory(session: Session) -> dict[str, Any]:
         int(sid): int(year)
         for sid, year in session.execute(select(Season.season_id, Season.year)).all()
     }
+    platform_of = {
+        int(sid): (plat or "nfl_com")
+        for sid, plat in session.execute(select(Season.season_id, Season.platform)).all()
+    }
     played = played_season_ids(session)
     teams = session.execute(select(Team).order_by(Team.owner_id, Team.team_id)).scalars().all()
     by_owner: dict[int, list[Team]] = defaultdict(list)
@@ -1139,6 +1179,34 @@ def manager_directory(session: Session) -> dict[str, Any]:
                 "team_names": team_names,
                 "seasons_managed": len(years),
                 "identity_source": "nfl_com_owner_record",
+                "platform_accounts": _platform_accounts(owner_teams, seasons, platform_of),
             }
         )
     return {"managers": managers}
+
+
+PLATFORM_LABEL = {"nfl_com": "NFL.com", "sleeper": "Sleeper"}
+
+
+def _platform_accounts(
+    owner_teams: list[Team], seasons: dict[int, int], platform_of: dict[int, str]
+) -> list[dict[str, Any]]:
+    """One account per platform the manager played on, with its first/last played season.
+    Never a username or user id (D1 decision 2)."""
+    years_by_platform: dict[str, list[int]] = defaultdict(list)
+    for t in owner_teams:
+        year = seasons.get(int(t.season_id))
+        if year is not None:
+            years_by_platform[platform_of.get(int(t.season_id), "nfl_com")].append(year)
+    return sorted(
+        (
+            {
+                "platform": plat,
+                "label": PLATFORM_LABEL.get(plat, plat),
+                "first_season": min(ys),
+                "last_season": max(ys),
+            }
+            for plat, ys in years_by_platform.items()
+        ),
+        key=lambda a: (a["first_season"], a["platform"]),
+    )
