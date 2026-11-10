@@ -25,11 +25,29 @@ Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one 
 after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
 D1–D3 on a 2026 DB copy.
 
-**D3: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d3-current-season.md` (branch
-`feature/sleeper-d3-current-season`, on `dev` after PR #129 merged). Rule: the unfinished week is
-unscored (`00` §3). Records from the in-progress season get a per-record "through week N" label.
-Next: BUILD, starting with `analytics/game_state.py` + standings. Probe found 2026 standings count the
-provisional week 9 as a tie, and week matchups name live-score winners.
+**D3: BUILT (2026-11-10), gates green; VERIFY next.** Plan: `docs/plans/sleeper-d3-current-season.md`
+(branch `feature/sleeper-d3-current-season`). Rule: the unfinished week is unscored (`00` §3).
+- BFF: `analytics/game_state.py` (is_game / is_idle / is_pending / game_result /
+  commissioner_override / slot_note) is used by standings (+timeline, all-play), week matchups
+  (`pending` pairings, null scores), box score (`week_pending` gap, `official_points_source`,
+  `commissioner_override`, lineup `slot_note`), team schedule/trend/roster (`pending`,
+  `week_pending`), team transactions (failed claims dropped, own pick/FAAB leg as `trade_assets`),
+  FAAB budget (failed bids spend nothing), records (pending/idle excluded, `through_week` label on
+  season-scoped records, in-progress season left out of season-PF records), h2h, flag thresholds.
+  `platform.week_state()` is the one week-window helper. New `analytics/current_season.py` +
+  `GET /v1/seasons/current` (requires a played season, so the pre-go-live live DB answers
+  `no_current_season`). Golden: only the new route was added (`DZ_UPDATE_GOLDEN=new`); legacy
+  untouched. Tests: `test_d3_game_state.py`, `test_d3_current_season.py` (BE 548 pass).
+- SPA: Home `ThisWeek` block, `DataAsOf` week qualifier, Matchups pending cards ("Awaiting final"),
+  Box Score override note + points-source footnote + `*` bench-or-reserve hint, Standings
+  "through week N · week N+1 awaiting final", team schedule/roster/transactions, Records label.
+  Copy lives in `lib/platform.ts` + design-system (`AWAITING_FINAL_LABEL`, `throughWeekText`).
+  FE 231 pass; format, typecheck, platform-literal check clean; client regenerated.
+- Deviations from the plan: `CurrentSeason` carries no `data_as_of` (the envelope `meta` already
+  does); `GameTeam.is_winner` stays `false` (not null) on pending games.
+- **Next (VERIFY):** visual click-through of 2026 on a mixed-era BFF
+  (`DATABASE_URL=sqlite:///<mixed copy> uv run dz-dashboard serve` + `npm run dev`), the e2e journey
+  "Home → this week's matchup → box score" on the mixed fixture, then PR → `dev`.
 
 **D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
 `docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream

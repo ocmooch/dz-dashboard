@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
 import {
+  AWAITING_FINAL_LABEL,
   Badge,
   Card,
   CardHeader,
@@ -18,7 +19,7 @@ import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
-type GameCard = NonNullable<Awaited<ReturnType<typeof fetchWeekMatchups>>>["games"][number];
+export type GameCard = NonNullable<Awaited<ReturnType<typeof fetchWeekMatchups>>>["games"][number];
 
 async function fetchWeekMatchups(seasonId: number, week: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/weeks/{week}/matchups", {
@@ -40,10 +41,12 @@ function TeamSide({
   team,
   align,
   margin,
+  pending = false,
 }: {
   team: GameCard["team_a"];
   align: "left" | "right";
   margin: number | null | undefined;
+  pending?: boolean;
 }) {
   if (!team) return <div className="text-faint">Bye</div>;
   const winner = team.is_winner;
@@ -61,9 +64,16 @@ function TeamSide({
         </span>
       )}
       <span className="flex flex-col">
-        <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
-          {num(team.score)}
-        </span>
+        {pending ? (
+          // Unfinished week: unscored, so no live score (and never a 0).
+          <span className="num text-[var(--fs-h2)] font-bold text-faint" aria-label="No score yet">
+            –
+          </span>
+        ) : (
+          <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
+            {num(team.score)}
+          </span>
+        )}
         {signedMargin != null && (
           <span
             className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}
@@ -87,7 +97,7 @@ function eyebrowFor(game: GameCard): string {
   return "regular season";
 }
 
-function GameCardView({ game }: { game: GameCard }) {
+export function GameCardView({ game }: { game: GameCard }) {
   return (
     <Link
       to={`/matchups/${game.matchup_id}`}
@@ -95,12 +105,16 @@ function GameCardView({ game }: { game: GameCard }) {
     >
       <div className="mb-2 flex items-start justify-between gap-3">
         <span className="dz-eyebrow shrink-0 pt-1">{eyebrowFor(game)}</span>
-        <MatchupFlags flags={game.flags} className="justify-end" />
+        {game.pending ? (
+          <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
+        ) : (
+          <MatchupFlags flags={game.flags} className="justify-end" />
+        )}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <TeamSide team={game.team_a} align="left" margin={game.margin} />
+        <TeamSide team={game.team_a} align="left" margin={game.margin} pending={game.pending} />
         <span className="font-display text-[var(--fs-sm)] text-faint">vs</span>
-        <TeamSide team={game.team_b} align="right" margin={game.margin} />
+        <TeamSide team={game.team_b} align="right" margin={game.margin} pending={game.pending} />
       </div>
     </Link>
   );
@@ -141,6 +155,12 @@ export function MatchupsPage() {
       </div>
 
       {data && !data.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
+      {data?.pending && (
+        <p className="text-[var(--fs-sm)] text-muted" role="note">
+          Week {week} isn&rsquo;t final yet. Its games show as pairings; scores and results appear once the
+          week is final.
+        </p>
+      )}
 
       <Card>
         <CardHeader eyebrow={`week ${week}`} title="Games" />

@@ -16,6 +16,7 @@ import {
   Sacko,
   Skeleton,
   Tabs,
+  throughWeekText,
   Trophy,
   WeekStepper,
 } from "@/design-system";
@@ -213,7 +214,8 @@ export function StandingsPage() {
   const powerTimeline = usePowerTimeline(seasonId, lens === "power");
   const regWeeks = data?.regular_season_weeks;
   const powerRegWeeks = power.data?.regular_season_weeks;
-  const effectiveWeek = week ?? regWeeks ?? powerRegWeeks;
+  // In progress, the table stops at the last finalized week (the BFF's through_week).
+  const effectiveWeek = week ?? data?.through_week ?? regWeeks ?? powerRegWeeks;
 
   useEffect(() => {
     const maxWeek = lens === "power" ? powerRegWeeks : regWeeks;
@@ -288,6 +290,13 @@ export function StandingsPage() {
           )}
         </div>
       </div>
+
+      {lens === "record" && data?.pending_week != null && (
+        <p className="text-[var(--fs-sm)] text-muted" role="note">
+          Standings {throughWeekText(data.through_week, data.pending_week)}. An unfinished week counts once
+          it&rsquo;s final.
+        </p>
+      )}
 
       {lens === "record" && data?.tiebreak_caveat && !historicalCompleted && (
         <Badge variant="gap">historical tiebreak may differ from NFL.com for this era</Badge>

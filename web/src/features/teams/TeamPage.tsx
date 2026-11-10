@@ -7,6 +7,7 @@ import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
 import { ResultTimeline } from "@/features/teams/ResultTimeline";
 import {
+  AWAITING_FINAL_LABEL,
   Badge,
   Card,
   CardHeader,
@@ -26,6 +27,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
+import { slotNoteText, tradeAssetsText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
@@ -173,7 +175,13 @@ function RosterCard({ teamId }: { teamId: number }) {
                   </tr>
                 ) : (
                   <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                    <td className="font-mono text-[var(--fs-xs)] text-muted">{p.roster_slot ?? "—"}</td>
+                    <td
+                      className="font-mono text-[var(--fs-xs)] text-muted"
+                      title={slotNoteText(p.slot_note) ?? undefined}
+                    >
+                      {p.roster_slot ?? "—"}
+                      {p.slot_note && <span aria-label={slotNoteText(p.slot_note) ?? undefined}>*</span>}
+                    </td>
                     <td>
                       <Link to={`/players/${p.player_id}`} className="hover:text-accent">
                         <Chip name={p.player_name} sub={p.nfl_team ?? undefined} />
@@ -190,7 +198,16 @@ function RosterCard({ teamId }: { teamId: number }) {
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="dz-num">
                       {p.league_points == null ? (
-                        <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
+                        <DataGap
+                          reason={
+                            data.week_pending
+                              ? "week_pending"
+                              : data.is_scored
+                                ? "no_scored_data"
+                                : "season_unscored"
+                          }
+                          size="sm"
+                        />
                       ) : (
                         <PlayerScoreCell
                           points={p.league_points}
@@ -246,11 +263,15 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
                     vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                   </Link>
                   {g.is_playoff && <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>}
-                  <span className="num shrink-0">
-                    <span className={tone}>{num(g.team_score)}</span>
-                    <span className="text-faint"> – </span>
-                    <span className="text-muted">{num(g.opponent_score)}</span>
-                  </span>
+                  {g.pending ? (
+                    <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
+                  ) : (
+                    <span className="num shrink-0">
+                      <span className={tone}>{num(g.team_score)}</span>
+                      <span className="text-faint"> – </span>
+                      <span className="text-muted">{num(g.opponent_score)}</span>
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -535,6 +556,7 @@ function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
 }
 
 function transactionTitle(t: TeamTransaction) {
+  if (t.trade_assets) return tradeAssetsText(t.trade_assets);
   return t.player_name ?? "Transaction";
 }
 

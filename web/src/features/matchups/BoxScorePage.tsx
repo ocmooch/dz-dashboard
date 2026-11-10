@@ -4,10 +4,21 @@ import { Link, useParams } from "react-router-dom";
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
-import { Badge, BracketBadge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import {
+  Badge,
+  BracketBadge,
+  Card,
+  CardHeader,
+  DataGap,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+  Stat,
+} from "@/design-system";
 import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
+import { commissionerOverrideNote, officialPointsNote, slotNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type BoxScore = Awaited<ReturnType<typeof fetchBoxScore>>;
@@ -156,7 +167,10 @@ function LineupTable({ team }: { team: BoxTeam }) {
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   return (
     <tr>
-      <td className="num text-faint">{p.roster_slot ?? "—"}</td>
+      <td className="num text-faint" title={slotNoteText(p.slot_note) ?? undefined}>
+        {p.roster_slot ?? "—"}
+        {p.slot_note && <span aria-label={slotNoteText(p.slot_note) ?? undefined}>*</span>}
+      </td>
       <td className={muted ? "text-muted" : undefined}>
         {p.player_name ?? "—"}
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
@@ -332,9 +346,11 @@ export function BoxScorePage() {
       {data && !data.available && (
         <Card className="space-y-4 p-8">
           <DataGap reason={data.reason ?? undefined} />
-          <p className="text-[var(--fs-sm)] text-muted">
-            Team totals can still be reviewed from the weekly matchups view.
-          </p>
+          {data.reason !== "week_pending" && (
+            <p className="text-[var(--fs-sm)] text-muted">
+              Team totals can still be reviewed from the weekly matchups view.
+            </p>
+          )}
           {data.week != null && (
             <Link to={`/matchups?week=${data.week}`} className="text-accent hover:underline">
               View week {data.week} matchups
@@ -364,6 +380,20 @@ export function BoxScorePage() {
         </div>
       )}
 
+      {data && data.available && data.commissioner_override && (
+        <div
+          className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-faint">note</span>
+          {commissionerOverrideNote(
+            data.official_points_source,
+            num(data.commissioner_override.official),
+            num(data.commissioner_override.custom),
+          )}
+        </div>
+      )}
+
       {data && data.available && data.flags && data.flags.length > 0 && <MatchupFlags flags={data.flags} />}
 
       {data && data.available && data.home && (
@@ -381,6 +411,14 @@ export function BoxScorePage() {
             />
           )}
         </div>
+      )}
+
+      {data && data.available && (
+        <ProvenanceNote>
+          {officialPointsNote(data.official_points_source)}
+          {[data.home, data.away].some((t) => t?.lineup.some((p) => p.slot_note)) &&
+            ` * ${slotNoteText("bench_or_reserve")}`}
+        </ProvenanceNote>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ export const qk = {
   leagueStories: ["league", "stories"] as const,
   leagueManagers: ["league", "managers"] as const,
   seasons: ["seasons"] as const,
+  currentSeason: ["seasons", "current"] as const,
   standings: (seasonId: number, week?: number) => ["standings", seasonId, week ?? "latest"] as const,
   standingsInsights: (seasonId: number, week?: number) =>
     ["standings", seasonId, "insights", week ?? "latest"] as const,

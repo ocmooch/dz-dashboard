@@ -96,3 +96,43 @@ export function capabilityStateLabel(state: string): string {
   };
   return labels[state] ?? state;
 }
+
+/** Box-score footnote: where official player points come from (Sleeper D3). */
+export function officialPointsNote(source: string | null | undefined): string | null {
+  const label = platformLabel(source);
+  return label ? `Official player points from ${label}.` : null;
+}
+
+/** Box-score note for a commissioner override: the platform's computed score vs the awarded one.
+ *  Scores arrive pre-formatted; this module only owns the wording. */
+export function commissionerOverrideNote(
+  source: string | null | undefined,
+  official: string,
+  awarded: string,
+): string {
+  const label = platformLabel(source) || "The platform";
+  return `Commissioner override: ${label} scored this team ${official}; the commissioner awarded ${awarded}, which is the league score.`;
+}
+
+type PickRef = { season?: number; round?: number };
+
+/** Team-transaction text for the pick/FAAB side of a trade (a player-less leg). */
+export function tradeAssetsText(assets: {
+  picks_in?: PickRef[];
+  picks_out?: PickRef[];
+  faab_in?: number;
+  faab_out?: number;
+}): string {
+  const pick = (p: PickRef) => `${p.season ?? "?"} round ${p.round ?? "?"} pick`;
+  const parts: string[] = [];
+  for (const p of assets.picks_in ?? []) parts.push(`received ${pick(p)}`);
+  for (const p of assets.picks_out ?? []) parts.push(`sent ${pick(p)}`);
+  if (assets.faab_in) parts.push(`received $${assets.faab_in} FAAB`);
+  if (assets.faab_out) parts.push(`sent $${assets.faab_out} FAAB`);
+  return parts.length ? `Draft pick / FAAB: ${parts.join(", ")}` : "Draft pick / FAAB";
+}
+
+/** Roster slot hint for a Sleeper week with no archived IR list (`slot_note` "bench_or_reserve"). */
+export function slotNoteText(note: string | null | undefined): string | null {
+  return note === "bench_or_reserve" ? "Bench or reserve: this week's IR list wasn't archived." : null;
+}

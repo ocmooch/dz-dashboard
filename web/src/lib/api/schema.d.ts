@@ -177,6 +177,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seasons/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Season */
+        get: operations["get_current_season_v1_seasons_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons/{season_id}": {
         parameters: {
             query?: never;
@@ -956,6 +973,8 @@ export interface components {
         BoxPlayer: {
             /** Roster Slot */
             roster_slot?: string | null;
+            /** Slot Note */
+            slot_note?: string | null;
             /** Player Id */
             player_id: number;
             /** Player Name */
@@ -1053,6 +1072,9 @@ export interface components {
             projection_reason?: string | null;
             /** Resolution Note */
             resolution_note?: string | null;
+            /** Official Points Source */
+            official_points_source?: string | null;
+            commissioner_override?: components["schemas"]["CommissionerOverride"] | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
@@ -1225,6 +1247,13 @@ export interface components {
             /** Seasons */
             seasons: components["schemas"]["ChampionshipEntry"][];
         };
+        /** CommissionerOverride */
+        CommissionerOverride: {
+            /** Official */
+            official: number;
+            /** Custom */
+            custom: number;
+        };
         /** CommissionerTerm */
         CommissionerTerm: {
             /** Owner Id */
@@ -1390,6 +1419,47 @@ export interface components {
             season_position_divergence_count: number;
             /** Season Position Divergences */
             season_position_divergences: components["schemas"]["SeasonPositionDivergence"][];
+        };
+        /**
+         * CurrentSeason
+         * @description The in-progress season at a glance (Sleeper D3). ``available: false`` with reason
+         *     ``no_current_season`` off-season (never a fake week). ``latest_results`` are the last
+         *     finalized week's games; ``pending_pairings`` are the unfinished week's games, unscored.
+         */
+        CurrentSeason: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Season Id */
+            season_id?: number | null;
+            /** Season Year */
+            season_year?: number | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Regular Season Weeks */
+            regular_season_weeks?: number | null;
+            /** Last Finalized Week */
+            last_finalized_week?: number | null;
+            /** Pending Week */
+            pending_week?: number | null;
+            /**
+             * Latest Results
+             * @default []
+             */
+            latest_results: components["schemas"]["GameCard"][];
+            /**
+             * Pending Pairings
+             * @default []
+             */
+            pending_pairings: components["schemas"]["GameCard"][];
+            /**
+             * Standings Top
+             * @default []
+             */
+            standings_top: components["schemas"]["StandingRow"][];
         };
         /** DataCaveat */
         DataCaveat: {
@@ -1662,6 +1732,11 @@ export interface components {
             data: components["schemas"]["CoverageMatrix"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[CurrentSeason] */
+        Envelope_CurrentSeason_: {
+            data: components["schemas"]["CurrentSeason"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[DraftBoard] */
         Envelope_DraftBoard_: {
             data: components["schemas"]["DraftBoard"];
@@ -1925,6 +2000,11 @@ export interface components {
             bracket_tier?: string | null;
             /** Game Label */
             game_label?: string | null;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
             team_a?: components["schemas"]["GameTeam"] | null;
             team_b?: components["schemas"]["GameTeam"] | null;
             /** Margin */
@@ -3147,6 +3227,11 @@ export interface components {
             result?: string | null;
             /** Margin */
             margin?: number | null;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
         };
         /** ScoringTrendPoint */
         ScoringTrendPoint: {
@@ -3462,6 +3547,8 @@ export interface components {
             season_year: number;
             /** Through Week */
             through_week: number;
+            /** Pending Week */
+            pending_week?: number | null;
             /** Regular Season Weeks */
             regular_season_weeks: number;
             /** Rank Basis */
@@ -3685,6 +3772,11 @@ export interface components {
             /** Is Scored */
             is_scored: boolean;
             /**
+             * Week Pending
+             * @default false
+             */
+            week_pending: boolean;
+            /**
              * Roster Reconstructed
              * @default false
              */
@@ -3706,6 +3798,8 @@ export interface components {
             nfl_team?: string | null;
             /** Roster Slot */
             roster_slot?: string | null;
+            /** Slot Note */
+            slot_note?: string | null;
             /** Is Starter */
             is_starter: boolean;
             /**
@@ -3786,6 +3880,9 @@ export interface components {
             extra_data?: {
                 [key: string]: unknown;
             } | null;
+            /** Status */
+            status?: string | null;
+            trade_assets?: components["schemas"]["TradeAssets"] | null;
         };
         /** TeamTransactions */
         TeamTransactions: {
@@ -3903,6 +4000,33 @@ export interface components {
             /** Scorers */
             scorers: components["schemas"]["TopScorer"][];
         };
+        /** TradeAssets */
+        TradeAssets: {
+            /**
+             * Picks In
+             * @default []
+             */
+            picks_in: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Picks Out
+             * @default []
+             */
+            picks_out: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Faab In
+             * @default 0
+             */
+            faab_in: number;
+            /**
+             * Faab Out
+             * @default 0
+             */
+            faab_out: number;
+        };
         /** TrajectoryPoint */
         TrajectoryPoint: {
             /** Season Year */
@@ -3951,6 +4075,11 @@ export interface components {
             week: number;
             /** Is Scored */
             is_scored: boolean;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
             /** Games */
             games: components["schemas"]["GameCard"][];
         };
@@ -4184,6 +4313,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SeasonList_"];
+                };
+            };
+        };
+    };
+    get_current_season_v1_seasons_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CurrentSeason_"];
                 };
             };
         };

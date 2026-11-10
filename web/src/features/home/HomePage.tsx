@@ -2,7 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, DataGap, RecordLine, Skeleton, Stat, Trophy } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  RecordLine,
+  Skeleton,
+  Stat,
+  throughWeekText,
+  Trophy,
+} from "@/design-system";
+import { ThisWeek } from "@/features/home/ThisWeek";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -39,6 +51,7 @@ type HomeRecord = {
   loser_name?: string | null;
   opponent_name?: string | null;
   season_year?: number | null;
+  through_week?: number | null;
   reason?: string;
 };
 
@@ -52,6 +65,7 @@ function recordWho(rec: HomeRecord): string {
   else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year) parts.push(String(rec.season_year));
+  if (rec.through_week != null) parts.push(throughWeekText(rec.through_week));
   return parts.join(" · ") || "—";
 }
 
@@ -96,6 +110,8 @@ export function HomePage() {
           backend metrics; gaps are shown honestly, never faked.
         </p>
       </div>
+
+      <ThisWeek />
 
       <Card className="p-5">
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
