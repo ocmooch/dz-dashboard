@@ -46,6 +46,12 @@ from sqlalchemy import select
 from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
+from ff_dashboard.analytics.game_state import (
+    commissioner_override,
+    is_idle,
+    is_pending,
+    slot_note,
+)
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
 from ff_dashboard.analytics.matchup_flags import (
@@ -53,6 +59,7 @@ from ff_dashboard.analytics.matchup_flags import (
     season_score_context,
     week_score_context,
 )
+from ff_dashboard.analytics.platform import season_provenance
 from ff_dashboard.analytics.player_status import should_suppress_status
 from ff_dashboard.analytics.roster_snapshots import (
     is_reconstructed_week,
@@ -940,6 +947,7 @@ def _team_box(
             )
         entry = {
             "roster_slot": slot,
+            "slot_note": slot_note(roster_row.extra_data),
             "player_id": player.player_id,
             "player_name": player.name_full,
             "position": _badge_position(slot, player),
@@ -1026,6 +1034,14 @@ def _team_box(
     }
 
 
+def _provenance_fields(session: Session, m: Matchup) -> dict[str, Any]:
+    """Where the official points come from, and any commissioner override (D3)."""
+    return {
+        "official_points_source": season_provenance(session, m.season_id)["platform"],
+        "commissioner_override": commissioner_override(m),
+    }
+
+
 def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     """Full box score for a matchup, or ``None`` if no such matchup (404).
 
@@ -1045,13 +1061,15 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     bracket_tier = _pc.get("tier")
     game_label = _pc.get("game_label")
 
-    if season.year not in set(seasons_scored(session)):
+    if is_pending(m) or season.year not in set(seasons_scored(session)):
         return {
             "matchup_id": matchup_id,
             "season_year": season.year,
             "week": m.week,
             "available": False,
-            "reason": "season_unscored",
+            # An unfinished week is unscored until the weekly capture resolves it.
+            "reason": "week_pending" if is_pending(m) else "season_unscored",
+            **_provenance_fields(session, m),
             "is_playoff": bool(m.is_playoff),
             "bracket_tier": bracket_tier,
             "game_label": game_label,
@@ -1138,6 +1156,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "projections_available": projections_available,
         "projection_reason": projection_reason,
         "resolution_note": resolution_note,
+        **_provenance_fields(session, m),
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,
@@ -1162,15 +1181,18 @@ def _entering_records(session: Session, season: Season, week: int) -> dict[int, 
             Matchup.team_score,
             Matchup.opponent_score,
             Matchup.opponent_team_id,
+            Matchup.extra_data,
         ).where(
             Matchup.season_id == season.season_id,
             Matchup.week < week,
             Matchup.week <= reg_weeks,
         )
     ).all()
-    for team_id, is_win, team_score, opp_score, opp_team_id in rows:
+    for team_id, is_win, team_score, opp_score, opp_team_id, extra in rows:
         if opp_team_id is None:
             continue  # bye, not a game
+        if (extra or {}).get("finalized") is False:
+            continue  # unfinished week: unscored
         rec = records.setdefault(int(team_id), {"wins": 0, "losses": 0, "ties": 0})
         if is_win is True:
             rec["wins"] += 1
@@ -1202,13 +1224,18 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         .scalars()
         .all()
     )
+    # Idle postseason team-weeks (byes / already placed) are not games.
+    rows = [m for m in rows if not is_idle(m)]
+    pending = any(is_pending(m) for m in rows)
     owners = owner_name_map(session)
     teams: dict[int, Any] = {}
     entering = _entering_records(session, season, week)
     # Computed once per call and shared across every game card; the route caches
     # this whole function per (season, week).
     season_ctx = season_score_context(session, season_id, season.year)
-    week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
+    week_ctx = {
+        m.team_id: m.team_score for m in rows if m.team_score is not None and not is_pending(m)
+    }
     # Shared postseason classification for this season; cheap and reused per card.
     _pc = postseason_classification(session, season_id)
     classification = _pc["by_matchup_id"]
@@ -1247,6 +1274,24 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         if pair in seen:
             continue
         seen.add(pair)
+
+        if is_pending(m):
+            # Unfinished week: a pairing only. No live score, winner or margin (unscored, not 0).
+            games.append(
+                {
+                    "matchup_id": m.matchup_id,
+                    "is_playoff": bool(m.is_playoff),
+                    "bracket_tier": None,
+                    "game_label": None,
+                    "pending": True,
+                    "team_a": team_ref(m.team_id, None, False),
+                    "team_b": team_ref(m.opponent_team_id, None, False),
+                    "margin": None,
+                    "winner_team_id": None,
+                    "flags": [],
+                }
+            )
+            continue
 
         winner_team_id: int | None = None
         if (
@@ -1301,5 +1346,6 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         "season_year": season.year,
         "week": week,
         "is_scored": season.year in set(seasons_scored(session)),
+        "pending": pending,
         "games": games,
     }

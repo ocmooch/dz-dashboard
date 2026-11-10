@@ -296,6 +296,9 @@ class Standings(BaseModel):
     season_id: int
     season_year: int
     through_week: int
+    # The first unfinished week of an in-progress season ("awaiting final"); it is unscored
+    # and counted nowhere. None for a final season.
+    pending_week: int | None = None
     regular_season_weeks: int
     rank_basis: str  # "final_rank" | "computed"
     tiebreak_caveat: bool
@@ -1351,6 +1354,9 @@ class GameCard(BaseModel):
     # the round/place label ("Championship", "Toilet Bowl", …) where known.
     bracket_tier: str | None = None
     game_label: str | None = None
+    # An unfinished week (Sleeper, not yet finalized): a pairing "awaiting final", unscored.
+    # Scores, margin and winner are null, never live values.
+    pending: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
@@ -1363,6 +1369,8 @@ class WeekMatchups(BaseModel):
     season_year: int
     week: int
     is_scored: bool
+    # True when this week is unfinished (every game is a pending pairing).
+    pending: bool = False
     games: list[GameCard]
 
 
@@ -1389,6 +1397,8 @@ class HamlinSubstitute(BaseModel):
 
 class BoxPlayer(BaseModel):
     roster_slot: str | None = None
+    # "bench_or_reserve": a Sleeper week with no archived IR list, so BN may be a reserve slot.
+    slot_note: str | None = None
     player_id: int
     player_name: str | None = None
     position: str | None = None
@@ -1444,6 +1454,11 @@ class BoxTeam(BaseModel):
     lineup: list[BoxPlayer]
 
 
+class CommissionerOverride(BaseModel):
+    official: float
+    custom: float
+
+
 class BoxScore(BaseModel):
     matchup_id: int
     season_year: int | None = None
@@ -1462,6 +1477,12 @@ class BoxScore(BaseModel):
     # Matchup-level banner for the 2022 Week-17 Hamlin no-contest resolution,
     # shown when any slot on either side carries a substitution. Null otherwise.
     resolution_note: str | None = None
+    # Where official player points come from: "nfl_com" | "sleeper" (the UI maps it to a
+    # label via lib/platform.ts).
+    official_points_source: str | None = None
+    # Set when the commissioner awarded a score: Sleeper's computed total vs the awarded one.
+    # Each side's ``total_score`` stays the league score (the awarded one).
+    commissioner_override: CommissionerOverride | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None
@@ -1502,6 +1523,8 @@ class TeamRosterPlayer(BaseModel):
     position: str | None = None
     nfl_team: str | None = None
     roster_slot: str | None = None
+    # "bench_or_reserve": a Sleeper week with no archived IR list, so BN may be a reserve slot.
+    slot_note: str | None = None
     is_starter: bool
     # A placeholder for an open roster spot at week-end (a player was dropped and
     # not replaced). Padded up to the team-season's usual roster size so the slot
@@ -1526,6 +1549,8 @@ class TeamRosterOut(BaseModel):
     week: int
     weeks_available: list[int]
     is_scored: bool
+    # The displayed week is unfinished: the roster shows, per-player points are null.
+    week_pending: bool = False
     # True when the displayed week's whole roster is a reconstructed audit
     # snapshot (not a live weekly capture): per-player attribution/slots are
     # approximate. Shown as one caveat banner, mirroring the box score.
@@ -1545,6 +1570,8 @@ class ScheduleGame(BaseModel):
     opponent_score: float | None = None
     result: str | None = None  # W / L / T
     margin: float | None = None
+    # An unfinished week ("awaiting final"): scores, result and margin are null.
+    pending: bool = False
 
 
 class TeamSchedule(BaseModel):
@@ -1567,6 +1594,13 @@ class TeamScoringTrend(BaseModel):
     points: list[ScoringTrendPoint]
 
 
+class TradeAssets(BaseModel):
+    picks_in: list[dict[str, Any]] = []
+    picks_out: list[dict[str, Any]] = []
+    faab_in: float = 0
+    faab_out: float = 0
+
+
 class TeamTransaction(BaseModel):
     transaction_id: int
     transaction_type: str
@@ -1581,6 +1615,10 @@ class TeamTransaction(BaseModel):
     counterpart_team_name: str | None = None
     notes: str | None = None
     extra_data: dict[str, Any] | None = None
+    # Sleeper: "complete" / "failed" (lost claims are left out of this list); legacy: null.
+    status: str | None = None
+    # The pick/FAAB side of a trade (a player-less leg); null for any player row.
+    trade_assets: TradeAssets | None = None
 
 
 class TeamTransactions(BaseModel):
@@ -1646,3 +1684,22 @@ class SearchHit(BaseModel):
 class SearchResults(BaseModel):
     query: str
     hits: list[SearchHit]
+
+
+class CurrentSeason(BaseModel):
+    """The in-progress season at a glance (Sleeper D3). ``available: false`` with reason
+    ``no_current_season`` off-season (never a fake week). ``latest_results`` are the last
+    finalized week's games; ``pending_pairings`` are the unfinished week's games, unscored."""
+
+    available: bool
+    reason: str | None = None
+    season_id: int | None = None
+    season_year: int | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    regular_season_weeks: int | None = None
+    last_finalized_week: int | None = None
+    pending_week: int | None = None
+    latest_results: list[GameCard] = []
+    pending_pairings: list[GameCard] = []
+    standings_top: list[StandingRow] = []

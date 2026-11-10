@@ -11,6 +11,7 @@ from ff_dashboard.analytics.bracket import season_bracket
 from ff_dashboard.analytics.common import displayed_seasons, owner_name_map, require_league
 from ff_dashboard.analytics.conferences import season_conferences
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.current_season import current_season
 from ff_dashboard.analytics.efficiency import season_efficiency
 from ff_dashboard.analytics.platform import season_platform_fields
 from ff_dashboard.analytics.standings import (
@@ -22,6 +23,7 @@ from ff_dashboard.analytics.standings import (
 from ff_dashboard.analytics.weekly_scores import weekly_scores
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
+    CurrentSeason,
     Envelope,
     SeasonBracket,
     SeasonConferences,
@@ -67,6 +69,13 @@ def list_seasons(session: SessionDep) -> Envelope[SeasonList]:
             )
         )
     return Envelope(data=SeasonList(seasons=items), meta=build_meta(session))
+
+
+# Declared before ``/v1/seasons/{season_id}`` so "current" is not read as an id.
+@router.get("/v1/seasons/current", response_model=Envelope[CurrentSeason])
+def get_current_season(session: SessionDep) -> Envelope[CurrentSeason]:
+    require_league(session)
+    return Envelope(data=CurrentSeason(**current_season(session)), meta=build_meta(session))
 
 
 @router.get("/v1/seasons/{season_id}", response_model=Envelope[SeasonSummary])
