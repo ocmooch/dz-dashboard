@@ -32,6 +32,11 @@ disagree with the backend because the frontend does no math.
   per-season `is_scored` flag** — never hardcode a year.
 - **Don't modify Phase 1** except additive read-only helpers in
   `ff_pipeline/repository/queries.py`.
+- **Sleeper-era rows (2026+) differ** — see `docs/sleeper/00_UPSTREAM_STATE.md` §4/§6 before
+  touching matchups/transactions/points: provisional weeks (`is_win NULL`, live scores) are never a
+  result; opponent-less postseason rows are not games; transactions include `status='failed'`
+  claims and player-less pick/FAAB legs; official points come from
+  `queries.authoritative_week_points_expr`. Capability `not_used` renders nothing.
 - **Don't merge milestones.** Finish one cleanly before the next.
 - Commit trailers: `AI-Model` / `Prompted-By` / `Reviewed-By`. **Never** `Co-Authored-By: Claude`.
   Git model: `feature/*` → `dev` → `main`.
@@ -75,6 +80,7 @@ dumps every test log hits the limit mid-milestone and stalls. Default to **less 
 | `docs/08_TESTING_STRATEGY.md` | deciding what to test | the relevant test kind |
 | `docs/09_ROADMAP.md` | every milestone — confirm scope + "Done when" | the one P# row |
 | `docs/10_OPEN_QUESTIONS.md` | a decision is ambiguous | the one Q |
+| `docs/sleeper/00_UPSTREAM_STATE.md` | **any Sleeper-era (D0–D8) session** | the whole doc (short), then the D row in `docs/sleeper/02` |
 
 Use `CHANGELOG.md` for pass/PR history; keep `PROGRESS.md` for current state only.
 

@@ -1,6 +1,6 @@
 ---
 name: milestone-session
-description: Use at the start of any Claude Code session that works on a Phase 2 milestone (P0–P11 in docs/09_ROADMAP.md) for the dz-dashboard repo. Governs how to enter the milestone cheaply — what to read, in what order, and when to stop — so a single milestone does not exhaust the context window. Trigger whenever a session begins with "milestone P{N}", "continue Phase 2", "work on the dashboard", or similar.
+description: Use at the start of any Claude Code session that works on a Phase 2 milestone (P0–P11 in docs/09_ROADMAP.md) or a Sleeper-era milestone (D0–D8 in docs/sleeper/02_DASHBOARD_BUILD_PLAN.md) for the dz-dashboard repo. Governs how to enter the milestone cheaply — what to read, in what order, and when to stop — so a single milestone does not exhaust the context window. Trigger whenever a session begins with "milestone P{N}", "continue Phase 2", "work on the dashboard", or similar.
 ---
 
 # Milestone session (token-cheap)
@@ -13,6 +13,12 @@ through files on disk. Pick the mode that matches the request and follow only th
 1. `PROGRESS.md` — current state, what's next, the handful of files that matter now.
 2. The single `P{N}` row in `docs/09_ROADMAP.md` — scope + "Done when".
 3. If a plan exists: `docs/plans/P{N}-*.md`. If not and you're in PLAN mode, you'll write it.
+
+**Sleeper-era milestones (D0–D8)** replace step 2 with: `docs/sleeper/00_UPSTREAM_STATE.md`
+(whole doc: what upstream delivered, the user's decisions, the hotspots), then the one `D{N}`
+section of `docs/sleeper/02_DASHBOARD_BUILD_PLAN.md`. Plans go to `docs/plans/sleeper-d{N}-*.md`.
+Don't re-explore `../danger-zone`: the helpers and row shapes are in `00` §2/§4. Never trigger
+the live 2026 go-live; it is upstream's, on the user's approval.
 
 Do **not** re-read the full design package, `PHASE2_KICKOFF.md`, or browse `analytics/` and
 `web/` to "understand the current state" — that's what `PROGRESS.md` is for. Read additional

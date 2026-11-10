@@ -8,6 +8,10 @@ Read order at session start: `PROGRESS.md` → the relevant `docs/09_ROADMAP.md`
 the open scope → the cited finding in `docs/reviews/2026-06-in-browser-review.md` if it has an
 F-number.
 
+**Top of the queue (2026-11-09): the Sleeper era, D0–D8.** Plans: `docs/sleeper/` (start with
+`00_UPSTREAM_STATE.md`). Upstream S1–S8 ☑ merged; the 2026 live go-live is ⤴ upstream, run on the
+user's approval after D3.
+
 Status key: ☐ todo · ◐ in progress · ⊘ blocked (needs an input/decision) · ⤴ upstream (out of this
 repo, in `../danger-zone` / ff-pipeline) · ☑ done.
 

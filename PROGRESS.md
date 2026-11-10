@@ -15,6 +15,21 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+**Next program: the Sleeper era (milestones D0–D8).** The league moved to Sleeper for 2026. Upstream
+(danger-zone S1–S8) is **done and merged** (2026-11-09): capture, schema, identity, loader, scoring,
+brackets/picks/status, and the source-neutral read surface in `ff_pipeline.repository.queries`.
+**Start any Sleeper-era session with `docs/sleeper/00_UPSTREAM_STATE.md`**: it covers where the data
+is, the exact helpers, capability semantics, 2026 row shapes, the decisions already made with the
+user, and the dashboard hotspots that misbehave on 2026 rows. Then read `docs/sleeper/02` (milestones).
+Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one user-approved go-live,
+after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
+D1–D3 on a 2026 DB copy.
+
+**Status reconcile (2026-11-09):** every branch the paragraphs below call "in flight",
+"uncommitted" or "ready to PR" is merged to `dev` (checked against the merge log through PR #122,
+the league-name scrub + CI fix), and `main` is at **v0.4.0** (not v0.2.0 as below). The prose below
+is history, not open work.
+
 **The dashboard application is functionally complete and fully merged.** All P0–P12 milestones, all
 P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev`; `dev` was
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
@@ -115,6 +130,13 @@ The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the reve
 history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
 ## Next
+
+**Sleeper era D0 — mixed-era fixture + legacy golden snapshots** (`docs/sleeper/02` §D0, `00` §7).
+PLAN session first (`docs/plans/sleeper-d0-*.md`). Settled with the user (2026-11-09): **tests may
+build the mixed-era fixture with upstream `ff_pipeline` loaders** (`00` §7); `src/` stays read-only.
+Then D1 → D2 → D3 on a 2026 copy, then ask upstream for the go-live.
+
+Earlier direction (still valid, lower priority than the Sleeper era):
 
 **New strategic direction — Phase 2½ "The Resonance Leg"** (charter: `docs/PHASE2_5_RESONANCE.md`,
 2026-06-26). The dashboard is correct/complete (the "museum") but thin on resonance (the
