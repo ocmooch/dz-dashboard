@@ -29,7 +29,9 @@ Upstream references, by section only: `../danger-zone/docs/sleeper/04_SLEEPER_FI
 
   It is danger-zone's to run and **the user approves it**; dashboard sessions never trigger it.
 - **After step 4, 2026 data changes every Wednesday on its own**: the 06:00 ET weekly job runs
-  capture → `sleeper-league update` → full `legacy verify`. If the league's scoring settings
+  capture → `sleeper-league update` → full `legacy verify`, then the 07:00 vault sync backs it up.
+  Both run released danger-zone code (`main`, from `~/danger-zone-main`), not `dev` (see
+  `docs/PHASE2_RUNBOOK.md` "After each danger-zone release"). If the league's scoring settings
   change, `update` stops before rescoring until the user signs off the new rules.
 - **The moment it runs, 2026 becomes the dashboard's default season** (latest played season), in
   every view at once. So:
