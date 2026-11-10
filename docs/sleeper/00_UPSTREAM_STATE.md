@@ -84,6 +84,10 @@ The user's rules (S8 decisions, 2026-11-09):
   `official_divisions`) are `available` only when present, else `not_used`.
 - **While a season is active**, every representation shows the current state and marks it as
   subject to change. At season end it is static.
+- **The unfinished week is unscored (user, 2026-11-10).** A week the capture hasn't finalized
+  (`matchups.extra_data.finalized` false) is not a game result in progress: it is never a tie,
+  shows no live scores, and adds nothing to standings, PF/PA, records or h2h. It joins the
+  dashboard once the weekly capture resolves it. Only its pairings show, marked "awaiting final".
 
 Today's real values: 2025 (NFL.com) =
 - `available`: standings, matchups, rosters, draft, official and reconstructed points, moves,

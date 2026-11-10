@@ -6,6 +6,12 @@ no 2026 data until the go-live (user-approved, upstream).
 
 **Done when (verbatim):** the 2026 season is browsable end to end with the same look as 2025.
 
+**User rule (2026-11-10), governs this whole plan:** the current week is an *unfinished, unscored*
+week. It never counts as a tie or any result, and contributes nothing: no W-L-T, no PF/PA, no streak,
+no records, no h2h. A week joins the dashboard only once the weekly capture has resolved it
+(`matchups.extra_data.finalized` true). Until then its live scores are not shown anywhere; the week
+appears only as pairings marked "awaiting final".
+
 ## What the fixture shows today (probed 2026-11-10, before any D3 code)
 
 The 2026 fixture season has weeks 1–8 finalized and **week 9 provisional** (`finalized=false`,
@@ -27,8 +33,8 @@ The 2026 fixture season has weeks 1–8 finalized and **week 9 provisional** (`f
 
 ```python
 def is_game(m) -> bool              # has an opponent (idle postseason rows are not games)
-def is_provisional(m) -> bool       # extra_data.finalized is False (legacy rows: never)
-def is_final_game(m) -> bool        # is_game and not provisional
+def is_pending(m) -> bool           # extra_data.finalized is False: unfinished, unscored (legacy: never)
+def is_final_game(m) -> bool        # is_game and not pending
 def game_result(m) -> "W"|"L"|"T"|None   # only for a final game; replaces standings._result
 def official_score(m) -> {"official": float|None, "custom": float|None}   # commissioner override
 ```
@@ -41,15 +47,15 @@ golden parity tests prove it). Every D3 surface below uses these instead of read
 
 | Surface | Change |
 |---|---|
-| `standings.compute_standings` | W-L-T, PF/PA and streak from final games only. New row fields `live_points_for: float\|None` and `provisional: bool`; payload `through_week` = last finalized week, new `live_week: int\|None`. Mirrors upstream `standings_for_season` (S8-D3). |
+| `standings.compute_standings` | W-L-T, PF/PA and streak from finalized games only; the unfinished week adds nothing (no live points column). Payload `through_week` = last finalized week, plus `pending_week: int\|None` so the UI can say "week 9 awaiting final". |
 | `standings` timeline / insights | stop at the last finalized week |
-| `matchups.week_matchups` | provisional game: `winner_team_id` null, `is_winner` false on both sides, new game field `provisional: true`, `margin` null. Idle postseason rows are not listed as games. |
-| `matchups.box_score` | `provisional: bool`; `winner_team_id`/`margin` null while provisional; new `official_points_source: "nfl_com"\|"sleeper"` (from `season_platform`); new `commissioner_override: {official, custom} \| null` when `custom_points` is set. Each side's `total_score` stays the league score (custom when overridden). |
-| `teams` schedule / scoring trend | provisional week shown as current state (no W/L); idle rows skipped as games, their points not counted as PF |
+| `matchups.week_matchups` | unfinished week: games listed as pairings with `pending: true`; `score`, `winner_team_id`, `is_winner`, `margin` all null (unscored, not 0). Idle postseason rows are not listed as games. |
+| `matchups.box_score` | unfinished week: `available:false`, reason `week_pending` (unscored until capture resolves it; no live per-player points); new `official_points_source: "nfl_com"\|"sleeper"` (from `season_platform`); new `commissioner_override: {official, custom} \| null` when `custom_points` is set. Each side's `total_score` stays the league score (custom when overridden). |
+| `teams` schedule / scoring trend | unfinished week listed as an upcoming/pending game with no score or result; idle rows skipped as games, their points not counted as PF |
 | `teams.transactions_for_team` (L392, L589) | failed claims leave the default activity list and counts; they come back as `status: "failed"` rows only where a view asks for them (D6 builds bid wars). Player-less trade legs render as a pick/FAAB line, not a broken player row. |
-| `records` | the in-progress season counts **completed weeks only**; a provisional week never sets a record (blowout, high score, best player week). |
+| `records` | the in-progress season counts **completed weeks only**; an unfinished week never sets a record (blowout, high score, best player week). |
 | `head_to_head` | `margin = team_score - opponent_score` only for final games (00 §6). Wider cross-era aggregation (careers, rivalries, power) stays D4. |
-| new `analytics/current_season.py` + `GET /v1/seasons/current` | `{season_id, season_year, platform, platform_label, current_week, week_state: "provisional"\|"final", last_finalized_week, matchups: [WeekGame], standings_top: [...], data_as_of}`; `available:false` with reason `no_current_season` when nothing is in progress (never a fake week). Reuses `week_matchups` + `compute_standings`; adds no new math. |
+| new `analytics/current_season.py` + `GET /v1/seasons/current` | `{season_id, season_year, platform, platform_label, last_finalized_week, pending_week: int\|None, latest_results: [WeekGame] (the last finalized week), pending_pairings: [WeekGame] (no scores), standings_top: [...], data_as_of}`; `available:false` with reason `no_current_season` when nothing is in progress (never a fake week). Reuses `week_matchups` + `compute_standings`; adds no new math. |
 
 Roster rows with `slot_certainty='bench_or_reserve'` keep `BN` and get a `slot_note` (box score,
 team roster) so "bench or reserve" is shown, not hidden. That is a per-row flag; no math.
@@ -60,15 +66,16 @@ and failed-bid views (D6); player status (D7); career/rivalry/power era-awarenes
 ### 3. Frontend (presentation only; no math in `web/`)
 
 - **Home**: when `/v1/seasons/current` is available, a "This week" command-center block at the top:
-  week label plus a provisional badge, that week's games as `GameCard`s linking to the box score, and
-  the top of the live standings. Off-season keeps today's Home unchanged (`seasonPhase.ts` already
+  the last finalized week's results as `GameCard`s linking to the box score, the pending week's
+  pairings marked "awaiting final" (no scores), and the top of the standings through the last
+  finalized week. Off-season keeps today's Home unchanged (`seasonPhase.ts` already
   keys on `status`).
-- **`DataAsOf.tsx`**: append "Week N (provisional)" or "Week N final" from `meta.current_week` plus
-  the `/current` week state.
-- **Matchups / Box score**: a `provisional` badge ("Live: subject to change"); no winner styling
-  while provisional; a commissioner-override note (official vs awarded score) via `ProvenanceNote`;
+- **`DataAsOf.tsx`**: append "through week N" (last finalized), plus "week N+1 awaiting final" when
+  one is pending.
+- **Matchups / Box score**: a pending week shows pairings with an "awaiting final" badge and no
+  scores; its box score shows the `DataGap` for `week_pending`; a commissioner-override note (official vs awarded score) via `ProvenanceNote`;
   the points-source footnote reads the label from `lib/platform.ts`, never a literal.
-- **Standings**: "through week N" plus a live column or row note for the provisional week.
+- **Standings**: "through week N", plus "week N+1 awaiting final" when one is pending.
 - **Team transactions**: player-less trade legs show "Draft pick / FAAB" text.
 
 Every platform-specific string goes through `lib/platform.ts` (the `02` per-PR checklist rule; no
@@ -86,24 +93,26 @@ CI lint enforces it yet, so review for literals).
 ## Tests
 
 Unit (`test_d3_game_state.py`):
-- legacy row → final; `finalized=false` → provisional, never a result; no opponent → not a game;
+- legacy row → final; `finalized=false` → pending, never a result; no opponent → not a game;
   `custom_points` → override with both values.
 
 BFF on the mixed fixture (`test_d3_current_season.py`):
-- 2026 standings: records from weeks 1–8 only (no ties from week 9); `through_week=8`, `live_week=9`;
-  `live_points_for` set; streak unaffected by week 9.
-- `/weeks/9/matchups`: every game `provisional`, no winner; weeks 1–8 unchanged.
-- Box score for a week-9 game: `provisional`, no winner/margin; for the override game,
+- 2026 standings: W-L-T and PF/PA equal a hand sum of weeks 1–8 (no ties from week 9);
+  `through_week=8`, `pending_week=9`; streak unaffected by week 9.
+- `/weeks/9/matchups`: every game `pending`, scores/winner/margin null; weeks 1–8 unchanged.
+- Box score for a week-9 game: `available:false`, `week_pending`; for the override game,
   `commissioner_override={official:112.46, custom:117.46}`; `official_points_source="sleeper"`;
   same top-level keys as a legacy box score (structure mirror).
 - Records: no 2026 week-9 value ever wins a record (raise a live score in a temp copy to prove it).
+- Finalizing week 9 in a temp copy (`finalized` true, `is_win` set) makes it appear everywhere
+  above with no other change: the "added once capture resolves" rule.
 - Idle postseason rows (temp copy): not in week matchups, schedule, h2h or PF.
 - Team transactions: failed claims absent from the default list; pick/FAAB legs present, no crash.
-- `/v1/seasons/current`: week 9 provisional, 6 games; `available:false` on the legacy-only fixture.
+- `/v1/seasons/current`: `last_finalized_week=8` with 6 results, `pending_week=9` with 6 unscored pairings; `available:false` on the legacy-only fixture.
 - Both golden parity tests green (legacy unchanged).
 
-Frontend: Home `ThisWeek` renders provisional and final states and is absent off-season; Box score
-provisional badge and override note; component tests with fixture payloads.
+Frontend: Home `ThisWeek` renders results + pending pairings and is absent off-season; pending badge
+and no scores on Matchups; Box score `week_pending` gap and override note; component tests with fixture payloads.
 
 e2e: journey "Home → this week's matchup → box score" on the mixed fixture (the VERIFY session).
 

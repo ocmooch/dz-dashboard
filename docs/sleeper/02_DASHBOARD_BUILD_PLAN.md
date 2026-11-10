@@ -85,8 +85,8 @@ weeks; Box score for a Sleeper week mirrors a legacy box score's structure; e2e 
 **Done when:** the 2026 season is browsable end to end with the same look as 2025.
 
 Must handle (`00` §4/§6): the provisional week (`finalized=false`, `is_win NULL`, live scores) as
-current state, never a result; idle postseason rows; commissioner overrides; failed claims and
-player-less trade legs in team transaction lists; `slot_certainty='bench_or_reserve'` bench rows.
+an unscored pending week (no live scores; counted only once the capture finalizes it, `00` §3);
+idle postseason rows; commissioner overrides; failed claims and player-less trade legs in team transaction lists; `slot_certainty='bench_or_reserve'` bench rows.
 
 ## D4 — Cross-era aggregation audit
 
