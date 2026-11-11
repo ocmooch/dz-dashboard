@@ -13,12 +13,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ff_pipeline.repository.models import Matchup
+from ff_pipeline.repository.models import Matchup, Season, Team
 from ff_pipeline.repository.queries import get_season, get_team
 from sqlalchemy import select
 
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks, require_league
 from ff_dashboard.analytics.conferences import conference_map
+from ff_dashboard.analytics.game_state import is_idle
 from ff_dashboard.analytics.historical_team_names import period_team_name
 
 if TYPE_CHECKING:
@@ -29,6 +30,16 @@ BRACKET_CAVEAT = (
     "Post-regular-season matchups from the source data. The championship and consolation "
     "brackets are separated by who actually played whom, not by source flags."
 )
+
+# Three-way postseason game tiers used by the shared classifier (Part A). The
+# championship is the single title game; the rest of the winners' bracket is
+# ``playoff``; the placement/"toilet" half is ``consolation``.
+TIER_CHAMPIONSHIP = "championship"
+TIER_PLAYOFF = "playoff"
+TIER_CONSOLATION = "consolation"
+
+CHAMPIONSHIP_GAME_LABEL = "Championship"
+TOILET_BOWL_GAME_LABEL = "Toilet Bowl"
 
 # Final-round per-game labels for each bracket type
 _LABELS: dict[str, dict[str, str]] = {
@@ -68,6 +79,7 @@ def _team_ref(
         "owner_name": owners.get(team.owner_id) if team is not None else None,
         "score": round(score, 2) if score is not None else None,
         "is_winner": is_winner,
+        "is_sacko": False,  # set on the toilet-bowl loser below
         "conference_name": _conf_name,
     }
 
@@ -268,6 +280,8 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
     seen: set[tuple[int, frozenset[int]]] = set()
     game_dicts: list[dict[str, Any]] = []
     for m in rows:
+        if is_idle(m):
+            continue  # a Sleeper bye / already-placed team-week is not a bracket game
         pair = frozenset(
             {m.team_id, m.opponent_team_id} if m.opponent_team_id is not None else {m.team_id}
         )
@@ -316,6 +330,22 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
             }
         )
 
+    # Flag the Sacko (toilet-bowl loser) on their team ref in that game, so the
+    # bracket can surface the 💩 anti-trophy. Reuses the shared classifier so the
+    # toilet-bowl identification stays in one place; the deduped game's id equals
+    # the classifier's ``matchup_id`` (both the smallest of the pair's two rows).
+    sacko = postseason_classification(session, season_id).get("sacko") or {}
+    sacko_mid = sacko.get("matchup_id")
+    sacko_tid = sacko.get("team_id")
+    if sacko_mid is not None and sacko_tid is not None:
+        for g in game_dicts:
+            if g["matchup_id"] != sacko_mid:
+                continue
+            for side in ("team_a", "team_b"):
+                ref = g.get(side)
+                if ref is not None and ref["team_id"] == sacko_tid:
+                    ref["is_sacko"] = True
+
     # Split the championship and consolation halves by matchup connectivity, then
     # label the lower-ranked half as the championship bracket. final_rank is read
     # from the cached Team rows fetched while building game_dicts.
@@ -351,3 +381,201 @@ def season_bracket(session: Session, season_id: int) -> dict[str, Any] | None:
         "playoff_bracket": playoff_bracket,
         "consolation_bracket": consol_bracket,
     }
+
+
+def _empty_classification(season_id: int, season_year: int | None) -> dict[str, Any]:
+    return {
+        "season_id": season_id,
+        "season_year": season_year,
+        "consolation_distinguished": False,
+        "by_matchup_id": {},
+        "championship_matchup_id": None,
+        "sacko": None,
+    }
+
+
+def postseason_classification(session: Session, season_id: int) -> dict[str, Any]:
+    """Shared three-way postseason classifier (the keystone for Part A).
+
+    Reuses the same connectivity split as :func:`season_bracket`
+    (``_connected_components`` + ``_order_components``) so every consumer agrees on
+    which games are championship / playoff / consolation. Returns:
+
+    * ``by_matchup_id`` — ``{matchup_id: {"tier", "game_label"}}`` for **both** stored
+      rows of every postseason game, so a consumer can classify by either row's id.
+    * ``championship_matchup_id`` — the title game, anchored on ``Season.champion_team_id``
+      (the playoff-half final whose winner is the champion). ``None`` when it can't be
+      proven (e.g. several finals share the last week and none is the champion).
+    * ``sacko`` — the **toilet-bowl final loser** (derived). Falls back to the recorded
+      ``Season.last_place_team_id`` (``source:"recorded"``) where the consolation bracket
+      can't be distinguished; ``None`` when neither is available.
+
+    Honesty: where ``consolation_distinguished`` is False, no game is tagged
+    ``consolation`` and no Sacko is *derived* — those stay generic / fall back, never
+    fabricated.
+    """
+    require_league(session)
+    season = get_season(session, season_id)
+    if season is None:
+        return _empty_classification(season_id, None)
+
+    # A season with official brackets (Sleeper) is classified from them, not from connectivity:
+    # Sleeper plays its 5th/11th-place games a round early, which the connectivity rule misreads.
+    from ff_dashboard.analytics.brackets import official_classification
+
+    official = official_classification(session, season)
+    if official is not None:
+        return official
+
+    regular_weeks = regular_season_weeks(session, season)
+    rows = list(
+        session.execute(
+            select(Matchup)
+            .where(Matchup.season_id == season_id, Matchup.week > regular_weeks)
+            .order_by(Matchup.week, Matchup.matchup_id)
+        )
+        .scalars()
+        .all()
+    )
+    if not rows:
+        return _empty_classification(season_id, season.year)
+
+    # One unit per distinct game; track both stored rows' matchup_ids so the tier
+    # map covers whichever row a consumer holds.
+    units: dict[tuple[int, frozenset[int]], dict[str, Any]] = {}
+    for m in rows:
+        if m.opponent_team_id is None:
+            continue  # a postseason bye carries no bracket edge
+        pair = frozenset({m.team_id, m.opponent_team_id})
+        key = (m.week, pair)
+        unit = units.get(key)
+        if unit is None:
+            winner: int | None = None
+            if m.team_score is not None and m.opponent_score is not None:
+                if m.team_score > m.opponent_score:
+                    winner = m.team_id
+                elif m.opponent_score > m.team_score:
+                    winner = m.opponent_team_id
+            unit = {
+                "week": m.week,
+                "team_a": {"team_id": m.team_id},
+                "team_b": {"team_id": m.opponent_team_id},
+                "winner_team_id": winner,
+                "matchup_ids": [],
+            }
+            units[key] = unit
+        unit["matchup_ids"].append(m.matchup_id)
+
+    games = list(units.values())
+    if not games:
+        return _empty_classification(season_id, season.year)
+
+    team_ids: set[int] = set()
+    for u in games:
+        team_ids.add(u["team_a"]["team_id"])
+        team_ids.add(u["team_b"]["team_id"])
+    teams = {
+        int(t.team_id): t
+        for t in session.execute(select(Team).where(Team.team_id.in_(team_ids))).scalars().all()
+    }
+    final_ranks = {tid: getattr(t, "final_rank", None) for tid, t in teams.items()}
+
+    components = _order_components(_connected_components(games), final_ranks)
+    consolation_distinguished = len(components) >= 2
+    consol_ids: set[int] = set().union(*components[1:]) if consolation_distinguished else set()
+
+    by_matchup_id: dict[int, dict[str, Any]] = {}
+    for u in games:
+        a_id = u["team_a"]["team_id"]
+        tier = TIER_CONSOLATION if a_id in consol_ids else TIER_PLAYOFF
+        u["tier"] = tier
+        for mid in u["matchup_ids"]:
+            by_matchup_id[mid] = {"tier": tier, "game_label": None}
+
+    # Championship: the playoff-half final (latest playoff week) whose winner is the
+    # recorded champion. Authoritative anchor; left None when unprovable.
+    championship_matchup_id: int | None = None
+    playoff_games = [u for u in games if u["tier"] == TIER_PLAYOFF]
+    champ_team_id = season.champion_team_id
+    if playoff_games:
+        last_week = max(u["week"] for u in playoff_games)
+        finals = [u for u in playoff_games if u["week"] == last_week]
+        title = None
+        if champ_team_id is not None:
+            title = next((u for u in finals if u["winner_team_id"] == champ_team_id), None)
+        if title is None and len(finals) == 1:
+            title = finals[0]
+        if title is not None:
+            championship_matchup_id = sorted(title["matchup_ids"])[0]
+            for mid in title["matchup_ids"]:
+                by_matchup_id[mid] = {
+                    "tier": TIER_CHAMPIONSHIP,
+                    "game_label": CHAMPIONSHIP_GAME_LABEL,
+                }
+
+    # Sacko: loser of the toilet-bowl game (the consolation final whose participants
+    # hold the worst final ranks). Falls back to the recorded last-place team.
+    sacko: dict[str, Any] | None = None
+    if consolation_distinguished:
+        consol_games = [u for u in games if u["tier"] == TIER_CONSOLATION]
+        if consol_games:
+            last_cw = max(u["week"] for u in consol_games)
+            consol_finals = [u for u in consol_games if u["week"] == last_cw]
+
+            def _worst_rank(u: dict[str, Any]) -> int:
+                ranks = [
+                    final_ranks.get(u["team_a"]["team_id"]),
+                    final_ranks.get(u["team_b"]["team_id"]),
+                ]
+                present = [r for r in ranks if r is not None]
+                return max(present) if present else -1
+
+            toilet = max(consol_finals, key=_worst_rank)
+            if toilet["winner_team_id"] is not None:
+                a_id = toilet["team_a"]["team_id"]
+                b_id = toilet["team_b"]["team_id"]
+                loser = b_id if toilet["winner_team_id"] == a_id else a_id
+                loser_team = teams.get(loser)
+                sacko = {
+                    "team_id": loser,
+                    "owner_id": loser_team.owner_id if loser_team is not None else None,
+                    "matchup_id": sorted(toilet["matchup_ids"])[0],
+                    "season_year": season.year,
+                    "source": "derived",
+                }
+                for mid in toilet["matchup_ids"]:
+                    by_matchup_id[mid]["game_label"] = TOILET_BOWL_GAME_LABEL
+    if sacko is None and season.last_place_team_id is not None:
+        lp = teams.get(int(season.last_place_team_id))
+        if lp is None:
+            lp = get_team(session, int(season.last_place_team_id))
+        sacko = {
+            "team_id": int(season.last_place_team_id),
+            "owner_id": lp.owner_id if lp is not None else None,
+            "matchup_id": None,
+            "season_year": season.year,
+            "source": "recorded",
+        }
+
+    return {
+        "season_id": season_id,
+        "season_year": season.year,
+        "consolation_distinguished": consolation_distinguished,
+        "by_matchup_id": by_matchup_id,
+        "championship_matchup_id": championship_matchup_id,
+        "sacko": sacko,
+    }
+
+
+def season_sacko_map(session: Session) -> dict[int, dict[str, Any]]:
+    """``{season_id: sacko}`` across every season that has a derivable/recorded Sacko.
+
+    One classification per season; consumers (owners, teams, records, league
+    history) share this instead of re-deriving the bracket split.
+    """
+    result: dict[int, dict[str, Any]] = {}
+    for sid in session.execute(select(Season.season_id)).scalars().all():
+        sacko = postseason_classification(session, int(sid)).get("sacko")
+        if sacko is not None:
+            result[int(sid)] = sacko
+    return result

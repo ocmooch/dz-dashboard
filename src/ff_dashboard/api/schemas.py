@@ -8,7 +8,8 @@ analytics-specific and additive.
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import date
+from typing import Any, Literal
 
 from ff_pipeline.api.schemas import (
     Envelope,
@@ -105,6 +106,19 @@ class SourceIdentityMismatch(BaseModel):
     reason: str
 
 
+class SeasonPositionDivergenceSeason(BaseModel):
+    season_year: int
+    season_position: str
+
+
+class SeasonPositionDivergence(BaseModel):
+    player_id: int
+    name_full: str
+    snapshot_position: str | None = None
+    divergent_season_count: int
+    divergent_seasons: list[SeasonPositionDivergenceSeason]
+
+
 class CoverageRelevance(BaseModel):
     total_players: int
     league_rostered_players: int
@@ -114,6 +128,8 @@ class CoverageRelevance(BaseModel):
     identity_split_candidates: list[IdentitySplitCandidate]
     source_identity_mismatch_count: int
     source_identity_mismatches: list[SourceIdentityMismatch]
+    season_position_divergence_count: int
+    season_position_divergences: list[SeasonPositionDivergence]
 
 
 class CoverageFeedCell(BaseModel):
@@ -126,15 +142,57 @@ class CoverageFeedCell(BaseModel):
     projected_stats_count: int | None = None
 
 
+# ---------------------------------------------------------------------------
+# Provenance + capabilities (Sleeper D1)
+# ---------------------------------------------------------------------------
+
+
+class Capability(BaseModel):
+    """One capability for one season. ``state`` mirrors upstream ``season_capabilities``:
+    available | partial | derived | not_yet | not_on_platform | not_used. ``not_used`` has no
+    note and renders nothing."""
+
+    state: str
+    note: str | None = None
+
+
+SeasonCapabilities = dict[str, Capability]
+
+
+class PlatformEra(BaseModel):
+    platform: str
+    label: str
+    start_year: int
+    end_year: int | None = None
+
+
+class CapabilityMatrixSeason(BaseModel):
+    season_id: int
+    season_year: int
+    platform: str
+    platform_label: str
+    cells: SeasonCapabilities
+
+
+class CapabilityMatrix(BaseModel):
+    keys: list[str]
+    seasons: list[CapabilityMatrixSeason]
+
+
 class CoverageMatrix(BaseModel):
     relevance: CoverageRelevance
     feeds: dict[str, list[CoverageFeedCell]]
     reason_codes: dict[str, str]
+    season_platforms: dict[int, str] = {}
+    capabilities: dict[int, SeasonCapabilities] = {}
 
 
 class MetaResponse(BaseModel):
     latest_run: LatestRun
     coverage: Coverage
+    platform_eras: list[PlatformEra] = []
+    current_season_id: int | None = None
+    current_week: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +221,41 @@ class TeamRef(BaseModel):
     owner_name: str | None = None
 
 
+class SackoRef(TeamRef):
+    """The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket), "recorded"
+    (the stored last-place team, where the bracket can't be split) or "official" (the platform's
+    bracket decided it; Sleeper)."""
+
+    source: str | None = None
+
+
+class PartialSeason(BaseModel):
+    season_year: int
+    # The in-progress season counts through its last finalized week (0 = none final yet).
+    through_week: int
+
+
+class AggregationNote(BaseModel):
+    """How a cross-season payload treated seasons that differ (Sleeper D4, `01` §5).
+
+    Present only when something was excluded or partially counted; null otherwise."""
+
+    used_seasons: list[int]
+    excluded_seasons: list[int] = []
+    partial_seasons: list[PartialSeason] = []
+    # in_progress_partial | season_totals_exclude_in_progress (copy in the SPA's lib/platform.ts)
+    reason: str
+
+
+class ScoringEra(BaseModel):
+    """Contiguous seasons with the same stored scoring rules (the rules-era marker)."""
+
+    era_id: int
+    label: str  # "2011-2020" (en dash); open-ended "2026-" while that era's season is in progress
+    start: int
+    end: int | None = None
+
+
 class OwnerRef(BaseModel):
     owner_id: int
     display_name: str | None = None
@@ -179,6 +272,9 @@ class SeasonListItem(BaseModel):
     status: str | None = None
     is_scored: bool
     champion: TeamRef | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class SeasonList(BaseModel):
@@ -194,6 +290,9 @@ class SeasonSummary(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class Streak(BaseModel):
@@ -215,18 +314,33 @@ class StandingRow(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    # True when this row's team was the season's Sacko (toilet-bowl loser / recorded
+    # last place); only set on a completed season. The 💩 anti-trophy.
+    is_sacko: bool = False
     conference_id: int | None = None
     conference_name: str | None = None
+    # Potential points (best possible lineup), the BFF's one method for every era; None = gap.
+    # ``potential_points_official`` is the platform's own figure (Sleeper), a cross-check only.
+    potential_points: float | None = None
+    potential_points_official: float | None = None
 
 
 class Standings(BaseModel):
     season_id: int
     season_year: int
     through_week: int
+    # The first unfinished week of an in-progress season ("awaiting final"); it is unscored
+    # and counted nowhere. None for a final season.
+    pending_week: int | None = None
     regular_season_weeks: int
     rank_basis: str  # "final_rank" | "computed"
     tiebreak_caveat: bool
     rows: list[StandingRow]
+    # Counted weeks where a bench slot may really be IR (Sleeper ``bench_or_reserve``), so the
+    # computed potential points may exceed the platform's. Empty when none.
+    potential_points_uncertain_weeks: list[int] = []
+    # "official" (platform-recorded) | "derived" (reviewed NFL.com history) | None (no divisions).
+    division_source: Literal["official", "derived"] | None = None
 
 
 class TimelinePoint(BaseModel):
@@ -274,6 +388,88 @@ class StandingsInsights(BaseModel):
     teams: list[StandingsInsightTeam]
 
 
+# --- Insights Lab (non-viz "discovery engine" exhibits) --------------------
+# A structured finding computed by analytics/insights.py. `facts` are the
+# traceable numbers; `narration` is presentation prose built only from them
+# (template now, LLM later) — the same "no math in the narrator" trust seam.
+class InsightFact(BaseModel):
+    label: str
+    value: str | float | int
+    unit: str | None = None
+
+
+class InsightProvenance(BaseModel):
+    metric: str  # the analytics primitive the facts trace to
+    endpoint: str  # the view that serves the same numbers
+
+
+class InsightSubject(BaseModel):
+    owner_id: int | None = None
+    owner_name: str | None = None
+
+
+class Insight(BaseModel):
+    kind: str  # "schedule_luck" | "draft_market"
+    title: str
+    narration: str
+    facts: list[InsightFact]
+    subject: InsightSubject | None = None
+    provenance: InsightProvenance
+    confidence: str  # "high" | "medium" | "low" — reflects data quality, not effect size
+
+
+class LabInsights(BaseModel):
+    season_id: int
+    season_year: int | None = None
+    available: bool
+    insights: list[Insight]
+    notes: list[str] = []  # season-level honesty notes (e.g. limited ADP coverage)
+
+
+class WeeklyScorePoint(BaseModel):
+    week: int
+    score: float | None = None
+    is_playoff: bool = False
+
+
+class WeeklyScoreTeam(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int
+    owner_name: str | None = None
+    scores: list[WeeklyScorePoint]
+
+
+class SeasonWeeklyScores(BaseModel):
+    season_id: int
+    season_year: int
+    regular_season_weeks: int
+    available: bool
+    reason: str | None = None
+    teams: list[WeeklyScoreTeam]
+
+
+class EfficiencyTeam(BaseModel):
+    team_id: int
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    # Started ("captured") points vs the optimal-lineup points, and their ratio.
+    captured: float
+    optimal: float
+    efficiency_pct: float
+    points_for: float
+    weeks: int
+
+
+class SeasonEfficiency(BaseModel):
+    season_id: int
+    season_year: int
+    available: bool
+    reason: str | None = None
+    teams: list[EfficiencyTeam]
+
+
 class BracketTeam(BaseModel):
     team_id: int
     team_name: str | None = None
@@ -281,6 +477,8 @@ class BracketTeam(BaseModel):
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    # True on the toilet-bowl loser — the season's Sacko (💩).
+    is_sacko: bool = False
     conference_name: str | None = None
 
 
@@ -293,13 +491,17 @@ class ByeTeam(BaseModel):
 
 
 class BracketGame(BaseModel):
-    matchup_id: int
+    # None for an official bracket game whose week hasn't been played yet (Sleeper D5).
+    matchup_id: int | None = None
     is_playoff: bool = False
     is_consolation: bool | None = None
     game_label: str | None = None  # "Championship", "3rd Place", "7th Place", etc.
     team_a: BracketTeam | None = None
     team_b: BracketTeam | None = None
     winner_team_id: int | None = None
+    # Official brackets only: the place the winner takes (1 = title game), and an unfinished week.
+    placement: int | None = None
+    week_pending: bool = False
 
 
 class BracketRound(BaseModel):
@@ -325,6 +527,10 @@ class SeasonBracket(BaseModel):
     consolation_distinguished: bool = False
     playoff_bracket: BracketSection | None = None
     consolation_bracket: BracketSection | None = None
+    # "official" = the platform's recorded brackets (Sleeper); "derived" = rebuilt from who played
+    # whom (NFL.com). ``is_provisional``: an active season's seeds/pairings, subject to change.
+    source: Literal["official", "derived"] = "derived"
+    is_provisional: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +553,8 @@ class ConferenceTeam(BaseModel):
     win_pct: float
     streak: Streak
     final_rank: int | None = None
+    # True when this team was the season's Sacko (toilet-bowl loser) — the 💩.
+    is_sacko: bool = False
     conference_rank: int
     division_wins: int
     division_losses: int
@@ -431,13 +639,21 @@ class LeagueTimelineSeason(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    # The Sacko (toilet-bowl loser); derived or recorded (see ``SackoRef.source``).
+    sacko: SackoRef | None = None
     is_scored: bool
+    # Division *structure* for the season (e.g. "2 divisions of 6", "No divisions");
+    # the rotating division names are display-only and live in the conferences view.
+    division_structure: str | None = None
     schedule_source: str
     scoring_provenance: str
     verification_status: str
     source: str
     era_id: str
     changes: SeasonChangeFlags
+    platform: str | None = None
+    platform_label: str | None = None
+    capabilities: SeasonCapabilities | None = None
 
 
 class LeagueOverview(BaseModel):
@@ -474,6 +690,9 @@ class LeagueEra(BaseModel):
     ppr: str | None = None
     lineup: str | None = None
     waiver_system: str | None = None
+    # Division structure when constant across the era; None when the era straddles a
+    # structural change (the inline ``divisions`` change-event names that transition).
+    division_structure: str | None = None
     league_size: int
     regular_season_weeks: int | None = None
     playoff_weeks: int | None = None
@@ -487,6 +706,7 @@ class LeagueEraChange(BaseModel):
     league_size_changed: bool = False
     schedule_changed: bool = False
     scoring_availability_changed: bool = False
+    platform_changed: bool = False
     details: list[LeagueChangeDetail] = []
 
 
@@ -494,6 +714,15 @@ class LeagueEras(BaseModel):
     league: LeagueInfo
     eras: list[LeagueEra]
     changes: list[LeagueEraChange]
+
+
+class PlatformAccount(BaseModel):
+    """A manager's account on one platform. Never a username or user id (D1 decision 2)."""
+
+    platform: str
+    label: str
+    first_season: int | None = None
+    last_season: int | None = None
 
 
 class ManagerIdentity(BaseModel):
@@ -509,6 +738,7 @@ class ManagerIdentity(BaseModel):
     team_names: list[str]
     seasons_managed: int
     identity_source: str
+    platform_accounts: list[PlatformAccount] = []
 
 
 class ManagerDirectory(BaseModel):
@@ -531,10 +761,15 @@ class StoryCard(BaseModel):
     secondary_team: TeamRef | None = None
     primary_owner: OwnerRef | None = None
     caveat: str | None = None
+    # Rules-era marker for a game-scoped card (null without stored rules).
+    scoring_era: ScoringEra | None = None
 
 
 class LeagueStories(BaseModel):
     stories: list[StoryCard]
+    # Distinct scoring eras across played seasons; the SPA shows era chips only when > 1.
+    scoring_era_count: int = 0
+    aggregation_note: AggregationNote | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -547,16 +782,26 @@ class TrophyEntry(BaseModel):
     team_name: str | None = None
     finish: int | None = None
     is_champion: bool
+    # The 💩 anti-trophy: this season ended with the Sacko (toilet-bowl loser).
+    is_sacko: bool = False
 
 
 class OwnerConsistency(BaseModel):
     available: bool
     reason: str | None = None
+    # Legacy raw spread of weekly scores. Kept for compatibility, but the manager
+    # page now leads with week-relative profile fields below.
     weekly_points_stdev: float | None = None
     rank_among_owners: int | None = None
     best_season_year: int | None = None
     best_season_points_for: float | None = None
     signature: str | None = None
+    weeks_sampled: int = 0
+    top_week_rate: float | None = None
+    floor_week_rate: float | None = None
+    above_median_rate: float | None = None
+    average_weekly_rank: float | None = None
+    weekly_volatility: float | None = None
 
 
 class OwnerCareer(BaseModel):
@@ -568,16 +813,26 @@ class OwnerCareer(BaseModel):
     total_ties: int
     total_points_for: float
     championships: int
+    # Count of Sacko (last-place / toilet-bowl) seasons — the anti-championship.
+    sackos: int = 0
     best_finish: int | None = None
     avg_finish: float | None = None
     latest_team_id: int | None = None
+    # Whether the manager is still in the league, and whether they qualify for the
+    # all-time "best of" rankings (active, or a significant stint) — the managers
+    # table reads ``qualified`` so a short-stint departed owner is shown but never
+    # crowned above an active or legacy manager.
+    is_active: bool = True
+    qualified: bool = True
     trophy_case: list[TrophyEntry] = []
     consistency: OwnerConsistency | None = None
     commissioner_terms: list[CommissionerTerm] = []
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnersList(BaseModel):
     owners: list[OwnerCareer]
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnerSeasonRow(BaseModel):
@@ -591,16 +846,19 @@ class OwnerSeasonRow(BaseModel):
     points_for: float
     final_rank: int | None = None
     made_playoffs: bool | None = None
-    # Derived finish label: "Champion" / "Runner-up" / "3rd place" / "Nth".
+    # Derived finish label: "Champion" / "Sacko" / "Runner-up" / "3rd place" / "Nth".
     # null (a gap, never 0) for an in-progress or rank-less season.
     result: str | None = None
     is_champion: bool
+    # True when this team was the season's Sacko (toilet-bowl loser).
+    is_sacko: bool = False
 
 
 class OwnerSeasons(BaseModel):
     owner_id: int
     display_name: str | None = None
     seasons: list[OwnerSeasonRow]
+    aggregation_note: AggregationNote | None = None
 
 
 class TeamsIndexRow(OwnerSeasonRow):
@@ -612,10 +870,17 @@ class TeamsIndexRow(OwnerSeasonRow):
 
     owner_id: int
     owner_name: str | None = None
+    # Owner activity + grouping prominence (2 active / 1 long-tenured departed /
+    # 0 short-stint departed), so the "By owner" view orders its groups by
+    # prominence — an active or legacy manager never sits below a short-stint
+    # departed one — and can flag former owners. See ``common.owner_prominence_map``.
+    owner_is_active: bool = True
+    owner_prominence: int = 2
 
 
 class TeamsIndex(BaseModel):
     teams: list[TeamsIndexRow]
+    aggregation_note: AggregationNote | None = None
 
 
 class TrajectoryPoint(BaseModel):
@@ -628,6 +893,7 @@ class OwnerTrajectory(BaseModel):
     owner_id: int
     display_name: str | None = None
     points: list[TrajectoryPoint]
+    aggregation_note: AggregationNote | None = None
 
 
 class OwnerStory(BaseModel):
@@ -644,6 +910,7 @@ class OwnerStory(BaseModel):
 
     owner: OwnerRef
     available: bool
+    aggregation_note: AggregationNote | None = None
     signature_win: dict[str, Any] | None = None
     heartbreak: dict[str, Any] | None = None
     high_water_mark: dict[str, Any] | None = None
@@ -724,6 +991,12 @@ class H2HMeeting(BaseModel):
     week: int | None = None
     matchup_id: int | None = None
     margin_for_a: float | None = None
+    # Full-meeting context — set on the chronological ``meetings`` list (the
+    # closest/lopsided/highest refs leave these at their defaults).
+    a_score: float | None = None
+    b_score: float | None = None
+    is_playoff: bool = False
+    is_championship: bool = False
 
 
 class HeadToHead(BaseModel):
@@ -739,6 +1012,9 @@ class HeadToHead(BaseModel):
     # The nearest meeting (smallest |margin|), oriented to A. The lopsided and
     # highest-scoring meetings remain extra fields on the payload.
     closest_meeting: H2HMeeting | None = None
+    # Every meeting, chronological, oriented to A — drives the rivalry margin line.
+    meetings: list[H2HMeeting] = []
+    aggregation_note: AggregationNote | None = None
 
 
 class RivalryCell(BaseModel):
@@ -757,6 +1033,7 @@ class RivalryOwner(OwnerRef):
 class RivalryMatrix(BaseModel):
     owners: list[RivalryOwner]
     cells: list[RivalryCell]
+    aggregation_note: AggregationNote | None = None
 
 
 class RivalryInsights(BaseModel):
@@ -775,6 +1052,7 @@ class RivalryInsights(BaseModel):
     intensity: dict[str, Any]
     nemeses: dict[str, Any]
     playoffs: dict[str, Any]
+    aggregation_note: AggregationNote | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -793,6 +1071,10 @@ class RecordsBook(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     scored_era: list[int]
+    # Distinct scoring eras across played seasons; each season-scoped record carries its
+    # ``scoring_era``. The SPA shows era chips only when > 1.
+    scoring_era_count: int = 0
+    aggregation_note: AggregationNote | None = None
 
 
 class ChampionshipEntry(BaseModel):
@@ -800,6 +1082,9 @@ class ChampionshipEntry(BaseModel):
     champion: TeamRef | None = None
     runner_up: TeamRef | None = None
     last_place: TeamRef | None = None
+    # The Sacko (toilet-bowl loser) — derived where the bracket distinguishes it,
+    # else the recorded last-place team (see ``SackoRef.source``).
+    sacko: SackoRef | None = None
 
 
 class ChampionshipHistory(BaseModel):
@@ -848,6 +1133,7 @@ class DraftPick(BaseModel):
     player_id: int
     player_name: str | None = None
     position: str | None = None
+    nfl_team: str | None = None  # season-correct NFL team (e.g. 2015 reads "OAK")
     season_year: int | None = None
     season_points: float | None = None  # null when no scored rows; 0.0 for a genuine non-play
     value: float | None = None  # season_points - expected-at-slot; null when uncomputable
@@ -863,11 +1149,30 @@ class DraftPick(BaseModel):
     # zero so the UI annotates it instead of hiding it as a gap.
     zero_reason: str | None = None
     zero_detail: str | None = None
+    # --- Market axis (ADP): independent of the scoring fields above. ---
+    # Blended consensus ADP and where the league drafted relative to it.
+    adp: float | None = None
+    adp_sources: list[str] = []  # which sources contributed to the blend
+    adp_source_spread: float | None = None  # max-min across sources; high = market split
+    adp_format: str | None = None  # format actually used (full_ppr / half_ppr / standard)
+    adp_format_fallback: bool = False  # True when the league's target format was unavailable
+    adp_delta: float | None = None  # overall - adp; positive = value/bargain, negative = reach
+    market_label: str | None = None  # "value" | "reach" | "on_market"
+    adp_available: bool = False
+    adp_reason: str | None = None  # "no_market_data" | "adp_not_captured" when adp is null
 
 
 class DraftRound(BaseModel):
     round: int
     picks: list[DraftPick]
+
+
+class AdpCoverage(BaseModel):
+    # Season-level ADP coverage. ``limited`` when the season blended without FFC
+    # (the only draft-week-snapshot source), so reach/value reads are softer.
+    limited: bool
+    sources: list[str]
+    note: str | None = None
 
 
 class DraftBoard(BaseModel):
@@ -877,6 +1182,9 @@ class DraftBoard(BaseModel):
     reason: str | None = None
     num_teams: int | None = None
     rounds: list[DraftRound]
+    adp_coverage: AdpCoverage
+    # snake / auction when the platform stores it (Sleeper); null for legacy seasons.
+    draft_type: str | None = None
 
 
 class DraftValue(BaseModel):
@@ -893,7 +1201,42 @@ class DraftValue(BaseModel):
     busts: list[DraftPick]  # ranked by composite impact (ascending)
     points_steals: list[DraftPick]  # ranked by raw points-over-expectation
     points_busts: list[DraftPick]  # ranked by raw points-under-expectation
+    # Market axis (ADP): reaches drafted earlier than consensus, values later.
+    adp_definition: str
+    adp_weights: dict[str, float]
+    adp_coverage: AdpCoverage
+    reaches: list[DraftPick]  # most-negative adp_delta first (biggest reaches)
+    values: list[DraftPick]  # most-positive adp_delta first (biggest bargains)
     leaderboard_limit: int
+
+
+class DraftTendencyPosition(BaseModel):
+    position: str
+    n: int
+    mean_delta: float
+
+
+class DraftManagerTendency(BaseModel):
+    owner_id: int
+    owner_name: str | None = None
+    team_name: str | None = None
+    qualified: bool
+    n_picks_with_adp: int
+    mean_delta: float  # positive = tends to find value, negative = tends to reach
+    reach_rate: float
+    value_rate: float
+    discipline: float  # mean |delta| — lower = sticks closer to the board
+    by_position: list[DraftTendencyPosition]
+    sufficient: bool  # n_picks_with_adp >= min_picks
+
+
+class DraftTendencies(BaseModel):
+    available: bool
+    reason: str | None = None
+    definition: str
+    min_picks: int
+    weights: dict[str, float]
+    managers: list[DraftManagerTendency]
 
 
 class DraftRecords(BaseModel):
@@ -1046,6 +1389,8 @@ class GameTeam(BaseModel):
     owner_name: str | None = None
     score: float | None = None
     is_winner: bool = False
+    # True on the toilet-bowl loser — the season's Sacko (💩). Only set on that game.
+    is_sacko: bool = False
     entering_record: EnteringRecord | None = None
 
 
@@ -1070,6 +1415,14 @@ class GameCard(BaseModel):
 
     matchup_id: int
     is_playoff: bool = False
+    # Postseason tier from the shared bracket classifier: "championship" | "playoff"
+    # | "consolation" | null (regular season / indistinguishable). ``game_label`` is
+    # the round/place label ("Championship", "Toilet Bowl", …) where known.
+    bracket_tier: str | None = None
+    game_label: str | None = None
+    # An unfinished week (Sleeper, not yet finalized): a pairing "awaiting final", unscored.
+    # Scores, margin and winner are null, never live values.
+    pending: bool = False
     team_a: GameTeam | None = None
     team_b: GameTeam | None = None
     margin: float | None = None
@@ -1082,6 +1435,8 @@ class WeekMatchups(BaseModel):
     season_year: int
     week: int
     is_scored: bool
+    # True when this week is unfinished (every game is a pending pairing).
+    pending: bool = False
     games: list[GameCard]
 
 
@@ -1108,6 +1463,8 @@ class HamlinSubstitute(BaseModel):
 
 class BoxPlayer(BaseModel):
     roster_slot: str | None = None
+    # "bench_or_reserve": a Sleeper week with no archived IR list, so BN may be a reserve slot.
+    slot_note: str | None = None
     player_id: int
     player_name: str | None = None
     position: str | None = None
@@ -1142,6 +1499,10 @@ class BoxPlayer(BaseModel):
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
     injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
+    # D7: which source the designation came from: "nflverse" (the week's official report) or
+    # "sleeper" (the weekly snapshot before kickoff, a fallback); null when there is none.
+    injury_source: str | None = None
+    injury_as_of: date | None = None  # the Sleeper snapshot date; null for nflverse
 
 
 class BoxTeam(BaseModel):
@@ -1163,6 +1524,11 @@ class BoxTeam(BaseModel):
     lineup: list[BoxPlayer]
 
 
+class CommissionerOverride(BaseModel):
+    official: float
+    custom: float
+
+
 class BoxScore(BaseModel):
     matchup_id: int
     season_year: int | None = None
@@ -1170,6 +1536,9 @@ class BoxScore(BaseModel):
     available: bool
     reason: str | None = None
     is_playoff: bool = False
+    # Postseason tier / label from the shared bracket classifier (see GameCard).
+    bracket_tier: str | None = None
+    game_label: str | None = None
     # Whether this (season, week) has real projection data — drives a single
     # top-level note rather than a per-player gap. ``projection_reason`` carries
     # the machine code (e.g. ``projections_not_captured``) for the UI copy.
@@ -1178,6 +1547,12 @@ class BoxScore(BaseModel):
     # Matchup-level banner for the 2022 Week-17 Hamlin no-contest resolution,
     # shown when any slot on either side carries a substitution. Null otherwise.
     resolution_note: str | None = None
+    # Where official player points come from: "nfl_com" | "sleeper" (the UI maps it to a
+    # label via lib/platform.ts).
+    official_points_source: str | None = None
+    # Set when the commissioner awarded a score: Sleeper's computed total vs the awarded one.
+    # Each side's ``total_score`` stays the league score (the awarded one).
+    commissioner_override: CommissionerOverride | None = None
     home: BoxTeam | None = None
     away: BoxTeam | None = None
     winner_team_id: int | None = None
@@ -1207,6 +1582,8 @@ class TeamOverview(BaseModel):
     final_rank: int | None = None
     made_playoffs: bool | None = None
     is_champion: bool
+    # True when this team was the season's Sacko (toilet-bowl loser) — the 💩.
+    is_sacko: bool = False
     is_scored: bool
 
 
@@ -1216,6 +1593,8 @@ class TeamRosterPlayer(BaseModel):
     position: str | None = None
     nfl_team: str | None = None
     roster_slot: str | None = None
+    # "bench_or_reserve": a Sleeper week with no archived IR list, so BN may be a reserve slot.
+    slot_note: str | None = None
     is_starter: bool
     # A placeholder for an open roster spot at week-end (a player was dropped and
     # not replaced). Padded up to the team-season's usual roster size so the slot
@@ -1232,6 +1611,10 @@ class TeamRosterPlayer(BaseModel):
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
     injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
+    # D7: which source the designation came from: "nflverse" (the week's official report) or
+    # "sleeper" (the weekly snapshot before kickoff, a fallback); null when there is none.
+    injury_source: str | None = None
+    injury_as_of: date | None = None  # the Sleeper snapshot date; null for nflverse
 
 
 class TeamRosterOut(BaseModel):
@@ -1240,6 +1623,8 @@ class TeamRosterOut(BaseModel):
     week: int
     weeks_available: list[int]
     is_scored: bool
+    # The displayed week is unfinished: the roster shows, per-player points are null.
+    week_pending: bool = False
     # True when the displayed week's whole roster is a reconstructed audit
     # snapshot (not a live weekly capture): per-player attribution/slots are
     # approximate. Shown as one caveat banner, mirroring the box score.
@@ -1259,6 +1644,8 @@ class ScheduleGame(BaseModel):
     opponent_score: float | None = None
     result: str | None = None  # W / L / T
     margin: float | None = None
+    # An unfinished week ("awaiting final"): scores, result and margin are null.
+    pending: bool = False
 
 
 class TeamSchedule(BaseModel):
@@ -1281,6 +1668,13 @@ class TeamScoringTrend(BaseModel):
     points: list[ScoringTrendPoint]
 
 
+class TradeAssets(BaseModel):
+    picks_in: list[dict[str, Any]] = []
+    picks_out: list[dict[str, Any]] = []
+    faab_in: float = 0
+    faab_out: float = 0
+
+
 class TeamTransaction(BaseModel):
     transaction_id: int
     transaction_type: str
@@ -1295,12 +1689,127 @@ class TeamTransaction(BaseModel):
     counterpart_team_name: str | None = None
     notes: str | None = None
     extra_data: dict[str, Any] | None = None
+    # Sleeper: "complete" / "failed" (lost claims are left out of this list); legacy: null.
+    status: str | None = None
+    # The pick/FAAB side of a trade (a player-less leg); null for any player row.
+    trade_assets: TradeAssets | None = None
+
+
+class MarketTeamRef(BaseModel):
+    team_id: int
+    team_name: str | None = None
+    owner_id: int | None = None
+    owner_name: str | None = None
+
+
+class MarketPlayerRef(BaseModel):
+    player_id: int
+    player_name: str | None = None
+    position: str | None = None
+
+
+class TeamTrade(BaseModel):
+    """One trade from this team's side, with every asset (Sleeper D6)."""
+
+    executed_at: str | None = None
+    week: int | None = None
+    counterpart_team_id: int | None = None
+    counterpart_team_name: str | None = None
+    players_in: list[MarketPlayerRef] = []
+    players_out: list[MarketPlayerRef] = []
+    picks_in: list[dict[str, Any]] = []
+    picks_out: list[dict[str, Any]] = []
+    faab_in: float = 0
+    faab_out: float = 0
+
+
+class FailedBid(BaseModel):
+    """A lost FAAB claim; ``winner`` / ``winning_bid`` when another team got the player."""
+
+    week: int | None = None
+    player: MarketPlayerRef | None = None
+    bid: float | None = None
+    failure_reason: str | None = None
+    winner: MarketTeamRef | None = None
+    winning_bid: float | None = None
 
 
 class TeamTransactions(BaseModel):
     team_id: int
     season_year: int
     transactions: list[TeamTransaction]
+    # Grouped trades with all assets; the per-leg rows above are unchanged (D6).
+    trades: list[TeamTrade] = []
+    # Lost claims where the platform records them; see ``failed_bids_capability`` otherwise.
+    failed_bids: list[FailedBid] = []
+    failed_bids_capability: Capability | None = None
+
+
+class FaabMarketTeam(BaseModel):
+    team: MarketTeamRef
+    spent: float
+    pct_of_budget: float | None = None
+    winning_bids: int
+    # None where the platform doesn't record lost bids (a gap, never 0).
+    failed_bids: int | None = None
+    largest_bid: float | None = None
+
+
+class FaabTopBid(BaseModel):
+    week: int | None = None
+    team: MarketTeamRef
+    player: MarketPlayerRef | None = None
+    bid: float | None = None
+
+
+class BidWarBid(BaseModel):
+    team: MarketTeamRef
+    bid: float | None = None
+    won: bool
+    failure_reason: str | None = None
+
+
+class BidWar(BaseModel):
+    week: int
+    player: MarketPlayerRef | None = None
+    winner: MarketTeamRef | None = None
+    winning_bid: float | None = None
+    margin: float | None = None
+    bids: list[BidWarBid]
+
+
+class SeasonFaabMarket(BaseModel):
+    season_id: int
+    season_year: int
+    # False for a waiver-priority (pre-FAAB) season: not applicable, not a gap.
+    is_faab_era: bool
+    budget: float | None = None
+    teams: list[FaabMarketTeam] = []
+    top_bids: list[FaabTopBid] = []
+    bid_wars: list[BidWar] = []
+    failed_bids_capability: Capability | None = None
+
+
+class PickOwner(BaseModel):
+    owner_id: int
+    owner_name: str | None = None
+
+
+class TradedPickRow(BaseModel):
+    pick_season: int
+    round: int
+    original_owner: PickOwner | None = None
+    current_owner: PickOwner | None = None
+    previous_owner: PickOwner | None = None
+
+
+class PickLedger(BaseModel):
+    """Traded future picks. ``available`` False = no season records them (``reason`` = the
+    capability key); on Sleeper an empty list is a real answer."""
+
+    available: bool
+    reason: str | None = None
+    picks: list[TradedPickRow] = []
 
 
 class TeamFaabWeek(BaseModel):
@@ -1360,3 +1869,65 @@ class SearchHit(BaseModel):
 class SearchResults(BaseModel):
     query: str
     hits: list[SearchHit]
+
+
+class CurrentSeason(BaseModel):
+    """The in-progress season at a glance (Sleeper D3). ``available: false`` with reason
+    ``no_current_season`` off-season (never a fake week). ``latest_results`` are the last
+    finalized week's games; ``pending_pairings`` are the unfinished week's games, unscored."""
+
+    available: bool
+    reason: str | None = None
+    season_id: int | None = None
+    season_year: int | None = None
+    platform: str | None = None
+    platform_label: str | None = None
+    regular_season_weeks: int | None = None
+    last_finalized_week: int | None = None
+    pending_week: int | None = None
+    latest_results: list[GameCard] = []
+    pending_pairings: list[GameCard] = []
+    standings_top: list[StandingRow] = []
+
+
+# ---------------------------------------------------------------------------
+# Player status timeline (Sleeper D7)
+# ---------------------------------------------------------------------------
+
+
+class StatusEntry(BaseModel):
+    """One status reading: an nflverse weekly report or a Sleeper snapshot."""
+
+    source: str  # "nflverse" | "sleeper"
+    as_of: date | None = None  # the snapshot date (Sleeper); null for nflverse
+    injury_status: str | None = None  # Questionable | Doubtful | Out (| Probable, pre-2016)
+    injury_body_part: str | None = None
+    injury_secondary: str | None = None
+    injury_practice_status: str | None = None  # "Full" | "Ltd" | "DNP" | "Out"
+    roster_status: str | None = None  # Sleeper IR / PUP / Sus / NA / ... (never a badge)
+    depth_chart: str | None = None  # "WR2"
+    nfl_team: str | None = None
+
+
+class StatusWeek(BaseModel):
+    week: int
+    kickoff_date: date
+    # null + null gap = not on that week's report (the report lists designated players only)
+    game_report: StatusEntry | None = None
+    game_report_gap: str | None = None  # "reports_not_loaded"
+    snapshot: StatusEntry | None = None
+    snapshot_gap: str | None = None  # "stale_or_missing_snapshot" (Sleeper seasons only)
+
+
+class PlayerStatusTimeline(BaseModel):
+    player_id: int
+    season_year: int
+    platform: str | None = None
+    platform_label: str | None = None
+    available: bool
+    reason: str | None = None  # "season_not_played"
+    has_snapshots: bool  # true on Sleeper seasons: the snapshot column exists
+    snapshot_capability: Capability | None = None
+    is_provisional: bool  # season in progress: subject to change
+    latest: StatusEntry | None = None  # newest snapshot (7-day rule) of an in-progress season
+    weeks: list[StatusWeek] = []

@@ -1,0 +1,32 @@
+{
+ "body": {
+  "data": {
+   "position": null,
+   "season_year": 2016,
+   "totals": [
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "position": "RB",
+     "total_points": 55.0,
+     "weeks_played": 2
+    },
+    {
+     "name_full": "Ravens D/ST",
+     "nfl_team": "BAL",
+     "player_id": 5,
+     "position": "DEF",
+     "total_points": 7.0,
+     "weeks_played": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

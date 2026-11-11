@@ -182,9 +182,7 @@ describe("PlayerDetailPage", () => {
   it("renders a gap for a missing last_season, never a fabricated 0", async () => {
     get.mockImplementation((path: string) => {
       if (path === "/v1/players/{player_id}")
-        return Promise.resolve(
-          envelope({ ...PLAYER_OUT, last_season: null, birth_date: "1997-01-07" }),
-        );
+        return Promise.resolve(envelope({ ...PLAYER_OUT, last_season: null, birth_date: "1997-01-07" }));
       return Promise.resolve(routeByPath(path));
     });
     renderWithProviders(<PlayerDetailPage />, "/players/1");
@@ -241,9 +239,7 @@ describe("PlayerDetailPage", () => {
     await screen.findByRole("heading", { name: "Aaron Hernandez" });
     // A real league player none of whose rostered seasons has reconstructed
     // scoring gets an explanatory affordance, not a blank/error scoring chart.
-    expect(
-      await screen.findByText(/no per-player fantasy scoring available/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/no per-player fantasy scoring available/i)).toBeInTheDocument();
     // The current (scored) season's chart must not render for this player.
     expect(screen.queryByLabelText(/Weekly league points/i)).not.toBeInTheDocument();
   });

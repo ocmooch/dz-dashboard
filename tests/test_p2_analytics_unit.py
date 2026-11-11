@@ -7,14 +7,16 @@ from typing import TYPE_CHECKING
 from ff_pipeline.repository.models import Season
 from sqlalchemy import select
 
+from ff_dashboard.analytics import head_to_head
 from ff_dashboard.analytics.bracket import (
     _connected_components,
     _order_components,
+    postseason_classification,
     season_bracket,
 )
 from ff_dashboard.analytics.head_to_head import pairwise_record, rivalry_matrix
 from ff_dashboard.analytics.historical_team_names import HISTORICAL_TEAM_NAMES
-from ff_dashboard.analytics.owners import list_owners_career, owner_career
+from ff_dashboard.analytics.owners import list_owners_career, owner_career, teams_index
 from ff_dashboard.analytics.players import (
     availability,
     list_player_index,
@@ -169,6 +171,36 @@ def test_bracket_gap_when_no_postseason_rows(session: Session) -> None:
     assert data["consolation_bracket"] is None
 
 
+def test_postseason_classification_tags_championship_and_sacko(session: Session) -> None:
+    c = postseason_classification(session, KNOWN["season_id"][2015])
+    assert c["consolation_distinguished"] is True
+
+    # Championship game = the playoff-half final won by the recorded champion (Slider).
+    champ_mid = c["championship_matchup_id"]
+    assert champ_mid is not None
+    assert c["by_matchup_id"][champ_mid]["tier"] == "championship"
+    assert c["by_matchup_id"][champ_mid]["game_label"] == "Championship"
+
+    # The toilet-bowl loser (Iceman) is the Sacko, derived from the consolation final.
+    sacko = c["sacko"]
+    assert sacko is not None
+    assert sacko["source"] == "derived"
+    assert sacko["team_id"] == KNOWN["team_id"][(2015, "ice")]
+
+    # Every consolation matchup is tagged consolation, never championship/playoff.
+    consol_tiers = {
+        e["tier"] for mid, e in c["by_matchup_id"].items() if e["tier"] == "consolation"
+    }
+    assert consol_tiers == {"consolation"}
+
+
+def test_postseason_classification_empty_when_no_postseason(session: Session) -> None:
+    c = postseason_classification(session, KNOWN["season_id"][2016])
+    assert c["consolation_distinguished"] is False
+    assert c["by_matchup_id"] == {}
+    assert c["championship_matchup_id"] is None
+
+
 # --- Owners ----------------------------------------------------------------
 
 
@@ -179,6 +211,38 @@ def test_owner_career_championships(session: Session) -> None:
     assert careers["Goose"]["championships"] == 0
     # Ranked by championships -> Maverick is first.
     assert list_owners_career(session)[0]["display_name"] == "Maverick"
+
+
+def test_owner_career_qualification_gates_short_departed(session: Session) -> None:
+    careers = {c["display_name"]: c for c in list_owners_career(session)}
+    # Active managers always qualify for the "best of" rankings, regardless of
+    # tenure — Viper plays a single season but is still in the league.
+    assert careers["Maverick"]["is_active"] is True
+    assert careers["Maverick"]["qualified"] is True
+    assert careers["Viper"]["seasons_played"] == 1
+    assert careers["Viper"]["qualified"] is True
+    # Slider left the league after two seasons (< SIGNIFICANT_STINT_SEASONS), so a
+    # short, departed stint is deprioritized — shown, but never crowned.
+    assert careers["Slider"]["is_active"] is False
+    assert careers["Slider"]["seasons_played"] == 2
+    assert careers["Slider"]["qualified"] is False
+
+
+def test_teams_index_carries_owner_prominence(session: Session) -> None:
+    # The Teams browser's "By owner" view orders groups by owner prominence, so
+    # every row carries the owner's activity + prominence (2 active / 1 long-
+    # tenured departed / 0 short-stint departed) — the same gate the managers
+    # table uses. See common.owner_prominence_map.
+    rows = teams_index(session)
+    by_owner = {r["owner_name"]: r for r in rows}
+    # Active managers (regardless of tenure) are most prominent.
+    assert by_owner["Maverick"]["owner_is_active"] is True
+    assert by_owner["Maverick"]["owner_prominence"] == 2
+    assert by_owner["Viper"]["owner_prominence"] == 2
+    # Slider left after a short stint, so its group sorts last (never above an
+    # active or legacy owner) — shown, not hidden.
+    assert by_owner["Slider"]["owner_is_active"] is False
+    assert by_owner["Slider"]["owner_prominence"] == 0
 
 
 def test_owner_trophy_case(session: Session) -> None:
@@ -254,14 +318,27 @@ def test_records_record_only(session: Session) -> None:
     assert book["longest_loss_streak"]["owner_name"] == "Iceman"
 
 
-def test_records_closest_rivalry(session: Session) -> None:
-    # Maverick vs Iceman is the most-played pair (3 meetings) -> wins the
-    # "more games first, then nearest 0.5" tiebreak, ahead of the 2-game pairs.
+def test_records_closest_rivalry_needs_a_real_series(session: Session) -> None:
+    # No fixture pair reaches MIN_DEAD_EVEN_GAMES (4), so the crown is an honest
+    # gap rather than a thin 2-game "rivalry" or the lopsided most-played pair.
+    rivalry = records_book(session)["closest_rivalry"]
+    assert rivalry["available"] is False
+
+
+def test_records_closest_rivalry_prefers_balance(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # With the sample gate lowered, the crown goes to a genuinely even series
+    # (a_wins == b_wins) — never the lopsided most-played Maverick vs Iceman (2-1)
+    # just because it has the most meetings.
+    monkeypatch.setattr(head_to_head, "MIN_DEAD_EVEN_GAMES", 2)
     rivalry = records_book(session)["closest_rivalry"]
     assert rivalry["available"] is True
-    assert rivalry["games_played"] == KNOWN["h2h_mav_ice"]["games"]  # 3
+    assert rivalry["a_wins"] == rivalry["b_wins"]
     names = {rivalry["owner_a"]["display_name"], rivalry["owner_b"]["display_name"]}
-    assert names == {"Maverick", "Iceman"}
+    assert names != {"Maverick", "Iceman"}
+    # Crowned among qualified managers — short-stint departed Slider never headlines.
+    assert "Slider" not in names
 
 
 def test_records_only_use_scored_era(session: Session) -> None:
@@ -281,9 +358,9 @@ def test_championships_use_season_correct_team_name(
     # The fixture's 2016 champion (Maverick, slot abbrev "MAV") carries the
     # canonical alias "Maverick 2016". Inject a divergent historical slot name
     # so we can prove championships() resolves it rather than the raw column.
-    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Putting the CAP in CHAMP")
+    monkeypatch.setitem(HISTORICAL_TEAM_NAMES, (2016, "MAV"), "Team 112")
     by_year = {e["season_year"]: e for e in championships(session)["seasons"]}
-    assert by_year[2016]["champion"]["team_name"] == "Putting the CAP in CHAMP"
+    assert by_year[2016]["champion"]["team_name"] == "Team 112"
 
 
 # --- Players + gap behavior ------------------------------------------------

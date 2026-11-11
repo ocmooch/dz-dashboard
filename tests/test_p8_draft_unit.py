@@ -58,8 +58,12 @@ def test_fantasy_position_is_normalized_and_honest_about_unknowns() -> None:
 # --- The pure pick-scoring classifier (no DB) ------------------------------
 
 
-def _player(position: str = "WR", gsis_id: str | None = "00-0000001") -> SimpleNamespace:
-    return SimpleNamespace(position=position, gsis_id=gsis_id)
+def _player(
+    position: str = "WR",
+    gsis_id: str | None = "00-0000001",
+    nfl_com_player_id: str | None = None,
+) -> SimpleNamespace:
+    return SimpleNamespace(position=position, gsis_id=gsis_id, nfl_com_player_id=nfl_com_player_id)
 
 
 def test_classify_scored_pick_passes_through() -> None:
@@ -67,7 +71,8 @@ def test_classify_scored_pick_passes_through() -> None:
         player=_player(),
         scored_points=123.456,
         season_is_scored=True,
-        played=True,
+        played_regular=True,
+        played_season=True,
         roster_slots={"WR"},
     )
     assert out["season_points"] == 123.46  # rounded
@@ -81,7 +86,8 @@ def test_classify_unscored_season_is_a_gap() -> None:
         player=_player(),
         scored_points=None,
         season_is_scored=False,
-        played=False,
+        played_regular=False,
+        played_season=False,
         roster_slots=set(),
     )
     assert out["season_points"] is None
@@ -96,7 +102,8 @@ def test_classify_defense_without_stats_is_always_a_gap() -> None:
         player=_player(position="DEF", gsis_id=None),
         scored_points=None,
         season_is_scored=True,
-        played=True,
+        played_regular=True,
+        played_season=True,
         roster_slots={"DEF"},
     )
     assert out["season_points"] is None
@@ -105,29 +112,72 @@ def test_classify_defense_without_stats_is_always_a_gap() -> None:
     assert out["zero_reason"] is None
 
 
-def test_classify_played_but_unscored_is_a_gap() -> None:
+def test_classify_played_regular_but_unscored_is_a_gap() -> None:
+    # Raw lines *inside the fantasy regular season* with no scored row is the one
+    # true scoring-pipeline gap player_unscored exists to flag.
     out = _classify_pick_scoring(
         player=_player(),
         scored_points=None,
         season_is_scored=True,
-        played=True,
+        played_regular=True,
+        played_season=True,
         roster_slots={"WR"},
     )
     assert out["reason"] == "player_unscored"
     assert out["available"] is False
 
 
-def test_classify_never_played_weak_identity_is_unresolved() -> None:
+def test_classify_played_only_in_playoffs_is_a_genuine_regular_season_zero() -> None:
+    # Foreman 2018 / Brown 2024: returned from injury only for the fantasy
+    # playoffs (NFL wks 16+), so there is no regular-season production. That is a
+    # real 0 toward the regular-season pick value, not a player_unscored gap.
+    out = _classify_pick_scoring(
+        player=_player(gsis_id="00-0033925"),
+        scored_points=None,
+        season_is_scored=True,
+        played_regular=False,
+        played_season=True,
+        roster_slots={"BN"},
+    )
+    assert out["season_points"] == 0.0
+    assert out["available"] is True
+    assert out["reason"] is None
+    assert out["zero_reason"] == "did_not_play_season"
+    assert "regular season" in (out["zero_detail"] or "")
+
+
+def test_classify_never_played_no_identity_at_all_is_unresolved() -> None:
+    # Truly unidentified stub — no gsis *and* no NFL.com id.
     for gsis in (None, "", "   "):
         out = _classify_pick_scoring(
-            player=_player(gsis_id=gsis),
+            player=_player(gsis_id=gsis, nfl_com_player_id=None),
             scored_points=None,
             season_is_scored=True,
-            played=False,
+            played_regular=False,
+            played_season=False,
             roster_slots={"BN"},
         )
         assert out["reason"] == "player_identity_unresolved"
         assert out["available"] is False
+
+
+def test_classify_nfl_com_only_identity_is_a_genuine_zero() -> None:
+    # T. Holt 2010: NFL.com-identified (id 2501229) but no nflverse gsis, drafted
+    # after retiring and never played. An NFL.com id is a real identity, so this
+    # is a genuine "drafted, never played" 0, not player_identity_unresolved.
+    out = _classify_pick_scoring(
+        player=_player(gsis_id=None, nfl_com_player_id="2501229"),
+        scored_points=None,
+        season_is_scored=True,
+        played_regular=False,
+        played_season=False,
+        roster_slots={"BN"},
+    )
+    assert out["season_points"] == 0.0
+    assert out["available"] is True
+    assert out["reason"] is None
+    assert out["zero_reason"] == "did_not_play_season"
+    assert "all season" in (out["zero_detail"] or "")
 
 
 def test_classify_never_played_real_player_is_a_genuine_zero() -> None:
@@ -137,7 +187,8 @@ def test_classify_never_played_real_player_is_a_genuine_zero() -> None:
         player=_player(gsis_id="00-0032054"),
         scored_points=None,
         season_is_scored=True,
-        played=False,
+        played_regular=False,
+        played_season=False,
         roster_slots={"BN"},
     )
     assert out["season_points"] == 0.0
@@ -153,6 +204,14 @@ def test_did_not_play_detail_distinguishes_reserve_from_bench() -> None:
     # No roster rows after the draft → just the base note, no carry phrasing.
     base = _did_not_play_detail(set())
     assert "reserve / IR" not in base and "active bench" not in base
+
+
+def test_did_not_play_detail_distinguishes_all_season_from_playoffs_only() -> None:
+    all_season = _did_not_play_detail(set())
+    playoffs_only = _did_not_play_detail(set(), played_postseason=True)
+    assert "all season" in all_season
+    assert "regular season" in playoffs_only
+    assert all_season != playoffs_only
 
 
 # --- The pure expectation helper (no DB) -----------------------------------

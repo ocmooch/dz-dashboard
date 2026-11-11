@@ -13,8 +13,32 @@ const mockGet = api.GET as unknown as ReturnType<typeof vi.fn>;
 const blank = { trophy_case: [] as never[] };
 const OWNERS = [
   // Alpha: most titles + best win%.  Bravo: most points + most seasons.
-  { owner_id: 1, display_name: "Alpha", seasons_played: 5, total_wins: 40, total_losses: 20, total_ties: 0, total_points_for: 6000, championships: 2, best_finish: 1, avg_finish: 3.2, ...blank },
-  { owner_id: 2, display_name: "Bravo", seasons_played: 8, total_wins: 50, total_losses: 50, total_ties: 0, total_points_for: 7000, championships: 0, best_finish: 4, avg_finish: 6.1, ...blank },
+  {
+    owner_id: 1,
+    display_name: "Alpha",
+    seasons_played: 5,
+    total_wins: 40,
+    total_losses: 20,
+    total_ties: 0,
+    total_points_for: 6000,
+    championships: 2,
+    best_finish: 1,
+    avg_finish: 3.2,
+    ...blank,
+  },
+  {
+    owner_id: 2,
+    display_name: "Bravo",
+    seasons_played: 8,
+    total_wins: 50,
+    total_losses: 50,
+    total_ties: 0,
+    total_points_for: 7000,
+    championships: 0,
+    best_finish: 4,
+    avg_finish: 6.1,
+    ...blank,
+  },
 ];
 
 beforeEach(() => {
@@ -41,7 +65,11 @@ describe("ManagersPage", () => {
     renderWithProviders(<ManagersPage />, ["/managers"]);
     await screen.findByText("Every Manager");
 
-    const order = () => screen.getAllByRole("row").slice(1).map((r) => within(r).getByRole("link").textContent);
+    const order = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((r) => within(r).getByRole("link").textContent);
     // Default order is the BFF order (titles): Alpha first.
     expect(order()[0]).toContain("Alpha");
 
@@ -51,6 +79,57 @@ describe("ManagersPage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Points For/ }));
     expect(order()[0]).toContain("Alpha");
+  });
+
+  it("ranks active managers above former ones on a rate-based sort", async () => {
+    // Hank is active but short-tenured with a modest win %; Gus is a former
+    // long-stint manager with a higher win %. On win % (a gated rate column) the
+    // active manager must still sort above the former one.
+    const RATE_OWNERS = [
+      {
+        owner_id: 3,
+        display_name: "Hank",
+        seasons_played: 3,
+        total_wins: 18,
+        total_losses: 22,
+        total_ties: 0,
+        total_points_for: 3000,
+        championships: 0,
+        best_finish: 5,
+        avg_finish: 7.0,
+        is_active: true,
+        qualified: true,
+        ...blank,
+      },
+      {
+        owner_id: 4,
+        display_name: "Gus",
+        seasons_played: 10,
+        total_wins: 80,
+        total_losses: 40,
+        total_ties: 0,
+        total_points_for: 9000,
+        championships: 1,
+        best_finish: 1,
+        avg_finish: 4.0,
+        is_active: false,
+        qualified: true,
+        ...blank,
+      },
+    ];
+    mockGet.mockResolvedValue({ data: { data: { owners: RATE_OWNERS }, meta: {} } });
+    renderWithProviders(<ManagersPage />, ["/managers"]);
+    await screen.findByText("Every Manager");
+
+    const order = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((r) => within(r).getByRole("link").textContent);
+    await userEvent.click(screen.getByRole("button", { name: /Win %/ }));
+    // Gus has the better win %, but Hank is active so the active tier wins.
+    expect(order()[0]).toContain("Hank");
+    expect(order()[1]).toContain("Gus");
   });
 
   it("shows an error state when the request fails", async () => {

@@ -1,0 +1,103 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "bracket_tier": null,
+     "flags": [],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 10.0,
+     "matchup_id": 5,
+     "team_a": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Goose",
+      "score": 105.0,
+      "team_id": 3,
+      "team_name": "Goose 2015"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Maverick",
+      "score": 95.0,
+      "team_id": 1,
+      "team_name": "Maverick 2015"
+     },
+     "winner_team_id": 3
+    },
+    {
+     "bracket_tier": null,
+     "flags": [
+      {
+       "detail": "130.0 \u2014 season's highest team score",
+       "kind": "season_high",
+       "label": "Season high",
+       "team_id": 4,
+       "tone": "win"
+      },
+      {
+       "detail": "230.0 combined \u2014 season's highest",
+       "kind": "shootout",
+       "label": "Shootout",
+       "team_id": null,
+       "tone": "accent"
+      }
+     ],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 30.0,
+     "matchup_id": 7,
+     "team_a": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Slider",
+      "score": 130.0,
+      "team_id": 4,
+      "team_name": "Dynasty Crew"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Iceman",
+      "score": 100.0,
+      "team_id": 2,
+      "team_name": "Iceman 2015"
+     },
+     "winner_team_id": 4
+    }
+   ],
+   "is_scored": false,
+   "season_id": 1,
+   "season_year": 2015,
+   "week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

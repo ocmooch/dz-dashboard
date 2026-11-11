@@ -45,8 +45,11 @@ def test_consolation_game_is_not_made_playoffs(session: Session) -> None:
     goose = _row(session, "goose", 2015)
     assert goose["result"] == "3rd place"
     assert goose["made_playoffs"] is False
+    assert goose["is_sacko"] is False
     ice = _row(session, "ice", 2015)
-    assert ice["result"] == "4th"
+    # Iceman lost the toilet bowl → branded the Sacko (overrides the bare "4th").
+    assert ice["result"] == "Sacko"
+    assert ice["is_sacko"] is True
     assert ice["made_playoffs"] is False
 
 

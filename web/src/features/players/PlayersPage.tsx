@@ -1,15 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
-import {
-  Button,
-  Card,
-  CardHeader,
-  Chip,
-  EmptyState,
-  ErrorState,
-  Skeleton,
-} from "@/design-system";
+import { Button, Card, CardHeader, Chip, EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { qk } from "@/lib/queryKeys";
 
@@ -148,9 +140,7 @@ export function PlayersPage() {
             ))}
           </div>
         )}
-        {isError && (
-          <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-        )}
+        {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
         {data && players.length === 0 && (
           <EmptyState title="No players match" hint="Loosen a filter or clear the search." />
         )}

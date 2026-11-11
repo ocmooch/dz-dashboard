@@ -30,6 +30,7 @@ from ff_pipeline.repository.models import (
     Owner,
     PipelineRun,
     Player,
+    PlayerAdp,
     PlayerAvailability,
     PlayerInjuryReport,
     PlayerStatsRaw,
@@ -135,7 +136,11 @@ def _populate(session: Session) -> None:
         "ice": Owner(league_id=LEAGUE_ID, display_name="Iceman", joined_year=2015),
         "goose": Owner(league_id=LEAGUE_ID, display_name="Goose", joined_year=2015),
         "slider": Owner(
-            league_id=LEAGUE_ID, display_name="Slider", joined_year=2015, left_year=2016
+            league_id=LEAGUE_ID,
+            display_name="Slider",
+            joined_year=2015,
+            left_year=2016,
+            is_active=False,
         ),
         "viper": Owner(league_id=LEAGUE_ID, display_name="Viper", joined_year=2017),
     }
@@ -770,6 +775,35 @@ def _populate(session: Session) -> None:
             )
         )
 
+    # --- 2016 ADP (the market axis). Authored against the 2016 draft above so the
+    #     reach/value cases are hand-checkable (adp_delta = overall - blended adp):
+    #       Kelce  overall 1, blend (0.5*8 + 0.3*9)/0.8 = 8.4 → -7.4  REACH (two sources)
+    #       Lamar  overall 2, adp 2.0                          →  0.0  on_market
+    #       McCaffrey overall 4, adp 1.0 (FFC only)            → +3.0  VALUE
+    #       Jefferson overall 3: no ADP row → no_market_data (gap, not a zero)
+    def _adp(player_key: str, source: str, adp: float) -> PlayerAdp:
+        return PlayerAdp(
+            season_id=sid[2016],
+            player_id=pid[player_key],
+            source=source,
+            source_player_key=f"{source}-{player_key}",
+            source_player_name=player_key,
+            requested_format="full_ppr",
+            actual_format="full_ppr",
+            format_fallback=False,
+            teams=12,
+            adp=adp,
+        )
+
+    session.add_all(
+        [
+            _adp("kelce", "ffc", 8.0),
+            _adp("kelce", "mfl", 9.0),
+            _adp("lamar", "ffc", 2.0),
+            _adp("cmc", "ffc", 1.0),
+        ]
+    )
+
     # --- 2017 recorded transactions: exact transaction log rows now exist upstream.
     session.add_all(
         [
@@ -1307,6 +1341,46 @@ def client(engine: Engine) -> Iterator[TestClient]:
     app = create_app(engine, cache=AnalyticsCache(), cors_origins=[])
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture(scope="session")
+def mixed_era_db_path(fixture_db_path: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The legacy fixture + a Sleeper 2026 season sharing owners (Sleeper D0, `01` §8)."""
+    from tests.sleeper_fixture import build_mixed_era_db
+
+    out = tmp_path_factory.mktemp("dzmixed") / "fantasy.db"
+    return build_mixed_era_db(fixture_db_path, out, LEAGUE_ID)
+
+
+@pytest.fixture
+def mixed_client(mixed_era_db_path: Path, fixture_db_path: Path) -> Iterator[TestClient]:
+    eng = create_readonly_engine(f"sqlite:///{mixed_era_db_path}")
+    app = create_app(
+        eng, cache=AnalyticsCache(), cors_origins=[], assets_root=fixture_db_path.parent / "assets"
+    )
+    with TestClient(app) as c:
+        yield c
+    eng.dispose()
+
+
+@pytest.fixture(scope="session")
+def decided_db_path(fixture_db_path: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The mixed-era fixture with a fully decided 2026 playoff in weeks 6-8 (Sleeper D5)."""
+    from tests.sleeper_fixture import build_mixed_era_db
+
+    out = tmp_path_factory.mktemp("dzdecided") / "fantasy.db"
+    return build_mixed_era_db(fixture_db_path, out, LEAGUE_ID, decided=True)
+
+
+@pytest.fixture
+def decided_client(decided_db_path: Path, fixture_db_path: Path) -> Iterator[TestClient]:
+    eng = create_readonly_engine(f"sqlite:///{decided_db_path}")
+    app = create_app(
+        eng, cache=AnalyticsCache(), cors_origins=[], assets_root=fixture_db_path.parent / "assets"
+    )
+    with TestClient(app) as c:
+        yield c
+    eng.dispose()
 
 
 @pytest.fixture

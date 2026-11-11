@@ -10,6 +10,9 @@ const FALLBACK = {
   surface: "#12161d", // --surface-1
   borderStrong: "#36404e", // --border-strong
   mono: "IBM Plex Mono, ui-monospace, monospace",
+  gold: "#f5b73d", // --warn — the champion / title marker (gold = title)
+  loss: "#ef4761", // --loss — the Sacko / "bad" marker (red)
+  win: "#34d39e", // --win
 };
 
 const SERIES_FALLBACK = [
@@ -41,6 +44,10 @@ export type ChartTheme = {
   borderStrong: string;
   fontMono: string;
   series: string[];
+  // Semantic markers — the Resonance-leg grammar: gold = champion, loss = Sacko.
+  gold: string;
+  loss: string;
+  win: string;
 };
 
 export function chartTheme(): ChartTheme {
@@ -52,6 +59,9 @@ export function chartTheme(): ChartTheme {
     borderStrong: readVar("--border-strong", FALLBACK.borderStrong),
     fontMono: readVar("--font-mono", FALLBACK.mono),
     series: SERIES_FALLBACK.map((fb, i) => readVar(`--series-${i + 1}`, fb)),
+    gold: readVar("--warn", FALLBACK.gold),
+    loss: readVar("--loss", FALLBACK.loss),
+    win: readVar("--win", FALLBACK.win),
   };
 }
 

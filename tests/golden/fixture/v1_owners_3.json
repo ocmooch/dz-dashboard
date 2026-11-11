@@ -1,0 +1,51 @@
+{
+ "body": {
+  "data": {
+   "avg_finish": 3.0,
+   "best_finish": 3,
+   "championships": 0,
+   "commissioner_terms": [],
+   "consistency": {
+    "above_median_rate": 0.571,
+    "available": true,
+    "average_weekly_rank": 2.43,
+    "best_season_points_for": 265.0,
+    "best_season_year": 2017,
+    "floor_week_rate": 0.143,
+    "rank_among_owners": 3,
+    "reason": null,
+    "signature": "balanced scorer",
+    "top_week_rate": 0.143,
+    "weekly_points_stdev": 17.02,
+    "weekly_volatility": 0.87,
+    "weeks_sampled": 7
+   },
+   "display_name": "Goose",
+   "is_active": true,
+   "latest_team_id": 11,
+   "owner_id": 3,
+   "qualified": true,
+   "sackos": 0,
+   "seasons_played": 3,
+   "total_losses": 3,
+   "total_points_for": 670.5,
+   "total_ties": 0,
+   "total_wins": 3,
+   "trophy_case": [
+    {
+     "finish": 3,
+     "is_champion": false,
+     "is_sacko": false,
+     "season_year": 2015,
+     "team_name": "Goose 2015"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

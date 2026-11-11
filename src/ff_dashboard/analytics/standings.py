@@ -21,25 +21,16 @@ from ff_dashboard.analytics.common import (
     owner_name_map,
     regular_season_weeks,
 )
+from ff_dashboard.analytics.game_state import game_result, is_pending
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
 )
+from ff_dashboard.analytics.platform import week_state
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
     from sqlalchemy.orm import Session
-
-
-def _result(team_score: float | None, opp_score: float | None, is_win: bool | None) -> str | None:
-    """W / L / T for a played game, or None for a bye / unplayed week."""
-    if is_win is True:
-        return "W"
-    if is_win is False:
-        return "L"
-    if team_score is not None and opp_score is not None:
-        return "T"
-    return None
 
 
 def _current_streak(results: list[str]) -> dict[str, Any]:
@@ -65,8 +56,12 @@ def compute_standings(
         return None
 
     reg_weeks = regular_season_weeks(session, season)
+    weeks = week_state(session, season_id)
     upper = reg_weeks if through_week is None else min(through_week, reg_weeks)
-    is_full_season = through_week is None or through_week >= reg_weeks
+    is_full_season = (through_week is None or through_week >= reg_weeks) and weeks["is_final"]
+    if not weeks["is_final"]:
+        # In progress: only finalized weeks count; the unfinished week is unscored.
+        upper = min(upper, weeks["last_finalized_week"] or 0)
 
     teams = list(session.execute(select(Team).where(Team.season_id == season_id)).scalars().all())
     team_by_id = {t.team_id: t for t in teams}
@@ -95,6 +90,16 @@ def compute_standings(
     except Exception:
         pass
 
+    # Official divisions (the platform recorded ``teams.division``; Sleeper D5) replace the
+    # stored NFL.com conferences. Unused on every legacy season. Lazy: conferences → standings.
+    from ff_dashboard.analytics.conferences import official_division_map
+
+    official_divs = official_division_map(session, season)
+    for tid, (cid, cname) in official_divs.items():
+        team_conf_ids[tid] = cid
+        if cid is not None:
+            conf_names[cid] = cname
+
     matchups = list(
         session.execute(
             select(Matchup)
@@ -111,9 +116,9 @@ def compute_standings(
     }
     for m in matchups:
         row = agg.get(m.team_id)
-        if row is None:
+        if row is None or is_pending(m):
             continue
-        res = _result(m.team_score, m.opponent_score, m.is_win)
+        res = game_result(m)
         if res == "W":
             row["wins"] += 1
         elif res == "L":
@@ -159,12 +164,28 @@ def compute_standings(
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
 
+    # Mark the season's Sacko (toilet-bowl loser / recorded last place) so the
+    # full-season table can carry the 💩 anti-trophy. Only resolved for a complete
+    # season — through a week the bracket hasn't happened yet, there is no Sacko —
+    # which also keeps the per-week timeline sweep from paying for the classifier.
+    # Imported lazily: ``bracket`` → ``conferences`` → ``standings`` is a cycle.
+    sacko_team_id: int | None = None
+    if is_full_season:
+        from ff_dashboard.analytics.bracket import postseason_classification
+
+        sacko_team_id = (postseason_classification(session, season_id).get("sacko") or {}).get(
+            "team_id"
+        )
+    for r in rows:
+        r["is_sacko"] = sacko_team_id is not None and r["team_id"] == sacko_team_id
+
     tiebreak_caveat = rank_basis == "computed" and season.year < CONSISTENT_TIEBREAK_SINCE
 
     return {
         "season_id": season_id,
         "season_year": season.year,
         "through_week": upper,
+        "pending_week": weeks["pending_week"],
         "regular_season_weeks": reg_weeks,
         "rank_basis": rank_basis,
         "tiebreak_caveat": tiebreak_caveat,
@@ -185,6 +206,9 @@ def all_play_index(
         return {}
     reg_weeks = regular_season_weeks(session, season)
     upper = reg_weeks if through_week is None else min(through_week, reg_weeks)
+    weeks = week_state(session, season_id)
+    if not weeks["is_final"]:
+        upper = min(upper, weeks["last_finalized_week"] or 0)
     rows = session.execute(
         select(Matchup.team_id, Matchup.week, Matchup.team_score).where(
             Matchup.season_id == season_id,
@@ -315,7 +339,9 @@ def standings_timeline(session: Session, season_id: int) -> dict[str, Any] | Non
         for t in teams
     }
 
-    for week in range(1, reg_weeks + 1):
+    weeks = week_state(session, season_id)
+    last = reg_weeks if weeks["is_final"] else min(reg_weeks, weeks["last_finalized_week"] or 0)
+    for week in range(1, last + 1):
         snap = compute_standings(session, season_id, through_week=week)
         if snap is None:  # pragma: no cover - season existence already checked
             continue

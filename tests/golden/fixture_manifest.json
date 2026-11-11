@@ -1,0 +1,2836 @@
+{
+ "requests": [
+  {
+   "url": "/v1/meta",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "8503730072df8e4b880fd810839af1cdc11f16607de9788d393fc646dc20cde4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/meta/coverage",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "bc524de58c833493290bf9bc833ad4e6520ae4585c6d9e335f7046f5032c6294",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/overview",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "15cd8be2a2c7cb071955acbcfef2fc8a9c7c343c5b9fde2d4017e3b0dbc70d85",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/timeline",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9b93db461ba822eb0ccbb749ae932a3691771f96b434b19dec915cf787698370",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/eras",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "ee59180aa0ee3f0c8921ae6dc2d46f9505fdc11b1ba6d5757ff21f3dbc57f65c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/stories",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "a4d1b74ee57b8e8b267accde184f0d30fe34814705180d549cbd7b1a08e9aeef",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/managers",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "db4d66cdf1ab763698bff747df61213cd344408ac6fa7413c33c7ee298af2555",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "158f463859a404d2b165620a13286f44755b71dcab7a4102a3091a59b00f5391",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/rivalry-matrix",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "1a3488ca6036aee0ebe47717eaee96fd9cd44af78c0d9a6bc3091aaecc9169dd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/records",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "3b7b02e7b7293eb96b5e96257c13451c856ee2110848ae57816c1c3214233858",
+   "volatile": []
+  },
+  {
+   "url": "/v1/records/championships",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "c93eec03e2945c6e64b1fd3944ed877c302d68b01ff5727ab2f633e2f1c189dd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/records/draft",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "3c73c2819880032e4cb1004ee95d2b8688a9bd6191bf85c863e1eaf830ed6d4c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/rivalries/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "72cf915aa1346dd488e521515c632841adfc4ca441dffb802df6e7bd6a2d328a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/draft/tendencies",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "00d9758f7054b13c2ccc4a0b9e0091d51d16ca25b63b0992a52d85fda885ecb0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "41ecd8a42a1d358c32ed8567e1456bbf9be17509253a73e356e556f526620f3d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "54c9b352b6cfe991c210a1c2516e611dee6414c90066bad5b0c095fd72b4933f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9a4a25f92dadd48f5901f9fd0101b4caf7f7b4ce552c3a1c901b217a7b55a685",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players?position=QB&limit=500",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "344c7f0e055bb02388b0e6abf0ba579733c172e370c4701753e57a1d6bbb33b0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/search?q=a",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "bddd06eec7cdaff78a1447ac798db6994b781fa4c564970f64a66ed7bb10ac29",
+   "volatile": []
+  },
+  {
+   "url": "/v1/search?q=e&limit=50",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "c558c425d97f0f37dba2a8539f1d8951162e7065c70d28a6d3c918a803fdf90f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b26ad44f083f6edf2202ac0957f2cfb029aa6934b849caf872d643998e284ee3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/standings",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "73cb00aa1ed7af7addc99422ae1ec418d9509c50f34698f4b9c23dcee2748602",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/standings?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "73cb00aa1ed7af7addc99422ae1ec418d9509c50f34698f4b9c23dcee2748602",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/standings/insights",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "42997768d8bcd7becbe6da21c26c3102a54e950b62ff8f4c772af62be03338f3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/standings/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "392ce6045dacb010aa1b727e0392bf8580d139c44c34cd2bbb9655c00ceb0d97",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/weekly-scores",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "44f9fbbad4edac74e63c2fb0b301334e00a9ff3cca1af4640549a0f25e7da88d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/efficiency",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8315ae655093321a6a9abf6b6e1d55cb39a428580b1c0b0dd1ef7fb1304a31b0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/bracket",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b29280402e3254183493a364506e835017b5c81627f9d6b9efcdf3ff744b4e4a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/conferences",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "02869c391eef15541af30b2fcb166dd56ada843faf44020c7e75222b5d9b18ae",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/power",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d3bf9967d75d5e765e6e506e7108fd19c0708ebf8e2a7ed938c2117e787d1c35",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/power?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d3bf9967d75d5e765e6e506e7108fd19c0708ebf8e2a7ed938c2117e787d1c35",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/power/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "df047dc1ec13b6d95311909b2108690fd1edf6e590d18294076d8915df12a20d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/draft",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "30bfc15230023ec03f960b510d06d2f7f00026c6481db595ae73db98465f3af4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/draft/value",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e99a3a748038d029b8d05483567eab3c8f1817221248b2d2a587dadc50e93a59",
+   "volatile": []
+  },
+  {
+   "url": "/v1/lab/insights/1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "550da29a0aa85068751496d53e17036211b9f1a821b678591c611383395c9f79",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/weeks/1/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "daace6e42b659f85a85e2a26ca912db1c55ab53e4e07242be33d856af1dc279b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/weeks/2/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "be3675b176ce96bb7a97c4d1ffefbaf2f91c07f6945b2732b6e8a822e59b0240",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/weeks/3/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "963847d436b4781d46da9fc7cbb4542ff88c7625ae85ca42f748b67ff23dbfdc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6d5324826a46a4bf7f797d0200fdc74fbe33848ef797c8ec3cdaf13e52e01d67",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2015&week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "658c9fc4e1cfc01da27821f7ee84dbaf7a35e28e992832db170bcfa4df312d75",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2015&position=QB&limit=100",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8e9edb3135a19b3c3e5863af1083e16fa05233e2bb1cd6d57ef7aefe81a2c4fc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b179c229d0eca1d5006b1dbd7ec8498b283f094dcb2aa5b6466a2176a5bfc358",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2015&position=RB",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1ba5cec44d6a1ad328e2f1e8aedbced5acdebe44f03225d7d90d1e60b15918cd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/matchups/1/box-score",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4c85d0e274eacc0472f29bcd5daab8659b5f2306bc9a1bc2fa0d53f8597a614c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/matchups/25/box-score",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a95ba2aa07d91ada1053116afb5864660b180b3fb6100380b591b35f13812f75",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8a686a8ef13136e35d2ba4aad1ede4f39e687ca4c67b3e72ecd4a91d031343a1",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "868024a16f15805578e9c510fa1574a56f4f45f0fb269c7305897c88caa9cae7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4eadd03024643fde12d543658943eb4aad2493023d17adbe5cccbb43362bf49a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a9220db42a727841dc1c89e0516e8e28d411654b50b3b37da5d30d71dd2e7ccb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6e983d450868139ac6a902d1db19e27bd69592857e3f8236cfde6c080a8a2fe3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f79f01f7412539df57c1ba99556b38f81a66c8abdb2b8fc44463bde0c7100d02",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3b34dc204fd326e989c86c4fd9cc4d04cbd3d470defe1a9bbfcfde69d245af44",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0495f1b0d1c5a60ecf4cddebca534bcf0a4f795adca50a4020647887c376db2f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "5e6df08de4b936db3f81d23aa0b09ce55757b015593e518834584388640e8cda",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ac7e48f8e60aa5e44fff13534db26e229f73e6af835dbc55ccecf081268b49e9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "61aa22470960ff23346fce318d0b30ad6549fbd013ef1853652bb97381d8c800",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "46b8b99ddb524221b05c2465d834584b8cd9b80560f02e49db2008fc5a770b43",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ae7cdd052df5b004a2260af5cdd17143eda32201a524930a5a0b3442b7025c16",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d838f55cb6f050e962f75f9ea381003b7f87a572ba33819863e75d1b2771d4fb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "09c0f1f8a8ee1cd907858927081931379cfe47a7fd115f2539b30f5b8e7f3f31",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/2/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4790106b4029695b371296814d5ce5e1a04fa0157dd9b00a31a59c1844ffdc82",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b9811976c8ddd3c6f422a99ebb9aa21b375732c4d9298fca9be67b06bc7b784d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c0c9fd2a141f46404fe3f0ed706f56476dee698619a3152c967c642b0499b2aa",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c34b1dcaff424481f402eeb651e10d9431b0b84a14ce2ec7fb0a841d374b51c3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f5218fa7239abff158731342b9b34654fab86c9755e5bb063761e0bb8ad4c32e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6638b4ad868d95d2dc1c31c142e5a6cd4458a7664581b609381168d6e4bde2b7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d1884ca924f33b571c3fd0e95b742e7cce4c19d35e500bcad8d6d50f60d7a934",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "38064d7bc14e1ce77fab292f71537ff18272feaba17426aa8cb3ca5bc05c737f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/3/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9f91c8ca3fb989f1fc80eca14948fbd5ca41020934b746d8e107aa614202c1b9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7b901ebd3b20d9d91efbf2d3e92182a097f4f937c1f938f0a6f332e62c8a8ce3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9e88e7968cd406f3c4c45d9a121eef8b07c88cf61e6b37b819124aa8bbb096ae",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7535e2b9b592be287b2cd97acd50987300392ac05234febdd82291c98f2885ac",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "bfaad6e9e6ed0a28b34e0764835b5c7e4c3d36e6ac1f24e7e6a2d5fad9d2c89a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8fefab5eb7cca080d99c7310ff7147ff50a864a18bbb9ab788a5791f5473760b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2859e1c268870589cdac67d4136c35d27729b53f5e7a862c1a70c91321f46225",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8f564b81d6fa7b78878e12932375bb54826698abea20a82bf6bfda8389a5ebbe",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/4/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4cffd9bff186758604c5a6d425816eabb8c4802b4242fc02aa1150f4493003c0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8/scoring?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7d69f268d14bb004c5db7bedf09387dac9bf293ba101c17000ec7100efae789c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8/availability?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "49a0536650390399c003b230868fdb23d29c4b0545bfbc9a2a4b5ac4c8bdd47d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1708c0bd960ad1764ce4bab0d03398de3c8be91ca5b0cf5f464f0a0890b2cdc5",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/standings",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "45917ff820d526c310a5936d1cd0bfbf0c4e2f69d3364ef47de16ab80c0cbb7f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/standings?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "45917ff820d526c310a5936d1cd0bfbf0c4e2f69d3364ef47de16ab80c0cbb7f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/standings/insights",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "eff42addbc56b25ada2350bb5828c4bede931f39d71943b3f187cfc24f549845",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/standings/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "abdbd466657dbd0b66d574b9a51698e8dc8261b6bbbd9a239150f3497605d3bc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/weekly-scores",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "69a9e8cf7fa3d9a04c32c840f854df755678e5139e3c21d0c31aa02219b2202a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/efficiency",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4a2df6ad03bfa8c8564b90bbf3c136da230434a6c85b4aa54acdb0e890b708ef",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/bracket",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "fcb0200d69f4ebd0b961881091b4d0263219da6551bab0f59a5d71e478143bbe",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/conferences",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b6d2c294ba8f8977415d7534fe69a56bf1b8b9399287e31d15ded5de4bac2287",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/power",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "517840383f3409584b32f164604d760c637836a8062cca09f504bed5d88c1f01",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/power?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "517840383f3409584b32f164604d760c637836a8062cca09f504bed5d88c1f01",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/power/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d3882d267d3833d393890531ac40802271085dc8cee30f9b82ed201b34a81341",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/draft",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8deec63aed9e937e12cc30c1cfa1a80df8a8ea7f8fb1b67839328bc73ec079c8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/draft/value",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f32b750d3e01f434c2f7c14c0c65044d3baa12011ec7543f9c92fb9dfe62b938",
+   "volatile": []
+  },
+  {
+   "url": "/v1/lab/insights/2",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "01f1a60f3f29b799bfbe42a8c559395c8275dfd8c6aa81a46b718ec90e4c32eb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/weeks/1/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "850f17b694a491062c57ea5f6004c7ac57ca88daa59e7ff122186705e833e2c2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/weeks/2/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "46e2ffc32890f5d05ff1243be1f07507fccfeeff151779b1e2e81372de050cbf",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/weeks/3/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "00164cf1e23f2a97d96307e92cc31a56d20ae10a6527d47dfc3cb8e3d902c00c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e391c14505ffeddb53fbd4599fd694182a0dc70be1024f7337cbabd6bcff5ac0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2016&week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "24bcaaf100ba769515a0dcc4955e5bace788a32613c89002d0c26e1d681cb2b7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2016&position=QB&limit=100",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "829b3502cd0d7ccdf8b906e5a582dd1838ff74171ffc3903849ef287bd271c32",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2133acd5c8c7aeabd5589b102a9f8ce6fe713120d2fb81161c4eb46d0ae50aec",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2016&position=RB",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2303e92ecbcf1483b66297a189823dd742b43657176cf4b820bc16714bdb64ed",
+   "volatile": []
+  },
+  {
+   "url": "/v1/matchups/9/box-score",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "09718a083bc2cae9a4a36175f0b94d7b468a28b2683097c2804499d21b473750",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7bad42df04113adb3fda3512476e59ac156d753e243ea3d1335a6efd8c4f3b15",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6673e8679a413d6bb8c979ce63817d4a771bfcbf21d12f79180166a0118bc50b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "abaecdbfd010436eeab914fecbeb98b5a1f6ed1fb1c6eb2d0aa6925f3c35faaa",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e2b5c6e5d4f4e1140c2fd758607f8f0e1c606e9a533f5dc3bf2705d2f52cf3b0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "aac74f80921d93422282169938af660cc982a2917b222ccb8f4f7554099b3536",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8fac6ba777e8d3f5b1147d7ca4ce5b97b83d99cd3a7c75dff7a0264e05ef6227",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d3f5264f8d84f60efe7f9b114f994fb16d5342942a497f7cf843ab287fc43192",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/5/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f77c6f346de394bb4a3e94cb687b04e78e2d18200d7ae5c359fa29f06d0c686e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "62dc762858d3acbf67c9046e94f1cd53e3e26cc73edb0f5b109a216125660f51",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7379cc6cdacf4e3bae294e5bca16faedc863ba88a945d3c5fb9c47f8ad96fa78",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "58c8e115bc517683fd53fd2bac460124d50b2310ae8677125b11295cbd1a585c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "35d8edca92ee476fa0a3fc4c03654adaf3b21c1172553936ac42d83b5cc2a0e8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "43d7d2dc20100f2982480b93cc887ecaedc2ac362bb8a5335d9399f29bc50241",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "01512cccb02880f70c6af60352b044cb1ec92a2393b4e7f3c32a18f24367618e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6daf0a07ec8b5eab54540e342a41694d13e9964899d863a48a77c0a921a87413",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/6/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1ed5089cf3b0c4c2ab7f84c5653b455700d3823c8b04413de1a19bf3a69d0ec7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "67d3f0e06eabc0193090a5279bc3228dc224898ddc6f66c85302a30a08d910eb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "665b4db2369581ddd5b24a0a00970e8525af2bceab435329378bf466d080f3a2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "fe1579d308b12556f57b513c034cef93c483327cb611140f357faf0248fba3a0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4e3e0be42db55b076f37fcb2d856b0016022ce3dd2ba85b27199e60fffd59df8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "5ef2642e75f38b0cbcc79a35a8299125cfd99c3d0b8dec48963b0e17c19c2a4a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d74106b6fb87c276ebcb41d8222fff5fc32e8e43fe16114d2f83ae351450cb31",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "22b4cfc7ac9d7a46eb081021a5e7fd16c5900d021e8adff17c58159d59eaf8fc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/7/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1709d59b876474757666fdd13c533da7f9be9cb27eec29a2f23e81071d502159",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e014753e3cdeba078bb21149544e009c76c3602a4d9b93ea68c695f9575e326d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "169d76c1bb5c6db30c0a2413c95e7cb1e93fcf3cfd3bf8ea561603122413edb9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0bbabf6bfbb7520cc6de004e3498626bedb567463ad8d3d7d48847aefd05b9c6",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "638f51e2b97df071968a5908c79bbba248e14be01ef23be233625eb35fc8edf0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6f1b1b811139eaee34f06bd103f01f4f46a39ae5877196e9a93e09f7991a9a2c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b7771afe5dcb34f6553a0b28728e05590c5135a946bdbe003955ebb4751a4107",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "5f887709ada4bf736d43b91586646ce3a03100686ddb5a131f3b75a4b893ab2f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/8/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0309ad97f40f63ca19e0b25fc4e534cbb3b1d4be0a08590c7e96ec6a9d34c155",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b70eb678a2961473e67bcf7884ec844af8e6c11c36adf8bc92507435e79ff5f5",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "5afb0bbc6a86613c2750683dbbbe0914e71166ead36e2506b2ea36b5e64a4bec",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "040ae6a8981f50ea62ccc57b326f14ae4bc1e5a0b5c202ae10894c4cb206e1ae",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "dc50ea359f9807db1f3d06fe4a201e3d47c6bf44afef4bb7d60190c8078c9733",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d4fcc34de6d06fe30dd0c20c31abd9c29b9f2840a37de69299274f6edbc6567d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6a31138619088ccaebfb1cadf497f6c04198fd0d79c2238ebfdb372c3e8ff261",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "00b6b85d9c17e8390992f7921e3bdcb83ac2f4590b3161f4094c9e2ca54fb60e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "aa53c4c8900a6b36c6578a6912ba7623dfda56d6232b1a34d42607864bd2c227",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "05eff491434519f64ebdb8bffa803ffcac22a04fde4ba274186cb98b621b7bc7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4b85015583b512f32eed7a533218fece1d44d6b3a0ddfa03bac2333ce263b97d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/scoring?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "85de31bc4288bdcaf397acb0d0bc4b371c9bc8affdfa12aa8f9233f2b55f367a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/availability?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "69103aefea509ffa102b07b6b99965ff897638586619b9b496b4055dfccb2715",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "cb6677052ba8ce99b205129dcdffeed5520f8f2a525c6af15422ca06dbf8ae1d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/standings",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7f5f2a07c58bb119284a68266bf0ac71a3eb8ff0f6bc2b0f906e70db55dffb93",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/standings?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7f5f2a07c58bb119284a68266bf0ac71a3eb8ff0f6bc2b0f906e70db55dffb93",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/standings/insights",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "075b17948f00e31a452acdb033ddda3e810b9d9b27df21ddbd6c5cde0e37e129",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/standings/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "199a5d3b39a7780682131060579d40ddaeaa70c283d274003ced45e40f3c1490",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/weekly-scores",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a1e6539d7c10e2e23108aadedd71016b070e3ced93d5a1e0f24e37472db879cd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/efficiency",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ae81d3d4889519f5e835f702fc95015fb766488db0874aa70fddb5f7b6b0598b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/bracket",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "5b7c40a30a034a4bf4768c291b54de7cf421e6415912c4b3490d460c7b97724f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/conferences",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "da98853eeb3ab4462711a97d1992031056ebc8fb8671b9297ab8cc57de1800c2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/power",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0fd6e7f23b667ce2a6b9929a00eaa80775f92e0becf5a2aa68407ea8a00e098c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/power?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0fd6e7f23b667ce2a6b9929a00eaa80775f92e0becf5a2aa68407ea8a00e098c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/power/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f9602349c0636a503d0feeb8fcb4dd4d1f013500a80e9f067efdd4102ce6de44",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/draft",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2446968c51f84f555d767aa4ee7b6b9baab761fd9267e64953f53c6caa18934d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/draft/value",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "dedf92fd570eb0242dce987ca4ee10b1e022021d4d6046da0c2f88ec2e758fdd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/lab/insights/3",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b5da691409a4a392024d6ccffc7d8de698673dd948105d0c83e73b4837bd48b0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/weeks/1/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "56b61c6f56c5a38ba722722438a085e8175054e17f1db1f4e1b34aa54427638a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/weeks/2/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "13559fe78bf9ca0a238c965804e19b40fbf4ead5f3bc1e1859809df73f1b8dca",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/weeks/3/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b168c8d771cc35e7362838c5aded27e4a339abd68f8d08b669b8589907e5c732",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ed24e06b31ca40ab2f93ede749543402ac429458338d1c72b96f6543b62a2f9a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2017&week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "282bfd62ce3986ea3f63d2c512b13142d0830858c266c3685cb3288d02847dba",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2017&position=QB&limit=100",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "77f42b863aab09986e4d261398c855431982fac4285ca9865a25bc7610d7be6f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e064333479fce03b6dec313f6fab50d43a1ee6042a4cdb9d382f4d887ffa22fc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2017&position=RB",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c1217b62d98e70f33828dbb1465bbd669520a3d87d828d25c4dea19ac37afcb8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/matchups/17/box-score",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "39e9833537eaa9b04e846bd14dbb2015b2345b225fb1b91abed38413732d5cb7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1840952ba8862036ab6dca8615f09df8152c900d48e23aa26338d61edffb1fac",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4d9cda97996b10875b30f925045b21f57cb0f58acf8535574d0d890ebb122e23",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4d9cda97996b10875b30f925045b21f57cb0f58acf8535574d0d890ebb122e23",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "535a29df322024b905196893c4a8aa0d14ddbcd1428498650fab6262170a3535",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ef60b032f0879ab91c062ce123e71d240c9e7a1de4d55374da0276c11c1ec7a6",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "da6c83bfa14864625a0e5cae0929453e4a2d6704404d587956dee90763f6aa82",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b14594cd52ae693f3fd40f8db7056ca7211fd56dc58ee5681abac93665cc2b2d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "61ab05a6986ac640b4c52d1a35eb5557e3541c3c642c5ca4501173cd280b4aaa",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "23d567f0138fb69ab7e2a84bdf7ab4982fa771dd7a8b48f55a17ef4403c1ea5c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "bc329d73aabe75098a6a5034234866600a5d966d10483a45d120fa1754ae0e9c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "bc329d73aabe75098a6a5034234866600a5d966d10483a45d120fa1754ae0e9c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4606a2f4a5fc17a85b4812e9a6d652beb4d50fd6a8051b91ad870da798651c9c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a935e243531453492ee65ba887cf0a523618de7d187214fd0c2ae31009a6cc06",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "eb92237b33ccdb24c6e27257a9ed945d977dadf7c3eec9b56243ba63721f651a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ef4e6e05850e9046e985b6d19870abb7f3adfb14415e28d35e8364ee07000d2c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7f0529b06b01d8f192596e3f915a85e8a262eb638dccdcebb9a0fe484675462e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0dfa17270d4dc91b2f75513255185fdc0122af0074585bcb5fe9dbfc7e6a3acf",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "12cad9406670ddfe7ed86c94effd923c23a0cec7762f9ef96f6a13401033ee4e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f5474d939115f8e707571ab17465ea168770bca2a221921c07ab5013d1bb3235",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4ec5d63fce9a3f299c84933594994fd4e4c8d3227d32a967604ef9f77b5d13a3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a3a940f29425235448e04813ed063c8870400f085510438b9669a6690cc39fdd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a12ee7158df245498d50ac5500b74f83c51c5a7981ac86c66ba16d8cbe197e95",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "465d955ee8e2304c0cd0e521103327ca0225ce6408ab8d35cca280da5afd5215",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d2cbd0e7e3bb044b785523247072bc386c72321ec35f810185157689c55ccd01",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6d4b4e10621636deb84179f71b4fbb3f28fcbdac90505380830ab3963284fd2a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4deb27dc6865e2a013bb8c7d129e53e7813b13469179ea32f34ed34c9cfe1fc4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "71a0db6fbd86eedb207726866af89620e4d76a775e3933a10bdd45700172804c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ed95e00af8085bfbfd53b1e881bd3783b69a766a23f86192664e849d4eca4a22",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c0c817ed5d83c226e4cd1055b66b9312b526c960110b233811864689899d1e2b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "cc22f96c8997f8aecdb61e2c548262d114bdb12bb6d91a0e5db8931fcf360680",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8a03f6a354b981427893dd54da9fdc54bd76815bf5e4245125d2be9efe04ca6b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/12/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "edae60ab2524431d143f9fb4f96747a7c83c72a156bfe673e334e2578802d3d9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f160a32725c46cc6163c23f2ed1a0df473ced4a38162c84f4830d710fb1b5309",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e2f8a1e63c3b95151da168ad9dae0214c53424d1a547f363c87ceaee1bd3c76a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "393f97f22bd57b5fb9edd28e87fa734ee3e40227a5e7a9492cb42fe1538d0afc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a6b8ff3500f145c96ca6aacd6d5184ed272ea58f1c12ee9eadc5e69d0ebb1302",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3f985a1819cf55754fbaffaca1db5ef8f904de8cd3073ac277d26bc44f586ecc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7a5e5b2194b454160d3945aa51200f678dd85f01509eb7873f35f9ac22deed08",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "53bf887f1239918758698bbccc9658ea420484d55c91ac3a6a3366939486b023",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "571c09ab3f9b15777534f41402cb7adacd92029588dcefceb721542582a19106",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a084af5bcb6ea9cdb238e61da96793e4daa17bf8e404b9a2d58cd3eb3de3b6cb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "37df96f8a9436b9f387f317b3940baebe2c09a1445ddb25de70d12c8a1148805",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "50527c49f8e8f5ed9d5975ea30edea633fcef96b41de8741fa88ae92128ae8cc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9335ef2a222a61fc92f71a6d6d533e5bd7874856472c0285a876340257eec217",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/scoring?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "6cfb8a2ad9b1ce85f47977a9f43fd48fc044e535fcd7a485ef403dace111c339",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/availability?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0a1ccb96dfd46d60f26def18d754df6d3045dd0c1c20db2f6dd002551bd323c3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "91985f5cd8f201dd64e62d4c004bba9ff22ed12ec9e627246b7a44d3b79d64f4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/standings",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "538e6fb32c69a684d04f62f0b073c7192f8b1ad0410b26bb7da366741b5b2926",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/standings?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "538e6fb32c69a684d04f62f0b073c7192f8b1ad0410b26bb7da366741b5b2926",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/standings/insights",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "cdba6cb2a5cf256189f0d263a745cd13f229108c7a1535ac4f32ab8d39ef20bc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/standings/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1d1c48807eea1c921dd7f224deaf4504869fc81280147b1dbdfbb7a50c9c5b38",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/weekly-scores",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "cc89aeecb2c6a61b052c1563af714949b897af57aaa56442f9adad9a508133ec",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/efficiency",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c512434087275b466c78264088c4269482206a2c0b30dbbe50b3f927ba83ddc5",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/bracket",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f9576715fa019810868497eea55c7a16d6332be8d2d8c59fe5c69b70f95cd18a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/conferences",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "fe09de8f79a3e6b1ce4723b3693f5303e89f06f3dc54d3b4b1ff13bc9890a7f9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/power",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "41ba30c5d438f0cb21de8ee7331b2b3a368aac083ff349d9c3073ad259617ff8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/power?through_week=5",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "41ba30c5d438f0cb21de8ee7331b2b3a368aac083ff349d9c3073ad259617ff8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/power/timeline",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c4581fd31d40f0b8b2a3844032ffdbee2f8f3c74cd5bb4606a15356d7c6ed568",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/draft",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ff418fb9598ff2b32dd721864a8eaff3c0d708affdbd5238e59bf75b6b0e9fec",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/draft/value",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8ec037ea3c68448a6f059ba3f7ae161171c7ab096057d22cd704ca4e046ad246",
+   "volatile": []
+  },
+  {
+   "url": "/v1/lab/insights/4",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d606d512f5d80db70e7c9a2ea674447c2cda81d65c0ea7aff0387983cc9e601f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/weeks/1/matchups",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "663947eb3f0dd18cb1b1dec3cd65b58929c488c97ebc69e458cccc9618e4e2ae",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2018",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f9dd1a287619fd4def88d90c49649db1d9985ac5b89238af200127ce06da7008",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2018&week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "747465929cf57f9ac2689ce39f930d0667a405653758e6b46552ba0083ab3446",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/top-scorers?season=2018&position=QB&limit=100",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e875ea48f013a09d2ffab6075a68886f183cbd3ffe594cfa258cf9676d9bc255",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2018",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e6c88f621acbd323dcb5bd76eab88fd5ef149a4ffb2224d5f53d5a728cb50d5f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/stats/season-totals?season=2018&position=RB",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1857ddbf75f5e3c27db4a70c40999e530a2d801d42a2ef8f25936a0bd9cb5b78",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "212974ea595a9e4cc7a5fd527b004bd3ffa90cefece7659089e2f3adc04f2d33",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "a9f120746e4cf25a6e0115ec634d03dbf9eccda45089f1c1b6d1a00047d9db15",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "50b859f70ebb2ed4759187e742a0a3c4d7f836b4841095a510b4b1874e214931",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "66fdfdd581408b97daf2d328d525fbdc6cef1ba4cbddc766a992c807ce3793d6",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3c626ddc6ae3043db6a38775cb112d4c7a7666150de77c8299b414d2f5f4c6bc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "15f51ff12b3350aa279c7844d378c1070a9a6e6c18846ab0e7092e7c76d1d01d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1ebab2dab816db60ec34d010e185cfa0d91ead51055843edb1e890b1542b0779",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/13/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "96f2876ad4c95d4f0fd854f5ea69b4958b88e88e40a9315d6c13c3a54fd455d7",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "4e44107d13921cc3cebe7ea54c6bcd2812c378d4033808c16d724adee25b23cd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "1b62c5df95d5a7ff6b4fc12f973fdf5a1d2d9a887be45ded824082e700037f3e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "425952ca645df4f0be0e99e610db3c88726ade5e745fe398c3ee11e45f492164",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "43b06715136b8a0f563ded8ad56ca32e914776547be278f51b26fd5998a3968c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c56bd827adbcc0a3c01fc830b43923153adf4b497e9a6e084d76a16b394c3aef",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ba8b02422da5c380ce3c4cc0c7cf59249defd33c601d4efc4963f1e43c266258",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "445c19d2e6bbc5689338f22c89ca3d79c9bd5758d7584f47d71220ceb0fbdf9c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/14/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "52cbe3fc88e56494a34222f8284bfcb7bada269f5c1d897d8450b843b2e85315",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8619a0ee20adb17b7203676999ced80eda20fb2a4d1a22c7cf22fdf1165a9111",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2d1ff7ddb6a3992ad83b2a61410a22c238778655aebf9e736e9e7d977f8c11c4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3bef72bed2b5df16db352c0f4431fa6b965af36e5ff194e879a0397c899cdf22",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f62e1fa2bd530b824a03f16d487dbebfcec0821f96c2a1970d631df071bbeb59",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "75ce1df0aff6df9ee118d80653d0b945bfd013708e01aa0c903a5fbf7cf0e8cf",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "d37bf9b70b3455b19753077b9ebc82eaef376bfca35ef7c32f88720a295f6575",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f0af2200bca2da53d6ea18cd083c7905abcd53f1991add330e4dda8cfb941eb5",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/15/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "c14b2d0b71802eaefe5d50a812e9f64edea198c5270ac3aa0bb73405d4717415",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "0051b8dcb248587b029fe096f24225e4b78a73937548fa642ac9fe64d012aa96",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/roster",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "cca5040e6e50331455597cecea7eb6f89cb3a896d560a736a911a59c20ba0a07",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/roster?week=1",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "b2186c3dd975ea97e006ab71d95fef0d55c2e4e620f0fd63ff6de4cabeb47daa",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/schedule",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7fc5985b310417ca5df2a8eb3f2799c6c5f14fdca47e3837d7d35fcb578b4314",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/scoring-trend",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3d08c499760e641bbc6dfb39ccf8d56d8daf8111dd61edd0a31de8a2206e8051",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/transactions",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e413de00f2ae22cc99d13b9c8773851b7faebbb05a691e6bcd2acbb483303033",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/roster-moves",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "ca2c2005e30e8016278631e5645adc9b1a640ad171ef81daafb03e88e1084f1f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/16/faab-budget",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "14dcb78b9cf2fb1580d22d400985124a2e1b5a27b4182edaf6608b4b8dc4be0c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "2df07f53a74c9a2a9fb15b563222a643fc173685054e827f2454a39cfcc4a7bb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "cacd2a946e7ba1b101275ca8a386c8477796a799289a404848bdf1d29959fc64",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "dc1a3c13587cad4bd3d89c27ffca4a5d4b4f5cc16f3b35c20950b98dcea1154d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "0f7f4e55f3a1fa6b0c10941787f7be52fee4fc661316a7b980c2d505d399d860",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "78850938cc9116686e4f7e835ecbf4e44a4fa4776e3599ef30619e6ba02e411f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9dfc0fee06eff355cf1dec0d443191d31669b687c4a46abcca5fcdbfab255b74",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "92669eb4053055cfe1aaaef92947fa7791343492c83e3b888192028b505cd21f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "dd91da10b2cfb149d98530041b3f6de7e0bf704109495d99bc8d85b86fec9035",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "eec82a26dfe919ecdc674cfad396ed9a0c238bcf62cb378b218a3fdfe478d94e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9e8bded6a01e0cf137544427290e78e2b7b5f9652dbca01395a79a151d50e7d2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "8fcf081d5aca2cbcea54e6aa57872a0791d4701c1328ac50e959da47add69b0e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9b7ccd43af01f5b8864146618ac435ba9d0a22d1ca52963e317d0f5d6233bfcc",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "b97bf27dede3b01833543f7f5721dd30a95411e270c338331d994a7714543e27",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "3632c908063aa0effaca36eb5dcefef1c9460d704e67719ac3782ab1e1a6ec17",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "b974139ed5f1f56eadea662a2911e99eb5089a4dc182ecac2243f14cf195bbec",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "c5536f5dfb0841243a53c069613e476d65a91cd998c24531981a0845935e74e5",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "184b617fbee0faf1c09428c493adcdc6650488b0cb5afff66a1ecca4f5e3428e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "2b268855e9a27a0d7592fb9a153ccb38a2f2e37a1053a82eed9e8cc0ba4d845c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "632406111f38852f1527167440543215ad26426c6874ca1c9b3b3dee8660730e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "c127656bb95fa95b4b468b7de7ac979f81c6eae7b34d904078b6125131ecd4c8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "cbd0dcaaea50c9104774a1ec25875f01e7360a8060fb4b01699bdb0ef5e07817",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "7f77facbb5c2b502513df593c9851d0801d6ccf1160edadd266fa9a0a4a305e8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "d14f5521bafdce5afc45ea2339aab93b28eaf45bce9bdee844f712881d084c4c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "283fa6c15d5d29000388fc2ab5580ccfe69e310597369c5043bf7f79d43c7d1a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "991c638a0e47b23df9d250ba5db8b2584fcbc3f90d875460bd9890f9ed7a47ef",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "cbd922df2faf1de2c55e815bd829fccb348080229934e0bdec03775578107d30",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "68ead7fc8bd02794d9438638b93d58517c3793c3c4d56f615bcfb3c8e9a3ad90",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "a9dae4be81974d495256eaf6d4507c6c16fef760e7673b01c391ff16bb59466c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9208195541fd78f59945d62f975e6664e3000f1047da17b20dc063d46e45b1e1",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "70feefd087be16aa75ac6ad12f13df9205a411a82f612817deb4741030a1311b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "2d3f97350ccc2d00f33a7f2e15e6b0f6c6eef77ecfa4ddd09dab65adf4a17398",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/ownership",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "d11d8a787e37f757f711a72d4a4af0f2193d6c57f08bdf52d882f40b5567bc49",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/insights",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "062b9eecdc8ff47aa03cf1e7853b427f8e20f59c96bc41a210db42d3644ba638",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "a9ba0a269291068901a173010318ddc03487ef5a0184d26962e6f9ed20eda6f4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "cb22ec1e8a98e8665b70ef43764447167dc482a21d43b9ce4befb377253b8d77",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/story",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "6be258def2c1a3cd09862156a22792400bbe05dd3ed625b7d94dce0cf24e2eb0",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/trajectory",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "b3bfa91a1fa741e0c183acd15e6334f9c0bf6945bd8d9da9d1ca7578eb8fc1bd",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "2ffd4d5a80a90ca9e25cfa433330d169dd332fd0cd9637d26e8adaa705c7f440",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "b72462794fcd2f70f4a034146cb095057d2e69eb29332687c181ff1807a426f1",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2/story",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "b222a308369c6033bcb29a0025dfdd13c3c6b5e6062fec6dd9fc5aacde00a2b9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2/trajectory",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "fa1800393b011c590f804e5842ad2053a4940c36577aa0427ee212514d53a43b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/3",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "21711820281684440da70f556b66d8676cf0fd5ebdba4d34b1e1dc3e941b9567",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/3/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "8518171b20c13fcce0fa4ac538f452ccb2b63ab8adc63a60c2e35525fd5fc1d6",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/3/story",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "d703b94354cc5e52cca7725ea4419a24998fe49a35c8659508139f47345e3c1d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/3/trajectory",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "40a4746c9179e0abf11342676afe644ed0fcecd87df34eb2ece0ee7b1c35a1fb",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/4",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "3d77aefa4ab38de57d1bb203d361f9fe89c432018548e04763bfc0b2b60d0b79",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/4/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "fd955ffd5e9d1efba88acf495d809a63df4b631f34b74ef5583310177799922a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/4/story",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "42fb54798f34a0edd7d805d807a95fe0d6a912efa7553904cd0a26ec5ca7dc93",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/4/trajectory",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "abc89d8274d01a5c4791e9d8ab74b887c41573f56f012187be5b71720acd814b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/5",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "5afe985076fa968cdfc03b18fbdf5b1721eec9b3c9877434b5190404cabced6f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/5/seasons",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "a6e9a160f9813c3372dee50b8d562a60b77479ff7201cdb1f766c3c5b254042e",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/5/story",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "041246e778b2e33ed0e49624d882c48eb4b8d95a45e1274ce81651ca2c9fce9b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/5/trajectory",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "09a6f9b7e31c3c78f4a0a990339b7661edf09645f74ab140052df476e27a404d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/head-to-head/2",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "02c1b97227964c860b018d8cddaaf0c6c2943a8e18ab1c8f047013f94d1355a4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/head-to-head/3",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "a87832c2f4b0c36b562f63a251c232521a38433bce423fbbfc6db5152ec49c02",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/1/head-to-head/4",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "bf913421086d838c76b270f4a8ab25a0acaa8a1a282f54d96671d2884087e081",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2/head-to-head/3",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "9ff4e3463aa80b55ea586a824b75905f8505f50d462e881b1783aeead8a56b79",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/2/head-to-head/4",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "ffe319aad106d54b727a83347bb8fac496e12ff5c5c8e170a54d29feeae5e8a9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/owners/3/head-to-head/4",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "2ff404f3f99ae6e176860bbafd685dc21cee0aecec7f21a5669ed056be43d0b3",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/9/avatar",
+   "pinned": true,
+   "binary": true,
+   "status": 200,
+   "sha256": "5b64e53c8337507b08fca31f21e1a23797e80cd6657954766adc909e2974f3a4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/10/avatar",
+   "pinned": true,
+   "binary": true,
+   "status": 404,
+   "sha256": "77d9c43aab3f7b1f764e37eaabe88ae212c48ab8e5e794c6df7803fb5803253c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/11/avatar",
+   "pinned": true,
+   "binary": true,
+   "status": 404,
+   "sha256": "7bdf24725b3662c59905fc2fe5aa4ee8e7599cb2c8e905464f9b8e1c2773245f",
+   "volatile": []
+  },
+  {
+   "url": "/v1/teams/1/avatar",
+   "pinned": true,
+   "binary": true,
+   "status": 404,
+   "sha256": "6dff880e68d8c0a63974b3023c1d957df82e4a65b3804720a9ee500342c8dcab",
+   "volatile": []
+  },
+  {
+   "url": "/v1/meta/capabilities",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "75f94cec03c54f84eed7c3068767b9d9cbb8911afdd48637b14f34c65ab27e1d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/current",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "387b4e71d3b4a87e256ad0bb3866700237a5004909d5261596666f80212871d9",
+   "volatile": []
+  },
+  {
+   "url": "/v1/league/picks",
+   "pinned": false,
+   "binary": false,
+   "status": 200,
+   "sha256": "82974f409b8e3c9c704b755a8adaf0e51793ad9babe14b3244ecee73c6529c19",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/1/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "8af5956619d35a3a7cf350a260b8c9a0e9609f83ccfaf7b8e940768252b18244",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/2/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "999fcdc052e3b4759641deb5381e0e0145b390b0e48cbe4f20c7b1446542c0c8",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/3/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "dc0ac5852725781878af3ed379c0533295ec8176982fc6c7cba7c015f6a2bd18",
+   "volatile": []
+  },
+  {
+   "url": "/v1/seasons/4/faab-market",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "56085dbec5308e83f55c6e3fd1588ff39de2f6add5b39b6191a10456d8f6032d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/8/status?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "75302b479af25bda21937a809ca62a1d228b512dc5e8e5efc6062bd47cb800df",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9418579bdfe6ebfa49bb3fdcb3f4a1ce6623756f9b74c57c813236db3366126a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7578d2f20abc05793546a3eee5ac418087a79a5fef54ce03bcb67afaac4b150c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3a9b11e25fb045dbe41093b4ba5094b83cbfe10b804f228ac08ff0abc5eb2f6d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9f37a5c56a90a72e2f210882610d9824fe4668a1b34eb249b61f655127c6baf2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f152f413b478736e11f15343e75aefdb6a10a23e67f036a0fb04e718375fb5af",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "43d0915569829fea52e1fb00fae8b0fa69a7d56e27438f02e4893245feeab352",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "185c7f74a3efd49037065ca6811eb78cead34b01e9e2bcb2fc5223e5578dd734",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "052f788d5a5122d2790a77ed8066e2fb02e7d7ab5a61d16451e4dada59c50180",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e66ccfe1b0b3fb79048dfa6ccb750511f12df82061474ec80bee214a1f12396b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2fcffdd75389f774e2187a71b1fe85eebd61086361647ee7e2b679d6dbb20ced",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "fde7ab20e15fb9c0bd8f922684839046c88271309c5bda86fc51fd0eb1dda36c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3600efe5a6f24345868ffdbd98e3d1f1921c59e1136e65112194b2d17dfb5de4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "521e0ffb6a443271ea68530ca9940a23624346399af9cb6970d56959fdc4e4eb",
+   "volatile": []
+  }
+ ]
+}

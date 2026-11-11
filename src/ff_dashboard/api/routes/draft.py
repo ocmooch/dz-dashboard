@@ -6,9 +6,9 @@ from fastapi import APIRouter
 from ff_pipeline.api._meta import build_meta
 from ff_pipeline.api.errors import not_found
 
-from ff_dashboard.analytics.draft import draft_board, draft_value
+from ff_dashboard.analytics.draft import draft_board, draft_tendencies, draft_value
 from ff_dashboard.api.deps import CacheDep, SessionDep  # noqa: TC001 — runtime deps for FastAPI
-from ff_dashboard.api.schemas import DraftBoard, DraftValue, Envelope
+from ff_dashboard.api.schemas import DraftBoard, DraftTendencies, DraftValue, Envelope
 
 router = APIRouter(tags=["draft"])
 
@@ -31,3 +31,11 @@ def get_draft_value(season_id: int, session: SessionDep, cache: CacheDep) -> Env
     if data is None:
         raise not_found(f"No season with id {season_id}")
     return Envelope(data=DraftValue(**data), meta=build_meta(session))
+
+
+@router.get("/v1/draft/tendencies", response_model=Envelope[DraftTendencies])
+def get_draft_tendencies(session: SessionDep, cache: CacheDep) -> Envelope[DraftTendencies]:
+    data = cache.get_or_compute(
+        session, "draft_tendencies", lambda: draft_tendencies(session, cache)
+    )
+    return Envelope(data=DraftTendencies(**data), meta=build_meta(session))

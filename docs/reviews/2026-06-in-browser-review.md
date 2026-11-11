@@ -733,7 +733,7 @@ dz-dashboard now renders the exact transaction log while keeping roster diffs as
 
 ### F-45 — Team search is weak (NFL synonyms, players-by-team, fantasy team names)
 - View/route: global search → teams
-- Observed: Player + owner search is excellent (incl. "mike" → manager first, then players). Team
+- Observed: Player + owner search is excellent (incl. "Owner 19" → manager first, then players). Team
   search falls short:
   - NFL team nomenclature inconsistent: "New York" → only Giants (not Jets); "Jets" → "Jets" not
     "New York Jets".
@@ -1037,7 +1037,7 @@ first (data/analytics foundations → analytics → views).
   fix-pass P4 VERIFY, 2026-06-06).** On the regenerated `fantasy.db`, for **every** season 2010–2025
   the `week = 1` roster snapshot is disjoint from both its `week = 0` neighbour (the genuine draft /
   opening roster) and its `week = 2` neighbour (the settled in-season roster): player-id overlap is
-  **0–7 of 17** across all seasons (e.g. 2010 ROBZILLA `team_id=22`: wk1 ∩ wk0 = 0/17, wk1 ∩ wk2 =
+  **0–7 of 17** across all seasons (e.g. 2010 Team 114 `team_id=22`: wk1 ∩ wk0 = 0/17, wk1 ∩ wk2 =
   0/17). The week-1 rows carry the correct `season_year` but reference anachronistic players — a 2010
   team's week 1 lists modern players (Brock Purdy, Bucky Irving), identical to a 2016 team's week 1,
   while that same team's weeks 0 and 2–17 hold genuine 2010 players (Roethlisberger, Joseph Addai).
@@ -1065,7 +1065,7 @@ first (data/analytics foundations → analytics → views).
   fabricated churn is gone; real-team wk0→wk1 churn is now normal post-draft waiver activity. **P4
   unblocked, no dashboard code change.** Residual (separate identity artifact, not this churn
   corruption): 1–2 phantom **week-1-only** teams per season with duplicate/garbled names
-  ("JFCFPWCPGAWWLTDOSGT", "Rev Russell's Sunday Service") and ~2 matchups each, present 2010–2018,
+  ("Team 084", "Team 116") and ~2 matchups each, present 2010–2018,
   absent in 2019/2023/2025 — relates to the owner/team-identity work, not F-53.)*
 - **Foundation both sides need:** the **per-season league-settings ledger** (scoring rules, week
   structure, waiver system, ownership) — see the cross-cutting theme above. P1 builds the schedule

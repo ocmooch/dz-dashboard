@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Card, CardHeader, Chip, DataGap, EraMarker, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { teamAvatarUrl } from "@/lib/format";
@@ -13,6 +13,7 @@ type LeagueTimelineSeason = components["schemas"]["LeagueTimelineSeason"];
 type LeagueChangeDetail = components["schemas"]["LeagueChangeDetail"];
 type CommissionerTerm = components["schemas"]["CommissionerTerm"];
 type LeagueEra = components["schemas"]["LeagueEra"];
+type LeagueEraChange = components["schemas"]["LeagueEraChange"];
 
 async function fetchTimeline(): Promise<LeagueTimeline> {
   const { data, error } = await api.GET("/v1/league/timeline");
@@ -32,11 +33,10 @@ async function fetchEras(): Promise<components["schemas"]["LeagueEras"]> {
   return data.data;
 }
 
-function commissionerForYear(
-  terms: CommissionerTerm[],
-  year: number,
-): CommissionerTerm | undefined {
-  return terms.find((t) => t.from_year <= year && (t.to_year === null || t.to_year === undefined || t.to_year >= year));
+function commissionerForYear(terms: CommissionerTerm[], year: number): CommissionerTerm | undefined {
+  return terms.find(
+    (t) => t.from_year <= year && (t.to_year === null || t.to_year === undefined || t.to_year >= year),
+  );
 }
 
 function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
@@ -48,10 +48,7 @@ function CommissionerStrip({ terms }: { terms: CommissionerTerm[] }) {
         {terms.map((t) => {
           const isCurrent = t.to_year === null || t.to_year === undefined;
           return (
-            <div
-              key={`${t.owner_id}-${t.from_year}`}
-              className="flex-1 min-w-[6rem] px-4 py-3 text-center"
-            >
+            <div key={`${t.owner_id}-${t.from_year}`} className="flex-1 min-w-[6rem] px-4 py-3 text-center">
               <Link
                 to={`/managers/${t.owner_id}`}
                 className="block text-[var(--fs-sm)] font-semibold text-ink hover:text-accent transition-colors"
@@ -93,10 +90,10 @@ function EraStrip({ eras }: { eras: LeagueEra[] }) {
       <div className="grid gap-px bg-[var(--hairline)] sm:grid-cols-2 lg:grid-cols-4">
         {eras.map((era, i) => {
           const span =
-            era.start_year === era.end_year
-              ? `${era.start_year}`
-              : `${era.start_year}–${era.end_year}`;
-          const traits = [era.ppr, era.lineup, era.waiver_system].filter(Boolean) as string[];
+            era.start_year === era.end_year ? `${era.start_year}` : `${era.start_year}–${era.end_year}`;
+          const traits = [era.ppr, era.lineup, era.waiver_system, era.division_structure].filter(
+            Boolean,
+          ) as string[];
           const isCurrent = i === eras.length - 1;
           return (
             <a
@@ -136,8 +133,28 @@ function EraStrip({ eras }: { eras: LeagueEra[] }) {
   );
 }
 
+/** Platform boundary on the Timeline (Sleeper D1, `03` §2): a dashed rule with the new
+ *  platform's era marker and "Moved to X — YEAR". Shown even before that season has games. */
+function PlatformBoundary({ change }: { change: LeagueEraChange }) {
+  const detail = change.details?.find((d) => d.category === "platform");
+  if (!detail) return null;
+  return (
+    <div
+      data-testid="platform-boundary"
+      className="flex items-center gap-3 border-y border-dashed border-[var(--border-strong)] px-5 py-3"
+    >
+      <EraMarker label={detail.after} />
+      <span className="font-medium text-text">
+        {detail.title} — {change.season_year}
+      </span>
+      <span className="text-[var(--fs-xs)] text-faint">{detail.summary}</span>
+    </div>
+  );
+}
+
 function categoryLabel(category: string) {
   const labels: Record<string, string> = {
+    platform: "Platform",
     data_quality: "Data quality",
     league_size: "League structure",
     participants: "Managers",
@@ -222,11 +239,15 @@ function ParticipantList({ detail }: { detail: LeagueChangeDetail }) {
     <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[var(--fs-xs)]">
       {joined.map((name) => (
         <span key={name} className="flex items-center gap-1" style={{ color: "var(--win)" }}>
-          <span className="font-bold">+</span>{name}
+          <span className="font-bold">+</span>
+          {name}
         </span>
       ))}
       {left.map((name) => (
-        <span key={name} className="flex items-center gap-1 text-faint line-through decoration-[var(--text-faint)]">
+        <span
+          key={name}
+          className="flex items-center gap-1 text-faint line-through decoration-[var(--text-faint)]"
+        >
           {name}
         </span>
       ))}
@@ -315,9 +336,7 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
       : null;
 
   const provExpandable =
-    detail.certainty !== "verified" ||
-    detail.source !== "derived_from_db" ||
-    detail.description_gap;
+    detail.certainty !== "verified" || detail.source !== "derived_from_db" || detail.description_gap;
   const expandable = hasMembers || provExpandable;
 
   // Tier-driven weight. T1 shouts (fill + thick rule), T2 speaks (category rule),
@@ -348,14 +367,15 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
         {isMajor && (
           <span
             className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)" }}
+            style={{
+              background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+              color: "var(--accent)",
+            }}
           >
             Major
           </span>
         )}
-        <span className={`text-[var(--fs-sm)] ${titleClass}`}>
-          {detail.human_label ?? detail.title}
-        </span>
+        <span className={`text-[var(--fs-sm)] ${titleClass}`}>{detail.human_label ?? detail.title}</span>
         <ChangeTimestamp changedAt={detail.changed_at} />
         {inSeason && <InSeasonMarker />}
         {expandable && (
@@ -408,8 +428,11 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
 }
 
 function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
-  const { champion, runner_up, last_place } = season;
-  if (!champion && !runner_up && !last_place) return <DataGap reason="champion_unavailable" />;
+  const { champion, runner_up, last_place, sacko } = season;
+  if (!champion && !runner_up && !last_place && !sacko)
+    return (
+      <DataGap reason={season.status === "in_progress" ? "season_in_progress" : "champion_unavailable"} />
+    );
 
   return (
     <div className="flex flex-wrap items-start gap-3">
@@ -420,7 +443,7 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
           avatarUrl={teamAvatarUrl(champion.team_id)}
         />
       )}
-      {(runner_up || last_place) && (
+      {(runner_up || last_place || sacko) && (
         <div className="flex flex-col gap-1.5 self-center">
           {runner_up && (
             <div className="flex items-center gap-2">
@@ -432,15 +455,33 @@ function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
               </span>
             </div>
           )}
-          {last_place && (
-            <div className="flex items-center gap-2">
+          {sacko ? (
+            <div
+              className="flex items-center gap-2"
+              title={
+                sacko.source === "recorded"
+                  ? "Recorded last-place team (bracket could not be split)"
+                  : "Toilet-bowl loser"
+              }
+            >
               <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                Last place
+                Sacko 💩
               </span>
               <span className="text-[var(--fs-xs)] font-medium text-muted">
-                {last_place.team_name ?? last_place.owner_name}
+                {sacko.team_name ?? sacko.owner_name}
               </span>
             </div>
+          ) : (
+            last_place && (
+              <div className="flex items-center gap-2">
+                <span className="w-16 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                  Last place
+                </span>
+                <span className="text-[var(--fs-xs)] font-medium text-muted">
+                  {last_place.team_name ?? last_place.owner_name}
+                </span>
+              </div>
+            )
           )}
         </div>
       )}
@@ -461,10 +502,7 @@ function SeasonEntry({
     (a, b) => (TIER_RANK[tierOf(a)] ?? 9) - (TIER_RANK[tierOf(b)] ?? 9),
   );
   // Count leaf changes (an aggregated event / routine bucket counts its members).
-  const totalChanges = details.reduce(
-    (sum, d) => sum + ((d.members?.length ?? 0) || 1),
-    0,
-  );
+  const totalChanges = details.reduce((sum, d) => sum + ((d.members?.length ?? 0) || 1), 0);
 
   return (
     <article id={anchorId} className="grid scroll-mt-24 gap-5 p-5 lg:grid-cols-[5.5rem_1fr]">
@@ -475,9 +513,7 @@ function SeasonEntry({
         </div>
         {commissioner && (
           <div className="mt-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">
-              Commish
-            </div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">Commish</div>
             <Link
               to={`/managers/${commissioner.owner_id}`}
               className="text-[var(--fs-xs)] font-medium text-muted hover:text-ink transition-colors"
@@ -514,6 +550,20 @@ function SeasonEntry({
   );
 }
 
+function SeasonEntryWithBoundary({
+  boundaries,
+  ...props
+}: { boundaries: LeagueEraChange[] } & Parameters<typeof SeasonEntry>[0]) {
+  return (
+    <>
+      {boundaries.map((change) => (
+        <PlatformBoundary key={`platform-${change.season_year}`} change={change} />
+      ))}
+      <SeasonEntry {...props} />
+    </>
+  );
+}
+
 export function LeagueHistoryPage() {
   const timeline = useQuery({ queryKey: qk.leagueTimeline, queryFn: fetchTimeline });
   const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
@@ -528,6 +578,16 @@ export function LeagueHistoryPage() {
   const latest = timeline.data?.seasons.at(-1);
   const commissioners = overview.data?.commissioners ?? [];
   const eras = erasQuery.data?.eras ?? [];
+  const platformChanges = (erasQuery.data?.changes ?? []).filter((c) => c.platform_changed);
+  // Newest first: a boundary sits above the newest season older than the switch.
+  const boundaryBefore = new Map<number, LeagueEraChange[]>();
+  const leadingBoundaries: LeagueEraChange[] = [];
+  for (const change of platformChanges) {
+    const firstOlder = seasons.find((s) => s.season_year < change.season_year);
+    if (firstOlder === undefined || firstOlder === seasons[0]) leadingBoundaries.push(change);
+    else
+      boundaryBefore.set(firstOlder.season_id, [...(boundaryBefore.get(firstOlder.season_id) ?? []), change]);
+  }
 
   // Anchor each era to its most-recent season so the strip's cells scroll into place.
   const eraAnchorBySeasonId = new Map<number, string>();
@@ -545,8 +605,8 @@ export function LeagueHistoryPage() {
         <div className="dz-eyebrow mb-1">League museum</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">League Timeline</h1>
         <p className="mt-2 max-w-2xl text-[var(--fs-sm)] text-muted">
-          Every season, newest first, grouped into <span className="font-semibold text-ink">eras</span> — spans
-          of consistent playstyle bounded by the rules that matter most (PPR, lineup, waivers).{" "}
+          Every season, newest first, grouped into <span className="font-semibold text-ink">eras</span> —
+          spans of consistent playstyle bounded by the rules that matter most (PPR, lineup, waivers).{" "}
           <span className="font-semibold text-ink">Major</span> changes are highlighted,{" "}
           <span className="font-semibold text-ink">notable</span> ones sit below them, and routine admin edits
           collapse into one group per season. Changes made after kickoff carry an{" "}
@@ -595,7 +655,10 @@ export function LeagueHistoryPage() {
         <span className="flex items-center gap-1.5">
           <span
             className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)" }}
+            style={{
+              background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+              color: "var(--accent)",
+            }}
           >
             Major
           </span>
@@ -616,15 +679,17 @@ export function LeagueHistoryPage() {
         <div className="divide-y divide-[var(--hairline)]">
           {timeline.isLoading &&
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="m-5 h-20" />)}
+          {leadingBoundaries.map((change) => (
+            <PlatformBoundary key={`platform-${change.season_year}`} change={change} />
+          ))}
           {seasons.map((season) => (
-            <SeasonEntry
+            <SeasonEntryWithBoundary
               key={season.season_id}
+              boundaries={boundaryBefore.get(season.season_id) ?? []}
               season={season}
               anchorId={eraAnchorBySeasonId.get(season.season_id)}
               commissioner={
-                season.season_year
-                  ? commissionerForYear(commissioners, season.season_year)
-                  : undefined
+                season.season_year ? commissionerForYear(commissioners, season.season_year) : undefined
               }
             />
           ))}

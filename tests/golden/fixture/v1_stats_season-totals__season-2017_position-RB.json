@@ -1,0 +1,56 @@
+{
+ "body": {
+  "data": {
+   "position": "RB",
+   "season_year": 2017,
+   "totals": [
+    {
+     "name_full": "Christian McCaffrey",
+     "nfl_team": "SF",
+     "player_id": 2,
+     "position": "RB",
+     "total_points": 42.0,
+     "weeks_played": 2
+    },
+    {
+     "name_full": "Ice IR Guy",
+     "nfl_team": "MIA",
+     "player_id": 28,
+     "position": "RB",
+     "total_points": 30.0,
+     "weeks_played": 1
+    },
+    {
+     "name_full": "Ice RB Three",
+     "nfl_team": "PHI",
+     "player_id": 20,
+     "position": "RB",
+     "total_points": 20.0,
+     "weeks_played": 1
+    },
+    {
+     "name_full": "Ice RB One",
+     "nfl_team": "NYG",
+     "player_id": 18,
+     "position": "RB",
+     "total_points": 18.0,
+     "weeks_played": 1
+    },
+    {
+     "name_full": "Ice RB Two",
+     "nfl_team": "DAL",
+     "player_id": 19,
+     "position": "RB",
+     "total_points": 9.0,
+     "weeks_played": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

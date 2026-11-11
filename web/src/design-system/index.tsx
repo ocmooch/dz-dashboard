@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react
 import { useState } from "react";
 
 import { initials, record } from "@/lib/format";
+import { capabilityGapText, isRendered, isShowable, type Capability } from "@/lib/platform";
 
 // The durable primitive layer. Pages compose these; they hold no business logic.
 // Styling lives in styles/global.css (the `dz-*` classes) reading tokens.css.
@@ -15,12 +16,18 @@ export function Card({
   className?: string;
   hover?: boolean;
 }) {
-  return (
-    <section className={`dz-card ${hover ? "dz-card--hover" : ""} ${className}`}>{children}</section>
-  );
+  return <section className={`dz-card ${hover ? "dz-card--hover" : ""} ${className}`}>{children}</section>;
 }
 
-export function CardHeader({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) {
+export function CardHeader({
+  eyebrow,
+  title,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  action?: ReactNode;
+}) {
   return (
     <header className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-5 py-4">
       <div>
@@ -59,7 +66,9 @@ export function Stat({
     <div>
       <div className="dz-eyebrow mb-1">{label}</div>
       <div className="flex items-baseline gap-1.5">
-        <span className={`font-display text-[30px] font-bold leading-none tracking-wide ${color}`}>{value}</span>
+        <span className={`font-display text-[30px] font-bold leading-none tracking-wide ${color}`}>
+          {value}
+        </span>
         {unit && <span className="font-mono text-[var(--fs-sm)] text-muted">{unit}</span>}
       </div>
     </div>
@@ -211,11 +220,24 @@ export function Chip({
 export const UNSCORED_SEASON_NOTE =
   "Per-player fantasy scoring isn't available for this season yet — values that depend on it show a gap marker, never a zero.";
 
+/** An unfinished week (Sleeper D3): its games are pairings only, unscored until the week is final. */
+export const AWAITING_FINAL_LABEL = "Awaiting final";
+
+/** "through week 8 · week 9 awaiting final" — the in-progress-season qualifier (BFF-computed weeks). */
+export function throughWeekText(throughWeek: number | null | undefined, pendingWeek?: number | null): string {
+  const parts: string[] = [];
+  if (throughWeek != null && throughWeek > 0) parts.push(`through week ${throughWeek}`);
+  if (pendingWeek != null) parts.push(`week ${pendingWeek} ${AWAITING_FINAL_LABEL.toLowerCase()}`);
+  return parts.join(" · ");
+}
+
 /** The honesty component: shown wherever a metric is absent. Never a fake 0.
  *  Renders the dashed + hatched affordance with an amber diamond (drawn in CSS). */
 export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" | "sm" }) {
   const labels: Record<string, string> = {
     season_unscored: "Per-player scoring not available for this season",
+    week_pending: "This week isn't final yet — scores appear once the week is final",
+    no_current_season: "No season in progress",
     no_scored_data: "No scored data for this scope",
     availability_history_not_reconstructable: "Availability — current season only",
     no_availability_rows: "No availability snapshots",
@@ -231,17 +253,20 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     unscored_tenure:
       "This player's rostered seasons have no per-player fantasy scoring available; their team/roster data is intact",
     bracket_unavailable: "Bracket data isn't available for this season",
-    consolation_indistinguishable:
-      "No consolation bracket was recorded for this season",
+    no_solvable_lineups: "No weekly lineups to solve for this team",
+    consolation_indistinguishable: "No consolation bracket was recorded for this season",
     conference_membership_unavailable:
       "Conference membership data for historical seasons is not yet available",
     roster_history_unavailable:
       "Week-by-week roster history isn't available for this season, so adds and drops can't be derived",
     projections_not_captured: "Projections not captured for this season/week",
-    projection_points_not_scored:
-      "Projection rows exist, but projected fantasy points were not scored",
-    identity_split_candidate:
-      "Player identity split detected; stats may live under a source twin",
+    projection_points_not_scored: "Projection rows exist, but projected fantasy points were not scored",
+    identity_split_candidate: "Player identity split detected; stats may live under a source twin",
+    reports_not_loaded: "Injury report not loaded for this week yet",
+    stale_or_missing_snapshot: "No status capture within 7 days of kickoff",
+    season_not_played: "This season has no games yet",
+    season_in_progress: "Season in progress — final results come after the championship",
+    champion_unavailable: "Final results weren't recorded for this season",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">
@@ -250,15 +275,89 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
   );
 }
 
+/** Era marker (Sleeper D1, `03` §2): a neutral, uppercase mono platform label. Never coloured
+ *  by platform, never animated. Used in the season header, the Timeline and chart boundaries. */
+export function EraMarker({ label }: { label?: string | null }) {
+  if (!label) return null;
+  return (
+    <span className="dz-era-marker font-mono text-[var(--fs-xs)] uppercase tracking-[0.14em] text-muted">
+      {label}
+    </span>
+  );
+}
+
+/** Renders children when the capability's data is showable; otherwise the standard `DataGap`
+ *  with the capability's copy. `not_used` renders nothing at all (user rule). */
+export function CapabilityGate({
+  capKey,
+  cap,
+  platform,
+  children,
+  size = "md",
+}: {
+  capKey: string;
+  cap: Capability | null | undefined;
+  platform: string | null | undefined;
+  children: ReactNode;
+  size?: "md" | "sm";
+}) {
+  if (!isRendered(cap)) return null;
+  if (isShowable(cap)) return <>{children}</>;
+  return <DataGap reason={capabilityGapText(capKey, cap, platform)} size={size} />;
+}
+
+/** One-line provenance footnote ("official / computed / derived"), under a table or chart. */
+export function ProvenanceNote({ children }: { children: ReactNode }) {
+  if (children == null || children === "") return null;
+  return <p className="dz-provenance mt-2 text-[var(--fs-xs)] text-faint">{children}</p>;
+}
+
 /** Championship / podium marker for trophy cases. */
 export function Trophy({ label, count }: { label?: string; count?: number }) {
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-accent" title={label}>
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-accent"
+      title={label}
+    >
       <span aria-hidden>★</span>
       {count != null && <span className="num">{count}</span>}
       {label && <span className="text-muted">{label}</span>}
     </span>
   );
+}
+
+/** Sacko (last-place / toilet-bowl) marker — the 💩 anti-trophy for hardware areas. */
+export function Sacko({ label = "Sacko", count }: { label?: string; count?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[var(--fs-sm)] text-muted" title={label}>
+      <span aria-hidden>💩</span>
+      {count != null && <span className="num">{count}</span>}
+      {label && <span className="text-muted">{label}</span>}
+    </span>
+  );
+}
+
+/**
+ * Badge for a postseason game's bracket tier. Championship gets an accent banner;
+ * the consolation ("toilet") bracket is muted so it never reads as an achievement.
+ * Returns null for regular-season / indistinguishable games (so callers can render
+ * a plain "regular season" eyebrow themselves).
+ */
+export function BracketBadge({ tier }: { tier?: string | null }) {
+  if (tier === "championship")
+    return (
+      <span title="Championship — the title game">
+        <Badge variant="accent">🏆 Championship</Badge>
+      </span>
+    );
+  if (tier === "consolation")
+    return (
+      <span title="Consolation (toilet) bracket — not a playoff achievement">
+        <Badge>💩 Consolation</Badge>
+      </span>
+    );
+  if (tier === "playoff") return <Badge variant="accent">Playoff</Badge>;
+  return null;
 }
 
 /** Prev/next week control. The bound value lives in the URL at the page level. */
@@ -323,7 +422,10 @@ export function Tabs<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div role="tablist" className="inline-flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-1">
+    <div
+      role="tablist"
+      className="inline-flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-1"
+    >
       {tabs.map((t) => {
         const active = t.id === value;
         return (
@@ -378,7 +480,14 @@ export function Sparkline({
       aria-label="trend sparkline"
       preserveAspectRatio="none"
     >
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

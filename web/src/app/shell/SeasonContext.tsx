@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
+import type { Capability } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 export type SeasonInfo = {
@@ -10,6 +11,10 @@ export type SeasonInfo = {
   status?: string | null;
   is_scored: boolean;
   champion?: { owner_name?: string | null; team_name?: string | null } | null;
+  /** Sleeper D1: provenance + capabilities, read once here instead of per page. */
+  platform?: string | null;
+  platform_label?: string | null;
+  capabilities?: Record<string, Capability> | null;
 };
 
 type SeasonCtx = {
@@ -29,10 +34,7 @@ async function fetchSeasons(): Promise<SeasonInfo[]> {
 
 export function SeasonProvider({ children }: { children: ReactNode }) {
   const { data, isLoading } = useQuery({ queryKey: qk.seasons, queryFn: fetchSeasons });
-  const seasons = useMemo(
-    () => [...(data ?? [])].sort((a, b) => b.season_year - a.season_year),
-    [data],
-  );
+  const seasons = useMemo(() => [...(data ?? [])].sort((a, b) => b.season_year - a.season_year), [data]);
   const [seasonId, setSeasonId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -41,9 +43,7 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
 
   const current = seasons.find((s) => s.season_id === seasonId) ?? seasons[0] ?? null;
 
-  return (
-    <Ctx.Provider value={{ seasons, current, setSeasonId, isLoading }}>{children}</Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ seasons, current, setSeasonId, isLoading }}>{children}</Ctx.Provider>;
 }
 
 export function useSeasons(): SeasonCtx {

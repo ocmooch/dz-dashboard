@@ -1,0 +1,24 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "last_finalized_week": null,
+   "latest_results": [],
+   "pending_pairings": [],
+   "pending_week": null,
+   "platform": null,
+   "platform_label": null,
+   "reason": "no_current_season",
+   "regular_season_weeks": null,
+   "season_id": null,
+   "season_year": null,
+   "standings_top": []
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

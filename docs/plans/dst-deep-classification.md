@@ -10,6 +10,23 @@ with the pick-six excluded; changing PA breaks correct rows), **deliberately lef
 ~48 small one-off residuals. The PA plan below is retained as the record of why that class is not a
 safe fix.
 
+**PA follow-up (2026-06-24, danger-zone `feature/dst-pa-rederivation`):** a structured-`play_type` PA
+classifier was tested on a DB copy. It resolved ARI 2016 wk3 but regressed SEA 2013 wk6; final copy
+validation `RESOLVED=0`, `WORSENED=0`, `REGRESSED=0`; audit unchanged at **127** (**79 PA** + **48
+OTHER**). Live DB not rewritten.
+
+**PA deep audit (2026-06-24, dz-dashboard side) — class PROVEN irreducible; the `play_type` thesis
+below (Class A) is REFUTED.** The 79 PA rows are scrimmage **defensive return TDs** (pick-six/
+fumble-six, `play_type='pass'/'run'`, `td_team!=posteam`) that `_score_counts_against_dst` excludes,
+leaving PA exactly **7/8/9 under the opponent's final score**; smeared across all 16 seasons.
+`play_type` cannot touch them (they aren't special teams) — hence 0 resolved. Two whole-set tests
+close it: (1) where an exclusion moves the bracket, it is **correct in 287 rows, wrong in only 94** —
+"PA = final score" would break 287 correct rows (confirms GB 2020 wk6 at scale); (2) the 94 wrong and
+287 correct exclusions share the **same INT:FUM mix** (47/33 vs 158/83), so **no PBP feature separates
+them** — NFL.com charged ~25% of defensive-return TDs to PA and excluded ~75% inconsistently in its own
+historical feed. Genuine source noise; `_index_fantasy_points_allowed` left untouched; workstream
+closed.
+
 _Original plan (relocation join had just landed, danger-zone `ea93b01`): DST diverging
 500 → 303. This plan covered the two remaining classes, which need play-by-play and so were deferred._
 Live DB is `../danger-zone/data/fantasy.db`; ground truth is `team_rosters.extra_data.nfl_com_points`;
@@ -37,6 +54,10 @@ Two clean, independent facts drive the plan:
 ---
 
 ## Class A — points_allowed under-count (74 rows). Do this FIRST: lower risk, likely a *simplification*
+
+> **⚠️ REFUTED (2026-06-24) — do NOT implement this section.** The "PA = opponent final score" fix
+> below would break **287** currently-correct rows to "fix" 94 (see the PA deep-audit note at the top).
+> Retained only as historical reasoning. The class is proven irreducible NFL.com source noise.
 
 **Root cause hypothesis (strongly supported offline).** `team_defense._index_fantasy_points_allowed`
 derives points-allowed from a PBP scoring-delta walk that deliberately **excludes** opponent

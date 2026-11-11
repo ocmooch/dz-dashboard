@@ -4,10 +4,21 @@ import { Link, useParams } from "react-router-dom";
 import { StackedBreakdown, type ChartRow, type SeriesDef } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
-import { Badge, Card, CardHeader, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
+import {
+  Badge,
+  BracketBadge,
+  Card,
+  CardHeader,
+  DataGap,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+  Stat,
+} from "@/design-system";
 import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, pct } from "@/lib/format";
+import { commissionerOverrideNote, officialPointsNote, slotNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type BoxScore = Awaited<ReturnType<typeof fetchBoxScore>>;
@@ -72,7 +83,6 @@ function ContextBadge({ p }: { p: BoxPlayer }) {
   );
 }
 
-
 function shortName(name: string | null | undefined): string {
   if (!name) return "—";
   const parts = name.trim().split(/\s+/);
@@ -108,10 +118,21 @@ function LineupTable({ team }: { team: BoxTeam }) {
         <tr>
           <th>Slot</th>
           <th>Player</th>
-          <th className="dz-num" title="Pre-game projected fantasy points">Proj</th>
-          <th className="dz-num" title="Player's share of their team's total points scored">Share</th>
-          <th className="dz-num" title="Actual vs projected (+/− delta).">Value</th>
-          <th className="dz-num" title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores.">Pts</th>
+          <th className="dz-num" title="Pre-game projected fantasy points">
+            Proj
+          </th>
+          <th className="dz-num" title="Player's share of their team's total points scored">
+            Share
+          </th>
+          <th className="dz-num" title="Actual vs projected (+/− delta).">
+            Value
+          </th>
+          <th
+            className="dz-num"
+            title="Fantasy points scored. Context flags explain byes, DNPs, injury designations, and reserve-slot scores."
+          >
+            Pts
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -146,7 +167,10 @@ function LineupTable({ team }: { team: BoxTeam }) {
 function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
   return (
     <tr>
-      <td className="num text-faint">{p.roster_slot ?? "—"}</td>
+      <td className="num text-faint" title={slotNoteText(p.slot_note) ?? undefined}>
+        {p.roster_slot ?? "—"}
+        {p.slot_note && <span aria-label={slotNoteText(p.slot_note) ?? undefined}>*</span>}
+      </td>
       <td className={muted ? "text-muted" : undefined}>
         {p.player_name ?? "—"}
         <span className="ml-1 text-[var(--fs-xs)] text-faint">{p.position}</span>
@@ -156,6 +180,8 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             bodyPart={p.injury_body_part}
             secondary={p.injury_secondary}
             practiceStatus={p.injury_practice_status}
+            source={p.injury_source}
+            asOf={p.injury_as_of}
           />
         )}
         <ContextBadge p={p} />
@@ -166,17 +192,11 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             gap chip on every row. */}
         {p.projection != null ? num(p.projection) : "—"}
       </td>
-      <td className="dz-num text-faint">
-        {p.team_point_share != null ? pct(p.team_point_share) : "—"}
-      </td>
+      <td className="dz-num text-faint">{p.team_point_share != null ? pct(p.team_point_share) : "—"}</td>
       <td className="dz-num">
         <span
           className={
-            p.projection_delta == null
-              ? "text-faint"
-              : p.projection_delta >= 0
-                ? "text-win"
-                : "text-loss"
+            p.projection_delta == null ? "text-faint" : p.projection_delta >= 0 ? "text-win" : "text-loss"
           }
           title={
             p.projection != null && p.league_points != null && p.projection_delta != null
@@ -234,7 +254,9 @@ function TeamColumn({
               {num(team.total_score)}
             </span>
             {signedMargin != null && (
-              <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+              <span
+                className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}
+              >
                 {signedMargin > 0 ? "+" : ""}
                 {num(signedMargin)}
               </span>
@@ -308,7 +330,11 @@ export function BoxScorePage() {
           </div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Box Score</h1>
         </div>
-        {data?.is_playoff && <Badge variant="accent">playoff</Badge>}
+        {data?.bracket_tier ? (
+          <BracketBadge tier={data.bracket_tier} />
+        ) : (
+          data?.is_playoff && <Badge variant="accent">playoff</Badge>
+        )}
       </div>
 
       {isLoading && (
@@ -322,9 +348,20 @@ export function BoxScorePage() {
       {data && !data.available && (
         <Card className="space-y-4 p-8">
           <DataGap reason={data.reason ?? undefined} />
-          <p className="text-[var(--fs-sm)] text-muted">
-            Team totals can still be reviewed from the weekly matchups view.
-          </p>
+          {data.commissioner_override && (
+            <p className="text-[var(--fs-sm)] text-muted" role="note">
+              {commissionerOverrideNote(
+                data.official_points_source,
+                num(data.commissioner_override.official),
+                num(data.commissioner_override.custom),
+              )}
+            </p>
+          )}
+          {data.reason !== "week_pending" && (
+            <p className="text-[var(--fs-sm)] text-muted">
+              Team totals can still be reviewed from the weekly matchups view.
+            </p>
+          )}
           {data.week != null && (
             <Link to={`/matchups?week=${data.week}`} className="text-accent hover:underline">
               View week {data.week} matchups
@@ -339,8 +376,8 @@ export function BoxScorePage() {
           role="note"
         >
           <span className="dz-eyebrow mr-1 text-faint">note</span>
-          Projection data isn’t available for the {data.season_year} season, so the Proj and Value
-          columns are blank. Scoring is unaffected.
+          Projection data isn’t available for the {data.season_year} season, so the Proj and Value columns are
+          blank. Scoring is unaffected.
         </div>
       )}
 
@@ -354,9 +391,21 @@ export function BoxScorePage() {
         </div>
       )}
 
-      {data && data.available && data.flags && data.flags.length > 0 && (
-        <MatchupFlags flags={data.flags} />
+      {data && data.available && data.commissioner_override && (
+        <div
+          className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+          role="note"
+        >
+          <span className="dz-eyebrow mr-1 text-faint">note</span>
+          {commissionerOverrideNote(
+            data.official_points_source,
+            num(data.commissioner_override.official),
+            num(data.commissioner_override.custom),
+          )}
+        </div>
       )}
+
+      {data && data.available && data.flags && data.flags.length > 0 && <MatchupFlags flags={data.flags} />}
 
       {data && data.available && data.home && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -373,6 +422,14 @@ export function BoxScorePage() {
             />
           )}
         </div>
+      )}
+
+      {data && data.available && (
+        <ProvenanceNote>
+          {officialPointsNote(data.official_points_source)}
+          {[data.home, data.away].some((t) => t?.lineup.some((p) => p.slot_note)) &&
+            ` * ${slotNoteText("bench_or_reserve")}`}
+        </ProvenanceNote>
       )}
     </div>
   );

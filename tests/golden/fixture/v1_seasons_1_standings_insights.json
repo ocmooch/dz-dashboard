@@ -1,0 +1,91 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "most_blessed": {
+    "actual_wins": 1.0,
+    "all_play_win_pct": 0.3333,
+    "expected_wins": 0.67,
+    "luck_delta": 0.33,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "points_for_rank": 2,
+    "standings_rank": 2,
+    "team_id": 1,
+    "team_name": "Maverick 2015"
+   },
+   "most_robbed": {
+    "actual_wins": 0.0,
+    "all_play_win_pct": 0.3333,
+    "expected_wins": 0.67,
+    "luck_delta": -0.67,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "points_for_rank": 3,
+    "standings_rank": 4,
+    "team_id": 2,
+    "team_name": "Iceman 2015"
+   },
+   "reason": null,
+   "season_id": 1,
+   "season_year": 2015,
+   "teams": [
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.3333,
+     "expected_wins": 0.67,
+     "luck_delta": 0.33,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for_rank": 2,
+     "standings_rank": 2,
+     "team_id": 1,
+     "team_name": "Maverick 2015"
+    },
+    {
+     "actual_wins": 1.0,
+     "all_play_win_pct": 0.3333,
+     "expected_wins": 0.67,
+     "luck_delta": 0.33,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for_rank": 4,
+     "standings_rank": 3,
+     "team_id": 3,
+     "team_name": "Goose 2015"
+    },
+    {
+     "actual_wins": 2.0,
+     "all_play_win_pct": 1.0,
+     "expected_wins": 2.0,
+     "luck_delta": 0.0,
+     "owner_id": 4,
+     "owner_name": "Slider",
+     "points_for_rank": 1,
+     "standings_rank": 1,
+     "team_id": 4,
+     "team_name": "Dynasty Crew"
+    },
+    {
+     "actual_wins": 0.0,
+     "all_play_win_pct": 0.3333,
+     "expected_wins": 0.67,
+     "luck_delta": -0.67,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for_rank": 3,
+     "standings_rank": 4,
+     "team_id": 2,
+     "team_name": "Iceman 2015"
+    }
+   ],
+   "through_week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

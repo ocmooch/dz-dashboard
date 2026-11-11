@@ -31,7 +31,17 @@ document, so the contract is enforced at build time.
 | Endpoint | Description |
 |----------|-------------|
 | `GET /health` | `{"status":"ok"}` liveness |
-| `GET /v1/meta` | Data freshness: latest pipeline run, per-source health, coverage summary (which seasons are scored, whether reconstruction is complete) — powers the "data as of" indicator and gap banners |
+| `GET /v1/meta` | Data freshness: latest pipeline run, per-source health, coverage summary (which seasons are scored, whether reconstruction is complete) — powers the "data as of" indicator and gap banners. Sleeper D1 adds `platform_eras` (`[{platform, label, start_year, end_year}]`, every season with a platform, played or not), `current_season_id` and `current_week` |
+| `GET /v1/meta/capabilities` | Sleeper D1: seasons by capabilities (`{keys, seasons: [{season_id, season_year, platform, platform_label, cells: {key: {state, note}}}]}`) for About. States mirror upstream `season_capabilities`; `not_used` has no note and renders nothing |
+
+**Sleeper D1, additive fields.** `SeasonListItem` (`/v1/seasons`), `SeasonSummary`
+(`/v1/seasons/{id}`) and `LeagueTimelineSeason` (`/v1/league/timeline`) carry `platform`,
+`platform_label` and `capabilities`. Other per-season endpoints don't repeat them; the SPA reads
+them once through `SeasonContext`. `CoverageMatrix` gains `season_platforms` and `capabilities`
+(by year). `LeagueEraChange` gains `platform_changed`, and the switch is a detail with
+`category: "platform"` ("Moved to Sleeper"), shown even before that season has games.
+`ManagerIdentity` gains `platform_accounts` (`platform`, `label`, `first_season`, `last_season`;
+never usernames or user ids).
 
 ### Home / command center
 
@@ -84,6 +94,21 @@ document, so the contract is enforced at build time.
 | `GET /v1/owners/{owner_id}/trajectory` | Finish/points per season — for the chart |
 | `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}` | All-time pairwise record + superlatives |
 | `GET /v1/owners/rivalry-matrix` | Full N×N win-pct matrix — for the heatmap |
+| `GET /v1/rivalries/insights` | Five insight bands for the `/rivalries` page (see shape below) |
+
+**`/v1/rivalries/insights` shape.** An `extra="allow"` bundle of five availability-tagged
+bands; the frontend reads each band's `available` first. Owner refs carry `is_active` +
+`prominence` (2/1/0) so the UI can dim/order departed managers in place.
+
+- `records` — `closest_game` / `biggest_blowout` / `highest_scoring_duel` (pure all-time single
+  games) plus **ranked lists** `most_played[]` and `dead_even[]` (top 5, prominent pairings
+  first; `dead_even` is balance-first and `MIN_DEAD_EVEN_GAMES`-gated).
+- `intensity` — heat leaderboard; rows carry `pair_tier` and sort prominent-first then by heat.
+- `streaks` — `longest` (pure record) + `active[]` (prominence-ordered). Each streak carries
+  `from_matchup_id` **and** `last_matchup_id` to deep-link a cross-season run start → end.
+- `nemeses` — per active manager: `nemesis` / `favorite_victim` chosen among qualified
+  opponents, with optional `nemesis_departed` / `favorite_victim_departed` secondaries.
+- `playoffs` — postseason-only pairings with finals context.
 
 ### Records book
 
@@ -135,6 +160,25 @@ Hit shape is unchanged: `{type, id, label, sublabel, href}` (`SearchHit`). Match
 Hardening: SQL LIKE wildcards (`%` `_`), regex metacharacters, and `<script>`/SQL
 injection strings are treated as inert literal data — re-filtered casefold (no
 `re`) over parameterized reads, so they neither over-match nor inject.
+
+## Sleeper era additions (D1–D7, release v0.5.0)
+
+All additive: legacy payloads keep every key and value (golden parity, `tests/golden/`). Details live
+in each plan (`docs/plans/sleeper-d*.md`).
+
+| Endpoint / field | Milestone | What |
+|------------------|-----------|------|
+| `platform`, `platform_label`, `capabilities` on season-level payloads | D1 | where a season's data comes from + `{key: {state, note}}`; `not_used` renders nothing |
+| `GET /v1/meta/capabilities`, `/v1/league/eras` platform entry | D1 | capability matrix for About; the platform change on the Timeline |
+| `GET /v1/seasons/current` | D3 | the in-progress season, its last final week and the pending ("awaiting final") week; `no_current_season` gap when none |
+| `week_pending`, `official_points_source`, `commissioner_override`, `slot_note` | D3 | box score / week matchups: unfinished week is unscored; points provenance; override note; bench-or-reserve hint |
+| `aggregation_note`, `scoring_era`, `scoring_era_count`, `draft_type` | D4 | cross-season payloads say what they include; records/stories name the scoring era |
+| `/v1/seasons/{id}/bracket` `source`, `is_provisional`, game `placement` / `week_pending` | D5 | official Sleeper brackets in the existing shape; legacy stays derived |
+| Standings potential points, `division_source` | D5 | every era (+ Sleeper `ppts` cross-check) |
+| `GET /v1/seasons/{id}/faab-market` | D6 | spend, biggest bids, bid wars, lost bids |
+| `GET /v1/league/picks`; team `trades` / `trade_assets`; failed bids | D6 | pick ledger; every asset of a trade |
+| `GET /v1/players/{id}/status?season=` | D7 | week-by-week nflverse report + Sleeper snapshot as of kickoff (7-day cutoff; older = `stale_or_missing_snapshot`) |
+| box/roster `injury_source`, `injury_as_of` | D7 | `nflverse` (official weekly report) first, `sleeper` snapshot fallback |
 
 ## Sample responses
 

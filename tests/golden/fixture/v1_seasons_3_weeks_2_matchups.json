@@ -1,0 +1,118 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "bracket_tier": null,
+     "flags": [
+      {
+       "detail": "decided by 5.0",
+       "kind": "nailbiter",
+       "label": "Nailbiter",
+       "team_id": null,
+       "tone": "accent"
+      },
+      {
+       "detail": "100.0 \u2014 season's lowest team score",
+       "kind": "dud",
+       "label": "Dud",
+       "team_id": 9,
+       "tone": "muted"
+      },
+      {
+       "detail": "205.0 combined \u2014 season's coldest",
+       "kind": "cold_snap",
+       "label": "Cold snap",
+       "team_id": null,
+       "tone": "muted"
+      }
+     ],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 5.0,
+     "matchup_id": 21,
+     "team_a": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Iceman",
+      "score": 105.0,
+      "team_id": 10,
+      "team_name": "Iceman 2017"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 0,
+       "ties": 0,
+       "wins": 1
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Maverick",
+      "score": 100.0,
+      "team_id": 9,
+      "team_name": "Maverick 2017"
+     },
+     "winner_team_id": 10
+    },
+    {
+     "bracket_tier": null,
+     "flags": [
+      {
+       "detail": "110.0 \u2014 would have beaten every other team this week",
+       "kind": "tough_luck",
+       "label": "Tough luck",
+       "team_id": 12,
+       "tone": "warn"
+      }
+     ],
+     "game_label": null,
+     "is_playoff": false,
+     "margin": 30.0,
+     "matchup_id": 23,
+     "team_a": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": true,
+      "owner_name": "Goose",
+      "score": 140.0,
+      "team_id": 11,
+      "team_name": "Goose 2017"
+     },
+     "team_b": {
+      "entering_record": {
+       "losses": 1,
+       "ties": 0,
+       "wins": 0
+      },
+      "is_sacko": false,
+      "is_winner": false,
+      "owner_name": "Viper",
+      "score": 110.0,
+      "team_id": 12,
+      "team_name": "Northvale Scumbags"
+     },
+     "winner_team_id": 11
+    }
+   ],
+   "is_scored": true,
+   "season_id": 3,
+   "season_year": 2017,
+   "week": 2
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

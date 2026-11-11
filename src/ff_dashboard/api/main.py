@@ -18,6 +18,7 @@ from ff_pipeline.api.errors import install_error_handlers
 from ff_dashboard.api.routes import (
     draft,
     health,
+    lab,
     league,
     matchups,
     owners,
@@ -95,6 +96,7 @@ def create_app(
     app.include_router(power.router)
     app.include_router(teams.router)
     app.include_router(search.router)
+    app.include_router(lab.router)
 
     # Single-origin SPA serving (production-ish local run). Mounted last so the
     # API routers above always win; off unless DASHBOARD_STATIC_DIR points at a

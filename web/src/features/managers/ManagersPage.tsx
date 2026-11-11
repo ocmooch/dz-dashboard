@@ -2,10 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, ErrorState, RecordLine, Skeleton, Trophy } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  ErrorState,
+  ProvenanceNote,
+  RecordLine,
+  Skeleton,
+  Trophy,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerCareer = components["schemas"]["OwnerCareer"];
@@ -13,7 +24,7 @@ type OwnerCareer = components["schemas"]["OwnerCareer"];
 async function fetchOwners() {
   const { data, error } = await api.GET("/v1/owners");
   if (error || !data) throw new Error("Failed to load managers");
-  return data.data.owners;
+  return data.data; // the full OwnersList: qk.owners is shared with the Viz Lab
 }
 
 /** Win rate over decided games. Returns null when a manager has no games on
@@ -28,6 +39,16 @@ function winPct(o: OwnerCareer): number | null {
 // PF) is the initial view. Each column knows how to rank a career.
 type SortKey = "titles" | "winPct" | "points" | "seasons" | "bestFinish" | "avgFinish";
 type SortDir = "asc" | "desc";
+
+// Rate-based columns where a short stint can flatter a manager (a 1-season owner
+// with a fluky finish or win rate). For these we rank in three tiers — active
+// managers, then departed-but-long-tenured (the BFF's `qualified` flag covers
+// active OR a significant stint), then short-stint departed — so an active
+// manager always sits above any former one, even one below the stint threshold,
+// and no short stint floats to the top. Owners stay listed, never crowned above
+// an active or legacy manager. Accumulation columns (titles/points/seasons) need
+// no gate: a short stint can't out-accumulate a long one.
+const GATED_SORTS = new Set<SortKey>(["winPct", "bestFinish", "avgFinish"]);
 const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
   titles: (a, b) => a.championships - b.championships || a.total_wins - b.total_wins,
   winPct: (a, b) => (winPct(a) ?? -1) - (winPct(b) ?? -1),
@@ -38,7 +59,15 @@ const SORTERS: Record<SortKey, (a: OwnerCareer, b: OwnerCareer) => number> = {
   avgFinish: (a, b) => (b.avg_finish ?? Infinity) - (a.avg_finish ?? Infinity),
 };
 
-function LegendCard({ label, name, value }: { label: string; name: string | null | undefined; value: string }) {
+function LegendCard({
+  label,
+  name,
+  value,
+}: {
+  label: string;
+  name: string | null | undefined;
+  value: string;
+}) {
   return (
     <Card className="p-4">
       <div className="dz-eyebrow mb-2">{label}</div>
@@ -51,20 +80,54 @@ function LegendCard({ label, name, value }: { label: string; name: string | null
 /** The four league-wide superlatives, computed from the career list. Owner-centric
  *  by design — distinct from the event-centric Records Book. */
 function LeagueLegends({ owners }: { owners: OwnerCareer[] }) {
-  const top = <K,>(score: (o: OwnerCareer) => K, cmp: (a: K, b: K) => number) =>
-    owners.reduce((best, o) => (cmp(score(o), score(best)) > 0 ? o : best), owners[0]);
+  const top = <K,>(pool: OwnerCareer[], score: (o: OwnerCareer) => K, cmp: (a: K, b: K) => number) =>
+    pool.reduce((best, o) => (cmp(score(o), score(best)) > 0 ? o : best), pool[0]);
 
-  const mostTitles = top((o) => o.championships, (a, b) => a - b);
-  const bestWinPct = top((o) => winPct(o) ?? -1, (a, b) => a - b);
-  const mostPoints = top((o) => o.total_points_for, (a, b) => a - b);
-  const mostSeasons = top((o) => o.seasons_played, (a, b) => a - b);
+  // Best win % crowns only qualified managers (active or a significant stint) so a
+  // one-season hot streak never tops the legends; the accumulation legends are
+  // tenure-proof and stay over everyone. Fall back to all if none qualify.
+  const eligible = owners.filter((o) => o.qualified);
+  const winPctPool = eligible.length > 0 ? eligible : owners;
+
+  const mostTitles = top(
+    owners,
+    (o) => o.championships,
+    (a, b) => a - b,
+  );
+  const bestWinPct = top(
+    winPctPool,
+    (o) => winPct(o) ?? -1,
+    (a, b) => a - b,
+  );
+  const mostPoints = top(
+    owners,
+    (o) => o.total_points_for,
+    (a, b) => a - b,
+  );
+  const mostSeasons = top(
+    owners,
+    (o) => o.seasons_played,
+    (a, b) => a - b,
+  );
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <LegendCard label="Most titles" name={mostTitles.display_name} value={`${mostTitles.championships} ★`} />
+      <LegendCard
+        label="Most titles"
+        name={mostTitles.display_name}
+        value={`${mostTitles.championships} ★`}
+      />
       <LegendCard label="Best win %" name={bestWinPct.display_name} value={pct(winPct(bestWinPct))} />
-      <LegendCard label="Most points" name={mostPoints.display_name} value={num(mostPoints.total_points_for, 0)} />
-      <LegendCard label="Most seasons" name={mostSeasons.display_name} value={`${mostSeasons.seasons_played}`} />
+      <LegendCard
+        label="Most points"
+        name={mostPoints.display_name}
+        value={num(mostPoints.total_points_for, 0)}
+      />
+      <LegendCard
+        label="Most seasons"
+        name={mostSeasons.display_name}
+        value={`${mostSeasons.seasons_played}`}
+      />
     </div>
   );
 }
@@ -101,16 +164,35 @@ function SortHeader({
 }
 
 export function ManagersPage() {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const {
+    data: payload,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.owners,
     queryFn: fetchOwners,
   });
+  const data = payload?.owners;
   const [sort, setSort] = useState<SortKey>("titles");
   const [dir, setDir] = useState<SortDir>("desc");
 
   const owners = useMemo(() => {
-    const sorted = data ? [...data].sort(SORTERS[sort]) : [];
-    return dir === "asc" ? sorted : sorted.reverse();
+    if (!data) return [];
+    const order = (arr: OwnerCareer[]) => {
+      const s = [...arr].sort(SORTERS[sort]);
+      return dir === "asc" ? s : s.reverse();
+    };
+    // On rate-based columns, rank in three tiers (in either direction) so a short
+    // stint never floats to the top and an active manager always outranks a former
+    // one: active first, then departed-but-qualified (significant stint), then
+    // short-stint departed. Otherwise a single pass over everyone.
+    if (!GATED_SORTS.has(sort)) return order(data);
+    return [
+      ...order(data.filter((o) => o.is_active)),
+      ...order(data.filter((o) => !o.is_active && o.qualified)),
+      ...order(data.filter((o) => !o.is_active && !o.qualified)),
+    ];
   }, [data, sort, dir]);
 
   const onSort = (k: SortKey) => {
@@ -141,9 +223,7 @@ export function ManagersPage() {
           <Skeleton className="h-64 w-full" />
         </>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && data.length > 0 && (
         <>
@@ -167,10 +247,18 @@ export function ManagersPage() {
                 </thead>
                 <tbody>
                   {owners.map((o) => (
-                    <tr key={o.owner_id}>
+                    <tr key={o.owner_id} className={o.qualified ? undefined : "opacity-60"}>
                       <td>
-                        <Link to={`/managers/${o.owner_id}`} className="hover:text-accent">
+                        <Link
+                          to={`/managers/${o.owner_id}`}
+                          className="inline-flex items-center gap-2 hover:text-accent"
+                        >
                           <Chip name={o.display_name} avatarUrl={teamAvatarUrl(o.latest_team_id)} />
+                          {!o.is_active && (
+                            <span className="dz-eyebrow text-faint" title="No longer in the league">
+                              former
+                            </span>
+                          )}
                         </Link>
                       </td>
                       <td className="dz-num num">{o.seasons_played}</td>
@@ -179,7 +267,9 @@ export function ManagersPage() {
                         <RecordLine wins={o.total_wins} losses={o.total_losses} ties={o.total_ties} />
                       </td>
                       <td className="dz-num num">{num(o.total_points_for, 0)}</td>
-                      <td className="dz-num">{o.championships > 0 ? <Trophy count={o.championships} /> : "—"}</td>
+                      <td className="dz-num">
+                        {o.championships > 0 ? <Trophy count={o.championships} /> : "—"}
+                      </td>
                       <td className="dz-num num">{ordinal(o.best_finish)}</td>
                       <td className="dz-num num">{o.avg_finish == null ? "—" : o.avg_finish.toFixed(1)}</td>
                     </tr>
@@ -187,7 +277,14 @@ export function ManagersPage() {
                 </tbody>
               </table>
             </div>
+            <p className="px-4 pb-4 pt-1 text-[var(--fs-xs)] text-faint">
+              When sorting by win %, best, or average finish, active managers are listed first, then former
+              managers with a long stint, then those with a short stint who have left — a one- or two-season
+              run can flatter a rate, so it never ranks above an active or long-tenured manager. Every manager
+              is still shown; “former” marks those no longer in the league.
+            </p>
           </Card>
+          <ProvenanceNote>{aggregationNoteText(payload?.aggregation_note)}</ProvenanceNote>
         </>
       )}
     </div>

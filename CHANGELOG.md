@@ -4,6 +4,68 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-11-10 — Sleeper era D0–D8 + release v0.5.0 (dev → main promotion)
+
+- **The dashboard reads the Sleeper era (2026+) next to NFL.com (2010–2025)** without changing any
+  legacy value: live golden parity 1092/0, fixture golden green throughout.
+- D0 mixed-era fixture + goldens (#126) · D1 provenance + capabilities (#127) · D2 source-neutral
+  points (#129) · D3 current-season experience, the unfinished week is unscored (#130) · D4
+  cross-era aggregation notes + scoring eras (#131) · D5 official brackets, potential points (#132) ·
+  D6 transaction market: FAAB, bid wars, trade assets, pick ledger (#133) · D7 player status:
+  nflverse first, Sleeper snapshot fallback, Player Status card (#134).
+- **D8 consistency pass:** walked 21 pages × 2015/2025 (live) + 2026 (fixture). Fixed: Timeline's
+  raw `champion_unavailable` on an in-progress season, the duplicate bracket footnote under an
+  official bracket, the legacy Player Status footnote copy. Added Playoffs (legacy) and five Sleeper
+  visual baselines. Follow-ups routed to `ACTIVE_WORK.md`.
+- **Version bumped `0.4.0` → `0.5.0`**; `dev` promoted to `main`, tagged `v0.5.0`. Minor bump: new
+  features, additive contract only (pre-1.0).
+
+## 2026-06-24 — Championship flag, playoff/consolation differentiation, Sacko 💩
+
+- **Shared postseason classifier** (`analytics/bracket.py` `postseason_classification` +
+  `season_sacko_map`): reuses the existing connectivity split to tag every postseason game
+  `championship` / `playoff` / `consolation` (championship anchored on `Season.champion_team_id`),
+  and derives the **Sacko** (toilet-bowl final loser), falling back to the recorded last-place team
+  where the bracket can't be split (`source: derived|recorded`). One source of truth; consumers
+  cache it per season.
+- **Consolation no longer counts as playoff.** `head_to_head.all_pairwise` enriches meetings with
+  `bracket_tier` + `is_true_playoff`; `playoff_meetings` now excludes consolation, and
+  `rivalries.playoff_rivalries` (the "hottest rivalries"/stakes math) drops consolation-only
+  pairings. `owners._playoff_participation` derives `made_playoffs` from the classifier instead of
+  the unpopulated `is_consolation` column.
+- **Championship gets its own flag** wherever a playoff badge showed: a `championship`/`consolation`
+  superlative in `matchup_flags`, `bracket_tier`/`game_label` on `week_matchups` + `box_score`, and
+  distinct badges/eyebrows in `MatchupsPage`/`BoxScorePage` (new `BracketBadge`).
+- **Sacko recorded & surfaced** (new `Sacko` 💩 primitive): owner season table + career hardware
+  (`sackos` count, trophy-case anti-trophy), team-season header (`is_sacko`), records book
+  ("Most Sackos" + per-season Sacko in the dynasty timeline), and the league-history results row.
+- Schema: new `SackoRef`, `bracket_tier`/`game_label`/`is_sacko`/`sackos`/`sacko` fields; client
+  regenerated. Backend 459 pass + ruff/mypy clean; FE typecheck + 194 tests green; no contract drift.
+  Plan: `docs/plans/championship-flag-consolation-sacko.md`.
+
+## 2026-06-24 — Rivalries: active-manager-focused insight bands
+
+- **Fixed "most dead-even" — it wasn't even.** `head_to_head.closest_rivalry()` sorted by
+  `(-games, closeness)`, so the most-played pair always won regardless of balance (a 21–9,
+  30-game series crowned "dead even"). Now **balance-first**, gated by a real sample
+  (`MIN_DEAD_EVEN_GAMES`, default 4), crowned among qualified owners. Records-book `closest_rivalry`
+  and the rivalries-page `dead_even` list both flow from the fix.
+- **Owner-prominence ordering across the rivalry insight bands** (`analytics/rivalries.py`), via
+  new shared `common.owner_prominence_map` (2 active / 1 ≥5-season departed / 0 short-stint
+  departed). Pair-level lists sort by `min(prominence)` first; nemesis/favorite-victim headline
+  qualified opponents with a deprioritized `*_departed` secondary; hottest-rivalries and active
+  streaks lead with active managers. Reorders, never hides — short-stint departed records stay
+  visible, dimmed below.
+- **Ranked pair-level superlatives** — `most_played` and `dead_even` are now top-5 lists (see the
+  2nd/3rd, not just #1), replacing the single `most_played_pairing` / `dead_even_rivalry`.
+- **Single-game records stay pure all-time** (closest game / biggest blowout / highest-scoring
+  duel) regardless of who's left the league.
+- **Streaks deep-link the whole run** — each streak carries `from_matchup_id` + `last_matchup_id`,
+  and the UI links a cross-season run start → end and reads it as both a win and a losing streak.
+- Owner refs in every band carry `is_active` + `prominence` so the SPA dims/divides departed
+  managers without a second lookup. Bands are `extra="allow"` → no schema class change, no gen:api
+  drift. Backend 459 + frontend 193 tests green; ruff/mypy clean.
+
 ## 2026-06-23 — Release v0.4.0 (dev → main promotion)
 
 - **Version bumped `0.3.0` → `0.4.0`** (`pyproject.toml`, `web/package.json` + lock, `uv.lock`) and
@@ -36,7 +98,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   games. The result crowned **Jahmyr Gibbs (2025, 63.4 recon)** over the true record. It now scopes
   to **started** roster rows and scores each the box-score way — preferring authoritative
   `extra_data.nfl_com_points`, falling back to the reconstruction — yielding **Doug Martin, 67.2,
-  2012 wk9 (Sulladin's Salty Mujahideen)**, matching the NFL.com league-history page.
+  2012 wk9 (Team 142)**, matching the NFL.com league-history page.
 - **Attributed the matchup records.** `biggest_blowout` / `narrowest_win` exposed only a bare
   number plus a nested `winner` the grid never read, and `highest_scoring_matchup` carried only team
   ids. Each now carries both sides' season-correct names; the grid renders "<winner> def. <loser>"
@@ -54,7 +116,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   zero-classification — suppressing the false DNP, badging "Wk17+19" with the partial/wk19 split.
 - A matchup-level `resolution_note` banner explains the substitution, and a provenance-gated curated
   `league_event` (`analytics/curated_events.py`) merges into the league timeline. Schema gains
-  `HamlinSubstitute` + `resolution_note` (`gen:api` regenerated). Corrected title game = Smokin Doubs
+  `HamlinSubstitute` + `resolution_note` (`gen:api` regenerated). Corrected title game = Team 135
   139.54 def. CMC 101.0; ranks swap (CMC 1→2, Doubs 2→1), only the championship flips. Pairs with
   danger-zone PR #54 (idempotent `overrides/hamlin_2022_wk17.py`). Gate green: backend 448, frontend 192.
 
@@ -71,7 +133,7 @@ Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organiz
   `remaining = budget_at_week − cumulative spend`; `GET /v1/teams/{id}/faab-budget`; `FaabBudgetCard`
   on the Team page. Season budget = flat **$100** base + mid-season per-team **credits** parsed from
   budget `setting_change` events (`team_id=NULL`, matched by team name), modeled as timestamped credits
-  so the 2022 Ice Station Zebra **+$37 refund** reproduces (remaining never negative, lands at $0);
+  so the 2022 Team 083 **+$37 refund** reproduces (remaining never negative, lands at $0);
   Timeline events name the affected team + refund context. FAAB-era is **data-driven** on captured bids
   (pre-FAAB seasons return not-applicable, not a `DataGap`). Gate green: backend 438, frontend 191.
 

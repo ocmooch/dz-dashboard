@@ -9,6 +9,15 @@ import { TeamPage } from "./TeamPage";
 const get = vi.fn();
 vi.mock("@/lib/api/client", () => ({ api: { GET: (...args: unknown[]) => get(...args) } }));
 
+vi.mock("@/app/shell/SeasonContext", () => ({
+  useSeasons: () => ({
+    current: null,
+    seasons: [{ season_id: 1, season_year: 2017, platform: "nfl_com" }],
+    setSeasonId: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefined });
 
 const OVERVIEW = {
@@ -38,12 +47,80 @@ const ROSTER = {
   weeks_available: [1, 2],
   is_scored: true,
   players: [
-    { player_id: 1, player_name: "Ice QB One", position: "QB", nfl_team: "BAL", roster_slot: "QB", is_starter: true, league_points: 24, acquisition_type: "draft", acquisition_week: 1 },
-    { player_id: 2, player_name: "Ice D/ST", position: "DEF", nfl_team: "PIT", roster_slot: "DEF", is_starter: true, league_points: null, acquisition_type: "draft", acquisition_week: 1 },
-    { player_id: 3, player_name: "Bye Guy", position: "WR", nfl_team: "DET", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "bye", zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
-    { player_id: 4, player_name: "Scratch Guy", position: "WR", nfl_team: "SEA", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "did_not_play", zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
-    { player_id: 5, player_name: "Mismatch Guy", position: "WR", nfl_team: "KC", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: "unexpected", zero_detail: "nflverse credits 8 pts but the league scored 0.", acquisition_type: "draft", acquisition_week: 1 },
-    { player_id: 6, player_name: "Goose Egg", position: "WR", nfl_team: "CHI", roster_slot: "BN", is_starter: false, league_points: 0, zero_reason: null, zero_detail: null, acquisition_type: "draft", acquisition_week: 1 },
+    {
+      player_id: 1,
+      player_name: "Ice QB One",
+      position: "QB",
+      nfl_team: "BAL",
+      roster_slot: "QB",
+      is_starter: true,
+      league_points: 24,
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
+    {
+      player_id: 2,
+      player_name: "Ice D/ST",
+      position: "DEF",
+      nfl_team: "PIT",
+      roster_slot: "DEF",
+      is_starter: true,
+      league_points: null,
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
+    {
+      player_id: 3,
+      player_name: "Bye Guy",
+      position: "WR",
+      nfl_team: "DET",
+      roster_slot: "BN",
+      is_starter: false,
+      league_points: 0,
+      zero_reason: "bye",
+      zero_detail: null,
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
+    {
+      player_id: 4,
+      player_name: "Scratch Guy",
+      position: "WR",
+      nfl_team: "SEA",
+      roster_slot: "BN",
+      is_starter: false,
+      league_points: 0,
+      zero_reason: "did_not_play",
+      zero_detail: null,
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
+    {
+      player_id: 5,
+      player_name: "Mismatch Guy",
+      position: "WR",
+      nfl_team: "KC",
+      roster_slot: "BN",
+      is_starter: false,
+      league_points: 0,
+      zero_reason: "unexpected",
+      zero_detail: "nflverse credits 8 pts but the league scored 0.",
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
+    {
+      player_id: 6,
+      player_name: "Goose Egg",
+      position: "WR",
+      nfl_team: "CHI",
+      roster_slot: "BN",
+      is_starter: false,
+      league_points: 0,
+      zero_reason: null,
+      zero_detail: null,
+      acquisition_type: "draft",
+      acquisition_week: 1,
+    },
   ],
 };
 
@@ -51,7 +128,18 @@ const SCHEDULE = {
   team_id: 10,
   season_year: 2017,
   games: [
-    { matchup_id: 100, week: 1, is_playoff: false, opponent_team_id: 11, opponent_team_name: "Goose 2017", opponent_owner_name: "Goose", team_score: 130, opponent_score: 125, result: "W", margin: 5 },
+    {
+      matchup_id: 100,
+      week: 1,
+      is_playoff: false,
+      opponent_team_id: 11,
+      opponent_team_name: "Goose 2017",
+      opponent_owner_name: "Goose",
+      team_score: 130,
+      opponent_score: 125,
+      result: "W",
+      margin: 5,
+    },
   ],
 };
 
@@ -132,6 +220,22 @@ const TRANSACTIONS = {
       extra_data: null,
     },
   ],
+  trades: [
+    {
+      executed_at: "2017-09-17T09:05:00+00:00",
+      week: 2,
+      counterpart_team_id: 9,
+      counterpart_team_name: "Maverick 2017",
+      players_in: [{ player_id: 50, player_name: "Traded Tom", position: "RB" }],
+      players_out: [{ player_id: 51, player_name: "Sent Sam", position: "WR" }],
+      picks_in: [],
+      picks_out: [],
+      faab_in: 0,
+      faab_out: 0,
+    },
+  ],
+  failed_bids: [],
+  failed_bids_capability: { state: "not_on_platform", note: null },
 };
 
 const NO_TRANSACTIONS = { team_id: 10, season_year: 2017, transactions: [] };
@@ -153,8 +257,32 @@ const OWNER_SEASONS = {
   owner_id: 5,
   display_name: "Iceman",
   seasons: [
-    { season_id: 1, season_year: 2017, team_id: 10, team_name: "Iceman 2017", wins: 2, losses: 0, ties: 0, points_for: 235, final_rank: 1, made_playoffs: true, is_champion: false },
-    { season_id: 2, season_year: 2016, team_id: 9, team_name: "Iceman 2016", wins: 7, losses: 7, ties: 0, points_for: 1400, final_rank: 5, made_playoffs: null, is_champion: false },
+    {
+      season_id: 1,
+      season_year: 2017,
+      team_id: 10,
+      team_name: "Iceman 2017",
+      wins: 2,
+      losses: 0,
+      ties: 0,
+      points_for: 235,
+      final_rank: 1,
+      made_playoffs: true,
+      is_champion: false,
+    },
+    {
+      season_id: 2,
+      season_year: 2016,
+      team_id: 9,
+      team_name: "Iceman 2016",
+      wins: 7,
+      losses: 7,
+      ties: 0,
+      points_for: 1400,
+      final_rank: 5,
+      made_playoffs: null,
+      is_champion: false,
+    },
   ],
 };
 
@@ -182,7 +310,15 @@ const FAAB_BUDGET = {
   weeks: [
     { week: 1, spent: 10, cumulative_spent: 10, budget: 100, remaining: 90, adjustment: null, note: null },
     { week: 2, spent: 0, cumulative_spent: 10, budget: 100, remaining: 90, adjustment: null, note: null },
-    { week: 3, spent: 37, cumulative_spent: 47, budget: 137, remaining: 90, adjustment: 37, note: "Budget adjusted +$37" },
+    {
+      week: 3,
+      spent: 37,
+      cumulative_spent: 47,
+      budget: 137,
+      remaining: 90,
+      adjustment: 37,
+      note: "Budget adjusted +$37",
+    },
   ],
 };
 
@@ -252,7 +388,8 @@ describe("TeamPage", () => {
     renderPage();
     await screen.findByText("Ice QB One");
 
-    const pointsCell = (name: string) => screen.getByText(name).closest("tr")!.querySelector(".dz-num:last-child")!;
+    const pointsCell = (name: string) =>
+      screen.getByText(name).closest("tr")!.querySelector(".dz-num:last-child")!;
     expect(pointsCell("Bye Guy")).toHaveTextContent("Bye");
     expect(pointsCell("Scratch Guy")).toHaveTextContent("DNP");
     expect(pointsCell("Mismatch Guy")).toHaveTextContent("0.00!");
@@ -308,9 +445,7 @@ describe("TeamPage", () => {
 
   it("renders the scoring-trend chart vs league average", async () => {
     renderPage();
-    expect(
-      await screen.findByLabelText(/Team score vs league average by week/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Team score vs league average by week/i)).toBeInTheDocument();
   });
 
   it("renders the exact log with type labels and trades, hiding actor/device noise", async () => {
@@ -319,8 +454,8 @@ describe("TeamPage", () => {
     expect(await screen.findByText("Waiver Wendell")).toBeInTheDocument();
     expect(screen.getAllByText("Waiver").length).toBeGreaterThan(0);
     expect(screen.getByText(/waiver #4/i)).toBeInTheDocument();
-    // The trade is interleaved with its counterpart team.
-    expect(screen.getByText("Traded Tom")).toBeInTheDocument();
+    // A trade renders once, naming every asset, with its counterpart team.
+    expect(screen.getByText("Got Traded Tom · gave Sent Sam")).toBeInTheDocument();
     expect(screen.getByText("Trade")).toBeInTheDocument();
     expect(screen.getByText(/with Maverick 2017/i)).toBeInTheDocument();
     // The actor/device note is suppressed (the owner is implied).
@@ -474,5 +609,12 @@ describe("TeamPage", () => {
     // Expanding the Draft bucket reveals the pick.
     await userEvent.click(screen.getByText("Draft"));
     expect(await screen.findByText("Drafted Dan")).toBeInTheDocument();
+  });
+
+  it("shows the shared failed-bids gap for a legacy FAAB season", async () => {
+    faabBudget = FAAB_BUDGET;
+    renderPage();
+    expect(await screen.findByText("Lost bids")).toBeInTheDocument();
+    expect(screen.getByText("NFL.com didn't record unsuccessful waiver bids.")).toBeInTheDocument();
   });
 });

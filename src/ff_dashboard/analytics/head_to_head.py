@@ -16,12 +16,27 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Season
 from sqlalchemy import select
 
-from ff_dashboard.analytics.common import owner_active_map, owner_name_map, team_owner_map
+from ff_dashboard.analytics.bracket import (
+    TIER_CHAMPIONSHIP,
+    TIER_CONSOLATION,
+    postseason_classification,
+)
+from ff_dashboard.analytics.common import (
+    owner_active_map,
+    owner_name_map,
+    owner_prominence_map,
+    team_owner_map,
+)
+from ff_dashboard.analytics.game_state import is_pending
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 Pair = tuple[int, int]  # (lower_owner_id, higher_owner_id)
+
+# A pair below this many meetings is too thin to crown as a "dead-even" rivalry —
+# a lone 1-1 split is not a 50/50 series. Mirrors rivalries.MIN_INTENSITY_GAMES.
+MIN_DEAD_EVEN_GAMES = 4
 
 
 def _blank_pair() -> dict[str, Any]:
@@ -31,7 +46,10 @@ def _blank_pair() -> dict[str, Any]:
         "high_wins": 0,
         "ties": 0,
         "low_margin_total": 0.0,  # signed margin from the lower-id owner's view
+        # ``playoff_meetings`` counts **true** (non-consolation) playoff games only;
+        # consolation/"toilet" games are tracked separately and never inflate it.
         "playoff_meetings": 0,
+        "consolation_meetings": 0,
         "meetings": [],
     }
 
@@ -45,6 +63,21 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
     }
 
     pairs: dict[Pair, dict[str, Any]] = {}
+    # One postseason classification per season, shared across every meeting so
+    # consolation games stop counting as true playoff meetings (the bracket split
+    # lives in bracket.py; see postseason_classification).
+    class_cache: dict[int, dict[str, Any]] = {}
+
+    def tier_for(m: Matchup) -> str | None:
+        if not m.is_playoff:
+            return None
+        cls = class_cache.get(m.season_id)
+        if cls is None:
+            cls = postseason_classification(session, m.season_id)
+            class_cache[m.season_id] = cls
+        entry = cls["by_matchup_id"].get(m.matchup_id)
+        return entry["tier"] if entry is not None else None
+
     rows = (
         session.execute(select(Matchup).where(Matchup.opponent_team_id.is_not(None)))
         .scalars()
@@ -58,8 +91,8 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
         # Count each game once: only the row whose owner is the lower id.
         if a_owner > b_owner:
             continue
-        if m.team_score is None or m.opponent_score is None:
-            continue
+        if m.team_score is None or m.opponent_score is None or is_pending(m):
+            continue  # an unfinished week is unscored, never a meeting result (D3)
 
         key: Pair = (a_owner, b_owner)
         agg = pairs.setdefault(key, _blank_pair())
@@ -72,8 +105,17 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
             agg["high_wins"] += 1
         else:
             agg["ties"] += 1
-        if m.is_playoff:
+        tier = tier_for(m)
+        is_consolation = tier == TIER_CONSOLATION
+        is_championship = tier == TIER_CHAMPIONSHIP
+        # True playoff = a postseason game that is not consolation. Where the bracket
+        # can't be distinguished (tier is None) we keep the prior behaviour rather
+        # than guess — an indistinguishable game still counts as playoff.
+        is_true_playoff = bool(m.is_playoff) and not is_consolation
+        if is_true_playoff:
             agg["playoff_meetings"] += 1
+        if is_consolation:
+            agg["consolation_meetings"] += 1
         agg["meetings"].append(
             {
                 "matchup_id": m.matchup_id,
@@ -84,6 +126,10 @@ def all_pairwise(session: Session) -> dict[Pair, dict[str, Any]]:
                 "high_score": m.opponent_score,
                 "low_margin": margin,
                 "is_playoff": m.is_playoff,
+                "bracket_tier": tier,
+                "is_true_playoff": is_true_playoff,
+                "is_championship": is_championship,
+                "is_consolation": is_consolation,
             }
         )
     return pairs
@@ -122,6 +168,24 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
     l_margin = lopsided["low_margin"] if a_is_low else -lopsided["low_margin"]
     c_margin = closest["low_margin"] if a_is_low else -closest["low_margin"]
 
+    # Every meeting, chronological, oriented to A — drives the rivalry margin line.
+    meetings_for_a: list[dict[str, Any]] = []
+    for mt in sorted(agg["meetings"], key=lambda x: (x["season_year"] or 0, x["week"] or 0)):
+        a_score, b_score = meeting_scores(mt)
+        m_for_a = mt["low_margin"] if a_is_low else -mt["low_margin"]
+        meetings_for_a.append(
+            {
+                "season_year": mt["season_year"],
+                "week": mt["week"],
+                "matchup_id": mt["matchup_id"],
+                "margin_for_a": round(m_for_a, 2),
+                "a_score": a_score,
+                "b_score": b_score,
+                "is_playoff": mt["is_true_playoff"],
+                "is_championship": mt["is_championship"],
+            }
+        )
+
     return {
         **base,
         "available": True,
@@ -154,6 +218,7 @@ def pairwise_record(session: Session, owner_a: int, owner_b: int) -> dict[str, A
             "matchup_id": closest["matchup_id"],
             "margin_for_a": round(c_margin, 2),
         },
+        "meetings": meetings_for_a,
     }
 
 
@@ -199,23 +264,38 @@ def rivalry_matrix(session: Session) -> dict[str, Any]:
 
 
 def closest_rivalry(session: Session) -> dict[str, Any] | None:
-    """The most-played pair whose win pct is nearest 0.5 (a records-book stat)."""
+    """The genuinely dead-even rivalry: the pair whose all-time win pct is nearest
+    0.5, gated by a real sample (``MIN_DEAD_EVEN_GAMES``).
+
+    Balance is the primary key — a lopsided 21-9 series is not "even" however many
+    times it was played — with more games as the tiebreak between equally balanced
+    pairs. Crowned among **qualified** pairs (both owners still active or a
+    significant-stint departure) so the headline is a current, compelling rivalry,
+    falling back to all pairs only if none qualify. A records-book stat."""
     names = owner_name_map(session)
+    prominence = owner_prominence_map(session)
     pairs = all_pairwise(session)
-    best: tuple[int, float, Pair] | None = None
-    for key, agg in pairs.items():
-        if agg["games"] == 0:
-            continue
-        low_pct = (agg["low_wins"] + 0.5 * agg["ties"]) / agg["games"]
-        closeness = abs(low_pct - 0.5)
-        # More games first, then closest to even.
-        candidate = (-agg["games"], closeness, key)
-        if best is None or candidate < (-best[0], best[1], best[2]):
-            best = (agg["games"], closeness, key)
-    if best is None:
+
+    def pick(qualified_only: bool) -> Pair | None:
+        best: tuple[float, int, Pair] | None = None
+        for key, agg in pairs.items():
+            if agg["games"] < MIN_DEAD_EVEN_GAMES:
+                continue
+            if qualified_only and min(prominence.get(o, 0) for o in key) < 1:
+                continue
+            low_pct = (agg["low_wins"] + 0.5 * agg["ties"]) / agg["games"]
+            closeness = abs(low_pct - 0.5)
+            # Closest to even first, then more games, then a stable id tiebreak.
+            candidate = (closeness, -agg["games"], key)
+            if best is None or candidate < best:
+                best = candidate
+        return best[2] if best is not None else None
+
+    chosen = pick(qualified_only=True) or pick(qualified_only=False)
+    if chosen is None:
         return None
-    low, high = best[2]
-    agg = pairs[best[2]]
+    low, high = chosen
+    agg = pairs[chosen]
     return {
         "owner_a": {"owner_id": low, "display_name": names.get(low)},
         "owner_b": {"owner_id": high, "display_name": names.get(high)},

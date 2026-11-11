@@ -1,0 +1,19 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "is_scored": false,
+   "moves": [],
+   "reconstructed_weeks": [],
+   "roster_weeks": [],
+   "season_year": 2018,
+   "team_id": 14
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

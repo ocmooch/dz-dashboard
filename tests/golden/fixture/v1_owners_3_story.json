@@ -1,0 +1,68 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "favorite_victim": null,
+   "heartbreak": {
+    "is_playoff": false,
+    "margin": 5.0,
+    "matchup_id": 19,
+    "opponent": {
+     "display_name": "Iceman",
+     "owner_id": 2
+    },
+    "opponent_score": 130.0,
+    "owner_score": 125.0,
+    "season_year": 2017,
+    "week": 1
+   },
+   "high_water_mark": {
+    "matchup_id": 23,
+    "opponent": {
+     "display_name": "Viper",
+     "owner_id": 5
+    },
+    "opponent_score": 110.0,
+    "score": 140.0,
+    "season_year": 2017,
+    "week": 2
+   },
+   "luckiest_season": {
+    "actual_wins": 1.0,
+    "expected_wins": 0.67,
+    "luck_delta": 0.33,
+    "season_year": 2015
+   },
+   "nemesis": null,
+   "owner": {
+    "display_name": "Goose",
+    "owner_id": 3
+   },
+   "signature_win": {
+    "is_playoff": true,
+    "margin": 40.0,
+    "matchup_id": 28,
+    "opponent": {
+     "display_name": "Iceman",
+     "owner_id": 2
+    },
+    "opponent_score": 50.0,
+    "owner_score": 90.0,
+    "season_year": 2015,
+    "week": 3
+   },
+   "unluckiest_season": {
+    "actual_wins": 1.0,
+    "expected_wins": 1.33,
+    "luck_delta": -0.33,
+    "season_year": 2016
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

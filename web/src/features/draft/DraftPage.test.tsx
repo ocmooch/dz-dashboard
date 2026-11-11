@@ -41,15 +41,47 @@ const pick = (
   player_id: over * 10,
   player_name: name,
   position: "RB",
+  nfl_team: "DAL",
   season_year: 2016,
   season_points: pts,
   value,
   available: true,
   reason: null,
+  adp: null,
+  adp_sources: [],
+  adp_source_spread: null,
+  adp_format: null,
+  adp_format_fallback: false,
+  adp_delta: null,
+  market_label: null,
+  adp_available: false,
+  adp_reason: "no_market_data",
 });
 
-const KELCE = pick(1, "Travis Kelce", "Iceman", 22, -13.67);
-const CMC = pick(4, "Christian McCaffrey", "Maverick", 55, 8.33);
+const KELCE = {
+  ...pick(1, "Travis Kelce", "Iceman", 22, -13.67),
+  impact: -13.67,
+  adp: 8.4,
+  adp_sources: ["ffc", "mfl"],
+  adp_source_spread: 1.0,
+  adp_format: "full_ppr",
+  adp_delta: -7.4,
+  market_label: "reach",
+  adp_available: true,
+  adp_reason: null,
+};
+const CMC = {
+  ...pick(4, "Christian McCaffrey", "Maverick", 55, 8.33),
+  impact: 8.33,
+  adp: 1.0,
+  adp_sources: ["ffc"],
+  adp_source_spread: 0.0,
+  adp_format: "full_ppr",
+  adp_delta: 3.0,
+  market_label: "value",
+  adp_available: true,
+  adp_reason: null,
+};
 const ROUND_TWO = [
   pick(5, "Saquon Barkley", "Maverick", 50, 6.5, 2, 1),
   pick(6, "Ja'Marr Chase", "Slider", 44, 4.5, 2, 2),
@@ -66,7 +98,12 @@ const BOARD = {
   rounds: [
     {
       round: 1,
-      picks: [KELCE, pick(2, "Lamar Jackson", "Goose", 48, 7.5), pick(3, "Justin Jefferson", "Slider", 37, -3.5), CMC],
+      picks: [
+        KELCE,
+        pick(2, "Lamar Jackson", "Goose", 48, 7.5),
+        pick(3, "Justin Jefferson", "Slider", 37, -3.5),
+        CMC,
+      ],
     },
     {
       round: 2,
@@ -82,17 +119,65 @@ const VALUE = {
   reason: null,
   definition: "Pick value = a player's regular-season fantasy points minus the slot average.",
   slot_window: 2,
-  picks: [CMC, pick(2, "Lamar Jackson", "Goose", 48, 7.5), pick(3, "Justin Jefferson", "Slider", 37, -3.5), KELCE],
+  picks: [
+    CMC,
+    pick(2, "Lamar Jackson", "Goose", 48, 7.5),
+    pick(3, "Justin Jefferson", "Slider", 37, -3.5),
+    KELCE,
+  ],
   steals: [CMC],
   busts: [KELCE],
   points_steals: [CMC],
   points_busts: [KELCE],
+  adp_definition: "ADP is the consensus average draft position blended across public sources.",
+  adp_weights: { ffc: 0.5, mfl: 0.3, sleeper: 0.2 },
+  reaches: [KELCE],
+  values: [CMC],
   leaderboard_limit: 9,
 };
 
+const TENDENCIES = {
+  available: true,
+  reason: null,
+  definition: "Draft tendencies aggregate the market axis across every captured draft.",
+  min_picks: 8,
+  weights: { ffc: 0.5, mfl: 0.3, sleeper: 0.2 },
+  managers: [
+    {
+      owner_id: 1,
+      owner_name: "Iceman",
+      team_name: "Iceman 2016",
+      qualified: true,
+      n_picks_with_adp: 12,
+      mean_delta: -3.2,
+      reach_rate: 0.6,
+      value_rate: 0.3,
+      discipline: 5.1,
+      by_position: [{ position: "RB", n: 5, mean_delta: -4.0 }],
+      sufficient: true,
+    },
+  ],
+};
+
+const PICKS = {
+  available: true,
+  reason: null,
+  picks: [
+    {
+      pick_season: 2027,
+      round: 2,
+      original_owner: { owner_id: 1, owner_name: "Iceman" },
+      current_owner: { owner_id: 2, owner_name: "Goose" },
+      previous_owner: { owner_id: 1, owner_name: "Iceman" },
+    },
+  ],
+};
+
 function routeByPath(path: string) {
+  if (path === "/v1/league/picks") return envelope(PICKS);
   if (path === "/v1/seasons/{season_id}/draft") return envelope(BOARD);
   if (path === "/v1/seasons/{season_id}/draft/value") return envelope(VALUE);
+  if (path === "/v1/draft/tendencies") return envelope(TENDENCIES);
   throw new Error(`unexpected path ${path}`);
 }
 
@@ -214,7 +299,7 @@ describe("DraftPage", () => {
 
   it("switches leaderboards and chart together between weighted and points lenses", async () => {
     const weightedThird = {
-      ...pick(40, "Terry McLaurin", "Fie", 80, -73.56, 4, 4),
+      ...pick(40, "Terry McLaurin", "Team 055", 80, -73.56, 4, 4),
       impact: -2.1,
       impact_components: {
         base_value: -73.56,
@@ -232,7 +317,7 @@ describe("DraftPage", () => {
     };
     const pointsThird = { ...pick(43, "James Conner", "Brigands", 60, -119.8, 4, 7), impact: -1 };
     const bustOne = { ...KELCE, impact: -3 };
-    const bustTwo = { ...pick(2, "Mike Evans", "Fie", 40, -122.34), impact: -2.5 };
+    const bustTwo = { ...pick(2, "Owner 19 Evans", "Team 055", 40, -122.34), impact: -2.5 };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft") return Promise.resolve(envelope(BOARD));
       if (path === "/v1/seasons/{season_id}/draft/value")
@@ -263,7 +348,13 @@ describe("DraftPage", () => {
 
   it("expands each leaderboard three entries at a time and preserves dotted initials", async () => {
     const steals = Array.from({ length: 9 }, (_, index) => ({
-      ...pick(index + 1, index === 3 ? "A.J. Green" : `Steal Player ${index + 1}`, "A Very Long Historical Team Name", 100, 20 - index),
+      ...pick(
+        index + 1,
+        index === 3 ? "A.J. Green" : `Steal Player ${index + 1}`,
+        "A Very Long Historical Team Name",
+        100,
+        20 - index,
+      ),
       impact: 3 - index / 10,
     }));
     get.mockImplementation((path: string) => {
@@ -293,43 +384,49 @@ describe("DraftPage", () => {
     expect(within(stealsCard as HTMLElement).getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 
-  it("keeps the chart filters mounted when an ineligible position empties the chart", async () => {
-    // A kicker has a points value but no weighted impact. Selecting K under the
-    // weighted lens used to unmount the whole chart card (filters included),
-    // stranding the user until a refresh. The controls must survive so the
-    // selection stays recoverable.
-    const wr = { ...CMC, impact: 8.33 };
-    const kicker = { ...pick(2, "Justin Tucker", "Goose", 130, 30, 1, 2), position: "K", impact: null };
+  it("keeps the chart filters mounted when matched picks have no weighted impact", async () => {
+    // A pick with no comparable position (no fantasy home) has a points value but no
+    // weighted impact. Filtering down to only such picks under the weighted lens used
+    // to unmount the whole chart card (filters included), stranding the user until a
+    // refresh. The controls must survive so the selection stays recoverable.
+    const wr = { ...CMC, impact: 8.33, round: 1 };
+    const noImpact = { ...pick(13, "No Home", "Goose", 130, 30, 2, 1), position: null, impact: null };
     get.mockImplementation((path: string) => {
       if (path === "/v1/seasons/{season_id}/draft")
-        return Promise.resolve(envelope({ ...BOARD, rounds: [{ round: 1, picks: [wr, kicker] }] }));
+        return Promise.resolve(
+          envelope({
+            ...BOARD,
+            rounds: [
+              { round: 1, picks: [wr] },
+              { round: 2, picks: [noImpact] },
+            ],
+          }),
+        );
       if (path === "/v1/seasons/{season_id}/draft/value")
         return Promise.resolve(
           envelope({
             ...VALUE,
-            picks: [wr, kicker],
+            picks: [wr, noImpact],
             steals: [wr],
             busts: [],
-            points_steals: [kicker],
+            points_steals: [noImpact],
             points_busts: [],
           }),
         );
       return Promise.resolve(routeByPath(path));
     });
     renderPage();
-    const positionFilter = await screen.findByLabelText("Filter by position");
+    const roundFilter = await screen.findByLabelText("Filter by round");
 
-    await userEvent.selectOptions(positionFilter, "K");
+    await userEvent.selectOptions(roundFilter, "2");
     // The card and its controls remain; an honest empty state replaces the bars.
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(screen.getByText(/aren’t part of the position-normalized impact model/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.getByText(/no weighted impact yet/i)).toBeInTheDocument();
 
     // Switching to the Points lens recovers a chart for the same selection.
     await userEvent.click(screen.getByRole("tab", { name: "Points" }));
-    expect(screen.getByLabelText("Filter by position")).toHaveValue("K");
-    expect(
-      screen.queryByText(/aren’t part of the position-normalized impact model/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by round")).toHaveValue("2");
+    expect(screen.queryByText(/no weighted impact yet/i)).not.toBeInTheDocument();
   });
 
   it("annotates a genuine season-long zero as DNP, not a missing-data gap", async () => {
@@ -349,10 +446,12 @@ describe("DraftPage", () => {
     });
     renderPage();
     await screen.findByText("Round 1");
-    // The 0 reads as a real total with a DNP marker explaining it — not a DataGap.
+    // Points (and the DNP marker that explains the zero) live in the Performance view.
+    await userEvent.click(screen.getByRole("tab", { name: "Performance" }));
+    // The 0 reads as a real, labeled regular-season total with a DNP marker — not a DataGap.
     expect(screen.getAllByText("DNP").length).toBeGreaterThan(0);
     expect(screen.getAllByTitle(/season-long injury or ineligibility/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/0 pts/)).toBeInTheDocument();
+    expect(screen.getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/value unavailable/i)).not.toBeInTheDocument();
   });
 
@@ -374,5 +473,130 @@ describe("DraftPage", () => {
     renderPage();
     expect(await screen.findByText(/Draft not captured for this season/i)).toBeInTheDocument();
     expect(screen.queryByText("Round 1")).not.toBeInTheDocument();
+  });
+
+  it("shows the market (reach/value) axis on the board and a reach/value lens", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Round 1");
+    // Market-only work stays off the initial weighted load.
+    expect(screen.queryByText("ADP 8.40")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reach by/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Reach / value vs outcome")).not.toBeInTheDocument();
+    expect(screen.queryByText("Manager market tendencies")).not.toBeInTheDocument();
+    expect(get.mock.calls.some(([path]) => path === "/v1/draft/tendencies")).toBe(false);
+
+    // The Reach / value lens swaps Steals/Busts for Reaches/Values and reveals
+    // the market-only exploratory pieces (quadrant + tendencies).
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+    expect(await screen.findByText("Reaches")).toBeInTheDocument();
+    expect(screen.getByText("Values")).toBeInTheDocument();
+    expect(screen.getAllByText(/Reach by/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Reach / value vs outcome")).toBeInTheDocument();
+    expect(screen.getByText("Manager market tendencies")).toBeInTheDocument();
+
+    // The board carries its own view control; switching it to Market reveals the
+    // per-cell ADP read + reach amount (independent of the leaderboard lens above).
+    const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
+    await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
+    expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("Reach by").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("7.40").length).toBeGreaterThan(0);
+  });
+
+  it("toggles the board between basic, performance, and market views", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Round 1");
+    const boardCard = screen.getByText("Draft board").closest("section") as HTMLElement;
+
+    // Basic default: pure identity — position · NFL team and owner. Season points are
+    // not shown here; they live in the Performance view where they explain impact.
+    expect(within(boardCard).getAllByText(/RB · DAL/).length).toBeGreaterThan(0);
+    expect(within(boardCard).queryByText(/pts/)).not.toBeInTheDocument();
+
+    // Performance view surfaces the steal/bust callouts plus the labeled
+    // regular-season points behind each impact.
+    await user.click(within(boardCard).getByRole("tab", { name: "Performance" }));
+    expect(within(boardCard).getByText("Top steal")).toBeInTheDocument();
+    expect(within(boardCard).getByText("Top bust")).toBeInTheDocument();
+    expect(within(boardCard).getAllByText(/reg-szn pts/).length).toBeGreaterThan(0);
+
+    // Market view swaps in the per-cell ADP read, and flags picks with no consensus
+    // ADP rather than leaving the metric blank.
+    await user.click(within(boardCard).getByRole("tab", { name: "Market" }));
+    expect(within(boardCard).getAllByText("ADP 8.40").length).toBeGreaterThan(0);
+    expect(within(boardCard).getAllByText("no ADP").length).toBeGreaterThan(0);
+  });
+
+  it("names all four reach/value outcome quadrants", async () => {
+    const user = userEvent.setup();
+    const reachHit = {
+      ...pick(5, "Davante Adams", "Slider", 70, 14, 2, 1),
+      impact: 5.2,
+      adp: 11,
+      adp_delta: -6,
+      market_label: "reach",
+      adp_available: true,
+      adp_reason: null,
+    };
+    const valueMiss = {
+      ...pick(6, "Todd Gurley", "Goose", 20, -18, 2, 2),
+      impact: -4.4,
+      adp: 3,
+      adp_delta: 3,
+      market_label: "value",
+      adp_available: true,
+      adp_reason: null,
+    };
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/draft")
+        return Promise.resolve(
+          envelope({ ...BOARD, rounds: [{ round: 1, picks: [KELCE, CMC, reachHit, valueMiss] }] }),
+        );
+      if (path === "/v1/seasons/{season_id}/draft/value")
+        return Promise.resolve(
+          envelope({
+            ...VALUE,
+            picks: [KELCE, CMC, reachHit, valueMiss],
+            reaches: [KELCE, reachHit],
+            values: [CMC, valueMiss],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+
+    renderPage();
+    await screen.findByText("Round 1");
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+
+    expect(await screen.findByText(/reach that hit or value that missed/i)).toBeInTheDocument();
+    const quadrant = screen.getByLabelText("Reach/value vs outcome by pick");
+    await user.click(within(quadrant).getByText("Data table"));
+    expect(within(quadrant).getByText("Value that hit")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Reach that busted")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Reach that hit")).toBeInTheDocument();
+    expect(within(quadrant).getByText("Value that missed")).toBeInTheDocument();
+  });
+
+  it("renders the manager market-tendencies table as an experimental market insight", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Round 1");
+    await user.click(screen.getByRole("tab", { name: "Reach / value" }));
+    expect(await screen.findByText("Manager market tendencies")).toBeInTheDocument();
+    expect(screen.getByText("work in progress")).toBeInTheDocument();
+    expect(screen.getAllByText("Reach rate").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Typical lean").length).toBeGreaterThan(0);
+    expect(screen.getByText(/directional read on draft style/i)).toBeInTheDocument();
+    expect(screen.getByText("60%")).toBeInTheDocument();
+    expect(screen.getByText("reaches")).toBeInTheDocument();
+  });
+
+  it("lists traded future picks in the pick ledger", async () => {
+    renderPage();
+    expect(await screen.findByText("Pick ledger")).toBeInTheDocument();
+    expect(await screen.findByText("2027 R2")).toBeInTheDocument();
+    expect(screen.getAllByText("Goose").length).toBeGreaterThan(0);
   });
 });

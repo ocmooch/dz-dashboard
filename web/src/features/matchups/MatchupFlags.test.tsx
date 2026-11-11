@@ -24,7 +24,12 @@ describe("MatchupFlags", () => {
     render(
       <MatchupFlags
         flags={[
-          flag({ kind: "season_high", label: "Season high", tone: "win", detail: "168.4 — season's highest team score" }),
+          flag({
+            kind: "season_high",
+            label: "Season high",
+            tone: "win",
+            detail: "168.4 — season's highest team score",
+          }),
           flag({ kind: "nailbiter", label: "Nailbiter", tone: "accent" }),
           flag({ kind: "dud", label: "Dud", tone: "muted" }),
           flag({ kind: "tough_luck", label: "Tough luck", tone: "warn" }),

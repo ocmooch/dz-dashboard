@@ -24,6 +24,8 @@ from ff_pipeline.repository.models import (
 )
 from sqlalchemy import distinct, func, select
 
+from ff_dashboard.analytics.aggregation import partial_note, scoring_era_count, scoring_eras
+from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import (
     displayed_seasons,
     owner_name_map,
@@ -31,6 +33,8 @@ from ff_dashboard.analytics.common import (
     require_league,
 )
 from ff_dashboard.analytics.curated_events import curated_events_by_year
+from ff_dashboard.analytics.game_state import is_pending
+from ff_dashboard.analytics.historical_divisions import historical_division_season
 from ff_dashboard.analytics.historical_team_names import (
     period_team_name,
     period_team_name_by_slot,
@@ -40,6 +44,7 @@ from ff_dashboard.analytics.league_changes import (
     classify,
     setting_change_events,
 )
+from ff_dashboard.analytics.platform import platform_changes
 
 # Tier for state-table-derived changes (the setting_change classifier sets its own).
 _CATEGORY_TIER: dict[str, str] = {
@@ -53,6 +58,7 @@ _CATEGORY_TIER: dict[str, str] = {
     "standings": "T2",
     "waiver": "T2",
     "participants": "T1",  # a manager joining/leaving is a major event in a 12-team league
+    "divisions": "T1",  # adding/dropping/restructuring divisions changes schedule + seeding
 }
 
 if TYPE_CHECKING:
@@ -463,6 +469,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
     roster_sigs = _roster_signatures(session)
     active_owner_sets = _active_owner_sets(session)
     waiver_systems = _waiver_systems(session, [int(s.year) for s in seasons])
+    sacko_map = season_sacko_map(session)
 
     rows: list[dict[str, Any]] = []
     previous: dict[str, Any] | None = None
@@ -472,6 +479,7 @@ def league_timeline(session: Session) -> dict[str, Any]:
         playoff_weeks = season.playoff_weeks
         league_size = sizes.get(int(season.season_id), 0)
         raw_league_size = raw_sizes.get(int(season.season_id), league_size)
+        division_structure = _division_structure(int(season.year))
         source = _season_source(season, scored_ids)
         details: list[dict[str, str | None]] = []
         if previous is not None and previous["league_size"] != league_size:
@@ -508,6 +516,25 @@ def league_timeline(session: Session) -> dict[str, Any]:
                     before=str(previous["scoring_provenance"]).replace("_", " "),
                     after=str(source["scoring_provenance"]).replace("_", " "),
                     certainty="source_limited",
+                )
+            )
+        if previous is not None and previous["division_structure"] != division_structure:
+            before = str(previous["division_structure"])
+            after = division_structure
+            if before == "No divisions":
+                title = "Divisions introduced"
+            elif after == "No divisions":
+                title = "Divisions removed"
+            else:
+                title = "Divisions restructured"
+            details.append(
+                _change(
+                    "divisions",
+                    title,
+                    "The league's division structure changed from the prior season; "
+                    "this reshapes the schedule and standings groupings.",
+                    before=before,
+                    after=after,
                 )
             )
         details.extend(_scoring_rule_changes(season, previous_season, scoring_rules))
@@ -557,7 +584,18 @@ def league_timeline(session: Session) -> dict[str, Any]:
             "last_place": _team_ref(teams.get(int(season.last_place_team_id)), owners)
             if season.last_place_team_id is not None
             else None,
+            # The Sacko (toilet-bowl loser) — derived where the bracket distinguishes
+            # the consolation half, else the recorded last-place team (``source``).
+            "sacko": (
+                {
+                    **(_team_ref(teams.get(int(sacko_row["team_id"])), owners) or {}),
+                    "source": sacko_row["source"],
+                }
+                if (sacko_row := sacko_map.get(int(season.season_id))) is not None
+                else None
+            ),
             "is_scored": int(season.season_id) in scored_ids,
+            "division_structure": division_structure,
             "schedule_source": "scraped"
             if reg_weeks is not None or playoff_weeks is not None
             else "unavailable",
@@ -643,6 +681,25 @@ def _flex_label(starters: Counter[str]) -> str | None:
     if starters.get("W/R"):
         return "WR/RB flex"
     return "No flex"
+
+
+def _division_structure(year: int) -> str:
+    """The season's division *structure* (never its rotating, cosmetic names).
+
+    Sourced from the reviewed ``historical_divisions`` artifact, which covers the
+    seasons that had divisions; any other season played as a single table. The
+    structure (how many divisions of what size) is the gameplay-significant fact —
+    it shapes the schedule and standings — so it is shown as era context, but it
+    deliberately does *not* feed ``_era_key`` (the division drop and the FAAB move
+    happened a year apart, and splitting on it would orphan a single season).
+    """
+    season = historical_division_season(year)
+    if season is None:
+        return "No divisions"
+    sizes = [len(division.teams) for division in season.divisions]
+    if len(set(sizes)) == 1:
+        return f"{len(sizes)} divisions of {sizes[0]}"
+    return f"{len(sizes)} divisions ({', '.join(str(size) for size in sizes)})"
 
 
 def _waiver_class(value: str | None) -> str | None:
@@ -770,6 +827,11 @@ def league_eras(session: Session) -> dict[str, Any]:
                 "ppr": _ppr_label(row.get("ppr_reception_value")),
                 "lineup": row.get("lineup_flex"),
                 "waiver_system": row.get("waiver_system"),
+                # Division structure is era *context*, not an era-defining trait: resolved
+                # to a single value below, or None when the era straddles a change (the
+                # inline ``divisions`` change-event names that transition).
+                "division_structure": row["division_structure"],
+                "_division_structures": {row["division_structure"]},
                 "league_size": row["league_size"],
                 "regular_season_weeks": row["regular_season_weeks"],
                 "playoff_weeks": row["playoff_weeks"],
@@ -784,6 +846,11 @@ def league_eras(session: Session) -> dict[str, Any]:
         else:
             current["end_year"] = row["season_year"]
             current["season_years"].append(row["season_year"])
+            current["_division_structures"].add(row["division_structure"])
+
+    for era in eras:
+        structures = era.pop("_division_structures")
+        era["division_structure"] = next(iter(structures)) if len(structures) == 1 else None
 
     changes = [
         {
@@ -799,7 +866,42 @@ def league_eras(session: Session) -> dict[str, Any]:
         or row["changes"]["scoring_availability_changed"]
         or row["changes"]["details"]
     ]
+    _add_platform_changes(session, changes)
     return {"league": timeline["league"], "eras": eras, "changes": changes}
+
+
+def _add_platform_changes(session: Session, changes: list[dict[str, Any]]) -> None:
+    """Emit each platform switch as an era change (Sleeper D1).
+
+    It comes from the ``seasons`` table, so it shows even before the new platform's first game
+    (user decision, D1 plan decision 3). It merges into an existing change for that year."""
+    for sw in platform_changes(session):
+        detail = {
+            "category": "platform",
+            "title": f"Moved to {sw['to_label']}",
+            "summary": f"The league moved from {sw['from_label']} to {sw['to_label']}.",
+            "before": sw["from_label"],
+            "after": sw["to_label"],
+            "source": "seasons.platform",
+            "certainty": "verified",
+            "changed_at": None,
+        }
+        existing = next((c for c in changes if c["season_year"] == sw["season_year"]), None)
+        if existing is None:
+            changes.append(
+                {
+                    "season_year": sw["season_year"],
+                    "league_size_changed": False,
+                    "schedule_changed": False,
+                    "scoring_availability_changed": False,
+                    "platform_changed": True,
+                    "details": [detail],
+                }
+            )
+        else:
+            existing["platform_changed"] = True
+            existing["details"] = [*existing["details"], detail]
+    changes.sort(key=lambda c: int(c["season_year"]))
 
 
 def league_overview(session: Session) -> dict[str, Any]:
@@ -853,8 +955,8 @@ def _unique_games(session: Session) -> list[_Game]:
     seen: set[tuple[int, int, int, int]] = set()
     games: list[_Game] = []
     for m in rows:
-        if m.team_score is None or m.opponent_score is None:
-            continue
+        if m.team_score is None or m.opponent_score is None or is_pending(m):
+            continue  # the unfinished week is unscored (D3 rule)
         assert m.opponent_team_id is not None
         low, high = sorted((int(m.team_id), int(m.opponent_team_id)))
         key = (int(m.season_id), int(m.week), low, high)
@@ -1021,7 +1123,16 @@ def league_stories(session: Session) -> dict[str, Any]:
         }
     )
 
-    return {"stories": story_cards}
+    # Rules-era marker (`01` §5): a game-scoped card names the scoring era it was played under.
+    eras = scoring_eras(session)
+    for card in story_cards:
+        if card.get("available") and card.get("season_year") is not None:
+            card["scoring_era"] = eras.get(card["season_year"])
+    return {
+        "stories": story_cards,
+        "scoring_era_count": scoring_era_count(eras),
+        "aggregation_note": partial_note(session),
+    }
 
 
 def manager_directory(session: Session) -> dict[str, Any]:
@@ -1030,6 +1141,10 @@ def manager_directory(session: Session) -> dict[str, Any]:
     seasons = {
         int(sid): int(year)
         for sid, year in session.execute(select(Season.season_id, Season.year)).all()
+    }
+    platform_of = {
+        int(sid): (plat or "nfl_com")
+        for sid, plat in session.execute(select(Season.season_id, Season.platform)).all()
     }
     played = played_season_ids(session)
     teams = session.execute(select(Team).order_by(Team.owner_id, Team.team_id)).scalars().all()
@@ -1075,6 +1190,34 @@ def manager_directory(session: Session) -> dict[str, Any]:
                 "team_names": team_names,
                 "seasons_managed": len(years),
                 "identity_source": "nfl_com_owner_record",
+                "platform_accounts": _platform_accounts(owner_teams, seasons, platform_of),
             }
         )
     return {"managers": managers}
+
+
+PLATFORM_LABEL = {"nfl_com": "NFL.com", "sleeper": "Sleeper"}
+
+
+def _platform_accounts(
+    owner_teams: list[Team], seasons: dict[int, int], platform_of: dict[int, str]
+) -> list[dict[str, Any]]:
+    """One account per platform the manager played on, with its first/last played season.
+    Never a username or user id (D1 decision 2)."""
+    years_by_platform: dict[str, list[int]] = defaultdict(list)
+    for t in owner_teams:
+        year = seasons.get(int(t.season_id))
+        if year is not None:
+            years_by_platform[platform_of.get(int(t.season_id), "nfl_com")].append(year)
+    return sorted(
+        (
+            {
+                "platform": plat,
+                "label": PLATFORM_LABEL.get(plat, plat),
+                "first_season": min(ys),
+                "last_season": max(ys),
+            }
+            for plat, ys in years_by_platform.items()
+        ),
+        key=lambda a: (a["first_season"], a["platform"]),
+    )

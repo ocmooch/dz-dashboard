@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/meta/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capabilities
+         * @description Seasons by capabilities with each state (About page, Sleeper D1).
+         */
+        get: operations["capabilities_v1_meta_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/league/overview": {
         parameters: {
             query?: never;
@@ -140,6 +160,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/league/picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get League Picks */
+        get: operations["get_league_picks_v1_league_picks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seasons": {
         parameters: {
             query?: never;
@@ -149,6 +186,23 @@ export interface paths {
         };
         /** List Seasons */
         get: operations["list_seasons_v1_seasons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Season */
+        get: operations["get_current_season_v1_seasons_current_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -217,6 +271,57 @@ export interface paths {
         };
         /** Get Standings Timeline */
         get: operations["get_standings_timeline_v1_seasons__season_id__standings_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/weekly-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Weekly Scores */
+        get: operations["get_weekly_scores_v1_seasons__season_id__weekly_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/faab-market": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Faab Market */
+        get: operations["get_faab_market_v1_seasons__season_id__faab_market_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seasons/{season_id}/efficiency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Efficiency */
+        get: operations["get_efficiency_v1_seasons__season_id__efficiency_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -548,6 +653,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/players/{player_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Player Status
+         * @description Week-by-week status (D7): the nflverse game report and, on Sleeper seasons, the weekly
+         *     snapshot as of kickoff (7-day cutoff). ``season`` defaults to the latest played season the
+         *     player was rostered in.
+         */
+        get: operations["get_player_status_v1_players__player_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/stats/top-scorers": {
         parameters: {
             query?: never;
@@ -642,6 +769,23 @@ export interface paths {
         };
         /** Get Draft Value */
         get: operations["get_draft_value_v1_seasons__season_id__draft_value_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/draft/tendencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Draft Tendencies */
+        get: operations["get_draft_tendencies_v1_draft_tendencies_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -840,10 +984,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/lab/insights/{season_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lab Insights */
+        get: operations["get_lab_insights_v1_lab_insights__season_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdpCoverage */
+        AdpCoverage: {
+            /** Limited */
+            limited: boolean;
+            /** Sources */
+            sources: string[];
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * AggregationNote
+         * @description How a cross-season payload treated seasons that differ (Sleeper D4, `01` §5).
+         *
+         *     Present only when something was excluded or partially counted; null otherwise.
+         */
+        AggregationNote: {
+            /** Used Seasons */
+            used_seasons: number[];
+            /**
+             * Excluded Seasons
+             * @default []
+             */
+            excluded_seasons: number[];
+            /**
+             * Partial Seasons
+             * @default []
+             */
+            partial_seasons: components["schemas"]["PartialSeason"][];
+            /** Reason */
+            reason: string;
+        };
         /** AvailabilityWeek */
         AvailabilityWeek: {
             /** Week */
@@ -855,10 +1047,35 @@ export interface components {
             /** Is Pre Kickoff Snapshot */
             is_pre_kickoff_snapshot: boolean;
         };
+        /** BidWar */
+        BidWar: {
+            /** Week */
+            week: number;
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            winner?: components["schemas"]["MarketTeamRef"] | null;
+            /** Winning Bid */
+            winning_bid?: number | null;
+            /** Margin */
+            margin?: number | null;
+            /** Bids */
+            bids: components["schemas"]["BidWarBid"][];
+        };
+        /** BidWarBid */
+        BidWarBid: {
+            team: components["schemas"]["MarketTeamRef"];
+            /** Bid */
+            bid?: number | null;
+            /** Won */
+            won: boolean;
+            /** Failure Reason */
+            failure_reason?: string | null;
+        };
         /** BoxPlayer */
         BoxPlayer: {
             /** Roster Slot */
             roster_slot?: string | null;
+            /** Slot Note */
+            slot_note?: string | null;
             /** Player Id */
             player_id: number;
             /** Player Name */
@@ -925,6 +1142,10 @@ export interface components {
             injury_secondary?: string | null;
             /** Injury Practice Status */
             injury_practice_status?: string | null;
+            /** Injury Source */
+            injury_source?: string | null;
+            /** Injury As Of */
+            injury_as_of?: string | null;
         };
         /** BoxScore */
         BoxScore: {
@@ -943,6 +1164,10 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /** Bracket Tier */
+            bracket_tier?: string | null;
+            /** Game Label */
+            game_label?: string | null;
             /**
              * Projections Available
              * @default true
@@ -952,6 +1177,9 @@ export interface components {
             projection_reason?: string | null;
             /** Resolution Note */
             resolution_note?: string | null;
+            /** Official Points Source */
+            official_points_source?: string | null;
+            commissioner_override?: components["schemas"]["CommissionerOverride"] | null;
             home?: components["schemas"]["BoxTeam"] | null;
             away?: components["schemas"]["BoxTeam"] | null;
             /** Winner Team Id */
@@ -997,7 +1225,7 @@ export interface components {
         /** BracketGame */
         BracketGame: {
             /** Matchup Id */
-            matchup_id: number;
+            matchup_id?: number | null;
             /**
              * Is Playoff
              * @default false
@@ -1011,6 +1239,13 @@ export interface components {
             team_b?: components["schemas"]["BracketTeam"] | null;
             /** Winner Team Id */
             winner_team_id?: number | null;
+            /** Placement */
+            placement?: number | null;
+            /**
+             * Week Pending
+             * @default false
+             */
+            week_pending: boolean;
         };
         /** BracketRound */
         BracketRound: {
@@ -1055,6 +1290,11 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Name */
             conference_name?: string | null;
         };
@@ -1071,6 +1311,40 @@ export interface components {
             /** Conference Name */
             conference_name?: string | null;
         };
+        /**
+         * Capability
+         * @description One capability for one season. ``state`` mirrors upstream ``season_capabilities``:
+         *     available | partial | derived | not_yet | not_on_platform | not_used. ``not_used`` has no
+         *     note and renders nothing.
+         */
+        Capability: {
+            /** State */
+            state: string;
+            /** Note */
+            note?: string | null;
+        };
+        /** CapabilityMatrix */
+        CapabilityMatrix: {
+            /** Keys */
+            keys: string[];
+            /** Seasons */
+            seasons: components["schemas"]["CapabilityMatrixSeason"][];
+        };
+        /** CapabilityMatrixSeason */
+        CapabilityMatrixSeason: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Platform */
+            platform: string;
+            /** Platform Label */
+            platform_label: string;
+            /** Cells */
+            cells: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+        };
         /** ChampionshipEntry */
         ChampionshipEntry: {
             /** Season Year */
@@ -1078,11 +1352,19 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            sacko?: components["schemas"]["SackoRef"] | null;
         };
         /** ChampionshipHistory */
         ChampionshipHistory: {
             /** Seasons */
             seasons: components["schemas"]["ChampionshipEntry"][];
+        };
+        /** CommissionerOverride */
+        CommissionerOverride: {
+            /** Official */
+            official: number;
+            /** Custom */
+            custom: number;
         };
         /** CommissionerTerm */
         CommissionerTerm: {
@@ -1139,6 +1421,11 @@ export interface components {
             streak: components["schemas"]["Streak"];
             /** Final Rank */
             final_rank?: number | null;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Rank */
             conference_rank: number;
             /** Division Wins */
@@ -1205,6 +1492,22 @@ export interface components {
             reason_codes: {
                 [key: string]: string;
             };
+            /**
+             * Season Platforms
+             * @default {}
+             */
+            season_platforms: {
+                [key: string]: string;
+            };
+            /**
+             * Capabilities
+             * @default {}
+             */
+            capabilities: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["Capability"];
+                };
+            };
         };
         /** CoverageRelevance */
         CoverageRelevance: {
@@ -1224,6 +1527,51 @@ export interface components {
             source_identity_mismatch_count: number;
             /** Source Identity Mismatches */
             source_identity_mismatches: components["schemas"]["SourceIdentityMismatch"][];
+            /** Season Position Divergence Count */
+            season_position_divergence_count: number;
+            /** Season Position Divergences */
+            season_position_divergences: components["schemas"]["SeasonPositionDivergence"][];
+        };
+        /**
+         * CurrentSeason
+         * @description The in-progress season at a glance (Sleeper D3). ``available: false`` with reason
+         *     ``no_current_season`` off-season (never a fake week). ``latest_results`` are the last
+         *     finalized week's games; ``pending_pairings`` are the unfinished week's games, unscored.
+         */
+        CurrentSeason: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Season Id */
+            season_id?: number | null;
+            /** Season Year */
+            season_year?: number | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Regular Season Weeks */
+            regular_season_weeks?: number | null;
+            /** Last Finalized Week */
+            last_finalized_week?: number | null;
+            /** Pending Week */
+            pending_week?: number | null;
+            /**
+             * Latest Results
+             * @default []
+             */
+            latest_results: components["schemas"]["GameCard"][];
+            /**
+             * Pending Pairings
+             * @default []
+             */
+            pending_pairings: components["schemas"]["GameCard"][];
+            /**
+             * Standings Top
+             * @default []
+             */
+            standings_top: components["schemas"]["StandingRow"][];
         };
         /** DataCaveat */
         DataCaveat: {
@@ -1248,6 +1596,34 @@ export interface components {
             num_teams?: number | null;
             /** Rounds */
             rounds: components["schemas"]["DraftRound"][];
+            adp_coverage: components["schemas"]["AdpCoverage"];
+            /** Draft Type */
+            draft_type?: string | null;
+        };
+        /** DraftManagerTendency */
+        DraftManagerTendency: {
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Qualified */
+            qualified: boolean;
+            /** N Picks With Adp */
+            n_picks_with_adp: number;
+            /** Mean Delta */
+            mean_delta: number;
+            /** Reach Rate */
+            reach_rate: number;
+            /** Value Rate */
+            value_rate: number;
+            /** Discipline */
+            discipline: number;
+            /** By Position */
+            by_position: components["schemas"]["DraftTendencyPosition"][];
+            /** Sufficient */
+            sufficient: boolean;
         };
         /** DraftPick */
         DraftPick: {
@@ -1271,6 +1647,8 @@ export interface components {
             player_name?: string | null;
             /** Position */
             position?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
             /** Season Year */
             season_year?: number | null;
             /** Season Points */
@@ -1291,6 +1669,33 @@ export interface components {
             zero_reason?: string | null;
             /** Zero Detail */
             zero_detail?: string | null;
+            /** Adp */
+            adp?: number | null;
+            /**
+             * Adp Sources
+             * @default []
+             */
+            adp_sources: string[];
+            /** Adp Source Spread */
+            adp_source_spread?: number | null;
+            /** Adp Format */
+            adp_format?: string | null;
+            /**
+             * Adp Format Fallback
+             * @default false
+             */
+            adp_format_fallback: boolean;
+            /** Adp Delta */
+            adp_delta?: number | null;
+            /** Market Label */
+            market_label?: string | null;
+            /**
+             * Adp Available
+             * @default false
+             */
+            adp_available: boolean;
+            /** Adp Reason */
+            adp_reason?: string | null;
         };
         /** DraftRecords */
         DraftRecords: {
@@ -1311,6 +1716,32 @@ export interface components {
             round: number;
             /** Picks */
             picks: components["schemas"]["DraftPick"][];
+        };
+        /** DraftTendencies */
+        DraftTendencies: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Definition */
+            definition: string;
+            /** Min Picks */
+            min_picks: number;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** Managers */
+            managers: components["schemas"]["DraftManagerTendency"][];
+        };
+        /** DraftTendencyPosition */
+        DraftTendencyPosition: {
+            /** Position */
+            position: string;
+            /** N */
+            n: number;
+            /** Mean Delta */
+            mean_delta: number;
         };
         /** DraftValue */
         DraftValue: {
@@ -1339,8 +1770,40 @@ export interface components {
             points_steals: components["schemas"]["DraftPick"][];
             /** Points Busts */
             points_busts: components["schemas"]["DraftPick"][];
+            /** Adp Definition */
+            adp_definition: string;
+            /** Adp Weights */
+            adp_weights: {
+                [key: string]: number;
+            };
+            adp_coverage: components["schemas"]["AdpCoverage"];
+            /** Reaches */
+            reaches: components["schemas"]["DraftPick"][];
+            /** Values */
+            values: components["schemas"]["DraftPick"][];
             /** Leaderboard Limit */
             leaderboard_limit: number;
+        };
+        /** EfficiencyTeam */
+        EfficiencyTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Captured */
+            captured: number;
+            /** Optimal */
+            optimal: number;
+            /** Efficiency Pct */
+            efficiency_pct: number;
+            /** Points For */
+            points_for: number;
+            /** Weeks */
+            weeks: number;
         };
         /**
          * EnteringRecord
@@ -1368,6 +1831,11 @@ export interface components {
             data: components["schemas"]["BoxScore"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[CapabilityMatrix] */
+        Envelope_CapabilityMatrix_: {
+            data: components["schemas"]["CapabilityMatrix"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[ChampionshipHistory] */
         Envelope_ChampionshipHistory_: {
             data: components["schemas"]["ChampionshipHistory"];
@@ -1376,6 +1844,11 @@ export interface components {
         /** Envelope[CoverageMatrix] */
         Envelope_CoverageMatrix_: {
             data: components["schemas"]["CoverageMatrix"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[CurrentSeason] */
+        Envelope_CurrentSeason_: {
+            data: components["schemas"]["CurrentSeason"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[DraftBoard] */
@@ -1388,6 +1861,11 @@ export interface components {
             data: components["schemas"]["DraftRecords"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[DraftTendencies] */
+        Envelope_DraftTendencies_: {
+            data: components["schemas"]["DraftTendencies"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[DraftValue] */
         Envelope_DraftValue_: {
             data: components["schemas"]["DraftValue"];
@@ -1396,6 +1874,11 @@ export interface components {
         /** Envelope[HeadToHead] */
         Envelope_HeadToHead_: {
             data: components["schemas"]["HeadToHead"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[LabInsights] */
+        Envelope_LabInsights_: {
+            data: components["schemas"]["LabInsights"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[LeagueEras] */
@@ -1453,6 +1936,11 @@ export interface components {
             data: components["schemas"]["OwnersList"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[PickLedger] */
+        Envelope_PickLedger_: {
+            data: components["schemas"]["PickLedger"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[PlayerAvailability] */
         Envelope_PlayerAvailability_: {
             data: components["schemas"]["PlayerAvailability"];
@@ -1481,6 +1969,11 @@ export interface components {
         /** Envelope[PlayerScoring] */
         Envelope_PlayerScoring_: {
             data: components["schemas"]["PlayerScoring"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[PlayerStatusTimeline] */
+        Envelope_PlayerStatusTimeline_: {
+            data: components["schemas"]["PlayerStatusTimeline"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[PowerRanking] */
@@ -1523,6 +2016,16 @@ export interface components {
             data: components["schemas"]["SeasonConferences"];
             meta: components["schemas"]["Meta"];
         };
+        /** Envelope[SeasonEfficiency] */
+        Envelope_SeasonEfficiency_: {
+            data: components["schemas"]["SeasonEfficiency"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonFaabMarket] */
+        Envelope_SeasonFaabMarket_: {
+            data: components["schemas"]["SeasonFaabMarket"];
+            meta: components["schemas"]["Meta"];
+        };
         /** Envelope[SeasonList] */
         Envelope_SeasonList_: {
             data: components["schemas"]["SeasonList"];
@@ -1536,6 +2039,11 @@ export interface components {
         /** Envelope[SeasonTotals] */
         Envelope_SeasonTotals_: {
             data: components["schemas"]["SeasonTotals"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[SeasonWeeklyScores] */
+        Envelope_SeasonWeeklyScores_: {
+            data: components["schemas"]["SeasonWeeklyScores"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[StandingsInsights] */
@@ -1603,6 +2111,45 @@ export interface components {
             data: components["schemas"]["WeekMatchups"];
             meta: components["schemas"]["Meta"];
         };
+        /** FaabMarketTeam */
+        FaabMarketTeam: {
+            team: components["schemas"]["MarketTeamRef"];
+            /** Spent */
+            spent: number;
+            /** Pct Of Budget */
+            pct_of_budget?: number | null;
+            /** Winning Bids */
+            winning_bids: number;
+            /** Failed Bids */
+            failed_bids?: number | null;
+            /** Largest Bid */
+            largest_bid?: number | null;
+        };
+        /** FaabTopBid */
+        FaabTopBid: {
+            /** Week */
+            week?: number | null;
+            team: components["schemas"]["MarketTeamRef"];
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            /** Bid */
+            bid?: number | null;
+        };
+        /**
+         * FailedBid
+         * @description A lost FAAB claim; ``winner`` / ``winning_bid`` when another team got the player.
+         */
+        FailedBid: {
+            /** Week */
+            week?: number | null;
+            player?: components["schemas"]["MarketPlayerRef"] | null;
+            /** Bid */
+            bid?: number | null;
+            /** Failure Reason */
+            failure_reason?: string | null;
+            winner?: components["schemas"]["MarketTeamRef"] | null;
+            /** Winning Bid */
+            winning_bid?: number | null;
+        };
         /**
          * GameCard
          * @description One game, folded back from Phase 1's two perspective rows. ``matchup_id``
@@ -1617,6 +2164,15 @@ export interface components {
              * @default false
              */
             is_playoff: boolean;
+            /** Bracket Tier */
+            bracket_tier?: string | null;
+            /** Game Label */
+            game_label?: string | null;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
             team_a?: components["schemas"]["GameTeam"] | null;
             team_b?: components["schemas"]["GameTeam"] | null;
             /** Margin */
@@ -1644,6 +2200,11 @@ export interface components {
              * @default false
              */
             is_winner: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             entering_record?: components["schemas"]["EnteringRecord"] | null;
         };
         /**
@@ -1659,6 +2220,20 @@ export interface components {
             matchup_id?: number | null;
             /** Margin For A */
             margin_for_a?: number | null;
+            /** A Score */
+            a_score?: number | null;
+            /** B Score */
+            b_score?: number | null;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+            /**
+             * Is Championship
+             * @default false
+             */
+            is_championship: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1709,6 +2284,12 @@ export interface components {
             /** Cumulative Margin For A */
             cumulative_margin_for_a?: number | null;
             closest_meeting?: components["schemas"]["H2HMeeting"] | null;
+            /**
+             * Meetings
+             * @default []
+             */
+            meetings: components["schemas"]["H2HMeeting"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -1802,6 +2383,60 @@ export interface components {
             /** Opp Ir Weight */
             opp_ir_weight: number;
         };
+        /** Insight */
+        Insight: {
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Narration */
+            narration: string;
+            /** Facts */
+            facts: components["schemas"]["InsightFact"][];
+            subject?: components["schemas"]["InsightSubject"] | null;
+            provenance: components["schemas"]["InsightProvenance"];
+            /** Confidence */
+            confidence: string;
+        };
+        /** InsightFact */
+        InsightFact: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string | number;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** InsightProvenance */
+        InsightProvenance: {
+            /** Metric */
+            metric: string;
+            /** Endpoint */
+            endpoint: string;
+        };
+        /** InsightSubject */
+        InsightSubject: {
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+        };
+        /** LabInsights */
+        LabInsights: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year?: number | null;
+            /** Available */
+            available: boolean;
+            /** Insights */
+            insights: components["schemas"]["Insight"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
         /** LatestRun */
         LatestRun: {
             /** Run Id */
@@ -1889,6 +2524,8 @@ export interface components {
             lineup?: string | null;
             /** Waiver System */
             waiver_system?: string | null;
+            /** Division Structure */
+            division_structure?: string | null;
             /** League Size */
             league_size: number;
             /** Regular Season Weeks */
@@ -1921,6 +2558,11 @@ export interface components {
              * @default false
              */
             scoring_availability_changed: boolean;
+            /**
+             * Platform Changed
+             * @default false
+             */
+            platform_changed: boolean;
             /**
              * Details
              * @default []
@@ -1990,6 +2632,12 @@ export interface components {
         LeagueStories: {
             /** Stories */
             stories: components["schemas"]["StoryCard"][];
+            /**
+             * Scoring Era Count
+             * @default 0
+             */
+            scoring_era_count: number;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** LeagueTimeline */
         LeagueTimeline: {
@@ -2016,8 +2664,11 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            sacko?: components["schemas"]["SackoRef"] | null;
             /** Is Scored */
             is_scored: boolean;
+            /** Division Structure */
+            division_structure?: string | null;
             /** Schedule Source */
             schedule_source: string;
             /** Scoring Provenance */
@@ -2029,6 +2680,14 @@ export interface components {
             /** Era Id */
             era_id: string;
             changes: components["schemas"]["SeasonChangeFlags"];
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
         };
         /** ManagerDirectory */
         ManagerDirectory: {
@@ -2064,6 +2723,31 @@ export interface components {
             seasons_managed: number;
             /** Identity Source */
             identity_source: string;
+            /**
+             * Platform Accounts
+             * @default []
+             */
+            platform_accounts: components["schemas"]["PlatformAccount"][];
+        };
+        /** MarketPlayerRef */
+        MarketPlayerRef: {
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name?: string | null;
+            /** Position */
+            position?: string | null;
+        };
+        /** MarketTeamRef */
+        MarketTeamRef: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
         };
         /**
          * MatchupFlag
@@ -2111,6 +2795,15 @@ export interface components {
         MetaResponse: {
             latest_run: components["schemas"]["LatestRun"];
             coverage: components["schemas"]["Coverage"];
+            /**
+             * Platform Eras
+             * @default []
+             */
+            platform_eras: components["schemas"]["PlatformEra"][];
+            /** Current Season Id */
+            current_season_id?: number | null;
+            /** Current Week */
+            current_week?: number | null;
         };
         /** OwnerCareer */
         OwnerCareer: {
@@ -2130,12 +2823,27 @@ export interface components {
             total_points_for: number;
             /** Championships */
             championships: number;
+            /**
+             * Sackos
+             * @default 0
+             */
+            sackos: number;
             /** Best Finish */
             best_finish?: number | null;
             /** Avg Finish */
             avg_finish?: number | null;
             /** Latest Team Id */
             latest_team_id?: number | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Qualified
+             * @default true
+             */
+            qualified: boolean;
             /**
              * Trophy Case
              * @default []
@@ -2147,6 +2855,7 @@ export interface components {
              * @default []
              */
             commissioner_terms: components["schemas"]["CommissionerTerm"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** OwnerConsistency */
         OwnerConsistency: {
@@ -2164,6 +2873,21 @@ export interface components {
             best_season_points_for?: number | null;
             /** Signature */
             signature?: string | null;
+            /**
+             * Weeks Sampled
+             * @default 0
+             */
+            weeks_sampled: number;
+            /** Top Week Rate */
+            top_week_rate?: number | null;
+            /** Floor Week Rate */
+            floor_week_rate?: number | null;
+            /** Above Median Rate */
+            above_median_rate?: number | null;
+            /** Average Weekly Rank */
+            average_weekly_rank?: number | null;
+            /** Weekly Volatility */
+            weekly_volatility?: number | null;
         };
         /** OwnerRef */
         OwnerRef: {
@@ -2198,6 +2922,11 @@ export interface components {
             result?: string | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
         };
         /** OwnerSeasons */
         OwnerSeasons: {
@@ -2207,6 +2936,7 @@ export interface components {
             display_name?: string | null;
             /** Seasons */
             seasons: components["schemas"]["OwnerSeasonRow"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * OwnerStory
@@ -2222,6 +2952,7 @@ export interface components {
             owner: components["schemas"]["OwnerRef"];
             /** Available */
             available: boolean;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
             /** Signature Win */
             signature_win?: {
                 [key: string]: unknown;
@@ -2261,11 +2992,13 @@ export interface components {
             display_name?: string | null;
             /** Points */
             points: components["schemas"]["TrajectoryPoint"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** OwnersList */
         OwnersList: {
             /** Owners */
             owners: components["schemas"]["OwnerCareer"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * OwnershipSpan
@@ -2291,6 +3024,61 @@ export interface components {
             weeks: number;
             /** Acquisition Type */
             acquisition_type?: string | null;
+        };
+        /** PartialSeason */
+        PartialSeason: {
+            /** Season Year */
+            season_year: number;
+            /** Through Week */
+            through_week: number;
+        };
+        /**
+         * PickLedger
+         * @description Traded future picks. ``available`` False = no season records them (``reason`` = the
+         *     capability key); on Sleeper an empty list is a real answer.
+         */
+        PickLedger: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Picks
+             * @default []
+             */
+            picks: components["schemas"]["TradedPickRow"][];
+        };
+        /** PickOwner */
+        PickOwner: {
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+        };
+        /**
+         * PlatformAccount
+         * @description A manager's account on one platform. Never a username or user id (D1 decision 2).
+         */
+        PlatformAccount: {
+            /** Platform */
+            platform: string;
+            /** Label */
+            label: string;
+            /** First Season */
+            first_season?: number | null;
+            /** Last Season */
+            last_season?: number | null;
+        };
+        /** PlatformEra */
+        PlatformEra: {
+            /** Platform */
+            platform: string;
+            /** Label */
+            label: string;
+            /** Start Year */
+            start_year: number;
+            /** End Year */
+            end_year?: number | null;
         };
         /** PlayerAvailability */
         PlayerAvailability: {
@@ -2442,6 +3230,32 @@ export interface components {
             /** Weeks */
             weeks: components["schemas"]["ScoringWeek"][];
         };
+        /** PlayerStatusTimeline */
+        PlayerStatusTimeline: {
+            /** Player Id */
+            player_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Has Snapshots */
+            has_snapshots: boolean;
+            snapshot_capability?: components["schemas"]["Capability"] | null;
+            /** Is Provisional */
+            is_provisional: boolean;
+            latest?: components["schemas"]["StatusEntry"] | null;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["StatusWeek"][];
+        };
         /** PowerRanking */
         PowerRanking: {
             /** Season Id */
@@ -2548,6 +3362,12 @@ export interface components {
         RecordsBook: {
             /** Scored Era */
             scored_era: number[];
+            /**
+             * Scoring Era Count
+             * @default 0
+             */
+            scoring_era_count: number;
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -2592,6 +3412,7 @@ export interface components {
             playoffs: {
                 [key: string]: unknown;
             };
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -2601,6 +3422,7 @@ export interface components {
             owners: components["schemas"]["RivalryOwner"][];
             /** Cells */
             cells: components["schemas"]["RivalryCell"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /** RivalryOwner */
         RivalryOwner: {
@@ -2627,6 +3449,24 @@ export interface components {
             /** Action */
             action: string;
         };
+        /**
+         * SackoRef
+         * @description The Sacko (toilet-bowl loser). ``source`` is "derived" (from the bracket), "recorded"
+         *     (the stored last-place team, where the bracket can't be split) or "official" (the platform's
+         *     bracket decided it; Sleeper).
+         */
+        SackoRef: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Source */
+            source?: string | null;
+        };
         /** ScheduleGame */
         ScheduleGame: {
             /** Matchup Id */
@@ -2652,6 +3492,25 @@ export interface components {
             result?: string | null;
             /** Margin */
             margin?: number | null;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
+        };
+        /**
+         * ScoringEra
+         * @description Contiguous seasons with the same stored scoring rules (the rules-era marker).
+         */
+        ScoringEra: {
+            /** Era Id */
+            era_id: number;
+            /** Label */
+            label: string;
+            /** Start */
+            start: number;
+            /** End */
+            end?: number | null;
         };
         /** ScoringTrendPoint */
         ScoringTrendPoint: {
@@ -2726,6 +3585,17 @@ export interface components {
             consolation_distinguished: boolean;
             playoff_bracket?: components["schemas"]["BracketSection"] | null;
             consolation_bracket?: components["schemas"]["BracketSection"] | null;
+            /**
+             * Source
+             * @default derived
+             * @enum {string}
+             */
+            source: "official" | "derived";
+            /**
+             * Is Provisional
+             * @default false
+             */
+            is_provisional: boolean;
         };
         /** SeasonChangeFlags */
         SeasonChangeFlags: {
@@ -2772,6 +3642,46 @@ export interface components {
             /** Conferences */
             conferences: components["schemas"]["ConferenceSection"][];
         };
+        /** SeasonEfficiency */
+        SeasonEfficiency: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Teams */
+            teams: components["schemas"]["EfficiencyTeam"][];
+        };
+        /** SeasonFaabMarket */
+        SeasonFaabMarket: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Is Faab Era */
+            is_faab_era: boolean;
+            /** Budget */
+            budget?: number | null;
+            /**
+             * Teams
+             * @default []
+             */
+            teams: components["schemas"]["FaabMarketTeam"][];
+            /**
+             * Top Bids
+             * @default []
+             */
+            top_bids: components["schemas"]["FaabTopBid"][];
+            /**
+             * Bid Wars
+             * @default []
+             */
+            bid_wars: components["schemas"]["BidWar"][];
+            failed_bids_capability?: components["schemas"]["Capability"] | null;
+        };
         /** SeasonList */
         SeasonList: {
             /** Seasons */
@@ -2788,6 +3698,34 @@ export interface components {
             /** Is Scored */
             is_scored: boolean;
             champion?: components["schemas"]["TeamRef"] | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
+        };
+        /** SeasonPositionDivergence */
+        SeasonPositionDivergence: {
+            /** Player Id */
+            player_id: number;
+            /** Name Full */
+            name_full: string;
+            /** Snapshot Position */
+            snapshot_position?: string | null;
+            /** Divergent Season Count */
+            divergent_season_count: number;
+            /** Divergent Seasons */
+            divergent_seasons: components["schemas"]["SeasonPositionDivergenceSeason"][];
+        };
+        /** SeasonPositionDivergenceSeason */
+        SeasonPositionDivergenceSeason: {
+            /** Season Year */
+            season_year: number;
+            /** Season Position */
+            season_position: string;
         };
         /** SeasonSummary */
         SeasonSummary: {
@@ -2804,6 +3742,14 @@ export interface components {
             champion?: components["schemas"]["TeamRef"] | null;
             runner_up?: components["schemas"]["TeamRef"] | null;
             last_place?: components["schemas"]["TeamRef"] | null;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            } | null;
         };
         /** SeasonTotal */
         SeasonTotal: {
@@ -2828,6 +3774,21 @@ export interface components {
             position?: string | null;
             /** Totals */
             totals: components["schemas"]["SeasonTotal"][];
+        };
+        /** SeasonWeeklyScores */
+        SeasonWeeklyScores: {
+            /** Season Id */
+            season_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Regular Season Weeks */
+            regular_season_weeks: number;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Teams */
+            teams: components["schemas"]["WeeklyScoreTeam"][];
         };
         /** SourceIdentityMismatch */
         SourceIdentityMismatch: {
@@ -2885,10 +3846,19 @@ export interface components {
             streak: components["schemas"]["Streak"];
             /** Final Rank */
             final_rank?: number | null;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Conference Id */
             conference_id?: number | null;
             /** Conference Name */
             conference_name?: string | null;
+            /** Potential Points */
+            potential_points?: number | null;
+            /** Potential Points Official */
+            potential_points_official?: number | null;
         };
         /** Standings */
         Standings: {
@@ -2898,6 +3868,8 @@ export interface components {
             season_year: number;
             /** Through Week */
             through_week: number;
+            /** Pending Week */
+            pending_week?: number | null;
             /** Regular Season Weeks */
             regular_season_weeks: number;
             /** Rank Basis */
@@ -2906,6 +3878,13 @@ export interface components {
             tiebreak_caveat: boolean;
             /** Rows */
             rows: components["schemas"]["StandingRow"][];
+            /**
+             * Potential Points Uncertain Weeks
+             * @default []
+             */
+            potential_points_uncertain_weeks: number[];
+            /** Division Source */
+            division_source?: ("official" | "derived") | null;
         };
         /** StandingsInsightTeam */
         StandingsInsightTeam: {
@@ -2958,6 +3937,46 @@ export interface components {
             /** Teams */
             teams: components["schemas"]["TimelineTeam"][];
         };
+        /**
+         * StatusEntry
+         * @description One status reading: an nflverse weekly report or a Sleeper snapshot.
+         */
+        StatusEntry: {
+            /** Source */
+            source: string;
+            /** As Of */
+            as_of?: string | null;
+            /** Injury Status */
+            injury_status?: string | null;
+            /** Injury Body Part */
+            injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
+            /** Roster Status */
+            roster_status?: string | null;
+            /** Depth Chart */
+            depth_chart?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
+        };
+        /** StatusWeek */
+        StatusWeek: {
+            /** Week */
+            week: number;
+            /**
+             * Kickoff Date
+             * Format: date
+             */
+            kickoff_date: string;
+            game_report?: components["schemas"]["StatusEntry"] | null;
+            /** Game Report Gap */
+            game_report_gap?: string | null;
+            snapshot?: components["schemas"]["StatusEntry"] | null;
+            /** Snapshot Gap */
+            snapshot_gap?: string | null;
+        };
         /** StoryCard */
         StoryCard: {
             /** Story Id */
@@ -2983,6 +4002,7 @@ export interface components {
             primary_owner?: components["schemas"]["OwnerRef"] | null;
             /** Caveat */
             caveat?: string | null;
+            scoring_era?: components["schemas"]["ScoringEra"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -3069,6 +4089,11 @@ export interface components {
             made_playoffs?: boolean | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Is Scored */
             is_scored: boolean;
         };
@@ -3116,6 +4141,11 @@ export interface components {
             /** Is Scored */
             is_scored: boolean;
             /**
+             * Week Pending
+             * @default false
+             */
+            week_pending: boolean;
+            /**
              * Roster Reconstructed
              * @default false
              */
@@ -3137,6 +4167,8 @@ export interface components {
             nfl_team?: string | null;
             /** Roster Slot */
             roster_slot?: string | null;
+            /** Slot Note */
+            slot_note?: string | null;
             /** Is Starter */
             is_starter: boolean;
             /**
@@ -3166,6 +4198,10 @@ export interface components {
             injury_secondary?: string | null;
             /** Injury Practice Status */
             injury_practice_status?: string | null;
+            /** Injury Source */
+            injury_source?: string | null;
+            /** Injury As Of */
+            injury_as_of?: string | null;
         };
         /** TeamSchedule */
         TeamSchedule: {
@@ -3186,6 +4222,54 @@ export interface components {
             is_scored: boolean;
             /** Points */
             points: components["schemas"]["ScoringTrendPoint"][];
+        };
+        /**
+         * TeamTrade
+         * @description One trade from this team's side, with every asset (Sleeper D6).
+         */
+        TeamTrade: {
+            /** Executed At */
+            executed_at?: string | null;
+            /** Week */
+            week?: number | null;
+            /** Counterpart Team Id */
+            counterpart_team_id?: number | null;
+            /** Counterpart Team Name */
+            counterpart_team_name?: string | null;
+            /**
+             * Players In
+             * @default []
+             */
+            players_in: components["schemas"]["MarketPlayerRef"][];
+            /**
+             * Players Out
+             * @default []
+             */
+            players_out: components["schemas"]["MarketPlayerRef"][];
+            /**
+             * Picks In
+             * @default []
+             */
+            picks_in: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Picks Out
+             * @default []
+             */
+            picks_out: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Faab In
+             * @default 0
+             */
+            faab_in: number;
+            /**
+             * Faab Out
+             * @default 0
+             */
+            faab_out: number;
         };
         /** TeamTransaction */
         TeamTransaction: {
@@ -3217,6 +4301,9 @@ export interface components {
             extra_data?: {
                 [key: string]: unknown;
             } | null;
+            /** Status */
+            status?: string | null;
+            trade_assets?: components["schemas"]["TradeAssets"] | null;
         };
         /** TeamTransactions */
         TeamTransactions: {
@@ -3226,11 +4313,23 @@ export interface components {
             season_year: number;
             /** Transactions */
             transactions: components["schemas"]["TeamTransaction"][];
+            /**
+             * Trades
+             * @default []
+             */
+            trades: components["schemas"]["TeamTrade"][];
+            /**
+             * Failed Bids
+             * @default []
+             */
+            failed_bids: components["schemas"]["FailedBid"][];
+            failed_bids_capability?: components["schemas"]["Capability"] | null;
         };
         /** TeamsIndex */
         TeamsIndex: {
             /** Teams */
             teams: components["schemas"]["TeamsIndexRow"][];
+            aggregation_note?: components["schemas"]["AggregationNote"] | null;
         };
         /**
          * TeamsIndexRow
@@ -3264,10 +4363,25 @@ export interface components {
             result?: string | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
             /** Owner Id */
             owner_id: number;
             /** Owner Name */
             owner_name?: string | null;
+            /**
+             * Owner Is Active
+             * @default true
+             */
+            owner_is_active: boolean;
+            /**
+             * Owner Prominence
+             * @default 2
+             */
+            owner_prominence: number;
         };
         /** TimelinePoint */
         TimelinePoint: {
@@ -3319,6 +4433,43 @@ export interface components {
             /** Scorers */
             scorers: components["schemas"]["TopScorer"][];
         };
+        /** TradeAssets */
+        TradeAssets: {
+            /**
+             * Picks In
+             * @default []
+             */
+            picks_in: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Picks Out
+             * @default []
+             */
+            picks_out: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Faab In
+             * @default 0
+             */
+            faab_in: number;
+            /**
+             * Faab Out
+             * @default 0
+             */
+            faab_out: number;
+        };
+        /** TradedPickRow */
+        TradedPickRow: {
+            /** Pick Season */
+            pick_season: number;
+            /** Round */
+            round: number;
+            original_owner?: components["schemas"]["PickOwner"] | null;
+            current_owner?: components["schemas"]["PickOwner"] | null;
+            previous_owner?: components["schemas"]["PickOwner"] | null;
+        };
         /** TrajectoryPoint */
         TrajectoryPoint: {
             /** Season Year */
@@ -3338,6 +4489,11 @@ export interface components {
             finish?: number | null;
             /** Is Champion */
             is_champion: boolean;
+            /**
+             * Is Sacko
+             * @default false
+             */
+            is_sacko: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -3362,8 +4518,38 @@ export interface components {
             week: number;
             /** Is Scored */
             is_scored: boolean;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
             /** Games */
             games: components["schemas"]["GameCard"][];
+        };
+        /** WeeklyScorePoint */
+        WeeklyScorePoint: {
+            /** Week */
+            week: number;
+            /** Score */
+            score?: number | null;
+            /**
+             * Is Playoff
+             * @default false
+             */
+            is_playoff: boolean;
+        };
+        /** WeeklyScoreTeam */
+        WeeklyScoreTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name?: string | null;
+            /** Owner Id */
+            owner_id: number;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Scores */
+            scores: components["schemas"]["WeeklyScorePoint"][];
         };
     };
     responses: never;
@@ -3430,6 +4616,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_CoverageMatrix_"];
+                };
+            };
+        };
+    };
+    capabilities_v1_meta_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CapabilityMatrix_"];
                 };
             };
         };
@@ -3534,6 +4740,26 @@ export interface operations {
             };
         };
     };
+    get_league_picks_v1_league_picks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PickLedger_"];
+                };
+            };
+        };
+    };
     list_seasons_v1_seasons_get: {
         parameters: {
             query?: never;
@@ -3550,6 +4776,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SeasonList_"];
+                };
+            };
+        };
+    };
+    get_current_season_v1_seasons_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_CurrentSeason_"];
                 };
             };
         };
@@ -3669,6 +4915,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_StandingsTimeline_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_weekly_scores_v1_seasons__season_id__weekly_scores_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonWeeklyScores_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_faab_market_v1_seasons__season_id__faab_market_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonFaabMarket_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_efficiency_v1_seasons__season_id__efficiency_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SeasonEfficiency_"];
                 };
             };
             /** @description Validation Error */
@@ -4216,6 +5555,39 @@ export interface operations {
             };
         };
     };
+    get_player_status_v1_players__player_id__status_get: {
+        parameters: {
+            query?: {
+                season?: number | null;
+            };
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PlayerStatusTimeline_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_top_scorers_v1_stats_top_scorers_get: {
         parameters: {
             query: {
@@ -4403,6 +5775,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_tendencies_v1_draft_tendencies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_DraftTendencies_"];
                 };
             };
         };
@@ -4730,6 +6122,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_SearchResults_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lab_insights_v1_lab_insights__season_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_LabInsights_"];
                 };
             };
             /** @description Validation Error */

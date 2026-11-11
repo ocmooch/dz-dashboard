@@ -1,0 +1,29 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "best_season": {
+    "points": 53.5,
+    "season_year": 2017
+   },
+   "best_week": {
+    "points": 35.5,
+    "season_year": 2017,
+    "week": 1
+   },
+   "league_roster_span": {
+    "first_rostered_season": null,
+    "last_rostered_season": null
+   },
+   "most_rostered_by": null,
+   "player_id": 1,
+   "reason": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

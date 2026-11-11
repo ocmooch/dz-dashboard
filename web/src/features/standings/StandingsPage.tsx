@@ -3,13 +3,30 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { RankFlow } from "@/charts";
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, RecordLine, Skeleton, Tabs, Trophy, WeekStepper } from "@/design-system";
+import { DivergingBars, RankFlow } from "@/charts";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  EraMarker,
+  ErrorState,
+  ProvenanceNote,
+  RecordLine,
+  Sacko,
+  Skeleton,
+  Tabs,
+  throughWeekText,
+  Trophy,
+  WeekStepper,
+} from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower, usePowerTimeline } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { officialPotentialText, potentialPointsNote } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 import { toRankFlow } from "@/lib/rankflow";
 
@@ -61,7 +78,8 @@ function StreakCell({ streak }: { streak: { result?: string | null; length?: num
   );
 }
 
-function PlacementCell({ finalRank }: { finalRank: number | null | undefined }) {
+function PlacementCell({ finalRank, isSacko }: { finalRank: number | null | undefined; isSacko?: boolean }) {
+  if (isSacko) return <Sacko />;
   if (finalRank == null) return <span className="text-faint">—</span>;
   if (finalRank === 1) return <Trophy label="Champion" />;
   return <span className="num text-accent">{ordinal(finalRank)}</span>;
@@ -72,22 +90,40 @@ function LuckCallout({ kind, team }: { kind: "robbed" | "blessed"; team: Standin
   const gap = Math.abs(team.luck_delta);
   const wins = gap === 1 ? "win" : "wins";
   return (
-    <Link to={`/managers/${team.owner_id}`} className="block bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface-3)]">
-      <div className={`dz-eyebrow mb-1 ${robbed ? "text-loss" : "text-win"}`}>{robbed ? "Robbed" : "Blessed"}</div>
-      <div className="font-display text-[var(--fs-h3)] font-bold tracking-wide">{team.team_name ?? team.owner_name}</div>
+    <Link
+      to={`/managers/${team.owner_id}`}
+      className="block bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface-3)]"
+    >
+      <div className={`dz-eyebrow mb-1 ${robbed ? "text-loss" : "text-win"}`}>
+        {robbed ? "Robbed" : "Blessed"}
+      </div>
+      <div className="font-display text-[var(--fs-h3)] font-bold tracking-wide">
+        {team.team_name ?? team.owner_name}
+      </div>
       <p className="mt-1 text-[var(--fs-sm)] text-muted">
-        Won {num(team.actual_wins, 2)}, {robbed ? "should have won" : "on just"} {num(team.expected_wins, 2)} —{" "}
+        Won {num(team.actual_wins, 2)}, {robbed ? "should have won" : "on just"} {num(team.expected_wins, 2)}{" "}
+        —{" "}
         {robbed ? (
-          <>the schedule cost them <span className="num text-loss">{num(gap, 2)}</span> {wins}.</>
+          <>
+            the schedule cost them <span className="num text-loss">{num(gap, 2)}</span> {wins}.
+          </>
         ) : (
-          <>the schedule gifted them <span className="num text-win">{num(gap, 2)}</span> {wins}.</>
+          <>
+            the schedule gifted them <span className="num text-win">{num(gap, 2)}</span> {wins}.
+          </>
         )}
       </p>
     </Link>
   );
 }
 
-function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; showFinalPlacement: boolean }) {
+function DivisionTable({
+  conf,
+  showFinalPlacement,
+}: {
+  conf: ConferenceSection;
+  showFinalPlacement: boolean;
+}) {
   const title = conf.name ?? `Division ${conf.division_number}`;
   return (
     <Card>
@@ -115,7 +151,11 @@ function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; 
                 <td className="dz-num text-faint">{t.overall_rank}</td>
                 <td>
                   <Link to={`/teams/${t.team_id}`} className="hover:text-accent">
-                    <Chip name={t.team_name ?? t.owner_name} sub={t.owner_name ?? undefined} avatarUrl={teamAvatarUrl(t.team_id)} />
+                    <Chip
+                      name={t.team_name ?? t.owner_name}
+                      sub={t.owner_name ?? undefined}
+                      avatarUrl={teamAvatarUrl(t.team_id)}
+                    />
                   </Link>
                 </td>
                 <td className="dz-num">
@@ -128,9 +168,13 @@ function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; 
                   <RecordLine wins={t.division_wins} losses={t.division_losses} ties={t.division_ties} />
                 </td>
                 {showFinalPlacement && (
-                  <td className="dz-num"><PlacementCell finalRank={t.final_rank} /></td>
+                  <td className="dz-num">
+                    <PlacementCell finalRank={t.final_rank} isSacko={t.is_sacko} />
+                  </td>
                 )}
-                <td className="dz-num"><StreakCell streak={t.streak} /></td>
+                <td className="dz-num">
+                  <StreakCell streak={t.streak} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -138,6 +182,21 @@ function DivisionTable({ conf, showFinalPlacement }: { conf: ConferenceSection; 
       </div>
     </Card>
   );
+}
+
+/** Potential points (computed for every era); the platform's own figure is a cross-check. */
+function PotentialCell({
+  computed,
+  official,
+  platform,
+}: {
+  computed: number | null | undefined;
+  official: number | null | undefined;
+  platform: string | null | undefined;
+}) {
+  if (computed == null) return <DataGap reason="no_solvable_lineups" size="sm" />;
+  const title = official != null ? officialPotentialText(num(official), platform) : undefined;
+  return <span title={title}>{num(computed)}</span>;
 }
 
 export function StandingsPage() {
@@ -172,7 +231,8 @@ export function StandingsPage() {
   const powerTimeline = usePowerTimeline(seasonId, lens === "power");
   const regWeeks = data?.regular_season_weeks;
   const powerRegWeeks = power.data?.regular_season_weeks;
-  const effectiveWeek = week ?? regWeeks ?? powerRegWeeks;
+  // In progress, the table stops at the last finalized week (the BFF's through_week).
+  const effectiveWeek = week ?? data?.through_week ?? regWeeks ?? powerRegWeeks;
 
   useEffect(() => {
     const maxWeek = lens === "power" ? powerRegWeeks : regWeeks;
@@ -194,7 +254,16 @@ export function StandingsPage() {
     setParams(p, { replace: true });
   }
 
-  const flow = timeline.data ? toRankFlow(timeline.data.teams) : null;
+  // Tag the rank-race lines with the season's outcome (gold champion / red Sacko)
+  // once the regular season is complete and final placements are known.
+  const seasonMarkers: Record<number, "champion" | "sacko"> = {};
+  if (data && data.through_week === data.regular_season_weeks) {
+    for (const r of data.rows) {
+      if (r.final_rank === 1) seasonMarkers[r.team_id] = "champion";
+      else if (r.is_sacko) seasonMarkers[r.team_id] = "sacko";
+    }
+  }
+  const flow = timeline.data ? toRankFlow(timeline.data.teams, seasonMarkers) : null;
   const powerFlow = powerTimeline.data ? toRankFlow(powerTimeline.data.teams) : null;
   const showFinalPlacement =
     data != null &&
@@ -210,7 +279,10 @@ export function StandingsPage() {
     <div className="dz-rise space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
+          <div className="dz-eyebrow mb-1 flex items-center gap-2">
+            Season {current?.season_year ?? ""}
+            <EraMarker label={current?.platform_label} />
+          </div>
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Standings</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -224,7 +296,10 @@ export function StandingsPage() {
           />
           {lens === "record" && data && (
             <Badge variant={historicalCompleted || data.rank_basis === "final_rank" ? "default" : "accent"}>
-              order: {historicalCompleted || data.rank_basis === "final_rank" ? "official (NFL.com)" : "computed · wins→PF"}
+              order:{" "}
+              {historicalCompleted || data.rank_basis === "final_rank"
+                ? "official (NFL.com)"
+                : "computed · wins→PF"}
             </Badge>
           )}
           {lens === "power" && power.data && (
@@ -233,171 +308,250 @@ export function StandingsPage() {
         </div>
       </div>
 
+      {lens === "record" && data?.pending_week != null && (
+        <p className="text-[var(--fs-sm)] text-muted" role="note">
+          Standings {throughWeekText(data.through_week, data.pending_week)}. An unfinished week counts once
+          it&rsquo;s final.
+        </p>
+      )}
+
       {lens === "record" && data?.tiebreak_caveat && !historicalCompleted && (
         <Badge variant="gap">historical tiebreak may differ from NFL.com for this era</Badge>
       )}
 
       {lens === "record" && (
         <>
-      {!historical && <Card>
-        <CardHeader
-          eyebrow="regular season"
-          title="Table"
-          action={regWeeks ? <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} /> : undefined}
-        />
-        {isLoading && (
-          <div className="space-y-2 p-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        )}
-        {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
-        {data && (
-          <div className="overflow-x-auto">
-            <table className="dz-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Team</th>
-                  <th className="dz-num">Record</th>
-                  <th className="dz-num">Win%</th>
-                  <th className="dz-num">PF</th>
-                  <th className="dz-num">PA</th>
-                  {showFinalPlacement && <th className="dz-num">Finish</th>}
-                  <th className="dz-num">Streak</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <tr key={r.team_id}>
-                    <td className="num text-faint">{r.rank}</td>
-                    <td>
-                      <Link to={`/teams/${r.team_id}`} className="hover:text-accent">
-                        <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
-                      </Link>
-                    </td>
-                    <td className="dz-num">
-                      <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
-                    </td>
-                    <td className="dz-num text-muted">{pct(r.win_pct)}</td>
-                    <td className="dz-num">{num(r.points_for)}</td>
-                    <td className="dz-num text-muted">{num(r.points_against)}</td>
-                    {showFinalPlacement && (
-                      <td className="dz-num">
-                        <PlacementCell finalRank={r.final_rank} />
-                      </td>
-                    )}
-                    <td className="dz-num">
-                      <StreakCell streak={r.streak} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>}
-
-      {historical && (
-        <>
-          <div className="flex items-center justify-between">
-            <div className="dz-eyebrow">regular season divisions</div>
-            {regWeeks && <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />}
-          </div>
-          {(isLoading || conferences.isLoading) && <Card><div className="space-y-2 p-5">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div></Card>}
-          {(isError || conferences.isError) && (
+          {!historical && (
             <Card>
-              <ErrorState
-                message="Could not reach the analytics service."
-                onRetry={() => {
-                  void refetch();
-                  void conferences.refetch();
-                }}
+              <CardHeader
+                eyebrow="regular season"
+                title="Table"
+                action={
+                  regWeeks ? (
+                    <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />
+                  ) : undefined
+                }
               />
+              {isLoading && (
+                <div className="space-y-2 p-5">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              )}
+              {isError && (
+                <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
+              )}
+              {data && (
+                <div className="overflow-x-auto">
+                  <table className="dz-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Team</th>
+                        <th className="dz-num">Record</th>
+                        <th className="dz-num">Win%</th>
+                        <th className="dz-num">PF</th>
+                        <th className="dz-num">PA</th>
+                        <th className="dz-num" title="Best possible lineup each week">
+                          Potential
+                        </th>
+                        {showFinalPlacement && <th className="dz-num">Finish</th>}
+                        <th className="dz-num">Streak</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.rows.map((r) => (
+                        <tr key={r.team_id}>
+                          <td className="num text-faint">{r.rank}</td>
+                          <td>
+                            <Link to={`/teams/${r.team_id}`} className="hover:text-accent">
+                              <Chip
+                                name={r.team_name ?? r.owner_name}
+                                sub={r.owner_name ?? undefined}
+                                avatarUrl={teamAvatarUrl(r.team_id)}
+                              />
+                            </Link>
+                          </td>
+                          <td className="dz-num">
+                            <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
+                          </td>
+                          <td className="dz-num text-muted">{pct(r.win_pct)}</td>
+                          <td className="dz-num">{num(r.points_for)}</td>
+                          <td className="dz-num text-muted">{num(r.points_against)}</td>
+                          <td className="dz-num text-muted">
+                            <PotentialCell
+                              computed={r.potential_points}
+                              official={r.potential_points_official}
+                              platform={current?.platform}
+                            />
+                          </td>
+                          {showFinalPlacement && (
+                            <td className="dz-num">
+                              <PlacementCell finalRank={r.final_rank} isSacko={r.is_sacko} />
+                            </td>
+                          )}
+                          <td className="dz-num">
+                            <StreakCell streak={r.streak} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-5 pb-4">
+                    <ProvenanceNote>
+                      {potentialPointsNote(data.potential_points_uncertain_weeks, current?.platform)}
+                    </ProvenanceNote>
+                  </div>
+                </div>
+              )}
             </Card>
           )}
-          {conferences.data?.available && conferences.data.conferences.map((conf) => (
-            <DivisionTable key={conf.conference_id} conf={conf} showFinalPlacement={showFinalPlacement} />
-          ))}
-          {conferences.data && !conferences.data.available && conferences.data.reason !== "no_conferences_this_season" && (
-            <Card><div className="p-5"><DataGap reason={conferences.data.reason ?? "historical_division_mapping_gap"} /></div></Card>
-          )}
-        </>
-      )}
 
-      <Card>
-        <CardHeader eyebrow="all-play expected wins vs actual" title="Robbed &amp; Blessed" />
-        {insights.isLoading && <Skeleton className="m-5 h-28 w-[calc(100%-2.5rem)]" />}
-        {insights.data && !insights.data.available && (
-          <div className="p-5">
-            <DataGap reason={insights.data.reason ?? "no_standings_rows"} />
-          </div>
-        )}
-        {insights.data?.available && (
-          <>
-            {(insights.data.most_robbed || insights.data.most_blessed) && (
-              <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-2">
-                {insights.data.most_robbed && <LuckCallout kind="robbed" team={insights.data.most_robbed} />}
-                {insights.data.most_blessed && <LuckCallout kind="blessed" team={insights.data.most_blessed} />}
+          {historical && (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="dz-eyebrow">regular season divisions</div>
+                {regWeeks && (
+                  <WeekStepper week={effectiveWeek ?? regWeeks} min={1} max={regWeeks} onChange={setWeek} />
+                )}
+              </div>
+              {(isLoading || conferences.isLoading) && (
+                <Card>
+                  <div className="space-y-2 p-5">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-full" />
+                    ))}
+                  </div>
+                </Card>
+              )}
+              {(isError || conferences.isError) && (
+                <Card>
+                  <ErrorState
+                    message="Could not reach the analytics service."
+                    onRetry={() => {
+                      void refetch();
+                      void conferences.refetch();
+                    }}
+                  />
+                </Card>
+              )}
+              {conferences.data?.available &&
+                conferences.data.conferences.map((conf) => (
+                  <DivisionTable
+                    key={conf.conference_id}
+                    conf={conf}
+                    showFinalPlacement={showFinalPlacement}
+                  />
+                ))}
+              {conferences.data &&
+                !conferences.data.available &&
+                conferences.data.reason !== "no_conferences_this_season" && (
+                  <Card>
+                    <div className="p-5">
+                      <DataGap reason={conferences.data.reason ?? "historical_division_mapping_gap"} />
+                    </div>
+                  </Card>
+                )}
+            </>
+          )}
+
+          <Card>
+            <CardHeader eyebrow="all-play expected wins vs actual" title="Robbed &amp; Blessed" />
+            {insights.isLoading && <Skeleton className="m-5 h-28 w-[calc(100%-2.5rem)]" />}
+            {insights.data && !insights.data.available && (
+              <div className="p-5">
+                <DataGap reason={insights.data.reason ?? "no_standings_rows"} />
               </div>
             )}
-            <div className="overflow-x-auto">
-              <table className="dz-table">
-                <thead>
-                  <tr>
-                    <th>Manager</th>
-                    <th className="dz-num">Actual W</th>
-                    <th className="dz-num">Expected W</th>
-                    <th className="dz-num">Luck</th>
-                    <th className="dz-num">PF rank</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {insights.data.teams.map((r) => (
-                    <tr key={r.team_id}>
-                      <td>
-                        <Link to={`/managers/${r.owner_id}`} className="hover:text-accent">
-                          <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
-                        </Link>
-                      </td>
-                      <td className="dz-num">{num(r.actual_wins, 2)}</td>
-                      <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>
-                      <td className={`dz-num ${r.luck_delta >= 0 ? "text-win" : "text-loss"}`}>
-                        {r.luck_delta > 0 ? "+" : ""}
-                        {num(r.luck_delta, 2)}
-                      </td>
-                      <td className="dz-num text-muted">#{r.points_for_rank}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </Card>
+            {insights.data?.available && (
+              <>
+                {(insights.data.most_robbed || insights.data.most_blessed) && (
+                  <div className="grid grid-cols-1 gap-px bg-[var(--border)] sm:grid-cols-2">
+                    {insights.data.most_robbed && (
+                      <LuckCallout kind="robbed" team={insights.data.most_robbed} />
+                    )}
+                    {insights.data.most_blessed && (
+                      <LuckCallout kind="blessed" team={insights.data.most_blessed} />
+                    )}
+                  </div>
+                )}
+                {insights.data.teams.length > 0 && (
+                  <div className="p-5 pb-0">
+                    <DivergingBars
+                      title="Luck by manager — wins above (gold) or below (blue) expected"
+                      xLabel="Wins vs expected"
+                      data={[...insights.data.teams]
+                        .sort((a, b) => b.luck_delta - a.luck_delta)
+                        .map((r) => ({
+                          label: r.team_name ?? r.owner_name ?? `#${r.team_id}`,
+                          value: Math.round(r.luck_delta * 100) / 100,
+                          note: r.luck_delta >= 0 ? "lucky" : "robbed",
+                        }))}
+                    />
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="dz-table">
+                    <thead>
+                      <tr>
+                        <th>Manager</th>
+                        <th className="dz-num">Actual W</th>
+                        <th className="dz-num">Expected W</th>
+                        <th className="dz-num">Luck</th>
+                        <th className="dz-num">PF rank</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {insights.data.teams.map((r) => (
+                        <tr key={r.team_id}>
+                          <td>
+                            <Link to={`/managers/${r.owner_id}`} className="hover:text-accent">
+                              <Chip
+                                name={r.team_name ?? r.owner_name}
+                                sub={r.owner_name ?? undefined}
+                                avatarUrl={teamAvatarUrl(r.team_id)}
+                              />
+                            </Link>
+                          </td>
+                          <td className="dz-num">{num(r.actual_wins, 2)}</td>
+                          <td className="dz-num text-muted">{num(r.expected_wins, 2)}</td>
+                          <td className={`dz-num ${r.luck_delta >= 0 ? "text-win" : "text-loss"}`}>
+                            {r.luck_delta > 0 ? "+" : ""}
+                            {num(r.luck_delta, 2)}
+                          </td>
+                          <td className="dz-num text-muted">#{r.points_for_rank}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Card>
 
-      <Card>
-        <CardHeader eyebrow="rank by week" title="Standings over time" />
-        <div className="p-5">
-          {timeline.isLoading && <Skeleton className="h-[280px] w-full" />}
-          {flow && flow.data.length > 0 ? (
-            <RankFlow
-              title="Standings by week (rank 1 on top)"
-              data={flow.data}
-              series={flow.series}
-              xKey="week"
-              xLabel="Week"
-              teamCount={flow.teamCount}
-              height={300}
-            />
-          ) : (
-            !timeline.isLoading && (
-              <p className="text-[var(--fs-sm)] text-faint">No weekly data for this season yet.</p>
-            )
-          )}
-        </div>
-      </Card>
+          <Card>
+            <CardHeader eyebrow="rank by week" title="Standings over time" />
+            <div className="p-5">
+              {timeline.isLoading && <Skeleton className="h-[280px] w-full" />}
+              {flow && flow.data.length > 0 ? (
+                <RankFlow
+                  title="Standings by week (rank 1 on top · gold = champion · red = Sacko)"
+                  data={flow.data}
+                  series={flow.series}
+                  xKey="week"
+                  xLabel="Week"
+                  teamCount={flow.teamCount}
+                  height={300}
+                  animate
+                />
+              ) : (
+                !timeline.isLoading && (
+                  <p className="text-[var(--fs-sm)] text-faint">No weekly data for this season yet.</p>
+                )
+              )}
+            </div>
+          </Card>
         </>
       )}
 
@@ -409,7 +563,12 @@ export function StandingsPage() {
               title="Power, as of the selected week"
               action={
                 powerRegWeeks ? (
-                  <WeekStepper week={effectiveWeek ?? powerRegWeeks} min={1} max={powerRegWeeks} onChange={setWeek} />
+                  <WeekStepper
+                    week={effectiveWeek ?? powerRegWeeks}
+                    min={1}
+                    max={powerRegWeeks}
+                    onChange={setWeek}
+                  />
                 ) : undefined
               }
             />
@@ -423,13 +582,14 @@ export function StandingsPage() {
             {power.isError && (
               <ErrorState message="Could not reach the analytics service." onRetry={() => power.refetch()} />
             )}
-            {power.data && (power.data.rows.length > 0 ? (
-              <PowerTable data={power.data} />
-            ) : (
-              <div className="p-5">
-                <DataGap reason="no_standings_rows" />
-              </div>
-            ))}
+            {power.data &&
+              (power.data.rows.length > 0 ? (
+                <PowerTable data={power.data} />
+              ) : (
+                <div className="p-5">
+                  <DataGap reason="no_standings_rows" />
+                </div>
+              ))}
           </Card>
 
           <Card>

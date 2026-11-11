@@ -1,0 +1,163 @@
+{
+ "body": {
+  "data": {
+   "best_player_week": {
+    "available": true,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "player_id": 2,
+    "player_name": "Christian McCaffrey",
+    "position": "RB",
+    "season_year": 2016,
+    "team_id": 5,
+    "team_name": "Maverick 2016",
+    "value": 30.0,
+    "week": 1
+   },
+   "best_season_points_for": {
+    "available": true,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "season_year": 2016,
+    "team_id": 5,
+    "team_name": "Maverick 2016",
+    "value": 270.0
+   },
+   "biggest_blowout": {
+    "available": true,
+    "loser_name": "Iceman 2016",
+    "loser_owner_name": "Iceman",
+    "loser_team_id": 6,
+    "matchup_id": 9,
+    "season_year": 2016,
+    "value": 70.0,
+    "week": 1,
+    "winner": {
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "season_id": 2,
+     "season_year": 2016,
+     "team_id": 5,
+     "team_name": "Maverick 2016",
+     "week": 1
+    },
+    "winner_name": "Maverick 2016",
+    "winner_owner_name": "Maverick",
+    "winner_team_id": 5
+   },
+   "closest_rivalry": {
+    "available": false,
+    "reason": "no_meetings"
+   },
+   "highest_scoring_matchup": {
+    "available": true,
+    "matchup_id": 17,
+    "opponent_name": "Northvale Scumbags",
+    "opponent_owner_name": "Viper",
+    "opponent_score": 120.0,
+    "opponent_team_id": 12,
+    "owner_name": "Maverick",
+    "season_year": 2017,
+    "team_id": 9,
+    "team_name": "Maverick 2017",
+    "team_score": 160.4,
+    "value": 280.4,
+    "week": 1
+   },
+   "highest_team_score": {
+    "available": true,
+    "matchup_id": 17,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "season_id": 3,
+    "season_year": 2017,
+    "team_id": 9,
+    "team_name": "Maverick 2017",
+    "value": 160.4,
+    "week": 1
+   },
+   "longest_loss_streak": {
+    "available": true,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "value": 4
+   },
+   "longest_win_streak": {
+    "available": true,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "value": 3
+   },
+   "lowest_team_score": {
+    "available": true,
+    "matchup_id": 28,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "season_id": 1,
+    "season_year": 2015,
+    "team_id": 2,
+    "team_name": "Iceman 2015",
+    "value": 50.0,
+    "week": 3
+   },
+   "most_championships": {
+    "available": true,
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "value": 2
+   },
+   "most_sackos": {
+    "available": true,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "value": 1
+   },
+   "narrowest_win": {
+    "available": true,
+    "loser_name": "Slider 2016",
+    "loser_owner_name": "Slider",
+    "loser_team_id": 8,
+    "matchup_id": 11,
+    "season_year": 2016,
+    "value": 1.0,
+    "week": 1,
+    "winner": {
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "season_id": 2,
+     "season_year": 2016,
+     "team_id": 7,
+     "team_name": "Dynasty Crew",
+     "week": 1
+    },
+    "winner_name": "Dynasty Crew",
+    "winner_owner_name": "Goose",
+    "winner_team_id": 7
+   },
+   "scored_era": [
+    2016,
+    2017
+   ],
+   "team_record_era": [
+    2015,
+    2016,
+    2017
+   ],
+   "worst_season_points_for": {
+    "available": true,
+    "owner_id": 2,
+    "owner_name": "Iceman",
+    "season_year": 2016,
+    "team_id": 6,
+    "team_name": "Iceman 2016",
+    "value": 170.0
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

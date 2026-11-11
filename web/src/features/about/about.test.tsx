@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,6 +44,34 @@ const COVERAGE = {
   reason_codes: {},
 };
 
+const CAPABILITIES = {
+  keys: ["standings", "faab_failed_bids", "official_divisions"],
+  seasons: [
+    {
+      season_id: 1,
+      season_year: 2025,
+      platform: "nfl_com",
+      platform_label: "NFL.com",
+      cells: {
+        standings: { state: "available", note: null },
+        faab_failed_bids: { state: "not_on_platform", note: null },
+        official_divisions: { state: "derived", note: null },
+      },
+    },
+    {
+      season_id: 2,
+      season_year: 2026,
+      platform: "sleeper",
+      platform_label: "Sleeper",
+      cells: {
+        standings: { state: "not_yet", note: null },
+        faab_failed_bids: { state: "available", note: null },
+        official_divisions: { state: "not_used", note: null },
+      },
+    },
+  ],
+};
+
 function renderAbout() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -58,13 +86,45 @@ function renderAbout() {
 beforeEach(() => {
   get.mockReset();
   get.mockImplementation((path: string) =>
-    Promise.resolve(envelope(path === "/v1/meta/coverage" ? COVERAGE : META)),
+    Promise.resolve(
+      envelope(
+        path === "/v1/meta/coverage" ? COVERAGE : path === "/v1/meta/capabilities" ? CAPABILITIES : META,
+      ),
+    ),
   );
 });
 
 afterEach(() => vi.clearAllMocks());
 
 describe("AboutPage", () => {
+  it("shows the platform eras and the capability matrix (not_used left blank)", async () => {
+    get.mockImplementation((path: string) =>
+      Promise.resolve(
+        envelope(
+          path === "/v1/meta/coverage"
+            ? COVERAGE
+            : path === "/v1/meta/capabilities"
+              ? CAPABILITIES
+              : {
+                  ...META,
+                  platform_eras: [
+                    { platform: "nfl_com", label: "NFL.com", start_year: 2010, end_year: 2025 },
+                    { platform: "sleeper", label: "Sleeper", start_year: 2026, end_year: null },
+                  ],
+                },
+        ),
+      ),
+    );
+    renderAbout();
+    const card = await screen.findByTestId("capability-matrix");
+    expect(await within(card).findByText("Not on platform")).toBeInTheDocument();
+    expect(within(card).getByText("Not yet")).toBeInTheDocument();
+    expect(within(card).getByText("2026")).toBeInTheDocument();
+    expect(within(card).getByText("2026–")).toBeInTheDocument();
+    const divisions = within(card).getByText("Official divisions").closest("tr");
+    expect(divisions?.querySelectorAll("td")[2]).toBeEmptyDOMElement(); // 2026 not_used
+  });
+
   it("renders coverage ranges sourced from /v1/meta", async () => {
     renderAbout();
     expect(await screen.findByText("2010–2025")).toBeInTheDocument(); // seasons present

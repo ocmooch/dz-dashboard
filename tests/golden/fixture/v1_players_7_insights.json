@@ -1,0 +1,26 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "best_season": null,
+   "best_week": null,
+   "league_roster_span": {
+    "first_rostered_season": 2016,
+    "last_rostered_season": 2016
+   },
+   "most_rostered_by": {
+    "display_name": "Maverick",
+    "owner_id": 1,
+    "weeks": 1
+   },
+   "player_id": 7,
+   "reason": null
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

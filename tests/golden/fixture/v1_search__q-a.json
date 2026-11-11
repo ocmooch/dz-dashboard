@@ -1,0 +1,85 @@
+{
+ "body": {
+  "data": {
+   "hits": [
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Dynasty Crew",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2015",
+     "sublabel": "Fantasy team \u00b7 2015",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2016",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2017",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2018",
+     "sublabel": "Fantasy team \u00b7 2018",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2015",
+     "sublabel": "Fantasy team \u00b7 2015",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2016",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2017",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    }
+   ],
+   "query": "a"
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

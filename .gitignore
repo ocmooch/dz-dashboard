@@ -44,3 +44,6 @@ npm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# temporary files
+/docs/PHASE3_DRAFT.md

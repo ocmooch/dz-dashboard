@@ -10,9 +10,7 @@ describe("InjuryBadge", () => {
   });
 
   it("joins primary and secondary body parts inline", () => {
-    render(
-      <InjuryBadge status="Out" bodyPart="Hamstring" secondary="Back" practiceStatus="DNP" />,
-    );
+    render(<InjuryBadge status="Out" bodyPart="Hamstring" secondary="Back" practiceStatus="DNP" />);
     expect(screen.getByText("Out · Hamstring/Back · DNP")).toBeInTheDocument();
   });
 
@@ -34,5 +32,20 @@ describe("InjuryBadge", () => {
     const el = screen.getByText("D");
     expect(el).toBeInTheDocument();
     expect(el).toHaveAttribute("title", "Doubtful.");
+  });
+});
+
+describe("InjuryBadge source (D7)", () => {
+  it("names a snapshot source and date in the tooltip only", () => {
+    render(<InjuryBadge status="Out" source="sleeper" asOf="2026-10-21" />);
+    expect(screen.getByText("Out")).toHaveAttribute(
+      "title",
+      "Out. Sleeper status as of 2026-10-21, before kickoff.",
+    );
+  });
+
+  it("adds nothing for the official weekly report", () => {
+    render(<InjuryBadge status="Doubtful" bodyPart="Ankle" source="nflverse" />);
+    expect(screen.getByText("D · Ankle")).toHaveAttribute("title", "Doubtful — Ankle.");
   });
 });

@@ -2,12 +2,24 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Card, CardHeader, Chip, DataGap, ErrorState, Skeleton } from "@/design-system";
+import {
+  AWAITING_FINAL_LABEL,
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  EraMarker,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+} from "@/design-system";
 import { PowerTable } from "@/features/power/PowerTable";
 import { usePower } from "@/features/power/usePower";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.d.ts";
 import { num, teamAvatarUrl } from "@/lib/format";
+import { PROVISIONAL_BRACKET_TEXT, bracketProvenanceText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type BracketSection = components["schemas"]["BracketSection"];
@@ -57,6 +69,11 @@ function TeamRow({
             avatarUrl={teamAvatarUrl(team.team_id)}
           />
         </div>
+        {team.is_sacko && (
+          <span className="shrink-0 text-[var(--fs-sm)]" title="Sacko — toilet-bowl loser" aria-label="Sacko">
+            💩
+          </span>
+        )}
         {hadBye && (
           <span className="shrink-0 rounded border border-[var(--border)] px-1 py-px text-[9px] font-semibold uppercase tracking-widest text-faint">
             Bye
@@ -86,21 +103,18 @@ function GameCard({
   byeTeamIds: Set<number>;
 }) {
   const isChamp = variant === "championship";
-  return (
-    <Link
-      to={`/matchups/${game.matchup_id}`}
-      className={[
-        "block rounded-[var(--radius)] border bg-[var(--surface-0)] transition-colors hover:border-[var(--accent)]",
-        isChamp
-          ? "border-[var(--accent)] p-3.5 shadow-sm"
-          : "border-[var(--border)] p-3",
-        variant === "secondary" ? "opacity-70" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {game.game_label && (
-        <div className="mb-2">
+  const className = [
+    "block rounded-[var(--radius)] border bg-[var(--surface-0)]",
+    game.matchup_id != null ? "transition-colors hover:border-[var(--accent)]" : "",
+    isChamp ? "border-[var(--accent)] p-3.5 shadow-sm" : "border-[var(--border)] p-3",
+    variant === "secondary" ? "opacity-70" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const body = (
+    <>
+      {(game.game_label || game.week_pending) && (
+        <div className="mb-2 flex items-center justify-between gap-2">
           <span
             className={`text-[10px] font-semibold uppercase tracking-widest ${
               isChamp ? "text-[var(--accent)]" : "text-muted"
@@ -108,15 +122,30 @@ function GameCard({
           >
             {game.game_label}
           </span>
+          {game.week_pending && <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>}
         </div>
       )}
       <div className="space-y-0.5">
-        {game.team_a && <TeamRow team={game.team_a} byeTeamIds={byeTeamIds} />}
-        {game.team_b && <TeamRow team={game.team_b} byeTeamIds={byeTeamIds} />}
+        {game.team_a ? <TeamRow team={game.team_a} byeTeamIds={byeTeamIds} /> : <TbdRow />}
+        {game.team_b ? <TeamRow team={game.team_b} byeTeamIds={byeTeamIds} /> : <TbdRow />}
       </div>
+    </>
+  );
+  // An official bracket game not played yet has no matchup to open.
+  if (game.matchup_id == null) return <div className={className}>{body}</div>;
+  return (
+    <Link to={`/matchups/${game.matchup_id}`} className={className}>
+      {body}
     </Link>
   );
 }
+
+// A bracket slot whose team is decided by an earlier game.
+function TbdRow() {
+  return <div className="px-2.5 py-1.5 text-[var(--fs-sm)] text-faint">TBD</div>;
+}
+
+const gameKey = (game: BracketGame, i: number) => game.matchup_id ?? `slot-${i}`;
 
 // ── Bye slot (first-round bye display) ───────────────────────────────────────
 
@@ -128,9 +157,7 @@ function ByeSlot({ team }: { team: ByeTeam }) {
         sub={team.team_name ? (team.owner_name ?? undefined) : undefined}
         avatarUrl={teamAvatarUrl(team.team_id)}
       />
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-faint">
-        Bye
-      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-faint">Bye</span>
     </div>
   );
 }
@@ -152,9 +179,7 @@ function RoundColumn({
   let secondaryGames: BracketGame[] = [];
 
   if (isLast && round.games.length > 1) {
-    const sorted = [...round.games].sort(
-      (a, b) => gameRank(a.game_label) - gameRank(b.game_label)
-    );
+    const sorted = [...round.games].sort((a, b) => gameRank(a.game_label) - gameRank(b.game_label));
     mainGames = [sorted[0]];
     secondaryGames = sorted.slice(1);
   }
@@ -162,24 +187,15 @@ function RoundColumn({
   const champVariant = isLast && mainGames.length === 1 ? "championship" : "regular";
 
   return (
-    <div
-      className={`flex flex-col gap-2.5 ${
-        !isLast ? "border-r border-[var(--hairline)]" : ""
-      }`}
-    >
+    <div className={`flex flex-col gap-2.5 ${!isLast ? "border-r border-[var(--hairline)]" : ""}`}>
       {/* Round label */}
       <div className="pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted">
         {round.round_label}
       </div>
 
       {/* Primary games */}
-      {mainGames.map((game) => (
-        <GameCard
-          key={game.matchup_id}
-          game={game}
-          variant={champVariant}
-          byeTeamIds={byeTeamIds}
-        />
+      {mainGames.map((game, i) => (
+        <GameCard key={gameKey(game, i)} game={game} variant={champVariant} byeTeamIds={byeTeamIds} />
       ))}
 
       {/* First-round bye slots (shown only in round 1) */}
@@ -197,13 +213,8 @@ function RoundColumn({
       {/* Secondary finals games (3rd/5th place, etc.) */}
       {secondaryGames.length > 0 && (
         <div className="mt-1 flex flex-col gap-2 border-t border-[var(--hairline)] pt-3">
-          {secondaryGames.map((game) => (
-            <GameCard
-              key={game.matchup_id}
-              game={game}
-              variant="secondary"
-              byeTeamIds={byeTeamIds}
-            />
+          {secondaryGames.map((game, i) => (
+            <GameCard key={gameKey(game, i)} game={game} variant="secondary" byeTeamIds={byeTeamIds} />
           ))}
         </div>
       )}
@@ -268,15 +279,16 @@ export function PlayoffsPage() {
   return (
     <div className="dz-rise space-y-5">
       <div>
-        <div className="dz-eyebrow mb-1">Season {current?.season_year ?? ""}</div>
+        <div className="dz-eyebrow mb-1 flex items-center gap-2">
+          Season {current?.season_year ?? ""}
+          <EraMarker label={current?.platform_label} />
+        </div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Playoffs</h1>
       </div>
 
       {isLoading && <Skeleton className="h-96 w-full" />}
 
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
         <Card>
@@ -289,6 +301,11 @@ export function PlayoffsPage() {
 
       {data?.available && (
         <div className="space-y-5">
+          {data.is_provisional && (
+            <p className="px-1 text-[var(--fs-sm)] text-muted" role="status">
+              {PROVISIONAL_BRACKET_TEXT}
+            </p>
+          )}
           {data.playoff_bracket && (
             <BracketSection
               title="Championship Bracket"
@@ -314,9 +331,13 @@ export function PlayoffsPage() {
             </Card>
           )}
 
-          {data.caveat && (
+          {/* An official bracket's provenance footnote already says where it comes from (D8). */}
+          {data.caveat && data.source !== "official" && (
             <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>
           )}
+          <div className="px-1">
+            <ProvenanceNote>{bracketProvenanceText(data.source, current?.platform)}</ProvenanceNote>
+          </div>
 
           {power.data && power.data.rows.length > 0 && (
             <Card>
@@ -324,7 +345,10 @@ export function PlayoffsPage() {
                 eyebrow="who entered the bracket strongest · all-play adjusted"
                 title="Power at playoff entry"
                 action={
-                  <Link to="/standings?lens=power" className="text-[var(--fs-sm)] text-accent hover:underline">
+                  <Link
+                    to="/standings?lens=power"
+                    className="text-[var(--fs-sm)] text-accent hover:underline"
+                  >
                     week-by-week lens →
                   </Link>
                 }

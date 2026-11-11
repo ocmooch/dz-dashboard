@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
+import { useSeasons } from "@/app/shell/SeasonContext";
 import { ResultTimeline } from "@/features/teams/ResultTimeline";
 import {
+  AWAITING_FINAL_LABEL,
   Badge,
+  CapabilityGate,
   Card,
   CardHeader,
   Chip,
@@ -17,6 +20,7 @@ import {
   UNSCORED_SEASON_NOTE,
   Pill,
   RecordLine,
+  Sacko,
   Skeleton,
   Stat,
   Trophy,
@@ -25,6 +29,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
+import { lostBidText, slotNoteText, tradeAssetsText, tradeSummaryText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
@@ -133,9 +138,7 @@ function RosterCard({ teamId }: { teamId: number }) {
           ))}
         </div>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
       {data && data.players.length === 0 && (
         <EmptyState title="No roster recorded" hint="No roster snapshot for this week." />
       )}
@@ -147,6 +150,17 @@ function RosterCard({ teamId }: { teamId: number }) {
           >
             <span className="dz-eyebrow mr-1 text-faint">reconstructed</span>
             {data.roster_reconstructed_note}
+          </div>
+        </div>
+      )}
+      {data?.week_pending && (
+        <div className="px-5 pt-2">
+          <div
+            className="rounded border border-[color:var(--hairline)] bg-[color:var(--surface-2)] px-3 py-2 text-[var(--fs-xs)] text-muted"
+            role="note"
+          >
+            <span className="dz-eyebrow mr-1 text-faint">{AWAITING_FINAL_LABEL}</span>
+            Week {data.week} isn&rsquo;t final yet, so player points appear once the week is final.
           </div>
         </div>
       )}
@@ -174,8 +188,12 @@ function RosterCard({ teamId }: { teamId: number }) {
                   </tr>
                 ) : (
                   <tr key={p.player_id} className={p.is_starter ? "" : "opacity-70"}>
-                    <td className="font-mono text-[var(--fs-xs)] text-muted">
+                    <td
+                      className="font-mono text-[var(--fs-xs)] text-muted"
+                      title={slotNoteText(p.slot_note) ?? undefined}
+                    >
                       {p.roster_slot ?? "—"}
+                      {p.slot_note && <span aria-label={slotNoteText(p.slot_note) ?? undefined}>*</span>}
                     </td>
                     <td>
                       <Link to={`/players/${p.player_id}`} className="hover:text-accent">
@@ -187,19 +205,30 @@ function RosterCard({ teamId }: { teamId: number }) {
                           bodyPart={p.injury_body_part}
                           secondary={p.injury_secondary}
                           practiceStatus={p.injury_practice_status}
+                          source={p.injury_source}
+                          asOf={p.injury_as_of}
                         />
                       )}
                     </td>
                     <td className="text-muted">{p.position ?? "—"}</td>
                     <td className="dz-num">
-                      {p.league_points == null ? (
+                      {data.week_pending ? (
+                        // Unscored until the week is final; the note above explains it once.
+                        <span className="text-faint" aria-label="No score yet">
+                          –
+                        </span>
+                      ) : p.league_points == null ? (
                         <DataGap reason={data.is_scored ? "no_scored_data" : "season_unscored"} size="sm" />
                       ) : (
                         <PlayerScoreCell
                           points={p.league_points}
                           zeroReason={p.zero_reason}
                           zeroDetail={p.zero_detail}
-                          zeroLabel={["Bye", "DNP", "Out"].includes(p.context_label ?? "") ? p.context_label : undefined}
+                          zeroLabel={
+                            ["Bye", "DNP", "Out"].includes(p.context_label ?? "")
+                              ? p.context_label
+                              : undefined
+                          }
                           injuryBodyPart={p.injury_body_part}
                           muted={!p.is_starter}
                         />
@@ -233,13 +262,9 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
           </div>
           <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
             {data.games.map((g) => {
-              const tone =
-                g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
+              const tone = g.result === "W" ? "text-win" : g.result === "L" ? "text-loss" : "text-muted";
               return (
-                <li
-                  key={g.matchup_id}
-                  className="flex items-center gap-2 px-5 py-1.5 text-[var(--fs-sm)]"
-                >
+                <li key={g.matchup_id} className="flex items-center gap-2 px-5 py-1.5 text-[var(--fs-sm)]">
                   <span className={`num w-4 font-bold ${tone}`}>{g.result ?? "—"}</span>
                   <span className="num w-10 text-faint">wk {g.week}</span>
                   <Link
@@ -248,14 +273,16 @@ function ScheduleCard({ teamId, boxScoresAvailable }: { teamId: number; boxScore
                   >
                     vs {g.opponent_team_name ?? g.opponent_owner_name ?? "Bye"}
                   </Link>
-                  {g.is_playoff && (
-                    <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>
+                  {g.is_playoff && <span className="dz-eyebrow text-[color:var(--accent)]">PO</span>}
+                  {g.pending ? (
+                    <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
+                  ) : (
+                    <span className="num shrink-0">
+                      <span className={tone}>{num(g.team_score)}</span>
+                      <span className="text-faint"> – </span>
+                      <span className="text-muted">{num(g.opponent_score)}</span>
+                    </span>
                   )}
-                  <span className="num shrink-0">
-                    <span className={tone}>{num(g.team_score)}</span>
-                    <span className="text-faint"> – </span>
-                    <span className="text-muted">{num(g.opponent_score)}</span>
-                  </span>
                 </li>
               );
             })}
@@ -348,9 +375,7 @@ type WeekGroup = { week: number; count: number; body: React.ReactNode };
  *  the most recent week starts open so the latest moves are visible at a glance.
  *  Users expand/collapse at the week boundary. */
 function WeekAccordion({ groups }: { groups: WeekGroup[] }) {
-  const [open, setOpen] = useState<Set<number>>(
-    () => new Set(groups.length ? [groups[0].week] : []),
-  );
+  const [open, setOpen] = useState<Set<number>>(() => new Set(groups.length ? [groups[0].week] : []));
   const toggle = (w: number) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -418,21 +443,14 @@ function TransactionsCard({ teamId }: { teamId: number }) {
 
   // Preferred path: the exact recorded log, grouped by effective week.
   if (hasExact) {
-    const byWeek = new Map<number, typeof exactRows>();
-    for (const t of exactRows) {
-      const w = t.effective_week ?? 0;
-      const bucket = byWeek.get(w);
-      if (bucket) bucket.push(t);
-      else byWeek.set(w, [t]);
-    }
-    const groups: WeekGroup[] = [...byWeek.entries()]
-      .sort((a, b) => b[0] - a[0])
-      .map(([week, items]) => ({
-        week,
-        count: items.length,
-        body: [...items]
-          .sort((a, b) => (b.executed_at ?? "").localeCompare(a.executed_at ?? ""))
-          .map((t) => (
+    // A trade renders once, with every asset, from `trades`; its per-leg rows are left out.
+    const items: { week: number; at: string; node: ReactNode }[] = [
+      ...exactRows
+        .filter((t) => t.transaction_type !== "trade")
+        .map((t) => ({
+          week: t.effective_week ?? 0,
+          at: t.executed_at ?? "",
+          node: (
             <TxRow
               key={t.transaction_id}
               glyph={txGlyph(t)}
@@ -443,14 +461,43 @@ function TransactionsCard({ teamId }: { teamId: number }) {
               title={formatTransactionDateTime(t.executed_at)}
               faabBid={t.faab_bid}
             />
-          )),
+          ),
+        })),
+      ...(tx.data?.trades ?? []).map((tr, i) => ({
+        week: tr.week ?? 0,
+        at: tr.executed_at ?? "",
+        node: (
+          <TxRow
+            key={`trade-${i}`}
+            glyph="⇄"
+            tone={undefined}
+            primary={tradeSummaryText(tr)}
+            meta={tr.counterpart_team_name ? `with ${tr.counterpart_team_name}` : ""}
+            label={transactionLabel("trade")}
+            title={formatTransactionDateTime(tr.executed_at)}
+          />
+        ),
+      })),
+    ];
+    const byWeek = new Map<number, typeof items>();
+    for (const it of items) {
+      const bucket = byWeek.get(it.week);
+      if (bucket) bucket.push(it);
+      else byWeek.set(it.week, [it]);
+    }
+    const groups: WeekGroup[] = [...byWeek.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([week, rows]) => ({
+        week,
+        count: rows.length,
+        body: [...rows].sort((a, b) => b.at.localeCompare(a.at)).map((r) => r.node),
       }));
     return (
       <Card>
         <CardHeader
           eyebrow="recorded log"
           title="Transactions"
-          action={<span className="text-[var(--fs-xs)] text-faint">{exactRows.length}</span>}
+          action={<span className="text-[var(--fs-xs)] text-faint">{items.length}</span>}
         />
         <WeekAccordion groups={groups} />
       </Card>
@@ -490,8 +537,7 @@ function TransactionsCard({ teamId }: { teamId: number }) {
       <CardHeader eyebrow="estimated from roster snapshots" title="Transactions" />
       <div className="px-5 pb-1 pt-3">
         <Badge variant="gap">
-          Derived from week-to-week rosters — the exact transaction log wasn&apos;t available for
-          this season.
+          Derived from week-to-week rosters — the exact transaction log wasn&apos;t available for this season.
         </Badge>
       </div>
       {moves.isLoading && <Skeleton className="m-5 h-32" />}
@@ -543,6 +589,7 @@ function transactionTone(t: TeamTransaction): "win" | "loss" | undefined {
 }
 
 function transactionTitle(t: TeamTransaction) {
+  if (t.trade_assets) return tradeAssetsText(t.trade_assets);
   return t.player_name ?? "Transaction";
 }
 
@@ -604,9 +651,7 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
           Spent {money(spent)} of {money(budget)}
         </div>
         {adjusted && (
-          <div className="text-[var(--fs-xs)] text-faint">
-            Base {money(baseBudget)}, adjusted mid-season
-          </div>
+          <div className="text-[var(--fs-xs)] text-faint">Base {money(baseBudget)}, adjusted mid-season</div>
         )}
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
           <div
@@ -622,10 +667,7 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
       </div>
       <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
         {data.weeks.map((w) => (
-          <li
-            key={w.week}
-            className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]"
-          >
+          <li key={w.week} className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]">
             <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {w.week}</span>
             <span className="num shrink-0 text-text">
               {w.spent > 0 ? `-${money(w.spent)}` : <span className="text-faint">—</span>}
@@ -637,6 +679,41 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
           </li>
         ))}
       </ol>
+    </Card>
+  );
+}
+
+/** Lost FAAB bids (Sleeper D6). FAAB seasons only; where the platform never recorded lost
+ *  bids (NFL.com), the shared capability gap shows instead. */
+function LostBidsCard({ teamId, platform }: { teamId: number; platform: string | null | undefined }) {
+  const budget = useQuery({ queryKey: qk.teamFaabBudget(teamId), queryFn: () => fetchFaabBudget(teamId) });
+  const tx = useQuery({ queryKey: qk.teamTransactions(teamId), queryFn: () => fetchTransactions(teamId) });
+  if (!budget.data?.is_faab_era || !tx.data) return null;
+  const lost = tx.data.failed_bids ?? [];
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="FAAB"
+        title="Lost bids"
+        action={<span className="text-[var(--fs-xs)] text-faint">{lost.length}</span>}
+      />
+      <CapabilityGate capKey="faab_failed_bids" cap={tx.data.failed_bids_capability} platform={platform}>
+        {lost.length === 0 ? (
+          <p className="px-5 pb-4 text-[var(--fs-sm)] text-faint">No lost bids this season.</p>
+        ) : (
+          <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+            {lost.map((b, i) => (
+              <li key={i} className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]">
+                <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {b.week ?? "—"}</span>
+                <span className="min-w-0 truncate text-text">
+                  {b.player?.player_name ?? "Unknown player"}
+                </span>
+                <span className="ml-auto shrink-0 text-muted">{lostBidText(b)}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </CapabilityGate>
     </Card>
   );
 }
@@ -694,6 +771,7 @@ function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number
 
 export function TeamPage() {
   const params = useParams();
+  const { seasons } = useSeasons();
   const teamId = Number(params.teamId);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.team(teamId),
@@ -704,14 +782,13 @@ export function TeamPage() {
   return (
     <div className="dz-rise space-y-4">
       <div>
-        <div className="dz-eyebrow mb-1">
-          {data ? `Season ${data.season_year}` : "Team"}
-        </div>
+        <div className="dz-eyebrow mb-1">{data ? `Season ${data.season_year}` : "Team"}</div>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">
             {data?.team_name ?? "Team"}
           </h1>
           {data?.is_champion && <Trophy label="Champion" />}
+          {data?.is_sacko && <Sacko />}
           {data && (
             <Link to={`/managers/${data.owner_id}`} className="text-muted hover:text-accent">
               {data.owner_name ?? "—"}
@@ -722,9 +799,7 @@ export function TeamPage() {
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && (
         <>
@@ -762,8 +837,14 @@ export function TeamPage() {
             <TransactionsCard teamId={teamId} />
           </div>
 
-          {/* FAAB budget — renders only for FAAB-era seasons (self-hiding). */}
-          <FaabBudgetCard teamId={teamId} />
+          {/* FAAB budget + lost bids — render only for FAAB-era seasons (self-hiding). */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <FaabBudgetCard teamId={teamId} />
+            <LostBidsCard
+              teamId={teamId}
+              platform={seasons.find((x) => x.season_id === data.season_id)?.platform}
+            />
+          </div>
         </>
       )}
     </div>

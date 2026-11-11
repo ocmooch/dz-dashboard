@@ -2,15 +2,24 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useSeasons } from "@/app/shell/SeasonContext";
-import { Badge, Card, CardHeader, Chip, EmptyState, ErrorState, UNSCORED_SEASON_NOTE, Skeleton, WeekStepper } from "@/design-system";
+import {
+  AWAITING_FINAL_LABEL,
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  EmptyState,
+  ErrorState,
+  UNSCORED_SEASON_NOTE,
+  Skeleton,
+  WeekStepper,
+} from "@/design-system";
 import { MatchupFlags } from "@/features/matchups/MatchupFlags";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 
-type GameCard = NonNullable<
-  Awaited<ReturnType<typeof fetchWeekMatchups>>
->["games"][number];
+export type GameCard = NonNullable<Awaited<ReturnType<typeof fetchWeekMatchups>>>["games"][number];
 
 async function fetchWeekMatchups(seasonId: number, week: number) {
   const { data, error } = await api.GET("/v1/seasons/{season_id}/weeks/{week}/matchups", {
@@ -32,23 +41,43 @@ function TeamSide({
   team,
   align,
   margin,
+  pending = false,
 }: {
   team: GameCard["team_a"];
   align: "left" | "right";
   margin: number | null | undefined;
+  pending?: boolean;
 }) {
   if (!team) return <div className="text-faint">Bye</div>;
   const winner = team.is_winner;
   const signedMargin = margin == null ? null : winner ? margin : -margin;
   return (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
-      <Chip name={team.team_name ?? team.owner_name} sub={team.owner_name ?? undefined} avatarUrl={teamAvatarUrl(team.team_id)} />
-      <span className="flex flex-col">
-        <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
-          {num(team.score)}
+      <Chip
+        name={team.team_name ?? team.owner_name}
+        sub={team.owner_name ?? undefined}
+        avatarUrl={teamAvatarUrl(team.team_id)}
+      />
+      {team.is_sacko && (
+        <span className="shrink-0 text-[var(--fs-sm)]" title="Sacko — toilet-bowl loser" aria-label="Sacko">
+          💩
         </span>
+      )}
+      <span className="flex flex-col">
+        {pending ? (
+          // Unfinished week: unscored, so no live score (and never a 0).
+          <span className="num text-[var(--fs-h2)] font-bold text-faint" aria-label="No score yet">
+            –
+          </span>
+        ) : (
+          <span className={`num text-[var(--fs-h2)] font-bold ${winner ? "text-win" : "text-muted"}`}>
+            {num(team.score)}
+          </span>
+        )}
         {signedMargin != null && (
-          <span className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}>
+          <span
+            className={`num text-[var(--fs-xs)] ${signedMargin > 0 ? "text-win" : signedMargin < 0 ? "text-loss" : "text-muted"}`}
+          >
             {signedMargin > 0 ? "+" : ""}
             {num(signedMargin)}
           </span>
@@ -58,20 +87,34 @@ function TeamSide({
   );
 }
 
-function GameCardView({ game }: { game: GameCard }) {
+/** Eyebrow text reflecting the postseason tier (championship/consolation are
+ *  differentiated from a generic playoff game; consolation is never "playoff"). */
+function eyebrowFor(game: GameCard): string {
+  if (game.bracket_tier === "championship") return "championship";
+  if (game.game_label === "Toilet Bowl") return "toilet bowl";
+  if (game.bracket_tier === "consolation") return "consolation";
+  if (game.is_playoff) return "playoff";
+  return "regular season";
+}
+
+export function GameCardView({ game }: { game: GameCard }) {
   return (
     <Link
       to={`/matchups/${game.matchup_id}`}
       className="block rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] p-4 transition-colors hover:border-[var(--accent)]"
     >
       <div className="mb-2 flex items-start justify-between gap-3">
-        <span className="dz-eyebrow shrink-0 pt-1">{game.is_playoff ? "playoff" : "regular season"}</span>
-        <MatchupFlags flags={game.flags} className="justify-end" />
+        <span className="dz-eyebrow shrink-0 pt-1">{eyebrowFor(game)}</span>
+        {game.pending ? (
+          <Badge variant="gap">{AWAITING_FINAL_LABEL}</Badge>
+        ) : (
+          <MatchupFlags flags={game.flags} className="justify-end" />
+        )}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <TeamSide team={game.team_a} align="left" margin={game.margin} />
+        <TeamSide team={game.team_a} align="left" margin={game.margin} pending={game.pending} />
         <span className="font-display text-[var(--fs-sm)] text-faint">vs</span>
-        <TeamSide team={game.team_b} align="right" margin={game.margin} />
+        <TeamSide team={game.team_b} align="right" margin={game.margin} pending={game.pending} />
       </div>
     </Link>
   );
@@ -88,8 +131,7 @@ export function MatchupsPage() {
     queryFn: () => fetchSeasonSummary(seasonId as number),
     enabled: seasonId != null,
   });
-  const maxWeek =
-    (summary.data?.regular_season_weeks ?? 0) + (summary.data?.playoff_weeks ?? 0) || 18;
+  const maxWeek = (summary.data?.regular_season_weeks ?? 0) + (summary.data?.playoff_weeks ?? 0) || 18;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: seasonId ? qk.weekMatchups(seasonId, week) : ["matchups", "none"],
@@ -112,8 +154,12 @@ export function MatchupsPage() {
         <WeekStepper week={week} max={maxWeek} onChange={setWeek} />
       </div>
 
-      {data && !data.is_scored && (
-        <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>
+      {data && !data.is_scored && <Badge variant="gap">{UNSCORED_SEASON_NOTE}</Badge>}
+      {data?.pending && (
+        <p className="text-[var(--fs-sm)] text-muted" role="note">
+          Week {week} isn&rsquo;t final yet. Its games show as pairings; scores and results appear once the
+          week is final.
+        </p>
       )}
 
       <Card>

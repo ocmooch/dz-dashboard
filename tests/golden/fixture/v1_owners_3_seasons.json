@@ -1,0 +1,61 @@
+{
+ "body": {
+  "data": {
+   "display_name": "Goose",
+   "owner_id": 3,
+   "seasons": [
+    {
+     "final_rank": 3,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 1,
+     "made_playoffs": false,
+     "points_for": 195.0,
+     "result": "3rd place",
+     "season_id": 1,
+     "season_year": 2015,
+     "team_id": 3,
+     "team_name": "Goose 2015",
+     "ties": 0,
+     "wins": 1
+    },
+    {
+     "final_rank": null,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 1,
+     "made_playoffs": null,
+     "points_for": 210.5,
+     "result": null,
+     "season_id": 2,
+     "season_year": 2016,
+     "team_id": 7,
+     "team_name": "Dynasty Crew",
+     "ties": 0,
+     "wins": 1
+    },
+    {
+     "final_rank": null,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 1,
+     "made_playoffs": null,
+     "points_for": 265.0,
+     "result": null,
+     "season_id": 3,
+     "season_year": 2017,
+     "team_id": 11,
+     "team_name": "Goose 2017",
+     "ties": 0,
+     "wins": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

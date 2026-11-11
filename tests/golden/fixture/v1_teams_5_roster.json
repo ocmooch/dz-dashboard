@@ -1,0 +1,64 @@
+{
+ "body": {
+  "data": {
+   "is_scored": true,
+   "players": [
+    {
+     "acquisition_type": "draft",
+     "acquisition_week": 1,
+     "context_detail": null,
+     "context_label": null,
+     "injury_body_part": null,
+     "injury_practice_status": null,
+     "injury_secondary": null,
+     "injury_status": null,
+     "is_empty": false,
+     "is_starter": true,
+     "league_points": 25.0,
+     "nfl_team": "SF",
+     "player_id": 2,
+     "player_name": "Christian McCaffrey",
+     "position": "RB",
+     "roster_slot": "RB",
+     "zero_detail": null,
+     "zero_reason": null
+    },
+    {
+     "acquisition_type": "waiver",
+     "acquisition_week": 2,
+     "context_detail": null,
+     "context_label": null,
+     "injury_body_part": null,
+     "injury_practice_status": null,
+     "injury_secondary": null,
+     "injury_status": null,
+     "is_empty": false,
+     "is_starter": false,
+     "league_points": 0.0,
+     "nfl_team": "DEN",
+     "player_id": 7,
+     "player_name": "Waiver Wendell",
+     "position": "RB",
+     "roster_slot": "BN",
+     "zero_detail": null,
+     "zero_reason": "did_not_play"
+    }
+   ],
+   "roster_reconstructed": false,
+   "roster_reconstructed_note": null,
+   "season_year": 2016,
+   "team_id": 5,
+   "week": 2,
+   "weeks_available": [
+    1,
+    2
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -15,12 +15,159 @@ How to use it (see `CLAUDE.md` + `.claude/skills/milestone-session`):
 
 ## Current state
 
+**Next program: the Sleeper era (milestones D0–D8).** The league moved to Sleeper for 2026. Upstream
+(danger-zone S1–S8) is **done and merged** (2026-11-09): capture, schema, identity, loader, scoring,
+brackets/picks/status, and the source-neutral read surface in `ff_pipeline.repository.queries`.
+**Start any Sleeper-era session with `docs/sleeper/00_UPSTREAM_STATE.md`**: it covers where the data
+is, the exact helpers, capability semantics, 2026 row shapes, the decisions already made with the
+user, and the dashboard hotspots that misbehave on 2026 rows. Then read `docs/sleeper/02` (milestones).
+Key gating fact: **the live DB has no 2026 data yet.** Upstream loads it in one user-approved go-live,
+after which 2026 is the default season everywhere. Take D0's legacy snapshots *before* that; build
+D1–D3 on a 2026 DB copy.
+
+**D3: DONE (2026-11-10), verified; PR to `dev` open.** Plan: `docs/plans/sleeper-d3-current-season.md`
+(branch `feature/sleeper-d3-current-season`). Rule: the unfinished week is unscored (`00` §3).
+- BFF: `analytics/game_state.py` is the one game/pending/idle/override rule, used by standings
+  (+timeline, all-play), week matchups, box score (`week_pending`, `official_points_source`,
+  `commissioner_override`, `slot_note`), team schedule/trend/roster, team transactions (failed
+  claims dropped, own pick/FAAB leg as `trade_assets`), FAAB budget, records (`through_week` label;
+  in-progress season left out of season-PF records), h2h, flag thresholds. `platform.week_state()`
+  is the week-window helper. `GET /v1/seasons/current` (`analytics/current_season.py`) needs a played
+  season, so the pre-go-live live DB answers `no_current_season`. Only the new route's golden added.
+- SPA: Home `ThisWeek`, `DataAsOf` week qualifier, pending cards ("Awaiting final"), override note,
+  points-source footnote (on every box score, so the legacy box-score visual baseline was refreshed),
+  `*` bench-or-reserve hint, Standings/Records/team labels. Copy in `lib/platform.ts` + design system.
+  Home's old Standings / Top-scorers cards now name the season they show (was "Season 2026" over 2017).
+- e2e: new `sleeper` Playwright project on :8811 (`serve_e2e.py --mixed`, mixed-era fixture) with
+  `e2e/sleeper.spec.ts` (Home → this week → box score; pending gap; standings/matchups). Full e2e
+  18/18 after the baseline refresh. Visual click-through of 2026 done via screenshots.
+- Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
+- Merged to `dev` (PR #130, 2026-11-10); branch deleted.
+
+**D6: DONE (2026-11-10); merged to `dev` (PR #133).** Plan + as-built:
+`docs/plans/sleeper-d6-transaction-market.md` (branch `feature/sleeper-d6-transaction-market`).
+- `faab_market.py` (spend, biggest bids, bid wars, lost bids), `picks.py` (traded-pick ledger),
+  grouped `trades` on team transactions; routes `/v1/seasons/{id}/faab-market`, `/v1/league/picks`.
+- SPA: Team trade rows list every asset + Lost bids card; Stats "FAAB market" tab; Draft pick
+  ledger card. Legacy shows the shared failed-bids gap.
+- Open: market % of budget ignores mid-season credits; `is_move` still unused.
+Merged to `dev` (PR #133, 2026-11-10); branch deleted.
+
+**D8: BUILT (2026-11-10); releasing v0.5.0 before the live go-live (user decision).** Plan +
+as-built (walk table): `docs/plans/sleeper-d8-consistency-release.md`. Three walk fixes (Timeline
+in-progress gap, single bracket footnote, legacy Status footnote), Playoffs + 5 Sleeper visual
+baselines, docs, version 0.5.0. **Next:** after the user-approved upstream go-live, re-walk 2026 on
+live data (`ACTIVE_WORK.md` top item).
+
+**D7: DONE (2026-11-10); merged to `dev` (PR #134); branch deleted.** Plan + as-built: `docs/plans/sleeper-d7-player-status.md`.
+- `analytics/status_timeline.py` (the existing `player_status.py` is the NFL.com classifier):
+  nflverse weekly report first, Sleeper snapshot as of kickoff (7-day cutoff) as the fallback; used by
+  the box score and week roster (`injury_source` / `injury_as_of`). `GET /v1/players/{id}/status`.
+- SPA: Player detail Status card (`StatusTimeline.tsx`), badge tooltip names the snapshot source.
+- Legacy parity: no golden regenerated (new keys only); live golden 1092/0. e2e 21/21.
+- Open: `*` bench-or-reserve hint could use the Sleeper IR status. Next: D8.
+
+**D5: DONE (2026-11-10); merged to `dev` (PR #132).** Plan + as-built:
+`docs/plans/sleeper-d5-official-brackets.md` (branch `feature/sleeper-d5-official-brackets`).
+- `analytics/brackets.py`: official Sleeper brackets in the existing `/bracket` shape (+`source`,
+  `is_provisional`, game `placement` / `week_pending`, nullable `matchup_id`). Legacy stays derived
+  with a provenance note. The classifier and Sacko read official brackets for Sleeper (the derived
+  rule picked the wrong Sacko on Sleeper's bracket shape).
+- Potential points on Standings (computed for every era + Sleeper `ppts` cross-check, uncertain
+  `bench_or_reserve` weeks noted). Efficiency no longer counts the unfinished week.
+- Official divisions supported (`division_source`); `not_used` renders nothing.
+- New fixture: `decided_db_path` / `decided_client` (fully decided 6+6 playoff in weeks 6–8).
+- Open: 2010–2019 divisions view lacks Potential; Playoffs visual baseline → D8.
+
+**D4: DONE (2026-11-10); merged to `dev` (PR #131).** Plan + as-built:
+`docs/plans/sleeper-d4-cross-era-aggregation.md` (branch `feature/sleeper-d4-cross-era-aggregation`).
+- `analytics/aggregation.py`: counted/partial seasons, scoring eras (contiguous identical stored
+  rules; rule-less season = no era), `is_move`, `pct_of_budget`, `normalize_within_season`,
+  `aggregation_note` / `partial_note`.
+- Unfinished-week leaks fixed in stories, weekly scores and owner consistency; a differential test
+  (rewrite week-9 live scores, every route must be byte-identical) guards all routes.
+- `aggregation_note` on every cross-season payload (null on legacy); `scoring_era` +
+  `scoring_era_count` on records and stories; `draft_type` on the draft board. SPA note line +
+  era badge + draft-type label, copy in `lib/platform.ts`.
+- No legacy value moved: both parity suites green with no regeneration; live golden 1092/0.
+- Live eras: 2010 | 2011–2025 (+2026 at go-live), not the plan's four (see the as-built note).
+- `is_move` / `pct_of_budget` have no consumer yet; D6 (transaction market) is the first.
+Next: D5.
+
+**D2: BUILT (2026-11-10), gate green; merged (PR #129).** Plan + as-built:
+`docs/plans/sleeper-d2-source-neutral-points.md`. `analytics/scoring.py` now aliases the upstream
+`queries.authoritative_week_points_expr` / `official_slot_points_expr`; `official_points_from_extra`
+is the one dict-side mirror (box score, team weekly, player weekly), pinned to the SQL helper by a
+test. Records' best player week uses the shared helper. No contract change; live golden 1092/0.
+D3 follow-ups found here:
+- the box score gates on `seasons_scored`, so an un-rescored Sleeper season shows
+  `season_unscored` even though `platform_points` exist. This is by design (`01` §7: `is_scored`
+  stays the gate; the go-live rescore sets it);
+- a commissioner override makes `total_score` (`custom_points`) differ from the starters' sum
+  (`points_official`) with no explanation shown.
+
+**D1: BUILT and merged (PR #127).** Plan + as-built:
+`docs/plans/sleeper-d1-provenance-capabilities.md`. The user's decisions:
+- season-level payloads only;
+- no Sleeper usernames;
+- the platform change shows before 2026 has games, approved as one live-golden change (the
+  `/v1/league/eras` entry).
+
+New golden tools: `scripts/snapshot_legacy_payloads.py --accept URL` and
+`DZ_UPDATE_GOLDEN=new`. The visual click-through is still open (no browser in the build session).
+
+**D0: DONE (2026-11-10, PR #126 merged).** Plan:
+`docs/plans/sleeper-d0-golden-snapshots.md`. Branch: `feature/sleeper-d0-golden-snapshots`.
+- **Live golden:** `data/golden/fantasy-golden-20261110.db` (gitignored, read-only). It's a frozen
+  copy of upstream's pre-go-live backup, per the user. It has 1,091 requests across every `/v1`
+  route for 2010/2013/2016/2020/2024/2025. The JSON is in `data/golden/live/` (gitignored, real
+  names); the hashes are in `tests/golden/live_manifest.json` (committed, name-free). Check with
+  `uv run python scripts/snapshot_legacy_payloads.py --check` (0 failing), or run
+  `test_live_legacy_parity`, which skips on machines without the DB.
+- **Fixture golden (CI):** 333 requests under `tests/golden/fixture/`, written from the legacy-only
+  fixture. They hold on it, and the 254 pinned ones still hold with a Sleeper 2026 season loaded.
+- **Mixed-era fixture:** `tests/sleeper_fixture.py` (`mixed_era_db_path` / `mixed_client`). It
+  loads upstream's pseudonymized Sleeper fixtures through the packaged loader, with 4 owners
+  shared with the legacy fixture. It covers every `01` §8 scenario, asserted in
+  `tests/test_mixed_era_fixture.py`. A commissioner move is the one overlay the builder adds.
+- **Every later milestone:** both parity tests must stay green. An intentional legacy change
+  needs the user's approval, then a regenerate (`DZ_UPDATE_GOLDEN=1 ... -k write_fixture_golden`
+  / `--write`).
+- The live 2026 go-live is **held until D0–D3** (user, 2026-11-10). Upstream `migrate up` is done
+  and the 2026 rules are signed off.
+
+**Status reconcile (2026-11-09):** every branch the paragraphs below call "in flight",
+"uncommitted" or "ready to PR" is merged to `dev` (checked against the merge log through PR #122,
+the league-name scrub + CI fix), and `main` is at **v0.4.0** (not v0.2.0 as below). The prose below
+is history, not open work.
+
 **The dashboard application is functionally complete and fully merged.** All P0–P12 milestones, all
 P1–P6 review fix-passes, and every post-roadmap product slice are merged to `dev`; `dev` was
 promoted to `main` at **v0.2.0** (2026-06-15). The work merged to `dev` since v0.2.0 (PRs #72–#94,
 below) awaits the next `dev → main` promotion.
 
-**In flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
+**Insights Lab (`feature/insights-lab-v0`, committed 2026-06-27).** First non-viz "discovery engine"
+example, the text-first sibling to the Viz Lab: `analytics/insights.py` insight-primitive library
+(`schedule_luck` reuses the xW/all-play keystone; `draft_market` reuses the recalibrated ADP axis)
+where analytics computes structured *facts* (with provenance + a data-quality confidence) and a
+narrator only arranges them into prose — the same "no math in the presenter" seam as the SPA, so an
+LLM narration/selection layer can drop in later with facts unchanged. A primitive returns `None` on a
+data gap (absent insight, never fabricated). Served at `/v1/lab/insights/{season_id}` (lab-namespaced),
+surfaced as text insight cards at `/lab/insights`, a second "Insights Lab" entry beside "Viz Lab" under
+the Lab nav divider. Plan: `docs/plans/insights-lab-v0.md`. **Recovery note:** this half had been
+`git reset` out of the working tree before the resume session (only the viz half was committed first);
+recovered from the dangling commit and re-committed. Full gate green (BE 494 pytest + ruff/format/mypy;
+FE typecheck + 210; client regenerated for the lab route); BFF live click-through done. Ready to PR to `dev`.
+
+**In flight:** `feature/championship-consolation-sacko` (cut from `dev`) — a shared postseason
+classifier (`bracket.postseason_classification`) that tags every postseason game
+championship/playoff/consolation and derives the **Sacko** (toilet-bowl loser). Consolation games no
+longer count as true playoff in rivalries/records/`made_playoffs`; the championship game carries its
+own flag/badge everywhere a playoff badge showed; the Sacko (💩) is surfaced on owner/team/records/
+league-history/hardware. Schema + client regenerated. Full gate green (backend 459; FE typecheck +
+194). Plan: `docs/plans/championship-flag-consolation-sacko.md`. Ready to commit + PR to `dev`.
+
+**Prior in flight:** `feature/bonus-scoring-fidelity` — bonus-scoring fidelity, both layers (uncommitted).
 *BFF (full):* new `analytics/scoring.py` centralises `authoritative_week_points()` =
 `coalesce(nfl_com_points, total_points)` + `rostered_ever()`; applied to Stats top-scorers (moved out of
 Phase-1 `queries` — no gen:api drift), season-totals, player insights, matchup monster-game flag, draft
@@ -58,7 +205,7 @@ scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate 
 
 - **#94** 2022 Hamlin no-contest championship resolution — box score branches on the upstream
   `hamlin_substitute` flag (wk17-partial + wk19), matchup `resolution_note` banner, curated
-  `league_event` in the timeline. Corrected champion = Smokin Doubs (see memory
+  `league_event` in the timeline. Corrected champion = Team 135 (see memory
   `hamlin-2022-championship-anomaly`).
 - **#90–#93** FAAB suite — bid capture surfaced (`$0` = real free claim; `"$X FAAB"` pill), then the
   weekly **remaining-budget** view (`team_faab_budget()`, `/v1/teams/{id}/faab-budget`,
@@ -75,10 +222,75 @@ scoring) carry both sides' season-correct names. See CHANGELOG 2026-06-22. Gate 
 - **#72–#79** CI prune fix, player context/status-drift guards, power-into-Standings lens,
   `/seasons`+`/rules` → one **Timeline** space, Teams nav + team-page refinements.
 
+**In flight:** `feature/rivalries-active-focus` (uncommitted) — `/rivalries` insight bands made
+active-manager-focused. Fixed the dead-even bug (balance-first + `MIN_DEAD_EVEN_GAMES` gate, was
+volume-first), added owner-prominence ordering via `common.owner_prominence_map`, ranked top-5
+`most_played`/`dead_even` lists, qualified-first nemesis/victim with `*_departed` secondaries, and
+streak `from_matchup_id`→`last_matchup_id` deep-links. Single-game records stay pure all-time.
+Bands are `extra="allow"` (no contract change). Gate green (459 BE / 193 FE, ruff/mypy clean);
+e2e not re-run. See `CHANGELOG.md` 2026-06-24.
+
+**feature/manager-week-relative-profile:** manager profile scoring card now uses a week-relative
+tendency profile instead of a raw weekly-stdev median split. The BFF adds ceiling/floor/above-median
+rates, average weekly rank, volatility, and narrower labels (`true boom/bust` only for real
+two-sided volatility). Live DB distribution: 0 true boom/bust; labels spread across balanced scorer
+/ floor risk / ceiling scorer / uphill scorer / volatile scorer. Gate green (477 BE / 197 FE,
+ruff/mypy clean); e2e not re-run.
+
 The aggregate of all finished work is `docs/archive/COMPLETED_WORK.md`; the reverse-chron pass
 history is `CHANGELOG.md`; the remaining open scope is `docs/ACTIVE_WORK.md`.
 
 ## Next
+
+**Sleeper era D0 — mixed-era fixture + legacy golden snapshots** (`docs/sleeper/02` §D0, `00` §7).
+PLAN session first (`docs/plans/sleeper-d0-*.md`). Settled with the user (2026-11-09): **tests may
+build the mixed-era fixture with upstream `ff_pipeline` loaders** (`00` §7); `src/` stays read-only.
+Then D1 → D2 → D3 on a 2026 copy, then ask upstream for the go-live.
+
+Earlier direction (still valid, lower priority than the Sleeper era):
+
+**New strategic direction — Phase 2½ "The Resonance Leg"** (charter: `docs/PHASE2_5_RESONANCE.md`,
+2026-06-26). The dashboard is correct/complete (the "museum") but thin on resonance (the
+"barroom"): the whole frontend viz layer is `chartTheme.ts` + `rankflow.ts` + one component. The
+leg turns the archive into a storyteller for the league's ~12–20 members — audience/niche/6
+principles + a fantasy-literate **signature-metrics** vocabulary (xW/all-play, Lineup Efficiency,
+era-adjusted scoring, value-over-ADP…) and a tailored **visualization grammar**, scored under
+Relive/Reckon/Reveal. The charter is explicitly a **guide, not a must-build list** (out-of-the-box
+ideas expand the frame). Not Phase 3 (no edge/prediction). See memory `resonance-leg-direction`.
+
+**Build #1 — BUILT, uncommitted: Career Legacy-Spine + Viz Lab** (`docs/plans/resonance-legacy-spine.md`).
+New `LegacySpine` primitive in `web/src/charts/` — a per-manager career finish-position line
+(reversed-rank axis, gold = champion / red = Sacko markers, null finish = honest gap never 0),
+establishing the marker grammar the leg reuses. Marker colors centralized in `chartTheme.ts`
+(`gold`/`loss`/`win`). It **replaces** the Manager Profile's generic rank-trajectory `RankFlow`
+(`/trajectory` fetch dropped; spine reads the already-fetched `/owners/{id}/seasons`). **Pure
+frontend, zero backend → no `gen:api` drift.** Also added a **Viz Lab** holding space
+(`web/src/features/lab/VizLabPage.tsx`, route `/lab`, new "Lab" nav section in `AppShell`) to host
+spun-out viz until they find a permanent home — inaugural exhibit is the Legacy Spine with a manager
+picker. Gate green: typecheck clean, **202 FE tests pass** (no `lint` script wired in repo; no
+ESLint config — CLAUDE.md's `npm run lint` is stale). **Committed** on `feature/insights-lab-v0`
+(2026-06-27); interactive browser click-through of the new FE views still pending before PR to `dev`.
+(Charter's "viz layer is empty" premise was corrected in-doc: `web/src/charts/` already shipped
+`LineTrend`/`BarCompare`/`StackedBreakdown`/`RankFlow`/`Heatmap`/`ScatterQuadrant`; the gap is novel
+chart *types* + resonant metrics + a consistent grammar, not "no charts.")
+
+**Builds #2–#7 — BUILT, uncommitted** (`docs/plans/resonance-viz-suite.md`). New chart primitives
+in `web/src/charts/`: `DivergingBars`, `StreamArea`, `Beeswarm`, `MarginLine`, `MetricScatter` +
+`RankFlow` marker/animate upgrade. Landings:
+- **#2 Luck bars** → Standings "Robbed & Blessed" card (pure FE on `/standings/insights`).
+- **#3 rank-race** → Standings timeline gains gold-champion/red-Sacko end-markers + one-shot animate
+  (`SeriesDef.marker`, `toRankFlow(markers)`), pure FE.
+- **#4 dynasty stream**, **#5 weekly beeswarm**, **#7 efficiency scatter** → new **Viz Lab** exhibits.
+- **#6 rivalry margin line** → Pairwise page (`MarginLine`).
+Backend additions: `analytics/weekly_scores.py` + `/v1/seasons/{id}/weekly-scores`;
+`HeadToHead.meetings[]` (+ `H2HMeeting` score/championship fields) in `head_to_head.py`;
+`analytics/efficiency.py` + `/v1/seasons/{id}/efficiency` (reuses `matchups._team_box`, season-scoped/
+bounded). **Key fact:** xW/all-play keystone was already computed in `/standings/insights` (so #2 was
+pure FE). Client regenerated (intentional drift). Gate green: **BE 487 pytest + ruff/format/mypy
+clean; FE typecheck + 208 tests**; new backend tests in `tests/test_resonance_viz.py` (weekly scores,
+efficiency = hand-solved 113/126) + h2h meetings. **Committed** on `feature/insights-lab-v0`
+(2026-06-27); re-verified gate green + BFF smoke-tested (`/weekly-scores`, `/efficiency` → 200 with
+sane data) on resume. Interactive browser click-through of the new FE views still pending before PR.
 
 **Planned, not started — Bonus-scoring fidelity.** Stats Top Scorers (and Home, Season Totals, player
 Insights, draft impact, monster-game flag) drift because `player_stats_scored.total_points` omits NFL.com

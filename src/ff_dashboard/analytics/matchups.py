@@ -35,6 +35,7 @@ from ff_pipeline.repository.queries import (
     get_season,
     get_team,
     injury_reports_for_week,
+    player_season_positions,
     roster_for_team_week,
 )
 from ff_pipeline.scoring.engine import apply_rules
@@ -42,22 +43,32 @@ from ff_pipeline.scoring.rules import ScoringRule as ScoringRuleDataclass
 from ff_pipeline.scoring.rules import ScoringRules
 from sqlalchemy import select
 
+from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import coverage_status_for_projection_week, seasons_scored
+from ff_dashboard.analytics.game_state import (
+    commissioner_override,
+    is_idle,
+    is_pending,
+    slot_note,
+)
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.injuries import InjuryFields
 from ff_dashboard.analytics.matchup_flags import (
     flags_for_game,
     season_score_context,
     week_score_context,
 )
+from ff_dashboard.analytics.platform import season_provenance
 from ff_dashboard.analytics.player_status import should_suppress_status
 from ff_dashboard.analytics.roster_snapshots import (
     is_reconstructed_week,
     reconstructed_note,
     snapshot_kind,
 )
+from ff_dashboard.analytics.scoring import official_points_from_extra
 from ff_dashboard.analytics.season_schedule import season_schedule
+from ff_dashboard.analytics.status_timeline import badge_fields, for_player, week_status
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -99,20 +110,43 @@ SLOT_ELIGIBILITY: dict[str, set[str]] = {
 # position, because team-defense rows often carry no position.
 DEF_SLOTS = {"DEF", "DST", "D/ST"}
 
+# A roster slot that names exactly one NFL position. When the league starts a
+# player here the slot *is* the league's position call (eligibility is enforced
+# upstream), so the displayed badge follows it for fantasy-special players whose
+# nflverse position differs (a TE-slotted Taysom Hill reads TE). Flex slots
+# (W/R, R/W/T, …) and bench/IR name no single position and are absent here, so
+# those rows fall back to the season-correct position.
+_CONCRETE_SLOT_POSITION: dict[str, str] = {
+    "QB": "QB",
+    "RB": "RB",
+    "WR": "WR",
+    "TE": "TE",
+    "K": "K",
+    "DEF": "DEF",
+    "DST": "DEF",
+    "D/ST": "DEF",
+}
+
+
+def _slot_to_position(slot: str | None) -> str | None:
+    """The position a concrete single-position slot names, else ``None``."""
+    if slot is None:
+        return None
+    return _CONCRETE_SLOT_POSITION.get(slot)
+
 
 def _authoritative_points(roster_row: Any) -> float | None:
-    """The league-awarded points for a roster row, from NFL.com history.
+    """The league-awarded points for a roster row: the platform's official value.
 
-    Phase 1 stores each weekly roster row's authoritative NFL.com fantasy points
-    in ``extra_data.nfl_com_points``. This is the real league result: it exists
-    even for players nflverse never logged a stat line for (inactive / DNP / bye,
-    who legitimately scored 0.0), and the starters' values sum to the matchup's
-    ``team_score``. Returns ``None`` only when the field is absent (then the
-    caller falls back to the nflverse reconstruction).
+    Phase 1 stores each weekly roster row's official per-player points in its
+    ``extra_data`` (NFL.com ``nfl_com_points``, Sleeper ``platform_points``); see
+    :func:`ff_dashboard.analytics.scoring.official_points_from_extra`. This is the real
+    league result: it exists even for players nflverse never logged a stat line for
+    (inactive / DNP / bye, who legitimately scored 0.0), and the starters' values sum
+    to the matchup's ``team_score``. Returns ``None`` only when the field is absent
+    (then the caller falls back to the nflverse reconstruction).
     """
-    extra = roster_row.extra_data or {}
-    value = extra.get("nfl_com_points")
-    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    return official_points_from_extra(roster_row.extra_data)
 
 
 def _extra_str(roster_row: Any, key: str) -> str | None:
@@ -190,7 +224,12 @@ def _hamlin_player_context(hamlin: dict[str, Any] | None) -> dict[str, Any] | No
 
 
 def _reserve_eligibility_status(
-    roster_row: Any, injury: Any, injury_payload: InjuryFields, *, player_played: bool
+    roster_row: Any,
+    injury: Any,
+    injury_payload: InjuryFields,
+    *,
+    player_played: bool,
+    sleeper_roster_status: str | None = None,
 ) -> str | None:
     slot = (roster_row.roster_slot or "").upper()
     if slot not in IR_SLOTS:
@@ -204,9 +243,12 @@ def _reserve_eligibility_status(
         roster_status_label = None
     if should_suppress_status(roster_status, played=player_played):
         roster_status = None
+    if should_suppress_status(sleeper_roster_status, played=player_played):
+        sleeper_roster_status = None
     return (
         roster_status_label
         or roster_status
+        or sleeper_roster_status
         or injury_payload.get("injury_status")
         or injury_payload.get("injury_practice_status")
         or (injury.practice_status if injury is not None else None)
@@ -742,6 +784,29 @@ def _team_box(
     # the per-player DATA badge and surface a single team-level caveat instead.
     roster_reconstructed = is_reconstructed_week(snapshot_kind(r) for r, _ in roster)
     player_ids = [r.player_id for r, _ in roster]
+    # Season-correct NFL position: ``players.position`` is a single
+    # current/last-known snapshot, so it misrepresents any season before a
+    # position change (a 2014 WR shown as a later-career TE). Resolve the
+    # position the player actually played that season, falling back to the
+    # snapshot when none is stored. Mirrors the season-correct NFL-team path.
+    season_positions = player_season_positions(session, player_ids, season.year)
+
+    def _position(player: Any) -> str | None:
+        """The player's true season position — used for sort + optimal eligibility."""
+        season = season_positions.get(player.player_id)
+        if season is not None:
+            return season
+        return cast("str | None", player.position)
+
+    def _badge_position(slot: str | None, player: Any) -> str | None:
+        """The position to *display*. When the league started the player in a
+        concrete single-position slot (QB/RB/WR/TE/K/DEF), trust that designation
+        — it carries the league's eligibility call for fantasy-special players
+        (e.g. a TE-slotted Taysom Hill reads TE, not his nflverse QB). A flex or
+        bench slot names no single position, so fall back to the season position
+        (then the snapshot)."""
+        return _slot_to_position(slot) or _position(player)
+
     cluster_members = _identity_cluster_members(session, player_ids)
     scored = _scored_points(session, season.season_id, week, player_ids, cluster_members)
     projections = _batch_projections(session, player_ids, season.year, week, cluster_members)
@@ -754,6 +819,7 @@ def _team_box(
     )
     scoring_rules = _season_scoring_rules(session, season.season_id)
     injuries = injury_reports_for_week(session, season.year, week)
+    statuses = week_status(session, season, week, player_ids, cluster_members)
 
     lineup: list[dict[str, Any]] = []
     starter_points = 0.0
@@ -765,7 +831,7 @@ def _team_box(
     # Starters (QB, RB, RB, WR, WR, TE, FLEX, K, DST) first, then bench, then IR.
     for roster_row, player in sorted(
         roster,
-        key=lambda rp: roster_sort_key(rp[0].roster_slot, rp[1].position),
+        key=lambda rp: roster_sort_key(rp[0].roster_slot, _position(rp[1])),
     ):
         slot = roster_row.roster_slot
         is_starter = (
@@ -783,7 +849,7 @@ def _team_box(
             if isinstance(hamlin_breakdown, dict):
                 breakdown = hamlin_breakdown
 
-        # Prefer NFL.com's authoritative per-player points (they sum to the team
+        # Prefer the platform's official per-player points (they sum to the team
         # score and cover players nflverse never scored — a real 0.0, not a gap);
         # fall back to the nflverse reconstruction only when the field is absent.
         nflverse_points = scored_row[0] if scored_row is not None else None
@@ -842,7 +908,6 @@ def _team_box(
         )
 
         injury = _injury_for_player_cluster(injuries, player.player_id, cluster_members)
-        injury_payload = injury_fields(injury)
         roster_status = _extra_str(roster_row, "player_status")
         roster_status_label = _extra_str(roster_row, "player_status_label")
         # "Played" = has a real nflverse stat line (an organic 0 counts) or a
@@ -851,8 +916,20 @@ def _team_box(
         player_played = nflverse_points is not None or (
             league_points is not None and league_points > 0
         )
+        # nflverse first, the Sleeper snapshot as the fallback (D7).
+        status = for_player(statuses, player.player_id, played=player_played)
+        injury_payload = InjuryFields(
+            injury_status=status["injury_status"],
+            injury_body_part=status["injury_body_part"],
+            injury_secondary=status["injury_secondary"],
+            injury_practice_status=status["injury_practice_status"],
+        )
         reserve_eligibility = _reserve_eligibility_status(
-            roster_row, injury, injury_payload, player_played=player_played
+            roster_row,
+            injury,
+            injury_payload,
+            player_played=player_played,
+            sleeper_roster_status=status["sleeper_roster_status"],
         )
         # On a reconstructed (all-audit) week, skip the per-player drift check —
         # the team-level caveat covers it, and a badge on every row would bury
@@ -891,9 +968,10 @@ def _team_box(
             )
         entry = {
             "roster_slot": slot,
+            "slot_note": slot_note(roster_row.extra_data),
             "player_id": player.player_id,
             "player_name": player.name_full,
-            "position": player.position,
+            "position": _badge_position(slot, player),
             "nfl_opponent": opponent,
             "nfl_game_status": _extra_str(roster_row, "game_status"),
             "roster_status": roster_status,
@@ -915,7 +993,7 @@ def _team_box(
             "context_detail": context_detail,
             "hamlin_substitute": _hamlin_player_context(hamlin),
             "lineup_value": None,
-            **injury_payload,
+            **badge_fields(status),
         }
         lineup.append(entry)
 
@@ -930,7 +1008,7 @@ def _team_box(
 
         # The optimal lineup may draw from any non-IR player (starter or bench).
         if slot not in IR_SLOTS:
-            optimal_candidates.append({"position": player.position, "points": effective})
+            optimal_candidates.append({"position": _position(player), "points": effective})
 
     optimal_total = solve_optimal(optimal_candidates, starting_slots)
     starter_points = round(starter_points, 2)
@@ -977,6 +1055,14 @@ def _team_box(
     }
 
 
+def _provenance_fields(session: Session, m: Matchup) -> dict[str, Any]:
+    """Where the official points come from, and any commissioner override (D3)."""
+    return {
+        "official_points_source": season_provenance(session, m.season_id)["platform"],
+        "commissioner_override": commissioner_override(m),
+    }
+
+
 def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     """Full box score for a matchup, or ``None`` if no such matchup (404).
 
@@ -991,14 +1077,23 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
     if season is None:  # pragma: no cover - a matchup always has its season
         return None
 
-    if season.year not in set(seasons_scored(session)):
+    # Shared postseason tier (championship / playoff / consolation) for this game.
+    _pc = postseason_classification(session, m.season_id)["by_matchup_id"].get(matchup_id) or {}
+    bracket_tier = _pc.get("tier")
+    game_label = _pc.get("game_label")
+
+    if is_pending(m) or season.year not in set(seasons_scored(session)):
         return {
             "matchup_id": matchup_id,
             "season_year": season.year,
             "week": m.week,
             "available": False,
-            "reason": "season_unscored",
+            # An unfinished week is unscored until the weekly capture resolves it.
+            "reason": "week_pending" if is_pending(m) else "season_unscored",
+            **_provenance_fields(session, m),
             "is_playoff": bool(m.is_playoff),
+            "bracket_tier": bracket_tier,
+            "game_label": game_label,
         }
 
     # Projection coverage is a property of the (season, week), identical for both
@@ -1060,6 +1155,7 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         week=m.week,
         season_ctx=season_score_context(session, season.season_id, season.year),
         week_ctx=week_score_context(session, season.season_id, m.week),
+        bracket_tier=bracket_tier,
     )
 
     # Matchup-level no-contest banner: shown on every matchup that holds an
@@ -1076,9 +1172,12 @@ def box_score(session: Session, matchup_id: int) -> dict[str, Any] | None:
         "week": m.week,
         "available": True,
         "is_playoff": bool(m.is_playoff),
+        "bracket_tier": bracket_tier,
+        "game_label": game_label,
         "projections_available": projections_available,
         "projection_reason": projection_reason,
         "resolution_note": resolution_note,
+        **_provenance_fields(session, m),
         "home": home,
         "away": away,
         "winner_team_id": winner_team_id,
@@ -1103,15 +1202,18 @@ def _entering_records(session: Session, season: Season, week: int) -> dict[int, 
             Matchup.team_score,
             Matchup.opponent_score,
             Matchup.opponent_team_id,
+            Matchup.extra_data,
         ).where(
             Matchup.season_id == season.season_id,
             Matchup.week < week,
             Matchup.week <= reg_weeks,
         )
     ).all()
-    for team_id, is_win, team_score, opp_score, opp_team_id in rows:
+    for team_id, is_win, team_score, opp_score, opp_team_id, extra in rows:
         if opp_team_id is None:
             continue  # bye, not a game
+        if (extra or {}).get("finalized") is False:
+            continue  # unfinished week: unscored
         rec = records.setdefault(int(team_id), {"wins": 0, "losses": 0, "ties": 0})
         if is_win is True:
             rec["wins"] += 1
@@ -1143,13 +1245,27 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         .scalars()
         .all()
     )
+    # Idle postseason team-weeks (byes / already placed) are not games.
+    rows = [m for m in rows if not is_idle(m)]
+    pending = any(is_pending(m) for m in rows)
     owners = owner_name_map(session)
     teams: dict[int, Any] = {}
     entering = _entering_records(session, season, week)
     # Computed once per call and shared across every game card; the route caches
     # this whole function per (season, week).
     season_ctx = season_score_context(session, season_id, season.year)
-    week_ctx = {m.team_id: m.team_score for m in rows if m.team_score is not None}
+    week_ctx = {
+        m.team_id: m.team_score for m in rows if m.team_score is not None and not is_pending(m)
+    }
+    # Shared postseason classification for this season; cheap and reused per card.
+    _pc = postseason_classification(session, season_id)
+    classification = _pc["by_matchup_id"]
+    # The Sacko (toilet-bowl loser) is surfaced on its game's losing team so the
+    # last week of the season carries the 💩 anti-trophy. ``matchup_id`` is the
+    # smallest of the toilet game's two rows, which is also the deduped card's id.
+    _sacko = _pc.get("sacko") or {}
+    sacko_mid = _sacko.get("matchup_id")
+    sacko_tid = _sacko.get("team_id")
 
     def team_ref(
         team_id: int | None, score: float | None, is_winner: bool
@@ -1166,6 +1282,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
             "owner_name": owners.get(team.owner_id) if team is not None else None,
             "score": round(score, 2) if score is not None else None,
             "is_winner": is_winner,
+            "is_sacko": False,  # set on the toilet-bowl loser below
             "entering_record": entering.get(team_id, {"wins": 0, "losses": 0, "ties": 0}),
         }
 
@@ -1178,6 +1295,24 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         if pair in seen:
             continue
         seen.add(pair)
+
+        if is_pending(m):
+            # Unfinished week: a pairing only. No live score, winner or margin (unscored, not 0).
+            games.append(
+                {
+                    "matchup_id": m.matchup_id,
+                    "is_playoff": bool(m.is_playoff),
+                    "bracket_tier": None,
+                    "game_label": None,
+                    "pending": True,
+                    "team_a": team_ref(m.team_id, None, False),
+                    "team_b": team_ref(m.opponent_team_id, None, False),
+                    "margin": None,
+                    "winner_team_id": None,
+                    "flags": [],
+                }
+            )
+            continue
 
         winner_team_id: int | None = None
         if (
@@ -1198,10 +1333,18 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         team_b = team_ref(
             m.opponent_team_id, m.opponent_score, winner_team_id == m.opponent_team_id
         )
+        if sacko_mid is not None and m.matchup_id == sacko_mid:
+            for ref in (team_a, team_b):
+                if ref is not None and ref["team_id"] == sacko_tid:
+                    ref["is_sacko"] = True
+        tier_entry = classification.get(m.matchup_id) or {}
+        bracket_tier = tier_entry.get("tier")
         games.append(
             {
                 "matchup_id": m.matchup_id,
                 "is_playoff": bool(m.is_playoff),
+                "bracket_tier": bracket_tier,
+                "game_label": tier_entry.get("game_label"),
                 "team_a": team_a,
                 "team_b": team_b,
                 "margin": margin,
@@ -1214,6 +1357,7 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
                     week=week,
                     season_ctx=season_ctx,
                     week_ctx=week_ctx,
+                    bracket_tier=bracket_tier,
                 ),
             }
         )
@@ -1223,5 +1367,6 @@ def week_matchups(session: Session, season_id: int, week: int) -> dict[str, Any]
         "season_year": season.year,
         "week": week,
         "is_scored": season.year in set(seasons_scored(session)),
+        "pending": pending,
         "games": games,
     }

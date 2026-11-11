@@ -91,14 +91,12 @@ export function RivalriesPage() {
                 values={values}
                 rowInactive={inactiveFlags}
                 colInactive={inactiveFlags}
-                onSelect={(r, c) =>
-                  navigate(`/rivalries/${owners[r].owner_id}/vs/${owners[c].owner_id}`)
-                }
+                onSelect={(r, c) => navigate(`/rivalries/${owners[r].owner_id}/vs/${owners[c].owner_id}`)}
               />
               <p className="mt-4 text-[var(--fs-xs)] text-faint">
-                Each cell is the row manager&apos;s all-time win rate against the column manager
-                (regular season + playoffs). Click any cell for the full pairwise history. Pairs
-                that never met show a quiet gap, never a zero.
+                Each cell is the row manager&apos;s all-time win rate against the column manager (regular
+                season + playoffs). Click any cell for the full pairwise history. Pairs that never met show a
+                quiet gap, never a zero.
                 {inactiveCount > 0 &&
                   ` Managers who have left the league are hidden by default — toggle “Inactive managers” to fold ${inactiveCount} back in.`}
               </p>
@@ -109,10 +107,7 @@ export function RivalriesPage() {
 
       {insights.isLoading && <Skeleton className="h-64 w-full" />}
       {insights.isError && (
-        <ErrorState
-          message="Could not load rivalry insights."
-          onRetry={() => insights.refetch()}
-        />
+        <ErrorState message="Could not load rivalry insights." onRetry={() => insights.refetch()} />
       )}
       {insights.data && <RivalryInsights data={insights.data} />}
     </div>

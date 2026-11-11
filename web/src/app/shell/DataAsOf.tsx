@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import { throughWeekText } from "@/design-system";
 import { api } from "@/lib/api/client";
+import { fetchCurrentSeason } from "@/lib/currentSeason";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchMeta() {
@@ -13,6 +15,11 @@ async function fetchMeta() {
 /** The "data as of … · run #" indicator, sourced from /v1/meta. */
 export function DataAsOf() {
   const { data } = useQuery({ queryKey: qk.meta, queryFn: fetchMeta });
+  const current = useQuery({ queryKey: qk.currentSeason, queryFn: fetchCurrentSeason });
+  // In season: "through week 8 · week 9 awaiting final" (weeks from the BFF).
+  const weeks = current.data?.available
+    ? throughWeekText(current.data.last_finalized_week, current.data.pending_week)
+    : "";
   const run = data?.latest_run;
   const finished = run?.finished_at ? new Date(run.finished_at) : null;
   const when = finished
@@ -24,7 +31,7 @@ export function DataAsOf() {
       to="/about"
       className="dz-data-status"
       title="Data coverage & sources"
-      aria-label={`Data as of ${when}${run?.run_id != null ? `, run ${run.run_id}` : ""} — open coverage`}
+      aria-label={`Data as of ${when}${run?.run_id != null ? `, run ${run.run_id}` : ""}${weeks ? `, ${weeks}` : ""} — open coverage`}
     >
       <span className={`dz-live-dot ${ok ? "" : "dz-live-dot--warn"}`.trim()} aria-hidden />
       <span className="text-right leading-tight">
@@ -33,6 +40,7 @@ export function DataAsOf() {
           {when}
           {run?.run_id != null && <span className="text-faint"> · run #{run.run_id}</span>}
         </span>
+        {weeks && <span className="block text-[var(--fs-xs)] text-faint">{weeks}</span>}
       </span>
     </Link>
   );

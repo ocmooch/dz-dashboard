@@ -1,0 +1,89 @@
+{
+ "body": {
+  "data": {
+   "regular_season_weeks": 2,
+   "season_id": 2,
+   "season_year": 2016,
+   "teams": [
+    {
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points": [
+      {
+       "points_for": 100.5,
+       "rank": 2,
+       "week": 1
+      },
+      {
+       "points_for": 210.5,
+       "rank": 2,
+       "week": 2
+      }
+     ],
+     "team_id": 7,
+     "team_name": "Dynasty Crew"
+    },
+    {
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points": [
+      {
+       "points_for": 80.0,
+       "rank": 4,
+       "week": 1
+      },
+      {
+       "points_for": 170.0,
+       "rank": 4,
+       "week": 2
+      }
+     ],
+     "team_id": 6,
+     "team_name": "Iceman 2016"
+    },
+    {
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points": [
+      {
+       "points_for": 150.0,
+       "rank": 1,
+       "week": 1
+      },
+      {
+       "points_for": 270.0,
+       "rank": 1,
+       "week": 2
+      }
+     ],
+     "team_id": 5,
+     "team_name": "Maverick 2016"
+    },
+    {
+     "owner_id": 4,
+     "owner_name": "Slider",
+     "points": [
+      {
+       "points_for": 99.5,
+       "rank": 3,
+       "week": 1
+      },
+      {
+       "points_for": 194.5,
+       "rank": 3,
+       "week": 2
+      }
+     ],
+     "team_id": 8,
+     "team_name": "Slider 2016"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

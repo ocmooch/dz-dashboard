@@ -1,0 +1,298 @@
+/**
+ * Platform provenance + capability copy (Sleeper D1).
+ *
+ * The ONLY module allowed to name platforms as string literals (enforced by
+ * `scripts/check_platform_literals.sh` in CI). Everything else uses the BFF's
+ * `platform_label` and these helpers. Copy follows docs/sleeper/03_CROSS_PLATFORM_UX.md §3.
+ */
+import type { components } from "@/lib/api/schema";
+
+export type Capability = components["schemas"]["Capability"];
+export type CapabilityState =
+  | "available"
+  | "partial"
+  | "derived"
+  | "not_yet"
+  | "not_on_platform"
+  | "not_used";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  nfl_com: "NFL.com",
+  sleeper: "Sleeper",
+};
+
+export function platformLabel(platform: string | null | undefined): string {
+  if (!platform) return "";
+  return PLATFORM_LABELS[platform] ?? platform;
+}
+
+/** `03` §3 gap copy, by capability key + the platform lacking it. */
+const GAP_COPY: Record<string, Record<string, string>> = {
+  lineup_change_log: {
+    sleeper: "Lineup-change history isn't available from Sleeper.",
+  },
+  setting_change_log: {
+    sleeper: "Sleeper doesn't publish a settings change log. Current settings are shown.",
+  },
+  faab_failed_bids: {
+    nfl_com: "NFL.com didn't record unsuccessful waiver bids.",
+  },
+  trades_with_picks_faab: { nfl_com: "NFL.com trades only recorded players." },
+};
+
+/** `03` §3 provenance footnotes for derived/computed data. */
+const PROVENANCE_COPY: Record<string, Record<string, string>> = {
+  official_brackets: {
+    nfl_com: "Bracket derived from NFL.com playoff results.",
+  },
+  potential_points: { nfl_com: "Potential points computed by this dashboard." },
+  player_status_daily: {
+    nfl_com:
+      "Weekly game status from the official NFL injury reports (nflverse). NFL.com kept no status history.",
+  },
+};
+
+const NOT_YET_COPY = "Not available until this week is final.";
+
+function humanize(key: string): string {
+  const s = key.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Whether a capability renders at all. `not_used` renders nothing (user rule, `00` §3). */
+export function isRendered(cap: Capability | null | undefined): boolean {
+  return cap != null && cap.state !== "not_used";
+}
+
+/** Whether the data is there to show (possibly partial or derived). */
+export function isShowable(cap: Capability | null | undefined): boolean {
+  return cap != null && ["available", "partial", "derived"].includes(cap.state);
+}
+
+/** The one-line gap text for a capability that isn't showable. The BFF note wins. */
+export function capabilityGapText(
+  key: string,
+  cap: Capability | null | undefined,
+  platform: string | null | undefined,
+): string {
+  if (cap?.note) return cap.note;
+  if (cap?.state === "not_yet") return NOT_YET_COPY;
+  const byPlatform = platform ? GAP_COPY[key]?.[platform] : undefined;
+  if (byPlatform) return byPlatform;
+  const label = platformLabel(platform);
+  return label ? `${humanize(key)} isn't available from ${label}.` : `${humanize(key)} isn't available.`;
+}
+
+/** A footnote for derived/computed data, or null when none applies. */
+export function provenanceText(key: string, platform: string | null | undefined): string | null {
+  return (platform && PROVENANCE_COPY[key]?.[platform]) || null;
+}
+
+/** Short state label for tables (About's capability matrix). `not_used` is blank. */
+export function capabilityStateLabel(state: string): string {
+  const labels: Record<string, string> = {
+    available: "Yes",
+    partial: "Partial",
+    derived: "Derived",
+    not_yet: "Not yet",
+    not_on_platform: "Not on platform",
+    not_used: "",
+  };
+  return labels[state] ?? state;
+}
+
+/** Box-score footnote: where official player points come from (Sleeper D3). */
+export function officialPointsNote(source: string | null | undefined): string | null {
+  const label = platformLabel(source);
+  return label ? `Official player points from ${label}.` : null;
+}
+
+/** Box-score note for a commissioner override: the platform's computed score vs the awarded one.
+ *  Scores arrive pre-formatted; this module only owns the wording. */
+export function commissionerOverrideNote(
+  source: string | null | undefined,
+  official: string,
+  awarded: string,
+): string {
+  const label = platformLabel(source) || "The platform";
+  return `Commissioner override: ${label} scored this team ${official}; the commissioner awarded ${awarded}, which is the league score.`;
+}
+
+type PickRef = { season?: number; round?: number };
+
+/** Team-transaction text for the pick/FAAB side of a trade (a player-less leg). */
+export function tradeAssetsText(assets: {
+  picks_in?: PickRef[];
+  picks_out?: PickRef[];
+  faab_in?: number;
+  faab_out?: number;
+}): string {
+  const pick = (p: PickRef) => `${p.season ?? "?"} round ${p.round ?? "?"} pick`;
+  const parts: string[] = [];
+  for (const p of assets.picks_in ?? []) parts.push(`received ${pick(p)}`);
+  for (const p of assets.picks_out ?? []) parts.push(`sent ${pick(p)}`);
+  if (assets.faab_in) parts.push(`received $${assets.faab_in} FAAB`);
+  if (assets.faab_out) parts.push(`sent $${assets.faab_out} FAAB`);
+  return parts.length ? `Draft pick / FAAB: ${parts.join(", ")}` : "Draft pick / FAAB";
+}
+
+/** Roster slot hint for a Sleeper week with no archived IR list (`slot_note` "bench_or_reserve"). */
+export function slotNoteText(note: string | null | undefined): string | null {
+  return note === "bench_or_reserve" ? "Bench or reserve: this week's IR list wasn't archived." : null;
+}
+
+// ── Player status (Sleeper D7) ──────────────────────────────────────────────
+
+/** Injury-badge tooltip suffix naming a fallback source. The official weekly report (nflverse)
+ *  needs no note; a platform snapshot names the platform and its date. */
+export function injurySourceText(
+  source: string | null | undefined,
+  asOf: string | null | undefined,
+): string | null {
+  if (!source || source === "nflverse") return null;
+  const label = platformLabel(source);
+  return asOf ? `${label} status as of ${asOf}, before kickoff.` : `${label} status.`;
+}
+
+/** Status timeline column header for a platform's weekly snapshot. */
+export function statusSnapshotHeading(platform: string | null | undefined): string {
+  const label = platformLabel(platform);
+  return label ? `${label} snapshot` : "Snapshot";
+}
+
+/** Status timeline note: weekly snapshots are taken after the games, read as of each kickoff. */
+export function statusSnapshotNote(platform: string | null | undefined): string {
+  const label = platformLabel(platform) || "The platform";
+  return `${label} status is captured weekly after the games; each week shows the newest capture before kickoff (up to 7 days old).`;
+}
+
+// ── Cross-era aggregation (Sleeper D4) ──────────────────────────────────────
+
+export type AggregationNote = components["schemas"]["AggregationNote"];
+export type ScoringEra = components["schemas"]["ScoringEra"];
+
+function partialPhrase(p: { season_year: number; through_week: number }): string {
+  return p.through_week > 0
+    ? `${p.season_year} through week ${p.through_week}`
+    : `${p.season_year} (no week final yet)`;
+}
+
+/** One line under a cross-season card: what was partly counted or left out. `null` renders nothing. */
+export function aggregationNoteText(note: AggregationNote | null | undefined): string | null {
+  if (!note) return null;
+  const partial = (note.partial_seasons ?? []).map(partialPhrase).join(", ");
+  const excluded = (note.excluded_seasons ?? []).join(", ");
+  if (note.reason === "season_totals_exclude_in_progress") {
+    if (partial && excluded)
+      return `Single-game records include ${partial}. Season totals leave out ${excluded} (in progress).`;
+    if (excluded) return `Season totals leave out ${excluded} (in progress).`;
+  }
+  if (partial) return `Includes ${partial} (in progress; subject to change).`;
+  if (excluded) return `Leaves out ${excluded}.`;
+  return null;
+}
+
+/** Neutral rules-era chip text ("2011–2025 scoring"), only when the league spans > 1 era. */
+export function scoringEraText(
+  era: ScoringEra | null | undefined,
+  eraCount: number | null | undefined,
+): string | null {
+  if (!era || (eraCount ?? 0) < 2) return null;
+  return `${era.label} scoring`;
+}
+
+const DRAFT_TYPE_LABELS: Record<string, string> = {
+  snake: "Snake draft",
+  auction: "Auction draft",
+  linear: "Linear draft",
+};
+
+/** Draft-board label for the stored draft type; `null` (nothing shown) when unknown. */
+export function draftTypeLabel(type: string | null | undefined): string | null {
+  return type ? (DRAFT_TYPE_LABELS[type] ?? null) : null;
+}
+
+/** Playoffs footnote: official (the platform's recorded bracket) vs derived (Sleeper D5). */
+export function bracketProvenanceText(
+  source: string | null | undefined,
+  platform: string | null | undefined,
+): string {
+  if (source === "official") {
+    const label = platformLabel(platform);
+    return label ? `Official bracket, as recorded by ${label}.` : "Official bracket.";
+  }
+  return provenanceText("official_brackets", platform) ?? "Bracket derived from who played whom.";
+}
+
+/** Banner for an undecided official bracket: seeds are current state, not history (`00` §3). */
+export const PROVISIONAL_BRACKET_TEXT =
+  "Seeds and pairings reflect the current standings and may change until the playoffs are decided.";
+
+/** Standings footnote for potential points (computed for every era; `01` §3 row 101). */
+export function potentialPointsNote(
+  uncertainWeeks: readonly number[] | null | undefined,
+  platform: string | null | undefined,
+): string {
+  const base = "Potential points = the best possible lineup each week, computed by this dashboard.";
+  const weeks = uncertainWeeks ?? [];
+  if (!weeks.length) return base;
+  const label = platformLabel(platform) || "the platform";
+  const contiguous = weeks.every((w, i) => i === 0 || w === weeks[i - 1] + 1);
+  const span =
+    weeks.length === 1
+      ? `Week ${weeks[0]}`
+      : contiguous
+        ? `Weeks ${weeks[0]}–${weeks[weeks.length - 1]}`
+        : `Weeks ${weeks.join(", ")}`;
+  return `${base} ${span}: an injured-reserve player may sit on the bench, so it can run above ${label}'s figure.`;
+}
+
+/** Tooltip for the platform's own potential-points figure, a cross-check only. */
+export function officialPotentialText(value: string, platform: string | null | undefined): string {
+  const label = platformLabel(platform) || "Platform";
+  return `${label}'s own figure: ${value}`;
+}
+
+type TradePlayer = { player_name?: string | null };
+
+/** One line naming every asset of a trade from this team's side (Sleeper D6). */
+export function tradeSummaryText(trade: {
+  players_in?: TradePlayer[];
+  players_out?: TradePlayer[];
+  picks_in?: PickRef[];
+  picks_out?: PickRef[];
+  faab_in?: number;
+  faab_out?: number;
+}): string {
+  const pick = (p: PickRef) => `${p.season ?? "?"} R${p.round ?? "?"} pick`;
+  const side = (players: TradePlayer[] = [], picks: PickRef[] = [], faab = 0) => {
+    const parts = [...players.map((p) => p.player_name ?? "Unknown player"), ...picks.map(pick)];
+    if (faab) parts.push(`$${faab} FAAB`);
+    return parts.length ? parts.join(", ") : "nothing";
+  };
+  const got = side(trade.players_in, trade.picks_in, trade.faab_in);
+  const gave = side(trade.players_out, trade.picks_out, trade.faab_out);
+  return `Got ${got} · gave ${gave}`;
+}
+
+/** A lost FAAB claim: your bid, and who won it for how much. */
+export function lostBidText(bid: {
+  bid?: number | null;
+  winning_bid?: number | null;
+  winner?: { team_name?: string | null; owner_name?: string | null } | null;
+  failure_reason?: string | null;
+}): string {
+  const yours = bid.bid != null ? `$${bid.bid}` : "no bid";
+  if (bid.winner) {
+    const who = bid.winner.team_name ?? bid.winner.owner_name ?? "another team";
+    const won = bid.winning_bid != null ? ` for $${bid.winning_bid}` : "";
+    return `Bid ${yours} · won by ${who}${won}`;
+  }
+  return bid.failure_reason ? `Bid ${yours} · ${bid.failure_reason}` : `Bid ${yours}`;
+}
+
+/** A bid war's margin line ("won by $3"; a tie at the top was settled by waiver order). */
+export function bidMarginText(margin: number | null | undefined): string | null {
+  if (margin == null) return null;
+  return margin > 0 ? `won by $${margin}` : "tie at the top, settled by waiver order";
+}

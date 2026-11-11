@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from ff_pipeline.repository.models import (
     Base,
     League,
@@ -19,7 +20,7 @@ from ff_pipeline.repository.models import (
     Team,
     TeamRoster,
 )
-from sqlalchemy import create_engine, select
+from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session as SASession
 
 from ff_dashboard.analytics.teams import team_roster
@@ -27,6 +28,8 @@ from ff_dashboard.analytics.transactions import derive_roster_moves
 from tests.conftest import KNOWN
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from sqlalchemy.orm import Session
 
 
@@ -108,6 +111,19 @@ def test_roster_moves_unknown_team_is_none(session: Session) -> None:
 # the authoritative weeks, so naively diffing against it fabricates churn.
 
 
+# In-memory engines built by the helper below; disposed after every test so no
+# sqlite connection is left for the garbage collector (Python 3.14 reports those
+# as unraisable ResourceWarnings, which fail the run).
+_ENGINES: list[Engine] = []
+
+
+@pytest.fixture(autouse=True)
+def _dispose_engines() -> Iterator[None]:
+    yield
+    while _ENGINES:
+        _ENGINES.pop().dispose()
+
+
 def _audit_week_session() -> SASession:
     """A one-team season where W1 is all-``audit`` and W2/W3 are ``history``.
 
@@ -115,6 +131,7 @@ def _audit_week_session() -> SASession:
     trusts W1 would drop Early at W1 and add it at... etc. — the fix drops W1.
     """
     engine = create_engine("sqlite://", future=True)
+    _ENGINES.append(engine)
     Base.metadata.create_all(engine)
     session = SASession(engine)
     league = League(league_id="L", name="T", platform="nfl_com", current_season_year=2025)

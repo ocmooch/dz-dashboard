@@ -8,6 +8,10 @@ Read order at session start: `PROGRESS.md` → the relevant `docs/09_ROADMAP.md`
 the open scope → the cited finding in `docs/reviews/2026-06-in-browser-review.md` if it has an
 F-number.
 
+**Top of the queue (2026-11-09): the Sleeper era, D0–D8.** Plans: `docs/sleeper/` (start with
+`00_UPSTREAM_STATE.md`). Upstream S1–S8 ☑ merged; the 2026 live go-live is ⤴ upstream, run on the
+user's approval after D3.
+
 Status key: ☐ todo · ◐ in progress · ⊘ blocked (needs an input/decision) · ⤴ upstream (out of this
 repo, in `../danger-zone` / ff-pipeline) · ☑ done.
 
@@ -18,6 +22,12 @@ repo, in `../danger-zone` / ff-pipeline) · ☑ done.
 The dashboard application is **functionally complete and fully merged** (all P0–P12 milestones, all
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
+
+- **Sleeper era — after the live go-live** ☐ (D8, 2026-11-10; v0.5.0 is released before it, per the
+  user). Re-walk the 2026 pages on live data with the `docs/sleeper/03` §5 checklist, including
+  2026 avatars from the upstream asset store (the fixture has none, so this check was not possible
+  in D8). Items D8 routed here (§5): divisions Potential, FAAB credits, `is_move`, bench IR hint,
+  "Power at playoff entry" while seeds are provisional.
 
 0. **Data Integrity & Coverage program** ☑ **— COMPLETE & MERGED** (dashboard PR #77; upstream
    crosswalk landed on `../danger-zone`). The structural fix for the recurring "works here but not
@@ -119,7 +129,7 @@ are `$0`; the old `or`-chain wrongly collapsed `0`→`None`), the winning bid is
 pill in the team transactions log, and **weekly remaining-budget** shipped (`team_faab_budget()`,
 `GET /v1/teams/{id}/faab-budget`, `FaabBudgetCard`): $100 base (holds exactly for 2021/2023/2024/2025)
 + mid-season per-team **credits** parsed from the budget `setting_change` events (`team_id=NULL`,
-matched by name), modeled as timestamped credits so the 2022 Ice Station Zebra +$37 refund reproduces.
+matched by name), modeled as timestamped credits so the 2022 Team 083 +$37 refund reproduces.
 **Remaining open (the original F-37 scope):** the dashboard still hasn't consumed the exact
 transaction dates/types as a *richer tier* beyond the acquisitions log.
 
@@ -142,6 +152,26 @@ undercounts. **Fix belongs in the pipeline:** correct the yards/sacks derivation
 auto-invalidates on the new `pipeline_run_id`; no dashboard change). User chose diagnosis-only so far.
 (See memory `dst-yards-sacks-pipeline-gap`. Distinct from fantasy *scoring* being end-to-end — this is
 the underlying box-score stat detail.)
+
+### ADP source coverage — FFC 2025 missing ☐ ⤴ (source-dependent; eventual, not forceable)
+The draft **Market** lens (reach/value) blends FFC + MFL + Sleeper ADP. **FFC is the only source
+carrying the full draft-week spread** (high/low/stdev, aggregated over late August — confirmed via
+the API `meta.start_date`/`end_date`, e.g. 2024 = Aug 31–Sep 1). For **2025 it is absent at the
+source**: `GET /api/v1/adp/ppr?teams=12&year=2025` returns *"No ADP data found"* while 2022/2023/2024/2026
+all return data, and a `&date=` param does not bring it back. So the live DB has **no FFC row for
+2025** (only MFL `PERIOD=DRAFT` whole-offseason aggregate + Sleeper), which is *why* an elite RB like
+Bijan Robinson reads as a "reach" — the wide-window MFL average (≈4.6) lacks the FFC draft-week anchor
+(≈1–2). MFL's relative date windows (`AUG15_NOW`) cannot be rewound for a past season (return empty),
+so the gap can only be closed by **FFC republishing 2025**, which may happen eventually or not at all
+— it is *not* achievable with immediate effort.
+- **Action when possible (danger-zone):** re-pull FFC for all years (fills any gaps), and verify the
+  reported MFL rate-limit truncation on the last ingest didn't drop rows. Capture FFC's
+  `meta.start_date`/`end_date` so each season's ADP window is recorded.
+- **Dashboard side is already handled, no wait:** the reach/value recalibration
+  (`docs/plans/draft-market-reach-value-recalibration.md`) degrades gracefully and surfaces a quiet,
+  data-driven "limited ADP coverage" note for any season blended **without** FFC (2025 today). If FFC
+  restores 2025, a re-ingest backfills the season, the flag clears itself, and the reads sharpen with
+  **no dashboard code change** (read-only seam).
 
 ### Resolved-upstream (no longer open) — for reference
 F-50, F-51, F-52, F-53 are ☑ via the regen, and **F-54** (season-correct player NFL team) is ☑
@@ -183,12 +213,19 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
 ## 5. Open items / deviations & known non-blockers
 
 - **Phantom week-1-only teams (identity artifact).** 1–2 phantom week-1-only teams per season with
-  duplicate/garbled names (e.g. "JFCFPWCPGAWWLTDOSGT", "Rev Russell's Sunday Service"), ~2 matchups
+  duplicate/garbled names (e.g. "Team 084", "Team 116"), ~2 matchups
   each, present 2010–2018 and absent 2019/2023/2025. **Separate** from the repaired F-53 roster-churn
   corruption; belongs with owner/team-identity research (F-06). Worth a new finding if it surfaces in
   the UI.
 - **League relevance = ever-rostered only** (not "ever scored"): the pipeline scores the whole NFL,
   so "scored" is not a league-relevance signal. Keep filters on roster presence.
+- **Sleeper-era follow-ups (routed from D5–D8; none blocks the release).**
+  - 2010–2019 divisions view has no Potential points column (D5).
+  - FAAB market "% of budget" ignores mid-season budget credits; `aggregation.is_move` has no
+    consumer yet (D6).
+  - The `*` bench-or-reserve hint could name players Sleeper's status snapshot lists as IR (D7).
+  - Playoffs "Power at playoff entry" shows for an in-progress season, before anyone has entered
+    the bracket (D8 walk); it should wait for the regular season to be final or say "so far".
 - **F-49 `made_playoffs = None`** where a bracket can't be inferred honestly — intentional until
   upstream metadata lands (§2 F-49).
 

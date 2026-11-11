@@ -7,14 +7,29 @@ and finishes from ``seasons`` / ``teams``.
 
 from __future__ import annotations
 
-from statistics import mean, pstdev
+from collections import defaultdict
+from math import ceil
+from statistics import mean, median, pstdev
 from typing import TYPE_CHECKING, Any
 
 from ff_pipeline.repository.models import Matchup, Owner, Season, Team
 from ff_pipeline.repository.queries import get_owner
 from sqlalchemy import func, select
 
-from ff_dashboard.analytics.common import owner_name_map, played_season_ids
+from ff_dashboard.analytics.aggregation import owner_season_ids, partial_note
+from ff_dashboard.analytics.bracket import (
+    TIER_CONSOLATION,
+    postseason_classification,
+    season_sacko_map,
+)
+from ff_dashboard.analytics.common import (
+    SIGNIFICANT_STINT_SEASONS,
+    owner_active_map,
+    owner_name_map,
+    owner_qualified_map,
+    played_season_ids,
+)
+from ff_dashboard.analytics.game_state import is_pending_extra
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.standings import compute_standings
 
@@ -22,15 +37,18 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 
-def _season_result(final_rank: int | None, is_champion: bool) -> str | None:
+def _season_result(final_rank: int | None, is_champion: bool, is_sacko: bool = False) -> str | None:
     """A human label for a completed season's finish, or None when no rank yet.
 
-    Returned for every completed season (incl. 2010-2015): champion / runner-up /
-    3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent — an
-    in-progress or rank-less season.
+    Returned for every completed season (incl. 2010-2015): champion / Sacko /
+    runner-up / 3rd / Nth. ``None`` (a gap, never 0) when ``final_rank`` is absent —
+    an in-progress or rank-less season. The ``Sacko`` (toilet-bowl loser) brand
+    takes precedence over the bare ``Nth`` finish.
     """
     if is_champion:
         return "Champion"
+    if is_sacko:
+        return "Sacko"
     if final_rank is None:
         return None
     if final_rank == 1:
@@ -46,22 +64,33 @@ def _playoff_participation(session: Session) -> tuple[dict[int, set[int]], set[i
     """``(made_by_season, derivable_season_ids)``.
 
     ``made_by_season[season_id]`` is the set of teams with ≥1 ``is_playoff``
-    matchup that is **not** a consolation/toilet-bowl game.
+    matchup that is **not** a consolation/toilet-bowl game — classified by the
+    shared bracket connectivity split (``postseason_classification``), not the
+    unpopulated ``is_consolation`` source column.
 
     ``derivable_season_ids`` are the seasons where ``made_playoffs`` can be stated
     honestly — i.e. the playoff flag selects a **proper subset** of the league
-    (``0 < made < teams_that_season``). When *no* team or *every* team carries a
-    non-consolation playoff game the bracket isn't distinguishable in the data
-    (notably: Phase-1 leaves ``is_consolation`` unpopulated and flags every
-    post-season game ``is_playoff``, so all teams look like they advanced) →
-    ``made_playoffs`` is **unknown** (``None``), never a fabricated True/False.
+    (``0 < made < teams_that_season``). When *every* post-season team is
+    indistinguishable (the bracket can't be split, so all are tier ``playoff``) the
+    set spans the whole field → ``made_playoffs`` is **unknown** (``None``), never a
+    fabricated True/False.
     """
     made_by_season: dict[int, set[int]] = {}
-    for team_id, season_id, is_playoff, is_consolation in session.execute(
-        select(Matchup.team_id, Matchup.season_id, Matchup.is_playoff, Matchup.is_consolation)
+    class_cache: dict[int, dict[str, Any]] = {}
+    for team_id, season_id, matchup_id, is_playoff in session.execute(
+        select(Matchup.team_id, Matchup.season_id, Matchup.matchup_id, Matchup.is_playoff)
     ).all():
-        if is_playoff and not is_consolation:
-            made_by_season.setdefault(int(season_id), set()).add(int(team_id))
+        if not is_playoff:
+            continue
+        sid = int(season_id)
+        cls = class_cache.get(sid)
+        if cls is None:
+            cls = postseason_classification(session, sid)
+            class_cache[sid] = cls
+        entry = cls["by_matchup_id"].get(int(matchup_id))
+        if entry is not None and entry["tier"] == TIER_CONSOLATION:
+            continue
+        made_by_season.setdefault(sid, set()).add(int(team_id))
     teams_per_season = {
         int(sid): int(n)
         for sid, n in session.execute(
@@ -107,11 +136,13 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
     made_by_season, derivable_seasons = _playoff_participation(session)
+    sacko_map = season_sacko_map(session)
 
     rows: list[dict[str, Any]] = []
     for team in teams:
         srow = index.get(team.team_id, {})
         is_champion = team.team_id in champions
+        is_sacko = sacko_map.get(int(team.season_id), {}).get("team_id") == team.team_id
         # Derive made_playoffs from the schedule (the Team column is unpopulated):
         # True/False only when the season's bracket is distinguishable, else None
         # (a gap — never fabricate; see _playoff_participation).
@@ -131,8 +162,9 @@ def owner_seasons(session: Session, owner_id: int) -> list[dict[str, Any]] | Non
                 "points_for": srow.get("points_for", 0.0),
                 "final_rank": team.final_rank,
                 "made_playoffs": made_playoffs,
-                "result": _season_result(team.final_rank, is_champion),
+                "result": _season_result(team.final_rank, is_champion, is_sacko),
                 "is_champion": is_champion,
+                "is_sacko": is_sacko,
             }
         )
     rows.sort(key=lambda r: r["season_year"] or 0)
@@ -156,7 +188,20 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
         for sid, yr in session.execute(select(Season.season_id, Season.year)).all()
     }
     made_by_season, derivable_seasons = _playoff_participation(session)
+    sacko_map = season_sacko_map(session)
     owners = owner_name_map(session)
+    # Owner activity + grouping prominence travel on every row so the Teams
+    # browser can order its "By owner" groups without recomputing eligibility.
+    # Prominence reuses the shared gates (active / qualified): 2 active, 1
+    # departed-but-long-tenured (qualified == significant stint), 0 short-stint
+    # departed — the same tiering the managers table and rivalry surfaces use.
+    active = owner_active_map(session)
+    qualified = owner_qualified_map(session)
+
+    def _prominence(owner_id: int) -> int:
+        if active.get(owner_id, True):
+            return 2
+        return 1 if qualified.get(owner_id, False) else 0
 
     rows: list[dict[str, Any]] = []
     for team in session.execute(select(Team)).scalars().all():
@@ -164,6 +209,7 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
             continue
         srow = index.get(team.team_id, {})
         is_champion = team.team_id in champions
+        is_sacko = sacko_map.get(int(team.season_id), {}).get("team_id") == team.team_id
         if team.season_id in derivable_seasons:
             made_playoffs: bool | None = team.team_id in made_by_season[team.season_id]
         else:
@@ -172,6 +218,8 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
             {
                 "owner_id": team.owner_id,
                 "owner_name": owners.get(team.owner_id),
+                "owner_is_active": bool(active.get(team.owner_id, True)),
+                "owner_prominence": _prominence(team.owner_id),
                 "season_id": team.season_id,
                 "season_year": season_year.get(team.season_id),
                 "team_id": team.team_id,
@@ -182,8 +230,9 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
                 "points_for": srow.get("points_for", 0.0),
                 "final_rank": team.final_rank,
                 "made_playoffs": made_playoffs,
-                "result": _season_result(team.final_rank, is_champion),
+                "result": _season_result(team.final_rank, is_champion, is_sacko),
                 "is_champion": is_champion,
+                "is_sacko": is_sacko,
             }
         )
     # Newest season first, then by finish within a season; team_id breaks ties so
@@ -193,23 +242,32 @@ def teams_index(session: Session) -> list[dict[str, Any]]:
 
 
 def _career_from_seasons(
-    owner_id: int, display_name: str | None, rows: list[dict[str, Any]]
+    owner_id: int, display_name: str | None, rows: list[dict[str, Any]], *, is_active: bool
 ) -> dict[str, Any]:
     finishes = [r["final_rank"] for r in rows if r["final_rank"] is not None]
     championships = [r for r in rows if r["is_champion"]]
+    sackos = [r for r in rows if r.get("is_sacko")]
     latest = max(rows, key=lambda r: r.get("season_year") or 0, default=None)
+    seasons_played = len(rows)
     return {
         "owner_id": owner_id,
         "display_name": display_name,
-        "seasons_played": len(rows),
+        "seasons_played": seasons_played,
         "total_wins": sum(r["wins"] for r in rows),
         "total_losses": sum(r["losses"] for r in rows),
         "total_ties": sum(r["ties"] for r in rows),
         "total_points_for": round(sum(r["points_for"] for r in rows), 2),
         "championships": len(championships),
+        "sackos": len(sackos),
         "best_finish": min(finishes) if finishes else None,
         "avg_finish": round(mean(finishes), 2) if finishes else None,
         "latest_team_id": latest["team_id"] if latest else None,
+        # Activity + tenure travel with the career row so the managers table can
+        # rank the rate-based "best of" stats without recomputing eligibility:
+        # an active manager always qualifies; a departed one only once they have a
+        # significant stint. See ``common.SIGNIFICANT_STINT_SEASONS``.
+        "is_active": is_active,
+        "qualified": is_active or seasons_played >= SIGNIFICANT_STINT_SEASONS,
     }
 
 
@@ -219,47 +277,142 @@ def owner_career(session: Session, owner_id: int) -> dict[str, Any] | None:
     if owner is None:
         return None
     rows = owner_seasons(session, owner_id) or []
-    career = _career_from_seasons(owner_id, owner.display_name, rows)
+    career = _career_from_seasons(
+        owner_id, owner.display_name, rows, is_active=bool(owner.is_active)
+    )
+    # Hardware strip: podium finishes (the trophies) plus every Sacko season (the
+    # 💩 anti-trophy), so the disgrace is recorded alongside the glory.
     trophy_case = [
         {
             "season_year": r["season_year"],
             "team_name": r["team_name"],
             "finish": r["final_rank"],
             "is_champion": r["is_champion"],
+            "is_sacko": r.get("is_sacko", False),
         }
         for r in rows
-        if r["is_champion"] or (r["final_rank"] is not None and r["final_rank"] <= 3)
+        if r["is_champion"]
+        or r.get("is_sacko")
+        or (r["final_rank"] is not None and r["final_rank"] <= 3)
     ]
     return {
         **career,
         "trophy_case": trophy_case,
         "consistency": owner_consistency(session, owner_id),
+        "aggregation_note": partial_note(session, owner_season_ids(session, owner_id)),
     }
 
 
+def _scoring_signature(
+    *, top_week_rate: float, floor_week_rate: float, above_median_rate: float, volatility: float
+) -> str:
+    """Human scoring tendency label from week-relative outcomes.
+
+    ``boom/bust`` is intentionally narrow: it requires frequent ceiling weeks,
+    frequent floor weeks, and above-normal volatility. Otherwise the label should
+    explain the manager's actual scoring habit rather than force a median split.
+    """
+    if top_week_rate >= 0.30 and floor_week_rate >= 0.30 and volatility >= 0.95:
+        return "true boom/bust"
+    if top_week_rate >= 0.30 and above_median_rate >= 0.58:
+        return "ceiling scorer"
+    if floor_week_rate <= 0.15 and volatility <= 0.85 and above_median_rate >= 0.50:
+        return "steady scorer"
+    if volatility >= 1.10 and (top_week_rate >= 0.25 or floor_week_rate >= 0.28):
+        return "volatile scorer"
+    if floor_week_rate >= 0.30 and top_week_rate < 0.20:
+        return "floor risk"
+    if above_median_rate >= 0.58:
+        return "weekly edge"
+    if above_median_rate <= 0.42:
+        return "uphill scorer"
+    return "balanced scorer"
+
+
 def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
-    """Weekly scoring consistency for one owner, ranked against current peers."""
+    """Week-relative scoring profile for one owner, ranked against peers."""
     if get_owner(session, owner_id) is None:
         return None
 
     owners = list(session.execute(select(Owner)).scalars().all())
     per_owner: dict[int, list[float]] = {int(o.owner_id): [] for o in owners}
+    profile_by_owner: dict[int, dict[str, Any]] = {}
     team_to_owner = {
         int(tid): int(oid)
         for tid, oid in session.execute(select(Team.team_id, Team.owner_id)).all()
     }
     rows = session.execute(
-        select(Matchup.team_id, Matchup.team_score, Matchup.opponent_team_id).where(
-            Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None)
-        )
+        select(
+            Matchup.season_id,
+            Matchup.week,
+            Matchup.team_id,
+            Matchup.team_score,
+            Matchup.opponent_team_id,
+            Matchup.extra_data,
+        ).where(Matchup.team_score.is_not(None), Matchup.opponent_team_id.is_not(None))
     ).all()
-    for team_id, score, _ in rows:
+    weekly_scores: dict[tuple[int, int], list[tuple[int, float]]] = defaultdict(list)
+    for season_id, week, team_id, score, _, extra in rows:
+        if is_pending_extra(extra):
+            continue  # the unfinished week is unscored (D3 rule)
         oid = team_to_owner.get(int(team_id))
         if oid is not None:
-            per_owner.setdefault(oid, []).append(float(score))
+            points = float(score)
+            per_owner.setdefault(oid, []).append(points)
+            weekly_scores[(int(season_id), int(week))].append((oid, points))
 
+    samples_by_owner: dict[int, list[dict[str, float]]] = defaultdict(list)
+    for week_scores in weekly_scores.values():
+        if len(week_scores) < 2:
+            continue
+        ordered = sorted(week_scores, key=lambda item: (-item[1], item[0]))
+        week_points = [points for _, points in ordered]
+        week_mean = mean(week_points)
+        week_stdev = pstdev(week_points)
+        week_median = median(week_points)
+        edge_count = max(1, ceil(len(ordered) / 4))
+        bottom_start = len(ordered) - edge_count + 1
+        for rank, (oid, points) in enumerate(ordered, start=1):
+            samples_by_owner[oid].append(
+                {
+                    "rank": float(rank),
+                    "z": (points - week_mean) / week_stdev if week_stdev else 0.0,
+                    "top": 1.0 if rank <= edge_count else 0.0,
+                    "floor": 1.0 if rank >= bottom_start else 0.0,
+                    "above_median": 1.0 if points > week_median else 0.0,
+                }
+            )
+
+    for oid, samples in samples_by_owner.items():
+        zscores = [sample["z"] for sample in samples]
+        top_week_rate = mean(sample["top"] for sample in samples)
+        floor_week_rate = mean(sample["floor"] for sample in samples)
+        above_median_rate = mean(sample["above_median"] for sample in samples)
+        volatility = pstdev(zscores) if len(zscores) >= 2 else 0.0
+        profile_by_owner[oid] = {
+            "weeks_sampled": len(samples),
+            "top_week_rate": round(top_week_rate, 3),
+            "floor_week_rate": round(floor_week_rate, 3),
+            "above_median_rate": round(above_median_rate, 3),
+            "average_weekly_rank": round(mean(sample["rank"] for sample in samples), 2),
+            "weekly_volatility": round(volatility, 2),
+            "signature": _scoring_signature(
+                top_week_rate=top_week_rate,
+                floor_week_rate=floor_week_rate,
+                above_median_rate=above_median_rate,
+                volatility=volatility,
+            ),
+        }
+
+    # Rank only against owners who qualify (active or a significant stint), so a
+    # short-stint departed owner's few weeks don't dilute the denominator or skew
+    # the steady/boom-bust midpoint. The subject is always kept in the pool so
+    # their own profile still shows a rank, even when they don't otherwise qualify.
+    qualified = owner_qualified_map(session)
     ranked: list[tuple[int, float]] = [
-        (oid, pstdev(scores)) for oid, scores in per_owner.items() if len(scores) >= 2
+        (oid, profile_by_owner.get(oid, {}).get("weekly_volatility", pstdev(scores)))
+        for oid, scores in per_owner.items()
+        if len(scores) >= 2 and (qualified.get(oid, True) or oid == owner_id)
     ]
     ranked.sort(key=lambda item: item[1])
     rank_by_owner = {oid: i for i, (oid, _) in enumerate(ranked, start=1)}
@@ -278,20 +431,31 @@ def owner_consistency(session: Session, owner_id: int) -> dict[str, Any] | None:
             "best_season_year": best["season_year"] if best else None,
             "best_season_points_for": best["points_for"] if best else None,
             "signature": None,
+            "weeks_sampled": 0,
+            "top_week_rate": None,
+            "floor_week_rate": None,
+            "above_median_rate": None,
+            "average_weekly_rank": None,
+            "weekly_volatility": None,
         }
 
     stdev = round(pstdev(scores), 2)
-    rank = rank_by_owner.get(owner_id)
-    midpoint = (len(ranked) + 1) / 2 if ranked else 0
-    signature = "steady scorer" if rank is not None and rank <= midpoint else "boom/bust"
+    volatility_rank = rank_by_owner.get(owner_id)
+    profile = profile_by_owner.get(owner_id)
     return {
         "available": True,
         "reason": None,
         "weekly_points_stdev": stdev,
-        "rank_among_owners": rank,
+        "rank_among_owners": volatility_rank,
         "best_season_year": best["season_year"] if best else None,
         "best_season_points_for": best["points_for"] if best else None,
-        "signature": signature,
+        "signature": profile["signature"] if profile else "balanced scorer",
+        "weeks_sampled": profile["weeks_sampled"] if profile else len(scores),
+        "top_week_rate": profile["top_week_rate"] if profile else None,
+        "floor_week_rate": profile["floor_week_rate"] if profile else None,
+        "above_median_rate": profile["above_median_rate"] if profile else None,
+        "average_weekly_rank": profile["average_weekly_rank"] if profile else None,
+        "weekly_volatility": profile["weekly_volatility"] if profile else None,
     }
 
 
@@ -302,7 +466,10 @@ def list_owners_career(session: Session) -> list[dict[str, Any]]:
     for o in owners:
         by_owner[o.owner_id] = owner_seasons(session, o.owner_id) or []
     careers = [
-        _career_from_seasons(o.owner_id, o.display_name, by_owner[o.owner_id]) for o in owners
+        _career_from_seasons(
+            o.owner_id, o.display_name, by_owner[o.owner_id], is_active=bool(o.is_active)
+        )
+        for o in owners
     ]
     careers.sort(key=lambda c: (-c["championships"], -c["total_wins"], -c["total_points_for"]))
     return careers

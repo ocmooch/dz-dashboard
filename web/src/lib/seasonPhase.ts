@@ -24,9 +24,7 @@ export function deriveSeasonPhase({
   current: SeasonInfo | null;
   seasons: SeasonInfo[];
 }): SeasonPhase {
-  const scored = [...seasons]
-    .filter((s) => s.is_scored)
-    .sort((a, b) => b.season_year - a.season_year);
+  const scored = [...seasons].filter((s) => s.is_scored).sort((a, b) => b.season_year - a.season_year);
   if (!current) {
     return {
       phase: "offseason",

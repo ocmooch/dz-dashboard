@@ -1,0 +1,25 @@
+{
+ "body": {
+  "data": {
+   "champion": {
+    "owner_id": 1,
+    "owner_name": "Maverick",
+    "team_id": 5,
+    "team_name": "Maverick 2016"
+   },
+   "last_place": null,
+   "playoff_weeks": 1,
+   "regular_season_weeks": 2,
+   "runner_up": null,
+   "season_id": 2,
+   "season_year": 2016,
+   "status": "completed"
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

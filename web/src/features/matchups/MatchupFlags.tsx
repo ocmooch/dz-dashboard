@@ -15,13 +15,7 @@ const TONE_CLASS: Record<string, string> = {
 /** A row of superlative flags for a game. Pure presentation — the backend
  *  (analytics/matchup_flags.py) decides which flags apply, their label, tone and
  *  tooltip detail. Renders nothing when there are no flags. */
-export function MatchupFlags({
-  flags,
-  className,
-}: {
-  flags: MatchupFlag[];
-  className?: string;
-}) {
+export function MatchupFlags({ flags, className }: { flags: MatchupFlag[]; className?: string }) {
   if (!flags || flags.length === 0) return null;
   return (
     <div className={`dz-flags ${className ?? ""}`.trim()}>

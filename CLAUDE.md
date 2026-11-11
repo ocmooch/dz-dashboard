@@ -32,7 +32,17 @@ disagree with the backend because the frontend does no math.
   per-season `is_scored` flag** — never hardcode a year.
 - **Don't modify Phase 1** except additive read-only helpers in
   `ff_pipeline/repository/queries.py`.
+- **Sleeper-era rows (2026+) differ** — see `docs/sleeper/00_UPSTREAM_STATE.md` §4/§6 before
+  touching matchups/transactions/points: provisional weeks (`is_win NULL`, live scores) are never a
+  result; opponent-less postseason rows are not games; transactions include `status='failed'`
+  claims and player-less pick/FAAB legs; official points come from
+  `queries.authoritative_week_points_expr`. Capability `not_used` renders nothing.
 - **Don't merge milestones.** Finish one cleanly before the next.
+- **Formatters: only the declared ones, only on your files.** Python: `uv run ruff format`.
+  `web/`: Prettier (pinned in `web/package.json`, config `web/.prettierrc.json`, width 110) via
+  `npm run format`; CI runs `npm run format:check`. Never run another formatter (or `npx`
+  with an unpinned version). If `git diff --stat` after formatting shows far more lines than you
+  edited, stop and revert.
 - Commit trailers: `AI-Model` / `Prompted-By` / `Reviewed-By`. **Never** `Co-Authored-By: Claude`.
   Git model: `feature/*` → `dev` → `main`.
 
@@ -75,6 +85,7 @@ dumps every test log hits the limit mid-milestone and stalls. Default to **less 
 | `docs/08_TESTING_STRATEGY.md` | deciding what to test | the relevant test kind |
 | `docs/09_ROADMAP.md` | every milestone — confirm scope + "Done when" | the one P# row |
 | `docs/10_OPEN_QUESTIONS.md` | a decision is ambiguous | the one Q |
+| `docs/sleeper/00_UPSTREAM_STATE.md` | **any Sleeper-era (D0–D8) session** | the whole doc (short), then the D row in `docs/sleeper/02` |
 
 Use `CHANGELOG.md` for pass/PR history; keep `PROGRESS.md` for current state only.
 
@@ -107,7 +118,8 @@ uv run mypy src/ff_dashboard
 Frontend (in `web/`):
 ```
 npm run gen:api && git diff --exit-code web/src/lib/api   # contract drift check
-npm run typecheck && npm run lint
+npm run format:check     # Prettier; `npm run format` to fix (the only web formatter)
+npm run typecheck
 npm run test
 npm run test:e2e          # slow + noisy; VERIFY session only, redirect output to a file
 ```

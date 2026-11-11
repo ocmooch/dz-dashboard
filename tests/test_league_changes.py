@@ -21,7 +21,7 @@ from ff_dashboard.analytics.league_changes import (
 
 
 def _raw(
-    desc: str, year: int = 2016, month: int = 7, day: int = 1, actor: str = "Dan"
+    desc: str, year: int = 2016, month: int = 7, day: int = 1, actor: str = "Owner 05"
 ) -> RawSettingChange:
     return RawSettingChange(
         season_id=0,
@@ -36,58 +36,68 @@ def _raw(
     ("desc", "canonical", "tier", "treatment"),
     [
         (
-            "harry changed Playoff Settings from 'Weeks 15 & 16 - 4 teams' to 'Weeks 15, 16 & 17 - 6 teams'",
+            "Owner 17 changed Playoff Settings from 'Weeks 15 & 16 - 4 teams' to 'Weeks 15, 16 & 17 - 6 teams'",
             "playoff_settings",
             "T1",
             "PASS",
         ),
         # Unrecoverable + recurring -> folded into the routine bucket, not a notable row.
-        ("harry updated playoff teams", "playoff_teams", "T3", "COLLAPSE"),
-        ("harry updated roster positions", "roster_positions", "T1", "STATE"),
-        ("harry updated scoring settings", "scoring_settings", "T1", "STATE"),
+        ("Owner 17 updated playoff teams", "playoff_teams", "T3", "COLLAPSE"),
+        ("Owner 17 updated roster positions", "roster_positions", "T1", "STATE"),
+        ("Owner 17 updated scoring settings", "scoring_settings", "T1", "STATE"),
         # Minor mechanics tweaks -> routine bucket.
         (
-            "harry changed Trade Reject Time from '2 days' to '1 day'",
+            "Owner 17 changed Trade Reject Time from '2 days' to '1 day'",
             "trade_reject_time",
             "T3",
             "COLLAPSE",
         ),
-        ("harry changed Waiver Period from '2 days' to '1 day'", "waiver_period", "T3", "COLLAPSE"),
-        ("harry changed Fee for Joining League from '100.00' to '125.00'", "fee", "T2", "PASS"),
+        (
+            "Owner 17 changed Waiver Period from '2 days' to '1 day'",
+            "waiver_period",
+            "T3",
+            "COLLAPSE",
+        ),
+        ("Owner 17 changed Fee for Joining League from '100.00' to '125.00'", "fee", "T2", "PASS"),
         # Set-and-forget originating defaults -> routine bucket.
         (
-            "harry changed Post Draft Players from 'Follow Waiver Rules' to 'Free Agents'",
+            "Owner 17 changed Post Draft Players from 'Follow Waiver Rules' to 'Free Agents'",
             "post_draft_players",
             "T3",
             "COLLAPSE",
         ),
         (
-            "harry changed Undroppable List from 'NFL.com Fantasy' to 'None'",
+            "Owner 17 changed Undroppable List from 'NFL.com Fantasy' to 'None'",
             "undroppable_list",
             "T3",
             "COLLAPSE",
         ),
-        ("Jeff updated the Draft Board", "draft_board", "T3", "COLLAPSE"),
+        ("Owner 10 updated the Draft Board", "draft_board", "T3", "COLLAPSE"),
         (
-            "Dan changed Ice Station Zebra Waiver Budget from '39' to '76'",
+            "Owner 05 changed Team 083 Waiver Budget from '39' to '76'",
             "waiver_budget_team",
             "T2",
             "MISSING",
         ),
-        ("harry changed Draft Time to 'Aug 17, 2011 7:30pm PDT'", "draft_time", "T3", "COLLAPSE"),
-        ("harry changed Draft Type from 'offline' to 'live'", "draft_type", "T3", "COLLAPSE"),
-        ("harry changed Draft Order from 'snake' to 'custom'", "draft_order", "T3", "COLLAPSE"),
-        ("harry randomized Custom Draft Order", "draft_order_randomized", "T3", "COLLAPSE"),
-        ("scott Reset the draft", "draft_reset", "T3", "COLLAPSE"),
         (
-            "harry changed Ill Edit Story Permission from 'No' to 'Yes'",
+            "Owner 17 changed Draft Time to 'Aug 17, 2011 7:30pm PDT'",
+            "draft_time",
+            "T3",
+            "COLLAPSE",
+        ),
+        ("Owner 17 changed Draft Type from 'offline' to 'live'", "draft_type", "T3", "COLLAPSE"),
+        ("Owner 17 changed Draft Order from 'snake' to 'custom'", "draft_order", "T3", "COLLAPSE"),
+        ("Owner 17 randomized Custom Draft Order", "draft_order_randomized", "T3", "COLLAPSE"),
+        ("Owner 20 Reset the draft", "draft_reset", "T3", "COLLAPSE"),
+        (
+            "Owner 17 changed Owner 09 Edit Story Permission from 'No' to 'Yes'",
             "edit_story_permission",
             "T3",
             "COLLAPSE",
         ),
-        ("harry IAMTHEOMEN Player Adds Count", "player_adds_count", "T3", "COLLAPSE"),
+        ("Owner 17 Team 078 Player Adds Count", "player_adds_count", "T3", "COLLAPSE"),
         (
-            "harry changed Standings Tiebreaker from 'Head to Head Record' to 'Points For'",
+            "Owner 17 changed Standings Tiebreaker from 'Head to Head Record' to 'Points For'",
             "standings_tiebreaker",
             "T2",
             "PASS",
@@ -104,11 +114,14 @@ def test_classify_detects_and_tiers(desc: str, canonical: str, tier: str, treatm
 def test_classify_splits() -> None:
     # Trade review: pre-2012 substantive transition (T2) vs later re-confirm (T3).
     early = classify(
-        _raw("harry changed Trade Review Type from 'League Manager Veto' to 'No Review'", year=2011)
+        _raw(
+            "Owner 17 changed Trade Review Type from 'League Manager Veto' to 'No Review'",
+            year=2011,
+        )
     )
     late = classify(
         _raw(
-            "Rob changed Trade Review Type from 'League Votes (by team managers)' to 'No Review'",
+            "Owner 14 changed Trade Review Type from 'League Votes (by team managers)' to 'No Review'",
             year=2025,
         )
     )
@@ -117,11 +130,11 @@ def test_classify_splits() -> None:
 
     # Trade deadline: first-ever (No Deadline -> date) is notable T2; net-zero shuffle is T3.
     first = classify(
-        _raw("Jeff changed Trade Deadline from 'No Deadline' to 'November 15, 2019'", year=2019)
+        _raw("Owner 10 changed Trade Deadline from 'No Deadline' to 'November 15, 2019'", year=2019)
     )
     shuffle = classify(
         _raw(
-            "harry changed Trade Deadline from 'November 18, 2011' to 'November 25, 2011'",
+            "Owner 17 changed Trade Deadline from 'November 18, 2011' to 'November 25, 2011'",
             year=2011,
         )
     )
@@ -129,8 +142,8 @@ def test_classify_splits() -> None:
     assert shuffle.tier == "T3"
 
     # Time per pick: draft-clock logistics are routine regardless of value.
-    era = classify(_raw("Chris changed Time Per Pick from '300' to '120'", year=2020))
-    blip = classify(_raw("Chris changed Time Per Pick from '15' to '300'", year=2020))
+    era = classify(_raw("Owner 03 changed Time Per Pick from '300' to '120'", year=2020))
+    blip = classify(_raw("Owner 03 changed Time Per Pick from '15' to '300'", year=2020))
     assert era.tier == "T3"
     assert blip.tier == "T3"
 
@@ -139,19 +152,19 @@ def test_per_team_budget_change_names_the_team() -> None:
     # The per-team FAAB budget event has no team_id — the only link is the team
     # name in the description. The rendered title and summary must surface it so
     # the Timeline doesn't show a generic "a team's budget" for an anomalous,
-    # team-specific event (here: Ice Station Zebra's 2022 refund).
-    c = classify(_raw("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", year=2022))
+    # team-specific event (here: Team 083's 2022 refund).
+    c = classify(_raw("Owner 05 changed Team 083 Waiver Budget from '39' to '76'", year=2022))
     detail = _emit_individual(c)
-    assert "Ice Station Zebra" in detail["title"]
-    assert "Ice Station Zebra" in detail["summary"]
+    assert "Team 083" in detail["title"]
+    assert "Team 083" in detail["summary"]
     assert "39→76" in detail["summary"]
 
 
 def test_per_team_budget_change_states_verified_refund_context() -> None:
-    # The 2022 Ice Station Zebra event's reason is verified from the transaction
+    # The 2022 Team 083 event's reason is verified from the transaction
     # log (a reversed Dameon Pierce claim), so the Timeline states it as fact and
     # drops the "context not recorded" gap affordance.
-    c = classify(_raw("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'", year=2022))
+    c = classify(_raw("Owner 05 changed Team 083 Waiver Budget from '39' to '76'", year=2022))
     detail = _emit_individual(c)
     assert "Dameon Pierce" in detail["summary"]
     assert "refund" in detail["summary"].lower()
@@ -161,7 +174,9 @@ def test_per_team_budget_change_states_verified_refund_context() -> None:
 
 def test_unknown_per_team_budget_change_keeps_the_honest_hedge() -> None:
     # A per-team budget change with no verified context stays a documented gap.
-    c = classify(_raw("Dan changed Some Other Team Waiver Budget from '50' to '60'", year=2023))
+    c = classify(
+        _raw("Owner 05 changed Some Other Team Waiver Budget from '50' to '60'", year=2023)
+    )
     detail = _emit_individual(c)
     assert "Some Other Team" in detail["summary"]
     assert "reason isn't recorded" in detail["summary"]
@@ -174,16 +189,16 @@ def test_league_wide_budget_default_has_no_team_target() -> None:
     # not be mis-parsed into a phantom target.
     from ff_dashboard.analytics.league_changes import _budget_target
 
-    assert _budget_target("Chris changed Waiver Budget to '100'") is None
-    assert _budget_target("Dan changed Ice Station Zebra Waiver Budget from '39' to '76'") == (
-        "Ice Station Zebra"
+    assert _budget_target("Owner 03 changed Waiver Budget to '100'") is None
+    assert _budget_target("Owner 05 changed Team 083 Waiver Budget from '39' to '76'") == (
+        "Team 083"
     )
 
 
 def test_classify_reattributes_adjusted_points() -> None:
     c = classify(
         _raw(
-            "Dan changed Smokin Doubs Adjusted Pts For Week 17 from '0.00' to '55.26'",
+            "Owner 05 changed Team 135 Adjusted Pts For Week 17 from '0.00' to '55.26'",
             year=2022,
             month=1,
             day=16,
@@ -196,7 +211,7 @@ def test_classify_reattributes_adjusted_points() -> None:
 
 
 def test_catch_all_degrades_to_t3() -> None:
-    c = classify(_raw("harry invented a brand new setting nobody has seen"))
+    c = classify(_raw("Owner 17 invented a brand new setting nobody has seen"))
     assert c.canonical_type == "other"
     assert c.tier == "T3"
     assert c.treatment == "HEDGE"
@@ -248,13 +263,13 @@ def test_emit_group_faab_merge() -> None:
     items = [
         classify(
             _raw(
-                "Chris changed Waiver Type from 'Resets to Inverse Standings Order' to 'Waiver Budget'",
+                "Owner 03 changed Waiver Type from 'Resets to Inverse Standings Order' to 'Waiver Budget'",
                 year=2021,
                 month=8,
                 day=27,
             )
         ),
-        classify(_raw("Chris changed Waiver Budget to '100'", year=2021, month=8, day=27)),
+        classify(_raw("Owner 03 changed Waiver Budget to '100'", year=2021, month=8, day=27)),
     ]
     event, leftovers = _emit_group("faab-2021", items)
     assert leftovers == []
@@ -267,21 +282,25 @@ def test_emit_group_faab_merge() -> None:
 def test_emit_group_division_realignment_counts() -> None:
     items = [
         classify(
-            _raw(f"harry changed Team{i}'s Division from '1' to '2'", year=2011, month=8, day=6)
+            _raw(f"Owner 17 changed Team{i}'s Division from '1' to '2'", year=2011, month=8, day=6)
         )
         for i in range(12)
     ]
     event, leftovers = _emit_group("div-2011-2011-08-06", items)
     assert leftovers == []
-    assert event["tier"] == "T2"
+    assert event["tier"] == "T1"
     assert "12 teams" in event["summary"]
     assert len(event["members"]) == 12
 
 
 def test_emit_group_waiver_priority_small_swap_falls_through() -> None:
     items = [
-        classify(_raw("Dave changed A Waiver Priority from '5' to '6'", year=2017, month=9, day=3)),
-        classify(_raw("Dave changed B Waiver Priority from '6' to '5'", year=2017, month=9, day=3)),
+        classify(
+            _raw("Owner 06 changed A Waiver Priority from '5' to '6'", year=2017, month=9, day=3)
+        ),
+        classify(
+            _raw("Owner 06 changed B Waiver Priority from '6' to '5'", year=2017, month=9, day=3)
+        ),
     ]
     event, leftovers = _emit_group("wpri-2017-2017-09-03", items)
     assert event is None  # trivial 2-team swap -> routine bucket, not an elevated event
@@ -291,23 +310,41 @@ def test_emit_group_waiver_priority_small_swap_falls_through() -> None:
 def test_emit_group_commish_filters_co_manager_noise() -> None:
     items = [
         classify(
-            _raw("Dave assigned League Management Privileges to Jeff.", year=2018, month=5, day=13)
-        ),
-        classify(
-            _raw("Jeff removed League Management Privileges from Dave.", year=2018, month=5, day=13)
-        ),
-        classify(
-            _raw("Jeff assigned League Management Privileges to harry.", year=2018, month=5, day=18)
+            _raw(
+                "Owner 06 assigned League Management Privileges to Owner 10.",
+                year=2018,
+                month=5,
+                day=13,
+            )
         ),
         classify(
             _raw(
-                "Jeff removed League Management Privileges from harry.", year=2018, month=8, day=25
+                "Owner 10 removed League Management Privileges from Owner 06.",
+                year=2018,
+                month=5,
+                day=13,
+            )
+        ),
+        classify(
+            _raw(
+                "Owner 10 assigned League Management Privileges to Owner 17.",
+                year=2018,
+                month=5,
+                day=18,
+            )
+        ),
+        classify(
+            _raw(
+                "Owner 10 removed League Management Privileges from Owner 17.",
+                year=2018,
+                month=8,
+                day=25,
             )
         ),
     ]
     event, _ = _emit_group("commish-2018", items)
     assert event is not None
-    # harry was assigned-then-removed same year -> noise, excluded from the signal.
-    assert "harry" not in event["summary"]
-    assert "Jeff" in event["summary"]  # net assignment
+    # Owner 17 was assigned-then-removed same year -> noise, excluded from the signal.
+    assert "Owner 17" not in event["summary"]
+    assert "Owner 10" in event["summary"]  # net assignment
     assert len(event["members"]) == 4  # nothing dropped — all rows kept as members

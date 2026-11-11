@@ -1,0 +1,51 @@
+{
+ "body": {
+  "data": {
+   "avg_finish": 4.0,
+   "best_finish": 4,
+   "championships": 0,
+   "commissioner_terms": [],
+   "consistency": {
+    "above_median_rate": 0.143,
+    "available": true,
+    "average_weekly_rank": 3.29,
+    "best_season_points_for": 235.0,
+    "best_season_year": 2017,
+    "floor_week_rate": 0.429,
+    "rank_among_owners": 2,
+    "reason": null,
+    "signature": "floor risk",
+    "top_week_rate": 0.0,
+    "weekly_points_stdev": 22.79,
+    "weekly_volatility": 0.44,
+    "weeks_sampled": 7
+   },
+   "display_name": "Iceman",
+   "is_active": true,
+   "latest_team_id": 10,
+   "owner_id": 2,
+   "qualified": true,
+   "sackos": 1,
+   "seasons_played": 3,
+   "total_losses": 4,
+   "total_points_for": 605.0,
+   "total_ties": 0,
+   "total_wins": 2,
+   "trophy_case": [
+    {
+     "finish": 4,
+     "is_champion": false,
+     "is_sacko": true,
+     "season_year": 2015,
+     "team_name": "Iceman 2015"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -20,12 +20,23 @@ from ff_pipeline.repository.models import (
     Team,
     TeamRoster,
 )
-from sqlalchemy import Float, cast, distinct, func, select
+from sqlalchemy import and_, distinct, select
 
+from ff_dashboard.analytics.aggregation import (
+    REASON_SEASON_TOTALS,
+    aggregation_note,
+    partial_seasons,
+    scoring_era_count,
+    scoring_eras,
+)
+from ff_dashboard.analytics.bracket import season_sacko_map
 from ff_dashboard.analytics.common import owner_name_map, regular_season_weeks
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.game_state import is_idle, is_pending
 from ff_dashboard.analytics.head_to_head import closest_rivalry
 from ff_dashboard.analytics.historical_team_names import period_team_name_by_slot
+from ff_dashboard.analytics.platform import week_state
+from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -102,11 +113,15 @@ def records_book(session: Session) -> dict[str, Any]:
         c["week"] = week
         return c
 
-    matchups = list(
+    # Only final games set a record: an unfinished week is unscored and an idle postseason
+    # team-week is not a game (Sleeper D3).
+    all_rows = list(
         session.execute(select(Matchup).where(Matchup.season_id.in_(team_season_ids)))
         .scalars()
         .all()
     )
+    pending_weeks = {(season_year.get(m.season_id), m.week) for m in all_rows if is_pending(m)}
+    matchups = [m for m in all_rows if not is_pending(m) and not is_idle(m)]
 
     book: dict[str, Any] = {
         "scored_era": sorted(scored),
@@ -205,12 +220,11 @@ def records_book(session: Session) -> dict[str, Any]:
     #   1. Scope to rows the league rostered **and started** (``team_rosters``,
     #      ``is_starter``). The nflverse scoring spans the whole NFL, so its global
     #      max can be a player nobody in this league ever started.
-    #   2. Score each row the way the box score does — prefer NFL.com's authoritative
-    #      ``extra_data.nfl_com_points`` (it carries bonuses the reconstruction
-    #      omits, e.g. long-TD), fall back to the reconstruction only when absent.
+    #   2. Score each row the way the box score does — prefer the platform's official
+    #      points (they carry bonuses the reconstruction omits, e.g. long-TD), fall
+    #      back to the reconstruction only when absent (analytics/scoring.py).
     # The result is the same number the player's source box score shows.
-    nfl_points = cast(func.json_extract(TeamRoster.extra_data, "$.nfl_com_points"), Float)
-    started_points = func.coalesce(nfl_points, PlayerStatsScored.total_points)
+    started_points = authoritative_week_points()
     best_player = session.execute(
         select(
             TeamRoster.team_id,
@@ -230,6 +244,12 @@ def records_book(session: Session) -> dict[str, Any]:
         )
         .where(TeamRoster.is_starter.is_(True))
         .where(started_points.is_not(None))
+        .where(
+            *(
+                ~and_(TeamRoster.season_year == yr, TeamRoster.week == wk)
+                for yr, wk in pending_weeks
+            )
+        )
         .order_by(started_points.desc())
         .limit(1)
     ).first()
@@ -250,14 +270,55 @@ def records_book(session: Session) -> dict[str, Any]:
         }
 
     book.update(_record_only(session, teams, season_year))
+    _label_in_progress(session, book)
+    _label_scoring_era(session, book)
+    # Single-game records count the in-progress season through its last final week; the
+    # season-total records leave it out (D3). Null on a book with no season in progress.
+    partial = partial_seasons(session)
+    book["aggregation_note"] = aggregation_note(
+        used=(season_year[sid] for sid in team_season_ids),
+        excluded=(p["season_year"] for p in partial),
+        reason=REASON_SEASON_TOTALS,
+        partial=partial,
+    )
 
-    # The "closest rivalry" — most-played pair nearest a 50/50 split (04 §4). A
-    # records-book stat that deep-links to its pairwise page on the frontend.
+    # The "closest rivalry" — the genuinely dead-even pair (win pct nearest 50/50,
+    # min-sample gated; balance leads, not volume), crowned among qualified
+    # managers (04 §4). Deep-links to its pairwise page on the frontend.
     rivalry = closest_rivalry(session)
     book["closest_rivalry"] = (
         {"available": True, **rivalry} if rivalry is not None else _unavailable("no_meetings")
     )
     return book
+
+
+def _in_progress_through(session: Session) -> dict[int, int | None]:
+    """``{season_year: last finalized week}`` for seasons still in progress."""
+    out: dict[int, int | None] = {}
+    for s in session.execute(select(Season)).scalars().all():
+        weeks = week_state(session, s.season_id)
+        if not weeks["is_final"]:
+            out[int(s.year)] = weeks["last_finalized_week"]
+    return out
+
+
+def _label_in_progress(session: Session, book: dict[str, Any]) -> None:
+    """Per-record label (user, 2026-11-10): a record set in a season still in progress carries
+    ``through_week`` ("2026, through week 8"); every other record carries ``None``."""
+    through = _in_progress_through(session)
+    for value in book.values():
+        if isinstance(value, dict) and value.get("available") and "season_year" in value:
+            value["through_week"] = through.get(value.get("season_year"))  # type: ignore[arg-type]
+
+
+def _label_scoring_era(session: Session, book: dict[str, Any]) -> None:
+    """Rules-era marker (`01` §5): each season-scoped record names its scoring era, and the book
+    says how many eras the league spans (the SPA shows the chip only when that is > 1)."""
+    eras = scoring_eras(session)
+    book["scoring_era_count"] = scoring_era_count(eras)
+    for value in book.values():
+        if isinstance(value, dict) and value.get("available") and value.get("season_year"):
+            value["scoring_era"] = eras.get(value["season_year"])
 
 
 def _record_only(
@@ -285,10 +346,30 @@ def _record_only(
     else:
         most_champs = _unavailable("no_champions")
 
+    # Most Sackos — the anti-championship. The toilet-bowl loser per season, owner-keyed.
+    sacko_counts: dict[int, int] = {}
+    for sacko in season_sacko_map(session).values():
+        owner_id = sacko.get("owner_id")
+        if owner_id is not None:
+            sacko_counts[owner_id] = sacko_counts.get(owner_id, 0) + 1
+    most_sackos: dict[str, Any]
+    if sacko_counts:
+        owner_id, n = max(sacko_counts.items(), key=lambda kv: kv[1])
+        most_sackos = {
+            "available": True,
+            "value": n,
+            "owner_id": owner_id,
+            "owner_name": owners.get(owner_id),
+        }
+    else:
+        most_sackos = _unavailable("no_sackos")
+
     # Best / worst single-season regular-season points-for, from matchups.
     from ff_dashboard.analytics.owners import _standings_index
 
-    index = _standings_index(session)
+    # A season-total record needs a complete season: a season in progress is left out.
+    partial = set(_in_progress_through(session))
+    index = {k: r for k, r in _standings_index(session).items() if r["season_year"] not in partial}
     best_pf: dict[str, Any] = _unavailable("no_standings")
     worst_pf: dict[str, Any] = _unavailable("no_standings")
     if index:
@@ -317,6 +398,7 @@ def _record_only(
 
     return {
         "most_championships": most_champs,
+        "most_sackos": most_sackos,
         "best_season_points_for": best_pf,
         "worst_season_points_for": worst_pf,
         "longest_win_streak": win_streak,
@@ -397,14 +479,21 @@ def championships(session: Session) -> dict[str, Any]:
             "owner_name": owners.get(t.get("owner_id", -1)),
         }
 
+    sacko_map = season_sacko_map(session)
     entries: list[dict[str, Any]] = []
     for season in session.execute(select(Season).order_by(Season.year)).scalars().all():
+        sacko = sacko_map.get(int(season.season_id))
+        sacko_ref = label(sacko["team_id"], season.year) if sacko else None
         entries.append(
             {
                 "season_year": season.year,
                 "champion": label(season.champion_team_id, season.year),
                 "runner_up": label(season.runner_up_team_id, season.year),
                 "last_place": label(season.last_place_team_id, season.year),
+                # The Sacko (toilet-bowl loser) — derived from the bracket where it
+                # can be distinguished, else the recorded last-place team. ``source``
+                # lets the UI caveat the recorded fallback.
+                "sacko": {**sacko_ref, "source": sacko["source"]} if sacko_ref and sacko else None,
             }
         )
     return {"seasons": entries}

@@ -11,8 +11,10 @@ import {
   RecordLine,
   Skeleton,
   Stat,
+  throughWeekText,
   Trophy,
 } from "@/design-system";
+import { ThisWeek } from "@/features/home/ThisWeek";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
@@ -49,6 +51,7 @@ type HomeRecord = {
   loser_name?: string | null;
   opponent_name?: string | null;
   season_year?: number | null;
+  through_week?: number | null;
   reason?: string;
 };
 
@@ -62,6 +65,7 @@ function recordWho(rec: HomeRecord): string {
   else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
   if (rec.season_year) parts.push(String(rec.season_year));
+  if (rec.through_week != null) parts.push(throughWeekText(rec.through_week));
   return parts.join(" · ") || "—";
 }
 
@@ -86,9 +90,7 @@ export function HomePage() {
   const overview = useQuery({ queryKey: qk.leagueOverview, queryFn: fetchOverview });
   const records = useQuery({ queryKey: qk.records, queryFn: fetchRecords });
   const scorers = useQuery({
-    queryKey: scorerSeason
-      ? qk.topScorers({ season: scorerSeason, limit: 5 })
-      : ["scorers", "none"],
+    queryKey: scorerSeason ? qk.topScorers({ season: scorerSeason, limit: 5 }) : ["scorers", "none"],
     queryFn: () => fetchTopScorers(scorerSeason as number),
     enabled: scorerSeason != null,
   });
@@ -104,17 +106,29 @@ export function HomePage() {
           The Danger Zone
         </h1>
         <p className="mt-2 max-w-xl text-[var(--fs-sm)] text-muted">
-          League archive, stats lab, and argument starter. Historical context and story logic come
-          from backend metrics; gaps are shown honestly, never faked.
+          League archive, stats lab, and argument starter. Historical context and story logic come from
+          backend metrics; gaps are shown honestly, never faked.
         </p>
       </div>
+
+      <ThisWeek />
 
       <Card className="p-5">
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
           <Stat label="Seasons" value={overview.data?.season_count ?? seasons.length} />
           <Stat
             label={`${standings.data?.season_year ?? current?.season_year ?? ""} leader`}
-            value={leader ? <Chip name={leader.team_name ?? leader.owner_name} sub={leader.owner_name ?? undefined} avatarUrl={teamAvatarUrl(leader.team_id)} /> : "—"}
+            value={
+              leader ? (
+                <Chip
+                  name={leader.team_name ?? leader.owner_name}
+                  sub={leader.owner_name ?? undefined}
+                  avatarUrl={teamAvatarUrl(leader.team_id)}
+                />
+              ) : (
+                "—"
+              )
+            }
             tone="accent"
           />
           <Stat
@@ -134,8 +148,8 @@ export function HomePage() {
               Browse the league by season &amp; era
             </h2>
             <p className="mt-2 text-[var(--fs-sm)] text-muted">
-              Champions, league size, schedule shape, and scoring provenance by year — with the
-              structural eras and every material rule change in context.
+              Champions, league size, schedule shape, and scoring provenance by year — with the structural
+              eras and every material rule change in context.
             </p>
           </Card>
         </Link>
@@ -159,7 +173,10 @@ export function HomePage() {
             {champion ? (
               <div className="flex items-center gap-3">
                 <Trophy label="Champion" />
-                <Chip name={champion.team_name ?? champion.owner_name} sub={champion.owner_name ?? undefined} />
+                <Chip
+                  name={champion.team_name ?? champion.owner_name}
+                  sub={champion.owner_name ?? undefined}
+                />
               </div>
             ) : (
               <DataGap reason="bracket_unavailable" />
@@ -172,7 +189,7 @@ export function HomePage() {
 
         <Card>
           <CardHeader
-            eyebrow={phase.phase === "offseason" ? "past season" : "this season"}
+            eyebrow={scorerSeason != null ? `season ${scorerSeason}` : "past season"}
             title="Top scorers"
           />
           <div className="space-y-2 p-5">
@@ -190,15 +207,13 @@ export function HomePage() {
                 <span className="num text-accent">{num(s.points)}</span>
               </Link>
             ))}
-            {scorers.data && scorers.data.scorers.length === 0 && (
-              <DataGap reason="no_scored_data" />
-            )}
+            {scorers.data && scorers.data.scorers.length === 0 && <DataGap reason="no_scored_data" />}
           </div>
         </Card>
 
         <Card>
           <CardHeader
-            eyebrow={`season ${current?.season_year ?? ""}`}
+            eyebrow={`season ${standings.data?.season_year ?? ""}`}
             title="Standings"
             action={
               <Link to="/standings" className="dz-badge dz-badge--accent">
@@ -228,7 +243,11 @@ export function HomePage() {
                   <tr key={r.team_id}>
                     <td className="num text-faint">{r.rank}</td>
                     <td>
-                      <Chip name={r.team_name ?? r.owner_name} sub={r.owner_name ?? undefined} avatarUrl={teamAvatarUrl(r.team_id)} />
+                      <Chip
+                        name={r.team_name ?? r.owner_name}
+                        sub={r.owner_name ?? undefined}
+                        avatarUrl={teamAvatarUrl(r.team_id)}
+                      />
                     </td>
                     <td className="dz-num">
                       <RecordLine wins={r.wins} losses={r.losses} ties={r.ties} />
@@ -259,29 +278,27 @@ export function HomePage() {
               "most_championships",
               "biggest_blowout",
               "narrowest_win",
-            ].map(
-              (key) => {
-                const rec = records.data?.[key];
-                const ok = rec && rec.available !== false && rec.value !== undefined;
-                return (
-                  <div key={key} className="bg-[var(--surface-1)] p-4">
-                    <div className="dz-eyebrow mb-1">{key.replace(/_/g, " ")}</div>
-                    {records.isLoading ? (
-                      <Skeleton className="h-7 w-24" />
-                    ) : ok ? (
-                      <>
-                        <div className="num text-[var(--fs-h1)] font-semibold text-accent">
-                          {num(rec.value, Number.isInteger(rec.value) ? 0 : 2)}
-                        </div>
-                        <div className="text-[var(--fs-xs)] text-faint">{recordWho(rec)}</div>
-                      </>
-                    ) : (
-                      <DataGap reason={rec?.reason} />
-                    )}
-                  </div>
-                );
-              },
-            )}
+            ].map((key) => {
+              const rec = records.data?.[key];
+              const ok = rec && rec.available !== false && rec.value !== undefined;
+              return (
+                <div key={key} className="bg-[var(--surface-1)] p-4">
+                  <div className="dz-eyebrow mb-1">{key.replace(/_/g, " ")}</div>
+                  {records.isLoading ? (
+                    <Skeleton className="h-7 w-24" />
+                  ) : ok ? (
+                    <>
+                      <div className="num text-[var(--fs-h1)] font-semibold text-accent">
+                        {num(rec.value, Number.isInteger(rec.value) ? 0 : 2)}
+                      </div>
+                      <div className="text-[var(--fs-xs)] text-faint">{recordWho(rec)}</div>
+                    </>
+                  ) : (
+                    <DataGap reason={rec?.reason} />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>

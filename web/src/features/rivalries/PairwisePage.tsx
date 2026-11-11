@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
+import { MarginLine } from "@/charts";
 import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
@@ -13,6 +14,8 @@ type Meeting = {
   a_score?: number;
   b_score?: number;
   margin_for_a?: number;
+  is_playoff?: boolean;
+  is_championship?: boolean;
 };
 
 // HeadToHead is intentionally extra-permissive on the wire (each record carries
@@ -32,13 +35,13 @@ type Pairwise = {
   playoff_meetings?: number;
   highest_scoring_meeting?: Meeting;
   most_lopsided_meeting?: Meeting;
+  meetings?: Meeting[];
 };
 
 async function fetchPairwise(a: number, b: number): Promise<Pairwise> {
-  const { data, error } = await api.GET(
-    "/v1/owners/{owner_id}/head-to-head/{other_owner_id}",
-    { params: { path: { owner_id: a, other_owner_id: b } } },
-  );
+  const { data, error } = await api.GET("/v1/owners/{owner_id}/head-to-head/{other_owner_id}", {
+    params: { path: { owner_id: a, other_owner_id: b } },
+  });
   if (error || !data) throw new Error("Failed to load head-to-head");
   return data.data as unknown as Pairwise;
 }
@@ -91,9 +94,7 @@ export function PairwisePage() {
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && !data.available && (
         <Card className="p-8">
@@ -110,7 +111,11 @@ export function PairwisePage() {
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
               <Stat label={`${aName} wins`} value={data.a_wins ?? 0} tone="win" />
               <Stat label={`${bName} wins`} value={data.b_wins ?? 0} tone="loss" />
-              <Stat label="Games" value={data.games_played} unit={data.ties ? `· ${data.ties} tie` : undefined} />
+              <Stat
+                label="Games"
+                value={data.games_played}
+                unit={data.ties ? `· ${data.ties} tie` : undefined}
+              />
               <Stat
                 label={`${aName} win %`}
                 value={data.a_win_pct != null ? `${Math.round(data.a_win_pct * 100)}%` : "—"}
@@ -126,6 +131,24 @@ export function PairwisePage() {
               />
             </div>
           </Card>
+
+          {(data.meetings?.length ?? 0) > 1 && (
+            <Card>
+              <CardHeader eyebrow="shape of the rivalry" title={`Margin over time (for ${aName})`} />
+              <div className="p-5">
+                <MarginLine
+                  title={`Signed margin per meeting — above 0 = ${aName} won`}
+                  xLabel="Meeting"
+                  points={(data.meetings ?? []).map((m) => ({
+                    label: m.season_year ? `${m.season_year} W${m.week ?? ""}` : "—",
+                    margin: Math.round((m.margin_for_a ?? 0) * 10) / 10,
+                    championship: m.is_championship,
+                    note: m.is_championship ? "Championship" : m.is_playoff ? "Playoff" : "",
+                  }))}
+                />
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardHeader eyebrow="defining games" title="Notable Meetings" />

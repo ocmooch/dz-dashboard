@@ -1,0 +1,41 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "conferences": [],
+   "mapping_issues": [
+    "db_team_invalid_nfl_team_id:13:MAV",
+    "db_team_invalid_nfl_team_id:14:ICE",
+    "db_team_invalid_nfl_team_id:15:GOOS",
+    "db_team_invalid_nfl_team_id:16:VIPE",
+    "source_team_missing_from_db:1",
+    "source_team_missing_from_db:10",
+    "source_team_missing_from_db:11",
+    "source_team_missing_from_db:12",
+    "source_team_missing_from_db:2",
+    "source_team_missing_from_db:3",
+    "source_team_missing_from_db:4",
+    "source_team_missing_from_db:5",
+    "source_team_missing_from_db:6",
+    "source_team_missing_from_db:7",
+    "source_team_missing_from_db:8",
+    "source_team_missing_from_db:9",
+    "standings_team_missing_from_source:13",
+    "standings_team_missing_from_source:14",
+    "standings_team_missing_from_source:15",
+    "standings_team_missing_from_source:16"
+   ],
+   "reason": "historical_division_mapping_gap",
+   "regular_season_weeks": 0,
+   "season_id": 4,
+   "season_year": 2018,
+   "through_week": 0
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

@@ -43,6 +43,8 @@ const STANDINGS = {
       win_pct: 0.786,
       streak: { result: "W", length: 3 },
       final_rank: 1,
+      potential_points: 1800,
+      potential_points_official: 1810,
     },
     {
       rank: 2,
@@ -58,8 +60,10 @@ const STANDINGS = {
       win_pct: 0.643,
       streak: { result: "L", length: 1 },
       final_rank: 2,
+      potential_points: null,
     },
   ],
+  potential_points_uncertain_weeks: [1, 2, 3],
 };
 
 const TIMELINE = {
@@ -143,7 +147,12 @@ const POWER = {
   season_year: 2016,
   through_week: 14,
   regular_season_weeks: 14,
-  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  weights: {
+    points_for_per_game: 0.4,
+    all_play_win_pct: 0.25,
+    win_pct: 0.2,
+    recent_points_for_per_game: 0.15,
+  },
   explainer: "Power score blends four within-season z-scores per the documented weights.",
   rows: [powerRow(1, "Iceman", 1.54, 1, 2), powerRow(2, "Goose", -0.32, -1, 1)],
 };
@@ -153,19 +162,33 @@ const POWER_TIMELINE = {
   season_year: 2016,
   regular_season_weeks: 14,
   teams: [
-    { team_id: 10, team_name: "Iceman 2016", owner_name: "Iceman", points: [
-      { week: 1, rank: 2, power_score: 0.4 },
-      { week: 2, rank: 1, power_score: 1.54 },
-    ] },
-    { team_id: 11, team_name: "Goose 2016", owner_name: "Goose", points: [
-      { week: 1, rank: 1, power_score: 0.8 },
-      { week: 2, rank: 2, power_score: -0.32 },
-    ] },
+    {
+      team_id: 10,
+      team_name: "Iceman 2016",
+      owner_name: "Iceman",
+      points: [
+        { week: 1, rank: 2, power_score: 0.4 },
+        { week: 2, rank: 1, power_score: 1.54 },
+      ],
+    },
+    {
+      team_id: 11,
+      team_name: "Goose 2016",
+      owner_name: "Goose",
+      points: [
+        { week: 1, rank: 1, power_score: 0.8 },
+        { week: 2, rank: 2, power_score: -0.32 },
+      ],
+    },
   ],
 };
 
 let insightsResponse: unknown = INSIGHTS;
-let conferencesResponse: unknown = { available: false, reason: "no_conferences_this_season", conferences: [] };
+let conferencesResponse: unknown = {
+  available: false,
+  reason: "no_conferences_this_season",
+  conferences: [],
+};
 let conferencesError = false;
 let regularSeasonWeeks = 14;
 
@@ -192,7 +215,16 @@ const CONFERENCES = {
       conference_id: 20182,
       division_number: 2,
       name: "Essos",
-      teams: [{ ...DIVISION_TEAM, ...STANDINGS.rows[1], overall_rank: 2, conference_rank: 1, division_wins: 4, division_losses: 3 }],
+      teams: [
+        {
+          ...DIVISION_TEAM,
+          ...STANDINGS.rows[1],
+          overall_rank: 2,
+          conference_rank: 1,
+          division_wins: 4,
+          division_losses: 3,
+        },
+      ],
     },
   ],
 };
@@ -352,7 +384,8 @@ describe("StandingsPage", () => {
   it("keeps the modern season on one overall table", async () => {
     renderPage();
     expect(await screen.findByText("Champion")).toBeInTheDocument();
-    expect(screen.getAllByRole("table")).toHaveLength(2); // standings + Robbed & Blessed
+    // standings + Robbed & Blessed table + the luck bars' data-table fallback.
+    expect(screen.getAllByRole("table")).toHaveLength(3);
     expect(screen.queryByRole("heading", { name: "Westeros" })).not.toBeInTheDocument();
   });
 
@@ -384,10 +417,19 @@ describe("StandingsPage", () => {
       expect(
         get.mock.calls.some(
           (call) =>
-            call[0] === "/v1/seasons/{season_id}/conferences" &&
-            call[1]?.params?.query?.through_week === 13,
+            call[0] === "/v1/seasons/{season_id}/conferences" && call[1]?.params?.query?.through_week === 13,
         ),
       ).toBe(true);
     });
+  });
+
+  it("shows potential points, a gap (never 0) and the cross-check", async () => {
+    renderPage();
+    expect(await screen.findByText("Potential")).toBeInTheDocument();
+    expect(screen.getByTitle("Platform's own figure: 1,810.00")).toBeInTheDocument();
+    expect(screen.getByText(/No weekly lineups to solve/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Weeks 1–3: an injured-reserve player may sit on the bench/i),
+    ).toBeInTheDocument();
   });
 });

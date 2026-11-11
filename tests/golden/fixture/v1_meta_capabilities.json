@@ -1,0 +1,405 @@
+{
+ "body": {
+  "data": {
+   "keys": [
+    "standings",
+    "matchups",
+    "rosters_weekly",
+    "draft",
+    "official_player_points",
+    "reconstructed_player_points",
+    "transactions_moves",
+    "faab_winning_bids",
+    "faab_failed_bids",
+    "lineup_change_log",
+    "setting_change_log",
+    "official_brackets",
+    "official_divisions",
+    "potential_points",
+    "trades_with_picks_faab",
+    "traded_future_picks",
+    "co_owners",
+    "commissioner_score_overrides",
+    "player_status_daily",
+    "availability_weekly",
+    "avatars"
+   ],
+   "seasons": [
+    {
+     "cells": {
+      "availability_weekly": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "avatars": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "co_owners": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "commissioner_score_overrides": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "draft": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "faab_failed_bids": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "faab_winning_bids": {
+       "note": null,
+       "state": "not_used"
+      },
+      "lineup_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "matchups": {
+       "note": null,
+       "state": "available"
+      },
+      "official_brackets": {
+       "note": null,
+       "state": "derived"
+      },
+      "official_divisions": {
+       "note": "divisions derived by the dashboard (2010-2019)",
+       "state": "derived"
+      },
+      "official_player_points": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "player_status_daily": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "potential_points": {
+       "note": null,
+       "state": "derived"
+      },
+      "reconstructed_player_points": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "rosters_weekly": {
+       "note": null,
+       "state": "available"
+      },
+      "setting_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "standings": {
+       "note": null,
+       "state": "available"
+      },
+      "traded_future_picks": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "trades_with_picks_faab": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "transactions_moves": {
+       "note": "none loaded",
+       "state": "partial"
+      }
+     },
+     "platform": "nfl_com",
+     "platform_label": "NFL.com",
+     "season_id": 1,
+     "season_year": 2015
+    },
+    {
+     "cells": {
+      "availability_weekly": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "avatars": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "co_owners": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "commissioner_score_overrides": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "draft": {
+       "note": null,
+       "state": "available"
+      },
+      "faab_failed_bids": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "faab_winning_bids": {
+       "note": null,
+       "state": "not_used"
+      },
+      "lineup_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "matchups": {
+       "note": null,
+       "state": "available"
+      },
+      "official_brackets": {
+       "note": null,
+       "state": "derived"
+      },
+      "official_divisions": {
+       "note": "divisions derived by the dashboard (2010-2019)",
+       "state": "derived"
+      },
+      "official_player_points": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "player_status_daily": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "potential_points": {
+       "note": null,
+       "state": "derived"
+      },
+      "reconstructed_player_points": {
+       "note": null,
+       "state": "available"
+      },
+      "rosters_weekly": {
+       "note": null,
+       "state": "available"
+      },
+      "setting_change_log": {
+       "note": null,
+       "state": "available"
+      },
+      "standings": {
+       "note": null,
+       "state": "available"
+      },
+      "traded_future_picks": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "trades_with_picks_faab": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "transactions_moves": {
+       "note": "none loaded",
+       "state": "partial"
+      }
+     },
+     "platform": "nfl_com",
+     "platform_label": "NFL.com",
+     "season_id": 2,
+     "season_year": 2016
+    },
+    {
+     "cells": {
+      "availability_weekly": {
+       "note": "NFL.com availability snapshots",
+       "state": "partial"
+      },
+      "avatars": {
+       "note": "3 of 4 teams",
+       "state": "partial"
+      },
+      "co_owners": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "commissioner_score_overrides": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "draft": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "faab_failed_bids": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "faab_winning_bids": {
+       "note": null,
+       "state": "available"
+      },
+      "lineup_change_log": {
+       "note": null,
+       "state": "available"
+      },
+      "matchups": {
+       "note": null,
+       "state": "available"
+      },
+      "official_brackets": {
+       "note": null,
+       "state": "derived"
+      },
+      "official_divisions": {
+       "note": "divisions derived by the dashboard (2010-2019)",
+       "state": "derived"
+      },
+      "official_player_points": {
+       "note": "9 of 26 roster rows",
+       "state": "partial"
+      },
+      "player_status_daily": {
+       "note": "weekly nflverse injury reports",
+       "state": "partial"
+      },
+      "potential_points": {
+       "note": null,
+       "state": "derived"
+      },
+      "reconstructed_player_points": {
+       "note": null,
+       "state": "available"
+      },
+      "rosters_weekly": {
+       "note": null,
+       "state": "available"
+      },
+      "setting_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "standings": {
+       "note": null,
+       "state": "available"
+      },
+      "traded_future_picks": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "trades_with_picks_faab": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "transactions_moves": {
+       "note": null,
+       "state": "available"
+      }
+     },
+     "platform": "nfl_com",
+     "platform_label": "NFL.com",
+     "season_id": 3,
+     "season_year": 2017
+    },
+    {
+     "cells": {
+      "availability_weekly": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "avatars": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "co_owners": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "commissioner_score_overrides": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "draft": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "faab_failed_bids": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "faab_winning_bids": {
+       "note": null,
+       "state": "not_used"
+      },
+      "lineup_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "matchups": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "official_brackets": {
+       "note": null,
+       "state": "derived"
+      },
+      "official_divisions": {
+       "note": "divisions derived by the dashboard (2010-2019)",
+       "state": "derived"
+      },
+      "official_player_points": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "player_status_daily": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "potential_points": {
+       "note": null,
+       "state": "derived"
+      },
+      "reconstructed_player_points": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "rosters_weekly": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "setting_change_log": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "standings": {
+       "note": "none loaded",
+       "state": "partial"
+      },
+      "traded_future_picks": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "trades_with_picks_faab": {
+       "note": null,
+       "state": "not_on_platform"
+      },
+      "transactions_moves": {
+       "note": "none loaded",
+       "state": "partial"
+      }
+     },
+     "platform": "nfl_com",
+     "platform_label": "NFL.com",
+     "season_id": 4,
+     "season_year": 2018
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

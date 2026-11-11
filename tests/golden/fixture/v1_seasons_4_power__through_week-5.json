@@ -1,0 +1,113 @@
+{
+ "body": {
+  "data": {
+   "explainer": "Power score blends four within-season z-scores (each team measured against its peers that year): 0.4 x points-for per game, 0.25 x all-play win pct, 0.2 x actual win pct, and 0.15 x points-for per game over the last 3 weeks. All-play compares each team's weekly score against every other team that week, so the model rewards schedule-resistant scoring without needing player-level data. Points-for, all-play, and recent form all track scoring, so this is really a points-dominant lens on the season \u2014 a way to re-sort the table by strength and see who over- or under-performs their record, not a prediction.",
+   "regular_season_weeks": 0,
+   "rows": [
+    {
+     "all_play_win_pct": 0.0,
+     "losses": 0,
+     "owner_id": 3,
+     "owner_name": "Goose",
+     "points_for": 0.0,
+     "points_for_per_game": 0.0,
+     "power_score": 0.0,
+     "rank": 1,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 0.0,
+     "standings_rank": 1,
+     "team_id": 15,
+     "team_name": "Goose 2018",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0,
+     "z_all_play_win_pct": 0.0,
+     "z_points_for": 0.0,
+     "z_recent": 0.0,
+     "z_win_pct": 0.0
+    },
+    {
+     "all_play_win_pct": 0.0,
+     "losses": 0,
+     "owner_id": 2,
+     "owner_name": "Iceman",
+     "points_for": 0.0,
+     "points_for_per_game": 0.0,
+     "power_score": 0.0,
+     "rank": 2,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 0.0,
+     "standings_rank": 2,
+     "team_id": 14,
+     "team_name": "Iceman 2018",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0,
+     "z_all_play_win_pct": 0.0,
+     "z_points_for": 0.0,
+     "z_recent": 0.0,
+     "z_win_pct": 0.0
+    },
+    {
+     "all_play_win_pct": 0.0,
+     "losses": 0,
+     "owner_id": 1,
+     "owner_name": "Maverick",
+     "points_for": 0.0,
+     "points_for_per_game": 0.0,
+     "power_score": 0.0,
+     "rank": 3,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 0.0,
+     "standings_rank": 3,
+     "team_id": 13,
+     "team_name": "Maverick 2018",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0,
+     "z_all_play_win_pct": 0.0,
+     "z_points_for": 0.0,
+     "z_recent": 0.0,
+     "z_win_pct": 0.0
+    },
+    {
+     "all_play_win_pct": 0.0,
+     "losses": 0,
+     "owner_id": 5,
+     "owner_name": "Viper",
+     "points_for": 0.0,
+     "points_for_per_game": 0.0,
+     "power_score": 0.0,
+     "rank": 4,
+     "rank_delta": 0,
+     "recent_points_for_per_game": 0.0,
+     "standings_rank": 4,
+     "team_id": 16,
+     "team_name": "Viper 2018",
+     "ties": 0,
+     "win_pct": 0.0,
+     "wins": 0,
+     "z_all_play_win_pct": 0.0,
+     "z_points_for": 0.0,
+     "z_recent": 0.0,
+     "z_win_pct": 0.0
+    }
+   ],
+   "season_id": 4,
+   "season_year": 2018,
+   "through_week": 0,
+   "weights": {
+    "all_play_win_pct": 0.25,
+    "points_for_per_game": 0.4,
+    "recent_points_for_per_game": 0.15,
+    "win_pct": 0.2
+   }
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

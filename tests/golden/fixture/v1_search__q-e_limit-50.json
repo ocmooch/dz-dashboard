@@ -1,0 +1,330 @@
+{
+ "body": {
+  "data": {
+   "hits": [
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Goose",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/5",
+     "id": 5,
+     "label": "Viper",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/4",
+     "id": 4,
+     "label": "Slider",
+     "sublabel": "Manager",
+     "type": "owner"
+    },
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Dynasty Crew",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Goose 2015",
+     "sublabel": "Fantasy team \u00b7 2015",
+     "type": "team"
+    },
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Goose 2017",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    },
+    {
+     "href": "/managers/3",
+     "id": 3,
+     "label": "Goose 2018",
+     "sublabel": "Fantasy team \u00b7 2018",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2015",
+     "sublabel": "Fantasy team \u00b7 2015",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2016",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2017",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    },
+    {
+     "href": "/managers/2",
+     "id": 2,
+     "label": "Iceman 2018",
+     "sublabel": "Fantasy team \u00b7 2018",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2015",
+     "sublabel": "Fantasy team \u00b7 2015",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2016",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2017",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    },
+    {
+     "href": "/managers/1",
+     "id": 1,
+     "label": "Maverick 2018",
+     "sublabel": "Fantasy team \u00b7 2018",
+     "type": "team"
+    },
+    {
+     "href": "/managers/5",
+     "id": 5,
+     "label": "Northvale Scumbags",
+     "sublabel": "Fantasy team \u00b7 2017",
+     "type": "team"
+    },
+    {
+     "href": "/managers/4",
+     "id": 4,
+     "label": "Slider 2016",
+     "sublabel": "Fantasy team \u00b7 2016",
+     "type": "team"
+    },
+    {
+     "href": "/managers/5",
+     "id": 5,
+     "label": "Viper 2018",
+     "sublabel": "Fantasy team \u00b7 2018",
+     "type": "team"
+    },
+    {
+     "href": "/players/32",
+     "id": 32,
+     "label": "Bye Week Guy",
+     "sublabel": "WR \u00b7 DET",
+     "type": "player"
+    },
+    {
+     "href": "/players/2",
+     "id": 2,
+     "label": "Christian McCaffrey",
+     "sublabel": "RB \u00b7 SF",
+     "type": "player"
+    },
+    {
+     "href": "/players/29",
+     "id": 29,
+     "label": "Goose D/ST",
+     "sublabel": "DEF \u00b7 DEN",
+     "type": "player"
+    },
+    {
+     "href": "/players/27",
+     "id": 27,
+     "label": "Ice D/ST",
+     "sublabel": "DEF \u00b7 PIT",
+     "type": "player"
+    },
+    {
+     "href": "/players/28",
+     "id": 28,
+     "label": "Ice IR Guy",
+     "sublabel": "RB \u00b7 MIA",
+     "type": "player"
+    },
+    {
+     "href": "/players/26",
+     "id": 26,
+     "label": "Ice K One",
+     "sublabel": "K \u00b7 BUF",
+     "type": "player"
+    },
+    {
+     "href": "/players/16",
+     "id": 16,
+     "label": "Ice QB One",
+     "sublabel": "QB \u00b7 BAL",
+     "type": "player"
+    },
+    {
+     "href": "/players/17",
+     "id": 17,
+     "label": "Ice QB Two",
+     "sublabel": "QB \u00b7 CIN",
+     "type": "player"
+    },
+    {
+     "href": "/players/18",
+     "id": 18,
+     "label": "Ice RB One",
+     "sublabel": "RB \u00b7 NYG",
+     "type": "player"
+    },
+    {
+     "href": "/players/20",
+     "id": 20,
+     "label": "Ice RB Three",
+     "sublabel": "RB \u00b7 PHI",
+     "type": "player"
+    },
+    {
+     "href": "/players/19",
+     "id": 19,
+     "label": "Ice RB Two",
+     "sublabel": "RB \u00b7 DAL",
+     "type": "player"
+    },
+    {
+     "href": "/players/25",
+     "id": 25,
+     "label": "Ice TE One",
+     "sublabel": "TE \u00b7 KC",
+     "type": "player"
+    },
+    {
+     "href": "/players/24",
+     "id": 24,
+     "label": "Ice WR Four",
+     "sublabel": "WR \u00b7 LA",
+     "type": "player"
+    },
+    {
+     "href": "/players/21",
+     "id": 21,
+     "label": "Ice WR One",
+     "sublabel": "WR \u00b7 GB",
+     "type": "player"
+    },
+    {
+     "href": "/players/23",
+     "id": 23,
+     "label": "Ice WR Three",
+     "sublabel": "WR \u00b7 CHI",
+     "type": "player"
+    },
+    {
+     "href": "/players/22",
+     "id": 22,
+     "label": "Ice WR Two",
+     "sublabel": "WR \u00b7 DET",
+     "type": "player"
+    },
+    {
+     "href": "/players/31",
+     "id": 31,
+     "label": "No Stat Bench Guy",
+     "sublabel": "WR \u00b7 SEA",
+     "type": "player"
+    },
+    {
+     "href": "/players/13",
+     "id": 13,
+     "label": "No-Contest Nate",
+     "sublabel": "QB \u00b7 CIN",
+     "type": "player"
+    },
+    {
+     "href": "/players/14",
+     "id": 14,
+     "label": "No-Contest Ned",
+     "sublabel": "WR \u00b7 BUF",
+     "type": "player"
+    },
+    {
+     "href": "/players/15",
+     "id": 15,
+     "label": "No-Contest Zeb",
+     "sublabel": "RB \u00b7 BUF",
+     "type": "player"
+    },
+    {
+     "href": "/players/5",
+     "id": 5,
+     "label": "Ravens D/ST",
+     "sublabel": "DEF \u00b7 BAL",
+     "type": "player"
+    },
+    {
+     "href": "/players/10",
+     "id": 10,
+     "label": "Relocation Reggie",
+     "sublabel": "WR \u00b7 LV",
+     "type": "player"
+    },
+    {
+     "href": "/players/8",
+     "id": 8,
+     "label": "Vintage Vince",
+     "sublabel": "WR \u00b7 GB",
+     "type": "player"
+    },
+    {
+     "href": "/players/30",
+     "id": 30,
+     "label": "Viper D/ST",
+     "sublabel": "DEF \u00b7 MIA",
+     "type": "player"
+    },
+    {
+     "href": "/players/7",
+     "id": 7,
+     "label": "Waiver Wendell",
+     "sublabel": "RB \u00b7 DEN",
+     "type": "player"
+    }
+   ],
+   "query": "e"
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

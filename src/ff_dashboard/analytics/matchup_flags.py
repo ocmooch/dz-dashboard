@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 from ff_pipeline.repository.models import Matchup, Player, PlayerStatsScored, TeamRoster
 from sqlalchemy import select
 
+from ff_dashboard.analytics.game_state import is_pending
 from ff_dashboard.analytics.scoring import authoritative_week_points
 
 if TYPE_CHECKING:
@@ -50,9 +51,11 @@ def season_score_context(session: Session, season_id: int, season_year: int) -> 
     query. Computed once per ``week_matchups`` / ``box_score`` call and reused for
     every game; the callers are themselves cached per (season, week) / matchup.
     """
-    rows = list(
-        session.execute(select(Matchup).where(Matchup.season_id == season_id)).scalars().all()
-    )
+    rows = [
+        m
+        for m in session.execute(select(Matchup).where(Matchup.season_id == season_id)).scalars()
+        if not is_pending(m)  # an unfinished week's live scores set no superlative (D3)
+    ]
 
     # Single-team extremes: only real games (a bye is not a "low score" superlative).
     team_scores = [
@@ -169,14 +172,25 @@ def flags_for_game(
     week: int,
     season_ctx: dict[str, Any],
     week_ctx: dict[int, float],
+    bracket_tier: str | None = None,
 ) -> list[dict[str, Any]]:
     """Superlative flags for one game. Pure: all DB work is in the contexts.
 
     ``team_a`` / ``team_b`` are side dicts carrying ``team_id``, ``score`` and
     ``entering_record`` (the shapes ``week_matchups`` and ``box_score`` already
-    build). Returns ``[]`` for an unscored or bye game.
+    build). ``bracket_tier`` (``championship`` / ``playoff`` / ``consolation`` from
+    the shared classifier) drives the postseason flag. Returns ``[]`` for an
+    unscored or bye game without a bracket tier.
     """
     flags: list[dict[str, Any]] = []
+
+    # Postseason tier flag — the championship gets its own banner; the consolation
+    # ("toilet") bracket is marked muted so it never reads as a playoff achievement.
+    if bracket_tier == "championship":
+        flags.append(_flag("championship", "Championship", "win", detail="The title game"))
+    elif bracket_tier == "consolation":
+        flags.append(_flag("consolation", "Consolation", "muted", detail="Consolation bracket"))
+
     a, b = team_a, team_b
     sa = a["score"] if a else None
     sb = b["score"] if b else None

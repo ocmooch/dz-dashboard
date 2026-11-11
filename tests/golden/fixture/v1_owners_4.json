@@ -1,0 +1,51 @@
+{
+ "body": {
+  "data": {
+   "avg_finish": 1.0,
+   "best_finish": 1,
+   "championships": 1,
+   "commissioner_terms": [],
+   "consistency": {
+    "above_median_rate": 0.6,
+    "available": true,
+    "average_weekly_rank": 1.8,
+    "best_season_points_for": 250.0,
+    "best_season_year": 2015,
+    "floor_week_rate": 0.0,
+    "rank_among_owners": 4,
+    "reason": null,
+    "signature": "ceiling scorer",
+    "top_week_rate": 0.6,
+    "weekly_points_stdev": 13.37,
+    "weekly_volatility": 0.95,
+    "weeks_sampled": 5
+   },
+   "display_name": "Slider",
+   "is_active": false,
+   "latest_team_id": 8,
+   "owner_id": 4,
+   "qualified": false,
+   "sackos": 0,
+   "seasons_played": 2,
+   "total_losses": 1,
+   "total_points_for": 444.5,
+   "total_ties": 0,
+   "total_wins": 3,
+   "trophy_case": [
+    {
+     "finish": 1,
+     "is_champion": true,
+     "is_sacko": false,
+     "season_year": 2015,
+     "team_name": "Dynasty Crew"
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

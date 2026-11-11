@@ -303,3 +303,24 @@ Phase 2 — dz-dashboard repo (after Phase 1 lands):
 - **Real-time in-game scoring** — out of scope, matches Phase 1.
 - **Writing to the DB or NFL.com** — never.
 - **Mobile-native app** — the responsive web app covers mobile; native is out of scope.
+
+---
+
+## Sleeper era (D0–D8) — done 2026-11-10, released as v0.5.0
+
+The league moved to Sleeper for 2026. Milestones are defined in `docs/sleeper/02_DASHBOARD_BUILD_PLAN.md`;
+each has a plan + as-built in `docs/plans/sleeper-d{N}-*.md`.
+
+| # | Milestone | PR |
+|---|-----------|----|
+| D0 | Mixed-era fixture + legacy golden snapshots | #126 |
+| D1 | Provenance + capabilities | #127 |
+| D2 | Source-neutral points | #129 |
+| D3 | Current-season experience | #130 |
+| D4 | Cross-era aggregation | #131 |
+| D5 | Official brackets, divisions, potential points | #132 |
+| D6 | Transaction market | #133 |
+| D7 | Player status | #134 |
+| D8 | Consistency pass, per-era visual baselines, release v0.5.0 | this release |
+
+Next: after the user-approved upstream go-live, re-walk the 2026 pages on live data (`ACTIVE_WORK.md`).

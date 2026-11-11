@@ -38,7 +38,9 @@ const WEEK_GAMES = {
       team_a: { team_id: 10, team_name: "Iceman 2017", owner_name: "Iceman", score: 130, is_winner: true },
       team_b: { team_id: 11, team_name: "Goose 2017", owner_name: "Goose", score: 125, is_winner: false },
       margin: 5,
-      flags: [{ kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" }],
+      flags: [
+        { kind: "nailbiter", label: "Nailbiter", tone: "accent", team_id: null, detail: "decided by 5.0" },
+      ],
       winner_team_id: 10,
     },
     {
@@ -47,7 +49,9 @@ const WEEK_GAMES = {
       team_a: { team_id: 12, team_name: "Mav 2017", owner_name: "Maverick", score: 180.4, is_winner: true },
       team_b: { team_id: 13, team_name: "Viper 2017", owner_name: "Viper", score: 120, is_winner: false },
       margin: 60.4,
-      flags: [{ kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" }],
+      flags: [
+        { kind: "blowout", label: "Blowout", tone: "loss", team_id: null, detail: "60.4-point margin" },
+      ],
       winner_team_id: 12,
     },
   ],
@@ -263,6 +267,8 @@ describe("BoxScorePage", () => {
           week: 17,
           available: true,
           is_playoff: true,
+          bracket_tier: "championship",
+          game_label: "Championship",
           winner_team_id: 20,
           margin: 38.54,
           resolution_note:
@@ -270,8 +276,8 @@ describe("BoxScorePage", () => {
             "cardiac arrest and ruled a no-contest by the NFL (never replayed).",
           home: {
             team_id: 20,
-            team_name: "Smokin Doubs",
-            owner_name: "Jeff",
+            team_name: "Team 135",
+            owner_name: "Owner 10",
             total_score: 139.54,
             starter_points: 139.54,
             bench_points: 0,
@@ -308,10 +314,13 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/555");
-    await screen.findByText("Smokin Doubs");
+    await screen.findByText("Team 135");
     expect(screen.getByText(/no-contest resolution/i)).toBeInTheDocument();
     expect(screen.getByText(/ruled a no-contest/i)).toBeInTheDocument();
     expect(screen.getByText("Wk17+19")).toBeInTheDocument();
+    // The title game carries its own Championship badge, not a generic "playoff" one.
+    expect(screen.getByText(/🏆 Championship/)).toBeInTheDocument();
+    expect(screen.queryByText("playoff")).not.toBeInTheDocument();
   });
 
   it("shows an unscored-season box score as a gap, not zeros", async () => {
@@ -331,9 +340,7 @@ describe("BoxScorePage", () => {
       ),
     );
     renderWithProviders(<BoxScorePage />, "/matchups/99");
-    expect(
-      await screen.findByText(/Per-player scoring not available for this season/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Per-player scoring not available for this season/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View week 1 matchups/i })).toHaveAttribute(
       "href",
       "/matchups?week=1",
@@ -461,7 +468,9 @@ describe("BoxScorePage", () => {
     renderWithProviders(<BoxScorePage />, "/matchups/712");
 
     // A single page-level note explains the blank columns…
-    expect(await screen.findByText(/Projection data isn.t available for the 2017 season/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Projection data isn.t available for the 2017 season/),
+    ).toBeInTheDocument();
     // …and no per-player projection gap chip is rendered.
     expect(screen.queryByText("Projections not captured for this season/week")).toBeNull();
   });
@@ -664,5 +673,96 @@ describe("BoxScorePage", () => {
     // Winner +5, loser −5 beside each total.
     expect(screen.getByText("+5.00")).toHaveClass("text-win");
     expect(screen.getByText("-5.00")).toHaveClass("text-loss");
+  });
+});
+
+describe("Sleeper D3: unfinished week and Sleeper box scores", () => {
+  const pendingTeam = (team_id: number, team_name: string) => ({
+    team_id,
+    team_name,
+    owner_name: null,
+    score: null,
+    is_winner: false,
+    is_sacko: false,
+    entering_record: { wins: 4, losses: 4, ties: 0 },
+  });
+
+  it("shows a pending week as pairings awaiting final, with no scores", async () => {
+    get.mockImplementation((path: string) => {
+      if (path === "/v1/seasons/{season_id}/weeks/{week}/matchups")
+        return Promise.resolve(
+          envelope({
+            season_id: 1,
+            season_year: 2026,
+            week: 9,
+            is_scored: true,
+            pending: true,
+            games: [
+              {
+                matchup_id: 125,
+                is_playoff: false,
+                pending: true,
+                team_a: pendingTeam(30, "Charlie"),
+                team_b: pendingTeam(31, "Delta"),
+                margin: null,
+                winner_team_id: null,
+                flags: [],
+              },
+            ],
+          }),
+        );
+      return Promise.resolve(routeByPath(path));
+    });
+    renderWithProviders(<MatchupsPage />, "/matchups?week=9");
+    expect(await screen.findByText("Charlie")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting final")).toBeInTheDocument();
+    expect(screen.getByText(/isn.t final yet/)).toBeInTheDocument();
+    expect(screen.getAllByLabelText("No score yet")).toHaveLength(2);
+    expect(screen.queryByText("0.00")).not.toBeInTheDocument();
+  });
+
+  it("shows a pending week's box score as a week_pending gap", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          matchup_id: 125,
+          season_year: 2026,
+          week: 9,
+          available: false,
+          reason: "week_pending",
+          is_playoff: false,
+          official_points_source: "sleeper",
+          commissioner_override: null,
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/125");
+    expect(await screen.findByText(/This week isn.t final yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Team totals can still be reviewed/)).not.toBeInTheDocument();
+  });
+
+  it("notes a commissioner override and the official points source", async () => {
+    get.mockImplementation(() =>
+      Promise.resolve(
+        envelope({
+          ...BOX,
+          season_year: 2026,
+          official_points_source: "sleeper",
+          commissioner_override: { official: 112.46, custom: 117.46 },
+          home: {
+            ...BOX.home,
+            lineup: BOX.home.lineup.map((p) =>
+              p.roster_slot === "BN" ? { ...p, slot_note: "bench_or_reserve" } : p,
+            ),
+          },
+        }),
+      ),
+    );
+    renderWithProviders(<BoxScorePage />, "/matchups/712");
+    expect(
+      await screen.findByText(/Sleeper scored this team 112.46; the commissioner awarded 117.46/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Official player points from Sleeper\./)).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Bench or reserve/).length).toBeGreaterThan(0);
   });
 });

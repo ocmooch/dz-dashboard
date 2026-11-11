@@ -1,0 +1,61 @@
+{
+ "body": {
+  "data": {
+   "display_name": "Maverick",
+   "owner_id": 1,
+   "seasons": [
+    {
+     "final_rank": 2,
+     "is_champion": false,
+     "is_sacko": false,
+     "losses": 1,
+     "made_playoffs": true,
+     "points_for": 205.0,
+     "result": "Runner-up",
+     "season_id": 1,
+     "season_year": 2015,
+     "team_id": 1,
+     "team_name": "Maverick 2015",
+     "ties": 0,
+     "wins": 1
+    },
+    {
+     "final_rank": null,
+     "is_champion": true,
+     "is_sacko": false,
+     "losses": 0,
+     "made_playoffs": null,
+     "points_for": 270.0,
+     "result": "Champion",
+     "season_id": 2,
+     "season_year": 2016,
+     "team_id": 5,
+     "team_name": "Maverick 2016",
+     "ties": 0,
+     "wins": 2
+    },
+    {
+     "final_rank": null,
+     "is_champion": true,
+     "is_sacko": false,
+     "losses": 1,
+     "made_playoffs": null,
+     "points_for": 260.4,
+     "result": "Champion",
+     "season_id": 3,
+     "season_year": 2017,
+     "team_id": 9,
+     "team_name": "Maverick 2017",
+     "ties": 0,
+     "wins": 1
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

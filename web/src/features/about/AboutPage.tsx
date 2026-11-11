@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { Badge, Card, CardHeader, ErrorState, Skeleton, Stat } from "@/design-system";
+import { Badge, Card, CardHeader, EraMarker, ErrorState, Skeleton, Stat } from "@/design-system";
 import { api } from "@/lib/api/client";
+import { capabilityStateLabel } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchMeta() {
@@ -14,6 +15,76 @@ async function fetchCoverage() {
   const { data, error } = await api.GET("/v1/meta/coverage");
   if (error || !data) throw new Error("Failed to load integrity coverage");
   return data.data;
+}
+
+async function fetchCapabilities() {
+  const { data, error } = await api.GET("/v1/meta/capabilities");
+  if (error || !data) throw new Error("Failed to load capabilities");
+  return data.data;
+}
+
+function humanizeKey(key: string): string {
+  const s = key.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Platform eras + the seasons-by-capabilities matrix (Sleeper D1). `not_used` cells are blank. */
+function CapabilityMatrixCard() {
+  const meta = useQuery({ queryKey: qk.meta, queryFn: fetchMeta });
+  const caps = useQuery({ queryKey: qk.capabilities, queryFn: fetchCapabilities });
+  const eras = meta.data?.platform_eras ?? [];
+  const matrix = caps.data;
+  return (
+    <div data-testid="capability-matrix">
+      <Card className="p-5">
+        <CardHeader eyebrow="platforms" title="What each season's platform recorded" />
+        {eras.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-4 p-1">
+            {eras.map((e) => (
+              <span key={`${e.platform}-${e.start_year}`} className="flex items-center gap-2">
+                <EraMarker label={e.label} />
+                <span className="num text-muted">
+                  {e.start_year}–{e.end_year ?? ""}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+        {caps.isLoading && <Skeleton className="h-40 w-full" />}
+        {matrix && (
+          <div className="overflow-x-auto">
+            <table className="dz-table text-[var(--fs-xs)]">
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  {matrix.seasons.map((s) => (
+                    <th key={s.season_id} className="num" title={s.platform_label}>
+                      {s.season_year}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.keys.map((key) => (
+                  <tr key={key}>
+                    <td className="font-medium text-text">{humanizeKey(key)}</td>
+                    {matrix.seasons.map((s) => {
+                      const cell = s.cells[key];
+                      return (
+                        <td key={s.season_id} className="text-muted" title={cell?.note ?? undefined}>
+                          {cell ? capabilityStateLabel(cell.state) : ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
 }
 
 function yearRange(years: number[]): string {
@@ -59,8 +130,8 @@ export function AboutPage() {
         <div className="dz-eyebrow mb-1">the honest picture</div>
         <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">Coverage &amp; About</h1>
         <p className="mt-2 max-w-2xl text-muted">
-          What this dashboard knows, how fresh it is, and where the data genuinely runs out. Nothing
-          here is fabricated — absent data is labeled, never shown as a zero.
+          What this dashboard knows, how fresh it is, and where the data genuinely runs out. Nothing here is
+          fabricated — absent data is labeled, never shown as a zero.
         </p>
       </div>
 
@@ -71,9 +142,7 @@ export function AboutPage() {
         </div>
       )}
 
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
 
       {data && (
         <>
@@ -98,10 +167,7 @@ export function AboutPage() {
                     : "—"
                 }
               />
-              <Stat
-                label="run"
-                value={data.latest_run.run_id != null ? `#${data.latest_run.run_id}` : "—"}
-              />
+              <Stat label="run" value={data.latest_run.run_id != null ? `#${data.latest_run.run_id}` : "—"} />
             </div>
           </Card>
 
@@ -109,11 +175,7 @@ export function AboutPage() {
             <CardHeader eyebrow="what's in the database" title="Season coverage" />
             <div className="grid grid-cols-1 gap-5 p-1 sm:grid-cols-3">
               <Stat label="seasons on record" value={yearRange(data.coverage.seasons_present)} />
-              <Stat
-                label="scored seasons"
-                value={yearRange(data.coverage.seasons_scored)}
-                tone="accent"
-              />
+              <Stat label="scored seasons" value={yearRange(data.coverage.seasons_scored)} tone="accent" />
               <Stat
                 label="historical reconstruction"
                 value={data.coverage.reconstruction_complete ? "complete" : "pending"}
@@ -121,8 +183,8 @@ export function AboutPage() {
               />
             </div>
             <p className="px-1 pt-3 text-[var(--fs-sm)] text-muted">
-              Per-player scoring covers {yearRange(data.coverage.seasons_scored)}. A season without
-              it — for example one still in progress — shows a data-gap marker, not a zero.
+              Per-player scoring covers {yearRange(data.coverage.seasons_scored)}. A season without it — for
+              example one still in progress — shows a data-gap marker, not a zero.
             </p>
           </Card>
 
@@ -162,7 +224,9 @@ export function AboutPage() {
                   />
                   <GapRow
                     domain="Player availability (FA / owned)"
-                    status={data.coverage.availability_current_season_only ? "current season only" : "full history"}
+                    status={
+                      data.coverage.availability_current_season_only ? "current season only" : "full history"
+                    }
                     tone={data.coverage.availability_current_season_only ? "gap" : "win"}
                     note="History was never snapshotted; past-season availability is not reconstructable."
                   />
@@ -185,9 +249,7 @@ export function AboutPage() {
                           }`
                         : "verified"
                     }
-                    tone={
-                      matrix?.relevance.source_identity_mismatch_count ? "loss" : "win"
-                    }
+                    tone={matrix?.relevance.source_identity_mismatch_count ? "loss" : "win"}
                     note={
                       matrix?.relevance.source_identity_mismatch_count
                         ? "NFL.com records are attached to player identities that conflict with their NFL career era or fantasy position."
@@ -198,6 +260,8 @@ export function AboutPage() {
               </table>
             </div>
           </Card>
+
+          <CapabilityMatrixCard />
 
           <Card className="p-5">
             <CardHeader eyebrow="provenance" title="Sources & attribution" />
@@ -224,8 +288,8 @@ export function AboutPage() {
                 </p>
               </div>
               <p className="border-t border-[var(--border)] pt-3 text-[var(--fs-sm)] text-faint">
-                This dashboard reads only the Phase&nbsp;1 pipeline database. It never calls
-                NFL.com, nflverse, or Sleeper directly, and never writes back.
+                This dashboard reads only the Phase&nbsp;1 pipeline database. It never calls NFL.com,
+                nflverse, or Sleeper directly, and never writes back.
               </p>
             </div>
           </Card>

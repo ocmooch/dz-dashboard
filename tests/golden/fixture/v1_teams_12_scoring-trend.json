@@ -1,0 +1,29 @@
+{
+ "body": {
+  "data": {
+   "is_scored": true,
+   "points": [
+    {
+     "is_playoff": false,
+     "league_avg": 133.85,
+     "team_score": 120.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "league_avg": 113.75,
+     "team_score": 110.0,
+     "week": 2
+    }
+   ],
+   "season_year": 2017,
+   "team_id": 12
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

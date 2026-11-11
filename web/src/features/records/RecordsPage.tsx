@@ -2,9 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Card, CardHeader, Chip, DataGap, ErrorState, Skeleton, Trophy } from "@/design-system";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Chip,
+  DataGap,
+  ErrorState,
+  ProvenanceNote,
+  Skeleton,
+  throughWeekText,
+  Trophy,
+} from "@/design-system";
 import { api } from "@/lib/api/client";
 import { num, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText, scoringEraText, type AggregationNote, type ScoringEra } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 async function fetchRecords() {
@@ -33,6 +45,8 @@ type RecordValue = {
   opponent_name?: string | null;
   season_year?: number | null;
   week?: number | null;
+  // set only when the record's season is still in progress: its last finalized week.
+  through_week?: number | null;
   // deep-link context — each record carries enough to reach its source.
   matchup_id?: number | null;
   player_id?: number | null;
@@ -41,6 +55,8 @@ type RecordValue = {
   owner_a?: OwnerLite;
   owner_b?: OwnerLite;
   score_gap?: boolean;
+  // rules-era marker (Sleeper D4): the scoring era the record was set under.
+  scoring_era?: ScoringEra | null;
 };
 
 const RECORDS: { key: string; label: string; suffix?: string }[] = [
@@ -51,6 +67,7 @@ const RECORDS: { key: string; label: string; suffix?: string }[] = [
   { key: "highest_scoring_matchup", label: "Highest-scoring matchup", suffix: " total" },
   { key: "best_player_week", label: "Best player week", suffix: " pts" },
   { key: "most_championships", label: "Most championships", suffix: " 🏆" },
+  { key: "most_sackos", label: "Most Sackos", suffix: " 💩" },
   { key: "best_season_points_for", label: "Best season (PF)", suffix: " pts" },
   { key: "longest_win_streak", label: "Longest win streak", suffix: " W" },
   { key: "longest_loss_streak", label: "Longest loss streak", suffix: " L" },
@@ -60,12 +77,11 @@ function who(rec: RecordValue): string {
   const parts: string[] = [];
   if (rec.player_name) parts.push(rec.player_name);
   if (rec.winner_name && rec.loser_name) parts.push(`${rec.winner_name} def. ${rec.loser_name}`);
-  else if (rec.team_name && rec.opponent_name)
-    parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
+  else if (rec.team_name && rec.opponent_name) parts.push(`${rec.team_name} vs ${rec.opponent_name}`);
   else if (rec.team_name) parts.push(rec.team_name);
   else if (rec.owner_name) parts.push(rec.owner_name);
-  if (rec.season_year)
-    parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
+  if (rec.season_year) parts.push(rec.week ? `${rec.season_year} · wk ${rec.week}` : `${rec.season_year}`);
+  if (rec.through_week != null) parts.push(`season in progress, ${throughWeekText(rec.through_week)}`);
   return parts.join(" — ") || "—";
 }
 
@@ -91,6 +107,7 @@ function RecordBody({
   available,
   reason,
   scoreGap,
+  eraText,
 }: {
   label: string;
   suffix?: string;
@@ -99,6 +116,7 @@ function RecordBody({
   available: boolean;
   reason?: string;
   scoreGap?: boolean;
+  eraText?: string | null;
 }) {
   return (
     <Card hover className="h-full p-5">
@@ -115,6 +133,11 @@ function RecordBody({
             </div>
           )}
           <div className="mt-2 text-[var(--fs-sm)] text-muted">{detail}</div>
+          {eraText && (
+            <div className="mt-2">
+              <Badge>{eraText}</Badge>
+            </div>
+          )}
         </>
       ) : (
         <DataGap reason={reason} />
@@ -130,6 +153,7 @@ function RecordCard({
   rec,
   value,
   detail,
+  eraCount,
 }: {
   recordKey: string;
   label: string;
@@ -137,6 +161,7 @@ function RecordCard({
   rec?: RecordValue;
   value?: number;
   detail?: string;
+  eraCount?: number;
 }) {
   const available = rec?.available !== false && (value ?? rec?.value) !== undefined;
   const href = rec && available ? recordHref(recordKey, rec) : null;
@@ -149,6 +174,7 @@ function RecordCard({
       available={available}
       reason={rec?.reason}
       scoreGap={rec?.score_gap}
+      eraText={scoringEraText(rec?.scoring_era, eraCount)}
     />
   );
   if (href) {
@@ -175,6 +201,8 @@ function ChampionshipTimeline({ query }: { query: string }) {
       s.runner_up?.owner_name,
       s.last_place?.team_name,
       s.last_place?.owner_name,
+      s.sacko?.team_name,
+      s.sacko?.owner_name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -196,6 +224,15 @@ function ChampionshipTimeline({ query }: { query: string }) {
                 avatarUrl={teamId != null ? teamAvatarUrl(teamId) : undefined}
               />
             </div>
+            {s.sacko && (
+              <div
+                className="mt-1.5 flex items-center gap-1 text-[var(--fs-xs)] text-muted"
+                title={s.sacko.source === "recorded" ? "Recorded last place" : "Toilet-bowl loser"}
+              >
+                <span aria-hidden>💩</span>
+                <span className="truncate">{s.sacko.team_name ?? s.sacko.owner_name}</span>
+              </div>
+            )}
           </>
         );
         const cls = "dz-card dz-card--hover min-w-[140px] shrink-0 p-3";
@@ -220,20 +257,17 @@ export function RecordsPage() {
     queryFn: fetchRecords,
   });
 
-  const era = Array.isArray(data?.scored_era as unknown)
-    ? (data!.scored_era as unknown as number[])
-    : null;
+  const era = Array.isArray(data?.scored_era as unknown) ? (data!.scored_era as unknown as number[]) : null;
   const rivalry = data?.closest_rivalry as RecordValue | undefined;
+  const eraCount = data?.scoring_era_count as unknown as number | undefined;
+  const note = aggregationNoteText(data?.aggregation_note as unknown as AggregationNote | null);
   const rivalryNames =
     rivalry?.owner_a?.display_name && rivalry?.owner_b?.display_name
       ? `${rivalry.owner_a.display_name} vs ${rivalry.owner_b.display_name}`
       : "—";
   const [trophyQuery, setTrophyQuery] = useState("");
   const visibleRecords = useMemo(
-    () =>
-      RECORDS.filter((r) =>
-        r.label.toLowerCase().includes(trophyQuery.trim().toLowerCase()),
-      ),
+    () => RECORDS.filter((r) => r.label.toLowerCase().includes(trophyQuery.trim().toLowerCase())),
     [trophyQuery],
   );
 
@@ -258,14 +292,19 @@ export function RecordsPage() {
           ))}
         </div>
       )}
-      {isError && (
-        <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />
-      )}
+      {isError && <ErrorState message="Could not reach the analytics service." onRetry={() => refetch()} />}
       {data && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleRecords.map((r) => (
-              <RecordCard key={r.key} recordKey={r.key} label={r.label} suffix={r.suffix} rec={data[r.key]} />
+              <RecordCard
+                key={r.key}
+                recordKey={r.key}
+                label={r.label}
+                suffix={r.suffix}
+                rec={data[r.key]}
+                eraCount={eraCount}
+              />
             ))}
             <RecordCard
               recordKey="closest_rivalry"
@@ -276,6 +315,7 @@ export function RecordsPage() {
               detail={rivalryNames}
             />
           </div>
+          <ProvenanceNote>{note}</ProvenanceNote>
 
           <Card>
             <CardHeader eyebrow="league trophy case" title="Championship History" />

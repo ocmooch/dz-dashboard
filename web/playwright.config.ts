@@ -5,6 +5,11 @@ import { defineConfig, devices } from "@playwright/test";
 // assert against the fixture's KNOWN answers, so they are deterministic.
 const PORT = 8810;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+// Sleeper-era journeys (D3+) run against the mixed-era fixture (legacy + a Sleeper 2026 season)
+// on their own server, so 2026 never becomes the legacy suite's default season.
+const MIXED_PORT = 8811;
+const MIXED_URL = `http://127.0.0.1:${MIXED_PORT}`;
+const SLEEPER_SPECS = /sleeper(-visual)?\.spec\.ts$/;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,13 +29,31 @@ export default defineConfig({
   expect: {
     toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "npm run build && cd .. && uv run python scripts/serve_e2e.py",
-    url: `${BASE_URL}/health`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: SLEEPER_SPECS },
+    {
+      name: "sleeper",
+      use: { ...devices["Desktop Chrome"], baseURL: MIXED_URL },
+      testMatch: SLEEPER_SPECS,
+    },
+  ],
+  webServer: [
+    {
+      command: "npm run build && cd .. && uv run python scripts/serve_e2e.py",
+      url: `${BASE_URL}/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      // Waits for the server above (i.e. for the SPA build) before it starts.
+      command: "cd .. && uv run python scripts/serve_e2e.py --mixed",
+      url: `${MIXED_URL}/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 240_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  ],
 });

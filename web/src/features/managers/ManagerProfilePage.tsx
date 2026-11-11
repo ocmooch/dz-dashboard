@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
-import { RankFlow } from "@/charts";
+import { LegacySpine } from "@/charts";
 import {
   Badge,
   Card,
@@ -9,7 +9,9 @@ import {
   Chip,
   DataGap,
   EmptyState,
+  ProvenanceNote,
   RecordLine,
+  Sacko,
   Skeleton,
   Stat,
   Trophy,
@@ -17,6 +19,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num, ordinal, pct, teamAvatarUrl } from "@/lib/format";
+import { aggregationNoteText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 import { ManagerStory, type OwnerStoryData } from "./ManagerStory";
@@ -41,14 +44,6 @@ async function fetchSeasons(id: number) {
   return data.data.seasons;
 }
 
-async function fetchTrajectory(id: number) {
-  const { data, error } = await api.GET("/v1/owners/{owner_id}/trajectory", {
-    params: { path: { owner_id: id } },
-  });
-  if (error || !data) throw new Error("Failed to load trajectory");
-  return data.data.points;
-}
-
 async function fetchRivalryMatrix() {
   const { data, error } = await api.GET("/v1/owners/rivalry-matrix");
   if (error || !data) throw new Error("Failed to load rivalries");
@@ -69,6 +64,10 @@ function scored(row: OwnerSeasonRow): boolean {
   return row.points_for > 0;
 }
 
+function rate(value: number | null | undefined) {
+  return value == null ? "—" : pct(value);
+}
+
 function SeasonRow({ row }: { row: OwnerSeasonRow }) {
   return (
     <tr>
@@ -81,10 +80,20 @@ function SeasonRow({ row }: { row: OwnerSeasonRow }) {
       <td className="dz-num">
         <RecordLine wins={row.wins} losses={row.losses} ties={row.ties} />
       </td>
-      <td className="dz-num num">{scored(row) ? num(row.points_for) : <DataGap reason="season_unscored" size="sm" />}</td>
+      <td className="dz-num num">
+        {scored(row) ? num(row.points_for) : <DataGap reason="season_unscored" size="sm" />}
+      </td>
       <td className="dz-num num">{ordinal(row.final_rank)}</td>
       <td className="dz-num">
-        {row.is_champion ? <Trophy label="Champion" /> : row.made_playoffs ? <Badge>playoffs</Badge> : "—"}
+        {row.is_champion ? (
+          <Trophy label="Champion" />
+        ) : row.is_sacko ? (
+          <Sacko />
+        ) : row.made_playoffs ? (
+          <Badge>playoffs</Badge>
+        ) : (
+          "—"
+        )}
       </td>
     </tr>
   );
@@ -99,10 +108,18 @@ function RivalrySnapshot({ ownerId, matrix }: { ownerId: number; matrix: Rivalry
     .sort((x, y) => (y.a_win_pct ?? 0) - (x.a_win_pct ?? 0));
 
   if (rivals.length === 0) {
-    return <EmptyState title="No head-to-head history" hint="This manager hasn't met another owner in a scored game yet." />;
+    return (
+      <EmptyState
+        title="No head-to-head history"
+        hint="This manager hasn't met another owner in a scored game yet."
+      />
+    );
   }
   const best = rivals.slice(0, 3);
-  const worst = rivals.slice(-3).reverse().filter((c) => !best.includes(c));
+  const worst = rivals
+    .slice(-3)
+    .reverse()
+    .filter((c) => !best.includes(c));
 
   const Line = ({ b, winPct, games }: { b: number; winPct: number; games: number }) => (
     <Link
@@ -186,8 +203,11 @@ export function ManagerProfilePage() {
   const enabled = Number.isFinite(ownerId);
 
   const career = useQuery({ queryKey: qk.owner(ownerId), queryFn: () => fetchCareer(ownerId), enabled });
-  const seasons = useQuery({ queryKey: qk.ownerSeasons(ownerId), queryFn: () => fetchSeasons(ownerId), enabled });
-  const trajectory = useQuery({ queryKey: qk.ownerTrajectory(ownerId), queryFn: () => fetchTrajectory(ownerId), enabled });
+  const seasons = useQuery({
+    queryKey: qk.ownerSeasons(ownerId),
+    queryFn: () => fetchSeasons(ownerId),
+    enabled,
+  });
   const matrix = useQuery({ queryKey: qk.rivalryMatrix, queryFn: fetchRivalryMatrix, enabled });
   const story = useQuery({ queryKey: qk.ownerStory(ownerId), queryFn: () => fetchStory(ownerId), enabled });
 
@@ -211,20 +231,30 @@ export function ManagerProfilePage() {
     .filter((s) => s.team_id != null && s.season_year != null)
     .sort((a, b) => Number(b.season_year) - Number(a.season_year))[0];
 
-  // Trajectory is final rank per season (record-only seasons still have a rank),
-  // drawn 1-on-top. Domain is the deepest finish on record, min 8 so a small
-  // league doesn't crush the axis.
-  const points = (trajectory.data ?? []).filter((p) => p.final_rank != null);
-  const flowData = points.map((p) => ({ year: String(p.season_year ?? ""), finish: p.final_rank ?? null }));
-  const teamCount = Math.max(8, ...points.map((p) => p.final_rank ?? 0));
+  // Legacy spine = final finish across every season the manager played, oldest →
+  // newest, with gold = title / red = Sacko markers. Record-only seasons keep
+  // their rank; an in-progress/rank-less season becomes an honest gap, never a 0.
+  const spineSeasons = [...(seasons.data ?? [])]
+    .filter((s) => s.season_year != null)
+    .sort((a, b) => Number(a.season_year) - Number(b.season_year))
+    .map((s) => ({
+      season_year: s.season_year ?? null,
+      final_rank: s.final_rank ?? null,
+      is_champion: s.is_champion ?? false,
+      is_sacko: s.is_sacko ?? false,
+    }));
+  const rankedSeasons = spineSeasons.filter((s) => s.final_rank != null).length;
 
   return (
     <div className="dz-rise space-y-6">
       <div>
         <div className="dz-eyebrow mb-1">Manager{span ? ` · ${span}` : ""}</div>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">{c?.display_name ?? "—"}</h1>
+          <h1 className="font-display text-[var(--fs-h1)] font-bold tracking-wide">
+            {c?.display_name ?? "—"}
+          </h1>
           {c && c.championships > 0 && <Trophy label="Champion" count={c.championships} />}
+          {c && c.sackos > 0 && <Sacko count={c.sackos} />}
           {latestSeason && (
             <Link to={`/teams/${latestSeason.team_id}`} className="text-muted hover:text-accent">
               Latest roster ({latestSeason.season_year})
@@ -240,7 +270,7 @@ export function ManagerProfilePage() {
 
       {c && (
         <Card className="p-5">
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-7">
             <Stat label="Seasons" value={c.seasons_played} />
             <div>
               <div className="dz-eyebrow mb-1">Record</div>
@@ -260,7 +290,9 @@ export function ManagerProfilePage() {
             <Stat label="Points for" value={num(c.total_points_for, 0)} />
             <Stat label="Best finish" value={ordinal(c.best_finish)} />
             <Stat label="Titles" value={c.championships} unit="★" tone="accent" />
+            <Stat label="Sackos" value={c.sackos} unit="💩" />
           </div>
+          <ProvenanceNote>{aggregationNoteText(c.aggregation_note)}</ProvenanceNote>
         </Card>
       )}
 
@@ -269,10 +301,19 @@ export function ManagerProfilePage() {
           <CardHeader eyebrow="trophy case" title="Hardware" />
           <div className="flex gap-3 overflow-x-auto p-5">
             {c.trophy_case.map((t, i) => (
-              <div key={i} className={`dz-card min-w-[150px] shrink-0 p-3 ${t.is_champion ? "dz-card--hover" : ""}`}>
+              <div
+                key={i}
+                className={`dz-card min-w-[150px] shrink-0 p-3 ${t.is_champion ? "dz-card--hover" : ""}`}
+              >
                 <div className="num text-[var(--fs-sm)] text-faint">{t.season_year ?? "—"}</div>
                 <div className="mt-1 flex items-center gap-1.5">
-                  {t.is_champion ? <Trophy label="Champion" /> : <span className="num text-accent">{ordinal(t.finish)}</span>}
+                  {t.is_champion ? (
+                    <Trophy label="Champion" />
+                  ) : t.is_sacko ? (
+                    <Sacko />
+                  ) : (
+                    <span className="num text-accent">{ordinal(t.finish)}</span>
+                  )}
                   <span className="truncate font-semibold text-text">{t.team_name ?? "—"}</span>
                 </div>
               </div>
@@ -283,16 +324,31 @@ export function ManagerProfilePage() {
 
       {c?.consistency && (
         <Card>
-          <CardHeader eyebrow="weekly scoring profile" title="Consistency" />
-          <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-4">
+          <CardHeader eyebrow="week-relative scoring profile" title="Scoring Tendency" />
+          <div className="grid grid-cols-2 gap-5 p-5 sm:grid-cols-3 lg:grid-cols-6">
             {c.consistency.available ? (
               <>
+                <Stat label="Signature" value={c.consistency.signature ?? "—"} tone="accent" />
+                <Stat label="Ceiling weeks" value={rate(c.consistency.top_week_rate)} unit="top quartile" />
                 <Stat
-                  label="Weekly stdev"
-                  value={num(c.consistency.weekly_points_stdev, 1)}
-                  tone="accent"
+                  label="Floor weeks"
+                  value={rate(c.consistency.floor_week_rate)}
+                  unit="bottom quartile"
                 />
-                <Stat label="Consistency rank" value={ordinal(c.consistency.rank_among_owners)} />
+                <Stat
+                  label="Above median"
+                  value={rate(c.consistency.above_median_rate)}
+                  unit={`${c.consistency.weeks_sampled ?? 0} weeks`}
+                />
+                <Stat
+                  label="Avg weekly rank"
+                  value={num(c.consistency.average_weekly_rank, 2)}
+                  unit={
+                    c.consistency.weekly_volatility != null
+                      ? `vol ${num(c.consistency.weekly_volatility, 2)}`
+                      : undefined
+                  }
+                />
                 <Stat
                   label="Best season"
                   value={c.consistency.best_season_year ?? "—"}
@@ -302,7 +358,6 @@ export function ManagerProfilePage() {
                       : undefined
                   }
                 />
-                <Stat label="Signature" value={c.consistency.signature ?? "—"} />
               </>
             ) : (
               <DataGap reason={c.consistency.reason ?? "no_scored_data"} />
@@ -312,21 +367,20 @@ export function ManagerProfilePage() {
       )}
 
       <Card>
-        <CardHeader eyebrow="finish by season" title="Career Trajectory" />
+        <CardHeader eyebrow="every finish · ★ title · 💩 Sacko" title="Legacy Spine" />
         <div className="p-5">
-          {trajectory.isLoading && <Skeleton className="h-[240px] w-full" />}
-          {trajectory.data &&
-            (flowData.length > 1 ? (
-              <RankFlow
-                title="Final finish by season (1 = best)"
-                data={flowData}
-                series={[{ key: "finish", label: "Finish" }]}
-                xKey="year"
-                xLabel="Season"
-                teamCount={teamCount}
+          {seasons.isLoading && <Skeleton className="h-[240px] w-full" />}
+          {seasons.data &&
+            (rankedSeasons > 1 ? (
+              <LegacySpine
+                title="Final finish by season (1 = best · gold = title · red = Sacko)"
+                seasons={spineSeasons}
               />
             ) : (
-              <EmptyState title="Not enough seasons" hint="A trajectory needs at least two seasons on record." />
+              <EmptyState
+                title="Not enough seasons"
+                hint="A legacy spine needs at least two ranked seasons on record."
+              />
             ))}
         </div>
       </Card>
@@ -357,9 +411,7 @@ export function ManagerProfilePage() {
         </div>
       </Card>
 
-      {c && (c.commissioner_terms?.length ?? 0) > 0 && (
-        <CommissionerCard terms={c.commissioner_terms!} />
-      )}
+      {c && (c.commissioner_terms?.length ?? 0) > 0 && <CommissionerCard terms={c.commissioner_terms!} />}
 
       <Card>
         <CardHeader eyebrow="head-to-head" title="Rivalries" />

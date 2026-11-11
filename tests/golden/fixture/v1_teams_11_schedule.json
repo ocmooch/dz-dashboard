@@ -1,0 +1,40 @@
+{
+ "body": {
+  "data": {
+   "games": [
+    {
+     "is_playoff": false,
+     "margin": -5.0,
+     "matchup_id": 20,
+     "opponent_owner_name": "Iceman",
+     "opponent_score": 130.0,
+     "opponent_team_id": 10,
+     "opponent_team_name": "Iceman 2017",
+     "result": "L",
+     "team_score": 125.0,
+     "week": 1
+    },
+    {
+     "is_playoff": false,
+     "margin": 30.0,
+     "matchup_id": 23,
+     "opponent_owner_name": "Viper",
+     "opponent_score": 110.0,
+     "opponent_team_id": 12,
+     "opponent_team_name": "Northvale Scumbags",
+     "result": "W",
+     "team_score": 140.0,
+     "week": 2
+    }
+   ],
+   "season_year": 2017,
+   "team_id": 11
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

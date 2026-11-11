@@ -30,9 +30,7 @@ const BRACKET = {
   consolation_distinguished: true,
   playoff_bracket: {
     size: 6,
-    bye_teams: [
-      { team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider" },
-    ],
+    bye_teams: [{ team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider" }],
     rounds: [
       {
         round_num: 1,
@@ -45,8 +43,22 @@ const BRACKET = {
             is_consolation: false,
             game_label: null,
             winner_team_id: 2,
-            team_a: { team_id: 2, team_name: "Maverick 2015", owner_id: 2, owner_name: "Maverick", score: 130, is_winner: true },
-            team_b: { team_id: 3, team_name: "Goose 2015", owner_id: 3, owner_name: "Goose", score: 110, is_winner: false },
+            team_a: {
+              team_id: 2,
+              team_name: "Maverick 2015",
+              owner_id: 2,
+              owner_name: "Maverick",
+              score: 130,
+              is_winner: true,
+            },
+            team_b: {
+              team_id: 3,
+              team_name: "Goose 2015",
+              owner_id: 3,
+              owner_name: "Goose",
+              score: 110,
+              is_winner: false,
+            },
           },
         ],
       },
@@ -61,8 +73,22 @@ const BRACKET = {
             is_consolation: false,
             game_label: null,
             winner_team_id: 1,
-            team_a: { team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider", score: 120, is_winner: true },
-            team_b: { team_id: 2, team_name: "Maverick 2015", owner_id: 2, owner_name: "Maverick", score: 110, is_winner: false },
+            team_a: {
+              team_id: 1,
+              team_name: "Slider 2015",
+              owner_id: 1,
+              owner_name: "Slider",
+              score: 120,
+              is_winner: true,
+            },
+            team_b: {
+              team_id: 2,
+              team_name: "Maverick 2015",
+              owner_id: 2,
+              owner_name: "Maverick",
+              score: 110,
+              is_winner: false,
+            },
           },
         ],
       },
@@ -77,8 +103,22 @@ const BRACKET = {
             is_consolation: false,
             game_label: "Championship",
             winner_team_id: 1,
-            team_a: { team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider", score: 140, is_winner: true },
-            team_b: { team_id: 4, team_name: "Iceman 2015", owner_id: 4, owner_name: "Iceman", score: 100, is_winner: false },
+            team_a: {
+              team_id: 1,
+              team_name: "Slider 2015",
+              owner_id: 1,
+              owner_name: "Slider",
+              score: 140,
+              is_winner: true,
+            },
+            team_b: {
+              team_id: 4,
+              team_name: "Iceman 2015",
+              owner_id: 4,
+              owner_name: "Iceman",
+              score: 100,
+              is_winner: false,
+            },
           },
         ],
       },
@@ -99,8 +139,22 @@ const BRACKET = {
             is_consolation: true,
             game_label: null,
             winner_team_id: 5,
-            team_a: { team_id: 5, team_name: "Viper 2015", owner_id: 5, owner_name: "Viper", score: 90, is_winner: true },
-            team_b: { team_id: 6, team_name: "Rooster 2015", owner_id: 6, owner_name: "Rooster", score: 50, is_winner: false },
+            team_a: {
+              team_id: 5,
+              team_name: "Viper 2015",
+              owner_id: 5,
+              owner_name: "Viper",
+              score: 90,
+              is_winner: true,
+            },
+            team_b: {
+              team_id: 6,
+              team_name: "Rooster 2015",
+              owner_id: 6,
+              owner_name: "Rooster",
+              score: 50,
+              is_winner: false,
+            },
           },
         ],
       },
@@ -113,15 +167,35 @@ const POWER = {
   season_year: 2015,
   through_week: 13,
   regular_season_weeks: 13,
-  weights: { points_for_per_game: 0.4, all_play_win_pct: 0.25, win_pct: 0.2, recent_points_for_per_game: 0.15 },
+  weights: {
+    points_for_per_game: 0.4,
+    all_play_win_pct: 0.25,
+    win_pct: 0.2,
+    recent_points_for_per_game: 0.15,
+  },
   explainer: "Power score blends four within-season z-scores per the documented weights.",
   rows: [
     {
-      rank: 1, team_id: 1, team_name: "Slider 2015", owner_id: 1, owner_name: "Slider",
-      wins: 11, losses: 2, ties: 0, points_for: 1500, power_score: 1.42,
-      points_for_per_game: 115, all_play_win_pct: 0.82, win_pct: 0.846, recent_points_for_per_game: 120,
-      z_points_for: 1.3, z_all_play_win_pct: 1.2, z_win_pct: 1.1, z_recent: 1.0,
-      standings_rank: 1, rank_delta: 0,
+      rank: 1,
+      team_id: 1,
+      team_name: "Slider 2015",
+      owner_id: 1,
+      owner_name: "Slider",
+      wins: 11,
+      losses: 2,
+      ties: 0,
+      points_for: 1500,
+      power_score: 1.42,
+      points_for_per_game: 115,
+      all_play_win_pct: 0.82,
+      win_pct: 0.846,
+      recent_points_for_per_game: 120,
+      z_points_for: 1.3,
+      z_all_play_win_pct: 1.2,
+      z_win_pct: 1.1,
+      z_recent: 1.0,
+      standings_rank: 1,
+      rank_delta: 0,
     },
   ],
 };
@@ -186,5 +260,57 @@ describe("PlayoffsPage", () => {
     expect(await screen.findByText("Power at playoff entry")).toBeInTheDocument();
     const lensLink = screen.getByText(/week-by-week lens/i).closest("a");
     expect(lensLink).toHaveAttribute("href", "/standings?lens=power");
+  });
+
+  it("marks a legacy bracket as derived", async () => {
+    renderPage();
+    expect(await screen.findByText("Bracket derived from who played whom.")).toBeInTheDocument();
+    expect(screen.queryByText(/may change until the playoffs are decided/i)).not.toBeInTheDocument();
+  });
+
+  it("renders an undecided official bracket as provisional seeds", async () => {
+    const seeded = (matchup_id: number | null, week_pending = false) => ({
+      matchup_id,
+      is_playoff: true,
+      is_consolation: false,
+      game_label: "Championship",
+      placement: 1,
+      week_pending,
+      winner_team_id: null,
+      team_a: {
+        team_id: 2,
+        team_name: "Maverick 2026",
+        owner_id: 2,
+        owner_name: "Maverick",
+        is_winner: false,
+      },
+      team_b: null,
+    });
+    bracketResponse = {
+      ...BRACKET,
+      source: "official",
+      is_provisional: true,
+      playoff_bracket: {
+        size: 2,
+        bye_teams: [],
+        rounds: [{ round_num: 1, round_label: "Finals", bye_teams: [], games: [seeded(null)] }],
+      },
+      consolation_bracket: {
+        size: 2,
+        bye_teams: [],
+        rounds: [{ round_num: 1, round_label: "Finals", bye_teams: [], games: [seeded(77, true)] }],
+      },
+    };
+    renderPage();
+    expect(await screen.findByText(/may change until the playoffs are decided/i)).toBeInTheDocument();
+    expect(screen.getByText("Official bracket.")).toBeInTheDocument();
+    // one footnote only: the derived-bracket caveat is not repeated under an official bracket (D8)
+    expect(screen.queryByText(BRACKET.caveat)).toBeNull();
+    expect(screen.getAllByText("TBD")).toHaveLength(2);
+    expect(screen.getByText("Awaiting final")).toBeInTheDocument();
+    // an unplayed official game has no matchup to open; a played (pending) one does
+    const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain("/matchups/77");
+    expect(hrefs).not.toContain("/matchups/null");
   });
 });
