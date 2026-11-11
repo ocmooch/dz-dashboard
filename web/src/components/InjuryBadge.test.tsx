@@ -34,3 +34,18 @@ describe("InjuryBadge", () => {
     expect(el).toHaveAttribute("title", "Doubtful.");
   });
 });
+
+describe("InjuryBadge source (D7)", () => {
+  it("names a snapshot source and date in the tooltip only", () => {
+    render(<InjuryBadge status="Out" source="sleeper" asOf="2026-10-21" />);
+    expect(screen.getByText("Out")).toHaveAttribute(
+      "title",
+      "Out. Sleeper status as of 2026-10-21, before kickoff.",
+    );
+  });
+
+  it("adds nothing for the official weekly report", () => {
+    render(<InjuryBadge status="Doubtful" bodyPart="Ankle" source="nflverse" />);
+    expect(screen.getByText("D · Ankle")).toHaveAttribute("title", "Doubtful — Ankle.");
+  });
+});

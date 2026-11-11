@@ -2719,6 +2719,118 @@
    "status": 200,
    "sha256": "56085dbec5308e83f55c6e3fd1588ff39de2f6add5b39b6191a10456d8f6032d",
    "volatile": []
+  },
+  {
+   "url": "/v1/players/8/status?season=2015",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "75302b479af25bda21937a809ca62a1d228b512dc5e8e5efc6062bd47cb800df",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9418579bdfe6ebfa49bb3fdcb3f4a1ce6623756f9b74c57c813236db3366126a",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "7578d2f20abc05793546a3eee5ac418087a79a5fef54ce03bcb67afaac4b150c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3a9b11e25fb045dbe41093b4ba5094b83cbfe10b804f228ac08ff0abc5eb2f6d",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/4/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "9f37a5c56a90a72e2f210882610d9824fe4668a1b34eb249b61f655127c6baf2",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/5/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "f152f413b478736e11f15343e75aefdb6a10a23e67f036a0fb04e718375fb5af",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/7/status?season=2016",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "43d0915569829fea52e1fb00fae8b0fa69a7d56e27438f02e4893245feeab352",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/1/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "185c7f74a3efd49037065ca6811eb78cead34b01e9e2bcb2fc5223e5578dd734",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/2/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "052f788d5a5122d2790a77ed8066e2fb02e7d7ab5a61d16451e4dada59c50180",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/3/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "e66ccfe1b0b3fb79048dfa6ccb750511f12df82061474ec80bee214a1f12396b",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/25/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "2fcffdd75389f774e2187a71b1fe85eebd61086361647ee7e2b679d6dbb20ced",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/26/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "fde7ab20e15fb9c0bd8f922684839046c88271309c5bda86fc51fd0eb1dda36c",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/27/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "3600efe5a6f24345868ffdbd98e3d1f1921c59e1136e65112194b2d17dfb5de4",
+   "volatile": []
+  },
+  {
+   "url": "/v1/players/9/status?season=2017",
+   "pinned": true,
+   "binary": false,
+   "status": 200,
+   "sha256": "521e0ffb6a443271ea68530ca9940a23624346399af9cb6970d56959fdc4e4eb",
+   "volatile": []
   }
  ]
 }

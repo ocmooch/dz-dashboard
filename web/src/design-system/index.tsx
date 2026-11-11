@@ -262,6 +262,9 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     projections_not_captured: "Projections not captured for this season/week",
     projection_points_not_scored: "Projection rows exist, but projected fantasy points were not scored",
     identity_split_candidate: "Player identity split detected; stats may live under a source twin",
+    reports_not_loaded: "Injury report not loaded for this week yet",
+    stale_or_missing_snapshot: "No status capture within 7 days of kickoff",
+    season_not_played: "This season has no games yet",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">

@@ -653,6 +653,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/players/{player_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Player Status
+         * @description Week-by-week status (D7): the nflverse game report and, on Sleeper seasons, the weekly
+         *     snapshot as of kickoff (7-day cutoff). ``season`` defaults to the latest played season the
+         *     player was rostered in.
+         */
+        get: operations["get_player_status_v1_players__player_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/stats/top-scorers": {
         parameters: {
             query?: never;
@@ -1120,6 +1142,10 @@ export interface components {
             injury_secondary?: string | null;
             /** Injury Practice Status */
             injury_practice_status?: string | null;
+            /** Injury Source */
+            injury_source?: string | null;
+            /** Injury As Of */
+            injury_as_of?: string | null;
         };
         /** BoxScore */
         BoxScore: {
@@ -1943,6 +1969,11 @@ export interface components {
         /** Envelope[PlayerScoring] */
         Envelope_PlayerScoring_: {
             data: components["schemas"]["PlayerScoring"];
+            meta: components["schemas"]["Meta"];
+        };
+        /** Envelope[PlayerStatusTimeline] */
+        Envelope_PlayerStatusTimeline_: {
+            data: components["schemas"]["PlayerStatusTimeline"];
             meta: components["schemas"]["Meta"];
         };
         /** Envelope[PowerRanking] */
@@ -3199,6 +3230,32 @@ export interface components {
             /** Weeks */
             weeks: components["schemas"]["ScoringWeek"][];
         };
+        /** PlayerStatusTimeline */
+        PlayerStatusTimeline: {
+            /** Player Id */
+            player_id: number;
+            /** Season Year */
+            season_year: number;
+            /** Platform */
+            platform?: string | null;
+            /** Platform Label */
+            platform_label?: string | null;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Has Snapshots */
+            has_snapshots: boolean;
+            snapshot_capability?: components["schemas"]["Capability"] | null;
+            /** Is Provisional */
+            is_provisional: boolean;
+            latest?: components["schemas"]["StatusEntry"] | null;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["StatusWeek"][];
+        };
         /** PowerRanking */
         PowerRanking: {
             /** Season Id */
@@ -3880,6 +3937,46 @@ export interface components {
             /** Teams */
             teams: components["schemas"]["TimelineTeam"][];
         };
+        /**
+         * StatusEntry
+         * @description One status reading: an nflverse weekly report or a Sleeper snapshot.
+         */
+        StatusEntry: {
+            /** Source */
+            source: string;
+            /** As Of */
+            as_of?: string | null;
+            /** Injury Status */
+            injury_status?: string | null;
+            /** Injury Body Part */
+            injury_body_part?: string | null;
+            /** Injury Secondary */
+            injury_secondary?: string | null;
+            /** Injury Practice Status */
+            injury_practice_status?: string | null;
+            /** Roster Status */
+            roster_status?: string | null;
+            /** Depth Chart */
+            depth_chart?: string | null;
+            /** Nfl Team */
+            nfl_team?: string | null;
+        };
+        /** StatusWeek */
+        StatusWeek: {
+            /** Week */
+            week: number;
+            /**
+             * Kickoff Date
+             * Format: date
+             */
+            kickoff_date: string;
+            game_report?: components["schemas"]["StatusEntry"] | null;
+            /** Game Report Gap */
+            game_report_gap?: string | null;
+            snapshot?: components["schemas"]["StatusEntry"] | null;
+            /** Snapshot Gap */
+            snapshot_gap?: string | null;
+        };
         /** StoryCard */
         StoryCard: {
             /** Story Id */
@@ -4101,6 +4198,10 @@ export interface components {
             injury_secondary?: string | null;
             /** Injury Practice Status */
             injury_practice_status?: string | null;
+            /** Injury Source */
+            injury_source?: string | null;
+            /** Injury As Of */
+            injury_as_of?: string | null;
         };
         /** TeamSchedule */
         TeamSchedule: {
@@ -5441,6 +5542,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_PlayerAvailability_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_player_status_v1_players__player_id__status_get: {
+        parameters: {
+            query?: {
+                season?: number | null;
+            };
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PlayerStatusTimeline_"];
                 };
             };
             /** @description Validation Error */

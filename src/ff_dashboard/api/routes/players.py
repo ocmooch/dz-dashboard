@@ -19,6 +19,7 @@ from ff_dashboard.analytics.players import (
     player_scoring,
 )
 from ff_dashboard.analytics.stats import season_totals, top_scorers
+from ff_dashboard.analytics.status_timeline import default_status_season, player_status_timeline
 from ff_dashboard.api.deps import SessionDep  # noqa: TC001 — runtime dep for FastAPI
 from ff_dashboard.api.schemas import (
     Envelope,
@@ -29,6 +30,7 @@ from ff_dashboard.api.schemas import (
     PlayerOut,
     PlayerOwnership,
     PlayerScoring,
+    PlayerStatusTimeline,
     SeasonTotal,
     SeasonTotals,
     TopScorer,
@@ -108,6 +110,24 @@ def get_player_availability(
     if data is None:
         raise not_found(f"No player with id {player_id}")
     return Envelope(data=PlayerAvailability(**data), meta=build_meta(session))
+
+
+@router.get("/v1/players/{player_id}/status", response_model=Envelope[PlayerStatusTimeline])
+def get_player_status(
+    player_id: int, session: SessionDep, season: int | None = Query(None, ge=1999)
+) -> Envelope[PlayerStatusTimeline]:
+    """Week-by-week status (D7): the nflverse game report and, on Sleeper seasons, the weekly
+    snapshot as of kickoff (7-day cutoff). ``season`` defaults to the latest played season the
+    player was rostered in."""
+    if get_player(session, player_id) is None:
+        raise not_found(f"No player with id {player_id}")
+    year = season if season is not None else default_status_season(session, player_id)
+    if year is None:
+        raise not_found("No played season yet")
+    data = player_status_timeline(session, player_id, year)
+    if data is None:
+        raise not_found(f"No player with id {player_id}")
+    return Envelope(data=PlayerStatusTimeline(**data), meta=build_meta(session))
 
 
 @router.get("/v1/stats/top-scorers", response_model=Envelope[TopScorers])

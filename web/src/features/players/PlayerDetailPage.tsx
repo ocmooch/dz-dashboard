@@ -19,6 +19,8 @@ import { num, teamAvatarUrl } from "@/lib/format";
 import { qk } from "@/lib/queryKeys";
 import { deriveSeasonPhase } from "@/lib/seasonPhase";
 
+import { StatusTimeline } from "./StatusTimeline";
+
 async function fetchPlayer(id: number) {
   const { data, error } = await api.GET("/v1/players/{player_id}", {
     params: { path: { player_id: id } },
@@ -392,6 +394,14 @@ export function PlayerDetailPage() {
               />
               {season != null ? (
                 <AvailabilityStrip playerId={playerId} season={season} />
+              ) : (
+                <EmptyState title="Pick a season" />
+              )}
+            </Card>
+            <Card>
+              <CardHeader eyebrow={`season ${season ?? ""}`} title="Status" />
+              {season != null ? (
+                <StatusTimeline playerId={playerId} season={season} />
               ) : (
                 <EmptyState title="Pick a season" />
               )}

@@ -223,6 +223,7 @@ def test_box_score_unions_canonical_identity_cluster(
     assert split["zero_reason"] is None
     assert split["injury_status"] == "Out"
     assert split["injury_body_part"] == "Back"
+    assert (split["injury_source"], split["injury_as_of"]) == ("nflverse", None)  # D7
 
 
 def test_player_scoring_unions_canonical_identity_cluster(

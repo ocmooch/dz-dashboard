@@ -205,6 +205,8 @@ function RosterCard({ teamId }: { teamId: number }) {
                           bodyPart={p.injury_body_part}
                           secondary={p.injury_secondary}
                           practiceStatus={p.injury_practice_status}
+                          source={p.injury_source}
+                          asOf={p.injury_as_of}
                         />
                       )}
                     </td>

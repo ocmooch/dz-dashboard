@@ -147,6 +147,7 @@ def build_matrix(db_path: Path, years: Iterable[int] | None = None) -> list[Req]
                 reqs += [
                     Req(f"/v1/players/{pid}/scoring?season={year}", pinned=True),
                     Req(f"/v1/players/{pid}/availability?season={year}", pinned=True),
+                    Req(f"/v1/players/{pid}/status?season={year}", pinned=True),
                 ]
         players = sorted(
             {int(u.split("/")[3]) for u in (r.url for r in reqs) if u.startswith("/v1/players/")}

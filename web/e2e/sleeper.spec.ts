@@ -73,3 +73,23 @@ test("a 2026 trade shows every asset; the FAAB market shows bid wars", async ({ 
   await page.goto("/draft");
   await expect(page.getByText("2027 R2")).toBeVisible();
 });
+
+// D7: the Player detail status timeline reads the weekly Sleeper snapshot as of each kickoff; this
+// player's only capture is before week 7, so weeks 8-9 are past the 7-day cutoff (a gap).
+test("player status timeline shows the snapshot and the stale-capture gap", async ({ page }) => {
+  await page.goto("/players");
+  await settle(page);
+  await page.getByLabel("Search players by name").fill("Davante Adams");
+  await page
+    .getByRole("link", { name: /Davante Adams/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/players\/\d+$/);
+  const status = page.locator(".dz-card", { has: page.getByRole("heading", { name: "Status" }) });
+  await expect(status.getByText("Sleeper snapshot").first()).toBeVisible();
+  const wk7 = status.locator("tr", { has: page.getByText("wk7", { exact: true }) });
+  await expect(wk7.getByText("IR", { exact: true })).toBeVisible();
+  const wk9 = status.locator("tr", { has: page.getByText("wk9", { exact: true }) });
+  await expect(wk9.getByText("No status capture within 7 days of kickoff")).toBeVisible();
+  await expect(wk9.getByText("Injury report not loaded for this week yet")).toBeVisible();
+});

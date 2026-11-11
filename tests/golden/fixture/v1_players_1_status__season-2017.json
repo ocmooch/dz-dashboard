@@ -1,0 +1,43 @@
+{
+ "body": {
+  "data": {
+   "available": true,
+   "has_snapshots": false,
+   "is_provisional": false,
+   "latest": null,
+   "platform": "nfl_com",
+   "platform_label": "NFL.com",
+   "player_id": 1,
+   "reason": null,
+   "season_year": 2017,
+   "snapshot_capability": {
+    "note": "weekly nflverse injury reports",
+    "state": "partial"
+   },
+   "weeks": [
+    {
+     "game_report": null,
+     "game_report_gap": null,
+     "kickoff_date": "2017-09-07",
+     "snapshot": null,
+     "snapshot_gap": null,
+     "week": 1
+    },
+    {
+     "game_report": null,
+     "game_report_gap": "reports_not_loaded",
+     "kickoff_date": "2017-09-14",
+     "snapshot": null,
+     "snapshot_gap": null,
+     "week": 2
+    }
+   ]
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

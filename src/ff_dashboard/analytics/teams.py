@@ -28,7 +28,6 @@ from ff_pipeline.repository.queries import (
     get_player,
     get_season,
     get_team,
-    injury_reports_for_week,
     matchups_for_team,
     player_season_teams,
     roster_for_team_week,
@@ -44,12 +43,10 @@ from ff_dashboard.analytics.faab_market import FAAB_BASE_BUDGET
 from ff_dashboard.analytics.faab_market import faab_bid as _faab_bid
 from ff_dashboard.analytics.game_state import game_result, is_idle, is_pending, slot_note
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.injuries import injury_fields
 from ff_dashboard.analytics.matchups import (
     DEF_SLOTS,
     _authoritative_points,
     _identity_cluster_members,
-    _injury_for_player_cluster,
     _scored_points,
     classify_zero,
     roster_sort_key,
@@ -61,6 +58,12 @@ from ff_dashboard.analytics.roster_snapshots import (
     snapshot_kind,
 )
 from ff_dashboard.analytics.standings import compute_standings
+from ff_dashboard.analytics.status_timeline import (
+    badge_fields,
+    empty_status,
+    for_player,
+    week_status,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -194,7 +197,8 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
 
     # Week-scoped injury designations — the same normalized field set the box
     # score surfaces, so a player reads identically on both views for that week.
-    injuries = injury_reports_for_week(session, season.year, effective_week)
+    # D7: nflverse first, the Sleeper snapshot as the fallback (``status_timeline``).
+    statuses = week_status(session, season, effective_week, player_ids, cluster_members)
 
     players = []
     for roster_row, player in pairs:
@@ -235,8 +239,13 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                 "zero_detail": zero_detail,
                 "acquisition_type": roster_row.acquisition_type,
                 "acquisition_week": roster_row.acquisition_week,
-                **injury_fields(
-                    _injury_for_player_cluster(injuries, player.player_id, cluster_members)
+                **badge_fields(
+                    for_player(
+                        statuses,
+                        player.player_id,
+                        played=nflverse_points is not None
+                        or (league_points is not None and league_points > 0),
+                    )
                 ),
             }
         )
@@ -262,7 +271,7 @@ def team_roster(session: Session, team_id: int, week: int | None) -> dict[str, A
                     "acquisition_type": None,
                     "acquisition_week": None,
                     "is_empty": True,
-                    **injury_fields(None),
+                    **badge_fields(empty_status()),
                 }
             )
 

@@ -135,8 +135,32 @@ overlapping a snapshot player, to prove nflverse wins). The e2e `serve_e2e.py --
 
 ## Done-when checklist
 
-- [ ] 2026 box score shows a designation (nflverse first, Sleeper fallback) on the mixed fixture
-- [ ] Timeline uses `player_status_asof` with the 7-day cutoff; stale = `DataGap`
-- [ ] Legacy parity: key-only diff; full gate green incl. e2e; forbidden-import grep clean
-- [ ] Click-through of Player detail (2026 + a legacy season) and a 2026 box score
-- [ ] `PROGRESS.md` + this file's as-built notes updated
+- [x] 2026 box score shows a designation (nflverse first, Sleeper fallback) on the mixed fixture
+- [x] Timeline uses `player_status_asof` with the 7-day cutoff; stale = `DataGap`
+- [x] Legacy parity: key-only diff; full gate green incl. e2e; forbidden-import grep clean
+- [x] Click-through of Player detail (2026 + a legacy season) and a 2026 box score
+- [x] `PROGRESS.md` + this file's as-built notes updated
+
+## As built (2026-11-10)
+
+- `analytics/status_timeline.py`: `week_kickoff`, `sleeper_status_fields`, `week_status` (nflverse
+  first, Sleeper snapshot fallback), `for_player` (drops a stale Sleeper did-not-play status such as
+  "Out" for a player who played; nflverse rows unchanged), `player_status_timeline`,
+  `default_status_season`. Box score + week roster use it; `_reserve_eligibility_status` takes the
+  Sleeper roster status after the NFL.com fields.
+- A Sleeper snapshot with no designation (healthy, or only a roster status like IR) leaves
+  `injury_source` null on the box score: IR never becomes a badge.
+- Route `GET /v1/players/{id}/status`; schemas `StatusEntry` / `StatusWeek` / `PlayerStatusTimeline`;
+  box/roster rows gained `injury_source` / `injury_as_of`. `latest` takes an injectable `today`.
+- Parity: new keys are allowed by the subset rule, so **no legacy golden was regenerated**. Fixture
+  goldens added for the new route only (`DZ_UPDATE_GOLDEN=new`); live check 1092/0.
+- Fixture: snapshots on 10-21 / 10-28 / 11-04 (`STALE_SLEEPER_ID` only on 10-21) + the two
+  `NFLVERSE_2026` rows. Every 2026 week before 7 is therefore a snapshot gap (no capture), as it
+  would be live before the first capture.
+- SPA: `features/players/StatusTimeline.tsx` (Status card on Player detail, global season switcher),
+  `InjuryBadge` `source`/`asOf` (tooltip only; nflverse adds nothing), copy in `lib/platform.ts`,
+  three new `DataGap` reasons. e2e `sleeper` project: Player detail status journey.
+- Click-through: screenshots of a 2026 box score (Sleeper-fallback "Q") and the 2026 timeline on a
+  scored copy of the mixed fixture.
+- Not done: the `*` bench-or-reserve hint doesn't use the Sleeper IR status yet (could explain which
+  bench rows were really IR).
