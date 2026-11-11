@@ -43,7 +43,9 @@ jobs:
           # Skip the post-job cache prune; its teardown intermittently exits 2
           # and red-marks an otherwise-green run.
           prune-cache: false
-      - run: uv sync --extra dev
+      # --locked: fail if uv.lock is stale, e.g. ff-pipeline's version moved on danger-zone dev
+      # and the lock wasn't synced (danger-zone scripts/release/sync_dashboard_lock.sh).
+      - run: uv sync --locked --extra dev
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run mypy src/

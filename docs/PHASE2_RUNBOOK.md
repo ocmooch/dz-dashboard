@@ -135,6 +135,11 @@ danger-zone's scheduled jobs (Wed 06:00 capture, Wed 07:00 vault sync) run from
 3. **Pinned fallback.** If the release changed the schema, update the `tag = "vX.Y.Z"` example
    above (and the pin, wherever it's in use) to that release. Dependency resolution happens in
    this repo, so `uv lock` is part of that change.
+4. **Lock synced.** `uv.lock` records ff-pipeline's version, so every danger-zone version bump
+   leaves it stale. CI runs `uv sync --locked` and fails until it's synced. The danger-zone
+   checklist does this with `scripts/release/sync_dashboard_lock.sh --merge`, which opens and
+   merges a lock-only PR to `dev` here. To do it by hand: `uv lock` on a branch off `dev`, and
+   check the diff is only the `ff-pipeline` version line.
 
 ---
 
