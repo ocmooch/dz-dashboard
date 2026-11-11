@@ -30,8 +30,10 @@ feature branches.** Remaining work, in priority order:
   the newest *scored* season) → now the newest season that is over. Observations (no change):
   - Player Status shows "no status capture" for weeks 1–9: Sleeper snapshots exist only from
     2026-11-09 (captures started then). Fills in from here on, one week at a time.
-  - Box score notes "Projection data isn't available for the 2026 season": no 2026 projections are
-    loaded upstream. Worth an upstream check (danger-zone projections crawl for 2026).
+  - ☑ *Resolved upstream (danger-zone v2.0.3, 2026-11-10):* the box score said "Projection data
+    isn't available for the 2026 season" because nothing pulled 2026 projections. W1–10 are now
+    backfilled, and the Wednesday capture runs `backfill-projections --current-season` (upcoming
+    week re-fetched until played). Box scores show projections; no dashboard change.
   - Home's champion card still carries the old line "Playoff bracket structure is not inferred until
     the bracket endpoint is proven." — stale since D5; a copy cleanup (changes the legacy Home baseline).
   - Routed D5–D8 follow-ups are in §5.
