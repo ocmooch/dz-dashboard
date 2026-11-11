@@ -53,8 +53,8 @@ D1–D3 on a 2026 DB copy.
 - Open: market % of budget ignores mid-season credits; `is_move` still unused.
 Merged to `dev` (PR #133, 2026-11-10); branch deleted.
 
-**D7: DONE (2026-11-10), gate green; committed on `feature/sleeper-d7-player-status` (PR to `dev`
-not opened yet).** Plan + as-built: `docs/plans/sleeper-d7-player-status.md`.
+**D7: DONE (2026-11-10), gate green; PR #134 to `dev` open (branch
+`feature/sleeper-d7-player-status`).** Plan + as-built: `docs/plans/sleeper-d7-player-status.md`.
 - `analytics/status_timeline.py` (the existing `player_status.py` is the NFL.com classifier):
   nflverse weekly report first, Sleeper snapshot as of kickoff (7-day cutoff) as the fallback; used by
   the box score and week roster (`injury_source` / `injury_as_of`). `GET /v1/players/{id}/status`.
