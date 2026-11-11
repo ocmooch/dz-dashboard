@@ -96,7 +96,7 @@ export function HomePage() {
   });
 
   const leader = standings.data?.rows[0];
-  const champion = phase.lastCompletedSeason?.champion ?? current?.champion;
+  const champion = phase.lastFinishedSeason?.champion ?? null;
 
   return (
     <div className="dz-rise space-y-6">
@@ -132,7 +132,7 @@ export function HomePage() {
             tone="accent"
           />
           <Stat
-            label={`${phase.lastCompletedSeason?.season_year ?? ""} champion`}
+            label={`${phase.lastFinishedSeason?.season_year ?? ""} champion`}
             value={champion?.team_name ?? champion?.owner_name ?? "—"}
             tone="win"
           />
