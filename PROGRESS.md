@@ -53,10 +53,11 @@ D1–D3 on a 2026 DB copy.
 - Open: market % of budget ignores mid-season credits; `is_move` still unused.
 Merged to `dev` (PR #133, 2026-11-10); branch deleted.
 
-**D8: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d8-consistency-release.md`
-(branch `feature/sleeper-d8-consistency-release`). Next: BUILD — UX walk (21 pages × 2015/2025/2026,
-dark+light), bounded fixes, Playoffs + Sleeper visual baselines, docs, then release `v0.5.0`
-(`dev → main` + tag) after the user's go-ahead. Default: release before the live go-live.
+**D8: BUILT (2026-11-10); releasing v0.5.0 before the live go-live (user decision).** Plan +
+as-built (walk table): `docs/plans/sleeper-d8-consistency-release.md`. Three walk fixes (Timeline
+in-progress gap, single bracket footnote, legacy Status footnote), Playoffs + 5 Sleeper visual
+baselines, docs, version 0.5.0. **Next:** after the user-approved upstream go-live, re-walk 2026 on
+live data (`ACTIVE_WORK.md` top item).
 
 **D7: DONE (2026-11-10); merged to `dev` (PR #134); branch deleted.** Plan + as-built: `docs/plans/sleeper-d7-player-status.md`.
 - `analytics/status_timeline.py` (the existing `player_status.py` is the NFL.com classifier):

@@ -200,6 +200,27 @@ describe("LeagueHistoryPage", () => {
     expect(screen.getAllByTestId("platform-boundary")).toHaveLength(1);
   });
 
+  it("labels an in-progress season's missing results, not as a raw reason (D8)", async () => {
+    const live = {
+      ...TIMELINE.seasons[0],
+      season_id: 9,
+      season_year: 2026,
+      status: "in_progress",
+      champion: null,
+    };
+    const done = { ...TIMELINE.seasons[0], season_id: 8, season_year: 2014, champion: null };
+    mockGet.mockImplementation((path: string) => {
+      if (path === "/v1/league/timeline")
+        return Promise.resolve(envelope({ ...TIMELINE, seasons: [live, done, ...TIMELINE.seasons] }));
+      if (path === "/v1/league/eras") return Promise.resolve(envelope(ERAS));
+      return Promise.resolve(envelope({}));
+    });
+    renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
+    expect(await screen.findByText(/Season in progress — final results come after/)).toBeInTheDocument();
+    expect(screen.getByText("Final results weren't recorded for this season")).toBeInTheDocument();
+    expect(screen.queryByText("champion_unavailable")).toBeNull();
+  });
+
   it("renders seasons with champion and change detail", async () => {
     renderWithProviders(<LeagueHistoryPage />, ["/timeline"]);
     expect(await screen.findByText("League Timeline")).toBeInTheDocument();

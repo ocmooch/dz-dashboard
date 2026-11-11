@@ -429,7 +429,10 @@ function ChangeRow({ detail }: { detail: LeagueChangeDetail }) {
 
 function ResultsRow({ season }: { season: LeagueTimelineSeason }) {
   const { champion, runner_up, last_place, sacko } = season;
-  if (!champion && !runner_up && !last_place && !sacko) return <DataGap reason="champion_unavailable" />;
+  if (!champion && !runner_up && !last_place && !sacko)
+    return (
+      <DataGap reason={season.status === "in_progress" ? "season_in_progress" : "champion_unavailable"} />
+    );
 
   return (
     <div className="flex flex-wrap items-start gap-3">

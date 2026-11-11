@@ -46,6 +46,10 @@ const PROVENANCE_COPY: Record<string, Record<string, string>> = {
     nfl_com: "Bracket derived from NFL.com playoff results.",
   },
   potential_points: { nfl_com: "Potential points computed by this dashboard." },
+  player_status_daily: {
+    nfl_com:
+      "Weekly game status from the official NFL injury reports (nflverse). NFL.com kept no status history.",
+  },
 };
 
 const NOT_YET_COPY = "Not available until this week is final.";

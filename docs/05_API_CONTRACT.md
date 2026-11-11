@@ -161,6 +161,25 @@ Hardening: SQL LIKE wildcards (`%` `_`), regex metacharacters, and `<script>`/SQ
 injection strings are treated as inert literal data — re-filtered casefold (no
 `re`) over parameterized reads, so they neither over-match nor inject.
 
+## Sleeper era additions (D1–D7, release v0.5.0)
+
+All additive: legacy payloads keep every key and value (golden parity, `tests/golden/`). Details live
+in each plan (`docs/plans/sleeper-d*.md`).
+
+| Endpoint / field | Milestone | What |
+|------------------|-----------|------|
+| `platform`, `platform_label`, `capabilities` on season-level payloads | D1 | where a season's data comes from + `{key: {state, note}}`; `not_used` renders nothing |
+| `GET /v1/meta/capabilities`, `/v1/league/eras` platform entry | D1 | capability matrix for About; the platform change on the Timeline |
+| `GET /v1/seasons/current` | D3 | the in-progress season, its last final week and the pending ("awaiting final") week; `no_current_season` gap when none |
+| `week_pending`, `official_points_source`, `commissioner_override`, `slot_note` | D3 | box score / week matchups: unfinished week is unscored; points provenance; override note; bench-or-reserve hint |
+| `aggregation_note`, `scoring_era`, `scoring_era_count`, `draft_type` | D4 | cross-season payloads say what they include; records/stories name the scoring era |
+| `/v1/seasons/{id}/bracket` `source`, `is_provisional`, game `placement` / `week_pending` | D5 | official Sleeper brackets in the existing shape; legacy stays derived |
+| Standings potential points, `division_source` | D5 | every era (+ Sleeper `ppts` cross-check) |
+| `GET /v1/seasons/{id}/faab-market` | D6 | spend, biggest bids, bid wars, lost bids |
+| `GET /v1/league/picks`; team `trades` / `trade_assets`; failed bids | D6 | pick ledger; every asset of a trade |
+| `GET /v1/players/{id}/status?season=` | D7 | week-by-week nflverse report + Sleeper snapshot as of kickoff (7-day cutoff; older = `stale_or_missing_snapshot`) |
+| box/roster `injury_source`, `injury_as_of` | D7 | `nflverse` (official weekly report) first, `sleeper` snapshot fallback |
+
 ## Sample responses
 
 ### `GET /v1/owners/{owner_id}/head-to-head/{other_owner_id}`

@@ -23,6 +23,12 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
+- **Sleeper era — after the live go-live** ☐ (D8, 2026-11-10; v0.5.0 is released before it, per the
+  user). Re-walk the 2026 pages on live data with the `docs/sleeper/03` §5 checklist, including
+  2026 avatars from the upstream asset store (the fixture has none, so this check was not possible
+  in D8). Items D8 routed here (§5): divisions Potential, FAAB credits, `is_move`, bench IR hint,
+  "Power at playoff entry" while seeds are provisional.
+
 0. **Data Integrity & Coverage program** ☑ **— COMPLETE & MERGED** (dashboard PR #77; upstream
    crosswalk landed on `../danger-zone`). The structural fix for the recurring "works here but not
    there" / wrong-`player_id` reports. All five units shipped (table kept as a record); the
@@ -213,6 +219,13 @@ From `docs/10_OPEN_QUESTIONS.md`. All shipped at a sensible default and remain r
   the UI.
 - **League relevance = ever-rostered only** (not "ever scored"): the pipeline scores the whole NFL,
   so "scored" is not a league-relevance signal. Keep filters on roster presence.
+- **Sleeper-era follow-ups (routed from D5–D8; none blocks the release).**
+  - 2010–2019 divisions view has no Potential points column (D5).
+  - FAAB market "% of budget" ignores mid-season budget credits; `aggregation.is_move` has no
+    consumer yet (D6).
+  - The `*` bench-or-reserve hint could name players Sleeper's status snapshot lists as IR (D7).
+  - Playoffs "Power at playoff entry" shows for an in-progress season, before anyone has entered
+    the bracket (D8 walk); it should wait for the regular season to be final or say "so far".
 - **F-49 `made_playoffs = None`** where a bracket can't be inferred honestly — intentional until
   upstream metadata lands (§2 F-49).
 

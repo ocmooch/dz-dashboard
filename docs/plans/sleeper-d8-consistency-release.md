@@ -107,13 +107,58 @@ D8 ("don't merge milestones"). Each fix gets a test at the level it lives (vites
 
 ## Done-when checklist
 
-- [ ] Walk table complete for 21 pages × {2015, 2025, 2026}, dark + light; every finding fixed or routed
-- [ ] Playoffs legacy baseline + Sleeper baselines added; no existing baseline changed
-- [ ] Docs updated (table in item 5)
+- [x] Walk table complete for 21 pages × {2015, 2025, 2026}, dark + light; every finding fixed or routed
+- [x] Playoffs legacy baseline + Sleeper baselines added; no existing baseline changed
+- [x] Docs updated (table in item 5)
 - [ ] Full gate green; live parity 1092/0
 - [ ] User go-ahead → `dev → main` merged, `v0.5.0` tagged and pushed
-- [ ] `PROGRESS.md` + this file's as-built updated
+- [x] `PROGRESS.md` + this file's as-built updated
 
 ## As built
 
-(walk table and notes go here in the BUILD session)
+**Release decision (user, 2026-11-10): ship before the go-live.**
+
+### UX walk
+
+Method: a scratch Playwright script on the built SPA; 2015 + 2025 on the live DB (read-only BFF),
+2026 on the mixed-era fixture (unscored) and a scored copy (box score only; its one reconstruction row
+made other 2026 pages show artificial 0.00s, so those pages were judged on the unscored run). Per page
+it recorded era markers, `DataGap` texts, provenance notes, bare `0.00`/`$0` cells and console/API
+errors; screenshots read where the report flagged something.
+
+| Page | 2015 | 2025 | 2026 | Note |
+|------|------|------|------|------|
+| Home | ✓ | ✓ | ✓ | era marker on the "This week" card = the current season's header |
+| Timeline | ✓ | ✓ | F1 → fixed | raw `champion_unavailable` on the in-progress season |
+| Standings (+ power) | ✓ | ✓ | ✓ | `0.00` cells are real luck deltas |
+| Playoffs | ✓ | ✓ | F2 → fixed | two footnotes said the same thing; F4 routed |
+| Matchups | ✓ | ✓ | ✓ | |
+| Box score | ✓ | ✓ | ✓ | Sleeper-fallback badge (D7) |
+| Team | ✓ | ✓ | ✓ | legacy `0.00` = real zero-point weeks (unchanged) |
+| Teams, Managers, Manager profile | ✓ | ✓ | ✓ | aggregation note on 2026 |
+| Rivalries, Pairwise, Records | ✓ | ✓ | ✓ | |
+| Players | ✓ | ✓ | ✓ | |
+| Player detail | F3 → fixed | F3 → fixed | ✓ | legacy Status footnote was the bare upstream note |
+| Stats, Draft, Stories | ✓ | ✓ | ✓ | |
+| Viz Lab, Insights Lab | ✓ | ✓ | ✓ | |
+| About | ✓ | ✓ | ✓ | era markers in the capability matrix: accepted (it is the platform table) |
+
+- Light/dark parity: the app has one (dark) theme; nothing to compare.
+- 2026 avatars: the fixture's asset store has no Sleeper avatars (404 → fallback chip), so this
+  check moves to the post-go-live re-walk.
+- Only 404s in the walk were missing team avatars; no console/page errors.
+
+Findings: F1 Timeline in-progress results gap (`season_in_progress` / `champion_unavailable`
+labels); F2 official bracket shows only its provenance footnote (SPA; `caveat` stays a required
+string in the contract); F3 `player_status_daily` provenance copy for NFL.com seasons; F4 "Power at
+playoff entry" shown while seeds are provisional → `ACTIVE_WORK`.
+
+### Baselines
+
+Legacy `playoffs` + `e2e/sleeper-visual.spec.ts` (home, standings, playoffs, matchups week 9, team 17)
+on the `sleeper` project; stable on re-run; no existing baseline changed.
+
+### Docs
+
+`05` Sleeper-era additions table, `03` Sleeper reliability rows, `07` page additions, `09` Sleeper
+milestone table, `ACTIVE_WORK` (post-go-live re-walk + routed items), `CHANGELOG` (v0.5.0).
