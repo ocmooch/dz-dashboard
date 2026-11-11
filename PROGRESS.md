@@ -53,11 +53,15 @@ D1–D3 on a 2026 DB copy.
 - Open: market % of budget ignores mid-season credits; `is_move` still unused.
 Merged to `dev` (PR #133, 2026-11-10); branch deleted.
 
-**D8: BUILT (2026-11-10); releasing v0.5.0 before the live go-live (user decision).** Plan +
-as-built (walk table): `docs/plans/sleeper-d8-consistency-release.md`. Three walk fixes (Timeline
-in-progress gap, single bracket footnote, legacy Status footnote), Playoffs + 5 Sleeper visual
-baselines, docs, version 0.5.0. **Next:** after the user-approved upstream go-live, re-walk 2026 on
-live data (`ACTIVE_WORK.md` top item).
+**D8: DONE (2026-11-10); v0.5.0 RELEASED** (PR #135 → `dev`, PR #136 `dev → main`, tag `v0.5.0`),
+before the live go-live per the user. Plan + as-built (walk table):
+`docs/plans/sleeper-d8-consistency-release.md`. **The Sleeper program (D0–D8) is complete.**
+~~**Next:** the upstream 2026 go-live, then re-walk 2026 on live data.~~ Both done 2026-11-10
+(`ACTIVE_WORK.md` top item).
+
+**v0.5.1 RELEASED (2026-11-10)** with danger-zone v2.0.3: the Home champion fix (#138) promoted to
+`main`, `uv.lock` on `ff-pipeline` 2.0.3. Upstream now pulls weekly Sleeper projections (2026 box
+scores show them). No schema change. See `CHANGELOG.md`.
 
 **D7: DONE (2026-11-10); merged to `dev` (PR #134); branch deleted.** Plan + as-built: `docs/plans/sleeper-d7-player-status.md`.
 - `analytics/status_timeline.py` (the existing `player_status.py` is the NFL.com classifier):

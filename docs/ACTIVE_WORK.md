@@ -23,11 +23,20 @@ The dashboard application is **functionally complete and fully merged** (all P0�
 P1–P6 review fix-passes, and every post-roadmap slice — see the archive). There are **no open
 feature branches.** Remaining work, in priority order:
 
-- **Sleeper era — after the live go-live** ☐ (D8, 2026-11-10; v0.5.0 is released before it, per the
-  user). Re-walk the 2026 pages on live data with the `docs/sleeper/03` §5 checklist, including
-  2026 avatars from the upstream asset store (the fixture has none, so this check was not possible
-  in D8). Items D8 routed here (§5): divisions Potential, FAAB credits, `is_move`, bench IR hint,
-  "Power at playoff entry" while seeds are provisional.
+- **Sleeper era — live 2026 re-walk** ☑ (2026-11-10, after the go-live the same day). 22 pages on live
+  2026 data: weeks 1–9 final, week 10 "awaiting final"; 2026 team avatars served from the asset store
+  (two teams have none upstream → fallback chip, same as legacy). One bug fixed: Home's "last completed
+  season" champion card read the in-progress 2026 once it was scored (fallback `seasonPhase` picked
+  the newest *scored* season) → now the newest season that is over. Observations (no change):
+  - Player Status shows "no status capture" for weeks 1–9: Sleeper snapshots exist only from
+    2026-11-09 (captures started then). Fills in from here on, one week at a time.
+  - ☑ *Resolved upstream (danger-zone v2.0.3, 2026-11-10):* the box score said "Projection data
+    isn't available for the 2026 season" because nothing pulled 2026 projections. W1–10 are now
+    backfilled, and the Wednesday capture runs `backfill-projections --current-season` (upcoming
+    week re-fetched until played). Box scores show projections; no dashboard change.
+  - Home's champion card still carries the old line "Playoff bracket structure is not inferred until
+    the bracket endpoint is proven." — stale since D5; a copy cleanup (changes the legacy Home baseline).
+  - Routed D5–D8 follow-ups are in §5.
 
 0. **Data Integrity & Coverage program** ☑ **— COMPLETE & MERGED** (dashboard PR #77; upstream
    crosswalk landed on `../danger-zone`). The structural fix for the recurring "works here but not

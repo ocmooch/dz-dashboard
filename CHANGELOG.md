@@ -4,6 +4,17 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-11-10 — Release v0.5.1 (dev → main promotion) + danger-zone v2.0.3
+
+- **Home names the last finished season's champion** (#138): once 2026 was scored, the card's
+  fallback picked the newest *scored* season (2026, in progress) instead of the newest season
+  that is over. Found on the live 2026 re-walk after the go-live.
+- **danger-zone v2.0.3** (upstream): weekly Sleeper projections. 2026 W1–10 backfilled; 2026 box
+  scores now show projections. `uv.lock` records `ff-pipeline` 2.0.3. No schema change, so no
+  `migrate up` and no pin change.
+- **Version bumped `0.5.0` → `0.5.1`** (patch: one fix, no contract change); `dev` promoted to
+  `main`, tagged `v0.5.1`.
+
 ## 2026-11-10 — Sleeper era D0–D8 + release v0.5.0 (dev → main promotion)
 
 - **The dashboard reads the Sleeper era (2026+) next to NFL.com (2010–2025)** without changing any

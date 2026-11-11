@@ -4,6 +4,8 @@ export type SeasonPhase = {
   phase: "offseason" | "inseason";
   currentSeason: SeasonInfo | null;
   lastCompletedSeason: SeasonInfo | null;
+  /** The newest season that is over (not in progress): the one whose champion Home names. */
+  lastFinishedSeason: SeasonInfo | null;
   reason: "in_progress" | "completed" | "no_current";
 };
 
@@ -25,11 +27,16 @@ export function deriveSeasonPhase({
   seasons: SeasonInfo[];
 }): SeasonPhase {
   const scored = [...seasons].filter((s) => s.is_scored).sort((a, b) => b.season_year - a.season_year);
+  // An in-progress season has no champion yet, even once it is scored (live 2026 after go-live).
+  const lastFinishedSeason =
+    [...seasons].filter((s) => s.status !== "in_progress").sort((a, b) => b.season_year - a.season_year)[0] ??
+    null;
   if (!current) {
     return {
       phase: "offseason",
       currentSeason: null,
       lastCompletedSeason: scored[0] ?? null,
+      lastFinishedSeason,
       reason: "no_current",
     };
   }
@@ -38,6 +45,7 @@ export function deriveSeasonPhase({
       phase: "inseason",
       currentSeason: current,
       lastCompletedSeason: scored[0] ?? current,
+      lastFinishedSeason,
       reason: "in_progress",
     };
   }
@@ -45,6 +53,7 @@ export function deriveSeasonPhase({
     phase: "offseason",
     currentSeason: current,
     lastCompletedSeason: scored[0] ?? current,
+    lastFinishedSeason,
     reason: "completed",
   };
 }
