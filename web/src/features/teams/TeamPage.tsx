@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { LineTrend } from "@/charts";
 import { InjuryBadge } from "@/components/InjuryBadge";
 import { PlayerScoreCell } from "@/components/PlayerScoreCell";
+import { useSeasons } from "@/app/shell/SeasonContext";
 import { ResultTimeline } from "@/features/teams/ResultTimeline";
 import {
   AWAITING_FINAL_LABEL,
   Badge,
+  CapabilityGate,
   Card,
   CardHeader,
   Chip,
@@ -27,7 +29,7 @@ import {
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { num } from "@/lib/format";
-import { slotNoteText, tradeAssetsText } from "@/lib/platform";
+import { lostBidText, slotNoteText, tradeAssetsText, tradeSummaryText } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type OwnerSeasonRow = components["schemas"]["OwnerSeasonRow"];
@@ -439,21 +441,14 @@ function TransactionsCard({ teamId }: { teamId: number }) {
 
   // Preferred path: the exact recorded log, grouped by effective week.
   if (hasExact) {
-    const byWeek = new Map<number, typeof exactRows>();
-    for (const t of exactRows) {
-      const w = t.effective_week ?? 0;
-      const bucket = byWeek.get(w);
-      if (bucket) bucket.push(t);
-      else byWeek.set(w, [t]);
-    }
-    const groups: WeekGroup[] = [...byWeek.entries()]
-      .sort((a, b) => b[0] - a[0])
-      .map(([week, items]) => ({
-        week,
-        count: items.length,
-        body: [...items]
-          .sort((a, b) => (b.executed_at ?? "").localeCompare(a.executed_at ?? ""))
-          .map((t) => (
+    // A trade renders once, with every asset, from `trades`; its per-leg rows are left out.
+    const items: { week: number; at: string; node: ReactNode }[] = [
+      ...exactRows
+        .filter((t) => t.transaction_type !== "trade")
+        .map((t) => ({
+          week: t.effective_week ?? 0,
+          at: t.executed_at ?? "",
+          node: (
             <TxRow
               key={t.transaction_id}
               glyph={txGlyph(t)}
@@ -464,14 +459,43 @@ function TransactionsCard({ teamId }: { teamId: number }) {
               title={formatTransactionDateTime(t.executed_at)}
               faabBid={t.faab_bid}
             />
-          )),
+          ),
+        })),
+      ...(tx.data?.trades ?? []).map((tr, i) => ({
+        week: tr.week ?? 0,
+        at: tr.executed_at ?? "",
+        node: (
+          <TxRow
+            key={`trade-${i}`}
+            glyph="⇄"
+            tone={undefined}
+            primary={tradeSummaryText(tr)}
+            meta={tr.counterpart_team_name ? `with ${tr.counterpart_team_name}` : ""}
+            label={transactionLabel("trade")}
+            title={formatTransactionDateTime(tr.executed_at)}
+          />
+        ),
+      })),
+    ];
+    const byWeek = new Map<number, typeof items>();
+    for (const it of items) {
+      const bucket = byWeek.get(it.week);
+      if (bucket) bucket.push(it);
+      else byWeek.set(it.week, [it]);
+    }
+    const groups: WeekGroup[] = [...byWeek.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([week, rows]) => ({
+        week,
+        count: rows.length,
+        body: [...rows].sort((a, b) => b.at.localeCompare(a.at)).map((r) => r.node),
       }));
     return (
       <Card>
         <CardHeader
           eyebrow="recorded log"
           title="Transactions"
-          action={<span className="text-[var(--fs-xs)] text-faint">{exactRows.length}</span>}
+          action={<span className="text-[var(--fs-xs)] text-faint">{items.length}</span>}
         />
         <WeekAccordion groups={groups} />
       </Card>
@@ -657,6 +681,41 @@ function FaabBudgetCard({ teamId }: { teamId: number }) {
   );
 }
 
+/** Lost FAAB bids (Sleeper D6). FAAB seasons only; where the platform never recorded lost
+ *  bids (NFL.com), the shared capability gap shows instead. */
+function LostBidsCard({ teamId, platform }: { teamId: number; platform: string | null | undefined }) {
+  const budget = useQuery({ queryKey: qk.teamFaabBudget(teamId), queryFn: () => fetchFaabBudget(teamId) });
+  const tx = useQuery({ queryKey: qk.teamTransactions(teamId), queryFn: () => fetchTransactions(teamId) });
+  if (!budget.data?.is_faab_era || !tx.data) return null;
+  const lost = tx.data.failed_bids ?? [];
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="FAAB"
+        title="Lost bids"
+        action={<span className="text-[var(--fs-xs)] text-faint">{lost.length}</span>}
+      />
+      <CapabilityGate capKey="faab_failed_bids" cap={tx.data.failed_bids_capability} platform={platform}>
+        {lost.length === 0 ? (
+          <p className="px-5 pb-4 text-[var(--fs-sm)] text-faint">No lost bids this season.</p>
+        ) : (
+          <ol className="divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+            {lost.map((b, i) => (
+              <li key={i} className="flex items-center gap-3 px-5 py-1.5 text-[var(--fs-sm)]">
+                <span className="dz-eyebrow w-12 shrink-0 text-faint">Wk {b.week ?? "—"}</span>
+                <span className="min-w-0 truncate text-text">
+                  {b.player?.player_name ?? "Unknown player"}
+                </span>
+                <span className="ml-auto shrink-0 text-muted">{lostBidText(b)}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </CapabilityGate>
+    </Card>
+  );
+}
+
 function formatTransactionDate(value: string | null | undefined) {
   if (!value) return null;
   const date = new Date(value);
@@ -710,6 +769,7 @@ function TeamSeasonSelect({ ownerId, teamId }: { ownerId: number; teamId: number
 
 export function TeamPage() {
   const params = useParams();
+  const { seasons } = useSeasons();
   const teamId = Number(params.teamId);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.team(teamId),
@@ -775,8 +835,14 @@ export function TeamPage() {
             <TransactionsCard teamId={teamId} />
           </div>
 
-          {/* FAAB budget — renders only for FAAB-era seasons (self-hiding). */}
-          <FaabBudgetCard teamId={teamId} />
+          {/* FAAB budget + lost bids — render only for FAAB-era seasons (self-hiding). */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <FaabBudgetCard teamId={teamId} />
+            <LostBidsCard
+              teamId={teamId}
+              platform={seasons.find((x) => x.season_id === data.season_id)?.platform}
+            />
+          </div>
         </>
       )}
     </div>

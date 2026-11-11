@@ -16,6 +16,7 @@ import {
 } from "@/design-system";
 import { BarCompare, ScatterQuadrant } from "@/charts";
 import type { QuadrantPoint } from "@/charts";
+import { PickLedgerCard } from "@/features/draft/PickLedger";
 import { api } from "@/lib/api/client";
 import { num } from "@/lib/format";
 import { draftTypeLabel } from "@/lib/platform";
@@ -914,6 +915,8 @@ export function DraftPage() {
             </div>
           </Card>
         )}
+
+      <PickLedgerCard platform={current?.platform} />
     </div>
   );
 }

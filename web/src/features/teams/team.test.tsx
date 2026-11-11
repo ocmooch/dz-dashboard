@@ -9,6 +9,15 @@ import { TeamPage } from "./TeamPage";
 const get = vi.fn();
 vi.mock("@/lib/api/client", () => ({ api: { GET: (...args: unknown[]) => get(...args) } }));
 
+vi.mock("@/app/shell/SeasonContext", () => ({
+  useSeasons: () => ({
+    current: null,
+    seasons: [{ season_id: 1, season_year: 2017, platform: "nfl_com" }],
+    setSeasonId: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 const envelope = (data: unknown) => ({ data: { data, meta: {} }, error: undefined });
 
 const OVERVIEW = {
@@ -211,6 +220,22 @@ const TRANSACTIONS = {
       extra_data: null,
     },
   ],
+  trades: [
+    {
+      executed_at: "2017-09-17T09:05:00+00:00",
+      week: 2,
+      counterpart_team_id: 9,
+      counterpart_team_name: "Maverick 2017",
+      players_in: [{ player_id: 50, player_name: "Traded Tom", position: "RB" }],
+      players_out: [{ player_id: 51, player_name: "Sent Sam", position: "WR" }],
+      picks_in: [],
+      picks_out: [],
+      faab_in: 0,
+      faab_out: 0,
+    },
+  ],
+  failed_bids: [],
+  failed_bids_capability: { state: "not_on_platform", note: null },
 };
 
 const NO_TRANSACTIONS = { team_id: 10, season_year: 2017, transactions: [] };
@@ -429,8 +454,8 @@ describe("TeamPage", () => {
     expect(await screen.findByText("Waiver Wendell")).toBeInTheDocument();
     expect(screen.getAllByText("Waiver").length).toBeGreaterThan(0);
     expect(screen.getByText(/waiver #4/i)).toBeInTheDocument();
-    // The trade is interleaved with its counterpart team.
-    expect(screen.getByText("Traded Tom")).toBeInTheDocument();
+    // A trade renders once, naming every asset, with its counterpart team.
+    expect(screen.getByText("Got Traded Tom · gave Sent Sam")).toBeInTheDocument();
     expect(screen.getByText("Trade")).toBeInTheDocument();
     expect(screen.getByText(/with Maverick 2017/i)).toBeInTheDocument();
     // The actor/device note is suppressed (the owner is implied).
@@ -584,5 +609,12 @@ describe("TeamPage", () => {
     // Expanding the Draft bucket reveals the pick.
     await userEvent.click(screen.getByText("Draft"));
     expect(await screen.findByText("Drafted Dan")).toBeInTheDocument();
+  });
+
+  it("shows the shared failed-bids gap for a legacy FAAB season", async () => {
+    faabBudget = FAAB_BUDGET;
+    renderPage();
+    expect(await screen.findByText("Lost bids")).toBeInTheDocument();
+    expect(screen.getByText("NFL.com didn't record unsuccessful waiver bids.")).toBeInTheDocument();
   });
 });

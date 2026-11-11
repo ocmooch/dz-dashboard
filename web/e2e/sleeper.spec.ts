@@ -57,3 +57,19 @@ test("playoffs show the official bracket's current seeds; standings show potenti
   await expect(page.getByRole("columnheader", { name: "Potential" })).toBeVisible();
   await expect(page.getByText(/Weeks 1–8: an injured-reserve player may sit on the bench/)).toBeVisible();
 });
+
+test("a 2026 trade shows every asset; the FAAB market shows bid wars", async ({ page }) => {
+  // Team 17 = the mixed fixture's pick + FAAB trade sender (deterministic fixture build).
+  await page.goto("/teams/17");
+  await page.getByRole("button", { name: /^Week 1\b/ }).click(); // the trade is in week 1
+  await expect(page.getByText(/Got .*\$7 FAAB · gave .*2027 R2 pick/)).toBeVisible();
+  await expect(page.getByText("Lost bids")).toBeVisible();
+
+  await page.goto("/stats");
+  await page.getByRole("tab", { name: "FAAB market" }).click();
+  await expect(page.getByText("Bid wars")).toBeVisible();
+  await expect(page.getByText(/won by \$\d+/).first()).toBeVisible();
+
+  await page.goto("/draft");
+  await expect(page.getByText("2027 R2")).toBeVisible();
+});

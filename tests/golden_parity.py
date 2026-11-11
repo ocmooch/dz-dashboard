@@ -56,6 +56,7 @@ SEASON_ENDPOINTS = (
     "/power/timeline",
     "/draft",
     "/draft/value",
+    "/faab-market",
 )
 GLOBAL_PATHS = (
     "/v1/meta",
@@ -66,6 +67,7 @@ GLOBAL_PATHS = (
     "/v1/league/eras",
     "/v1/league/stories",
     "/v1/league/managers",
+    "/v1/league/picks",
     "/v1/owners",
     "/v1/owners/rivalry-matrix",
     "/v1/records",

@@ -40,6 +40,8 @@ from ff_dashboard.analytics.aggregation import is_failed_claim
 from ff_dashboard.analytics.bracket import postseason_classification
 from ff_dashboard.analytics.common import owner_name_map, require_league
 from ff_dashboard.analytics.coverage import seasons_scored
+from ff_dashboard.analytics.faab_market import FAAB_BASE_BUDGET
+from ff_dashboard.analytics.faab_market import faab_bid as _faab_bid
 from ff_dashboard.analytics.game_state import game_result, is_idle, is_pending, slot_note
 from ff_dashboard.analytics.historical_team_names import period_team_name
 from ff_dashboard.analytics.injuries import injury_fields
@@ -435,7 +437,75 @@ def team_transactions(session: Session, team_id: int) -> dict[str, Any] | None:
             }
         )
 
-    return {"team_id": team_id, "season_year": season.year, "transactions": items}
+    from ff_dashboard.analytics.faab_market import FAILED_BIDS_KEY, team_failed_bids
+    from ff_dashboard.analytics.platform import AVAILABLE, season_capabilities
+
+    capability = season_capabilities(session, season.season_id).get(FAILED_BIDS_KEY)
+    failed_available = (capability or {}).get("state") == AVAILABLE
+    return {
+        "team_id": team_id,
+        "season_year": season.year,
+        "transactions": items,
+        "trades": team_trades(session, team_id),
+        "failed_bids": team_failed_bids(session, team_id) if failed_available else [],
+        "failed_bids_capability": capability,
+    }
+
+
+def team_trades(session: Session, team_id: int) -> list[dict[str, Any]]:
+    """This team's trades, each with every asset: players, draft picks and FAAB (Sleeper D6).
+
+    Legs carry no shared trade id, so a trade = this team's legs with the same execution time,
+    week and counterpart. The pick/FAAB side is this team's own player-less leg (``00`` §4)."""
+    team = get_team(session, team_id)
+    season = get_season(session, team.season_id) if team is not None else None
+    if team is None or season is None:
+        return []
+    groups: dict[tuple[Any, Any, Any], list[Any]] = defaultdict(list)
+    for t in transactions_for_team(session, team_id):
+        if t.transaction_type == "trade" and t.team_id == team_id:
+            groups[(t.executed_at, t.effective_week, t.counterpart_team_id)].append(t)
+    trades: list[dict[str, Any]] = []
+    for (executed_at, week, counterpart_id), legs in groups.items():
+        counterpart = get_team(session, counterpart_id) if counterpart_id is not None else None
+        players: dict[str, list[dict[str, Any]]] = {"in": [], "out": []}
+        picks_in: list[Any] = []
+        picks_out: list[Any] = []
+        faab_in = faab_out = 0.0
+        for leg in legs:
+            extra = _trade_assets(leg)
+            if extra is not None:
+                picks_in += extra["picks_in"]
+                picks_out += extra["picks_out"]
+                faab_in += float(extra["faab_in"] or 0)
+                faab_out += float(extra["faab_out"] or 0)
+            elif leg.player_id is not None and leg.direction in players:
+                p = get_player(session, leg.player_id)
+                players[leg.direction].append(
+                    {
+                        "player_id": leg.player_id,
+                        "player_name": p.name_full if p is not None else None,
+                        "position": p.position if p is not None else None,
+                    }
+                )
+        trades.append(
+            {
+                "executed_at": executed_at.isoformat() if executed_at is not None else None,
+                "week": week,
+                "counterpart_team_id": counterpart_id,
+                "counterpart_team_name": period_team_name(counterpart, season.year)
+                if counterpart is not None
+                else None,
+                "players_in": players["in"],
+                "players_out": players["out"],
+                "picks_in": picks_in,
+                "picks_out": picks_out,
+                "faab_in": faab_in,
+                "faab_out": faab_out,
+            }
+        )
+    trades.sort(key=lambda tr: (tr["week"] or 0, tr["executed_at"] or ""))
+    return trades
 
 
 def _trade_assets(t: Any) -> dict[str, Any] | None:
@@ -451,33 +521,10 @@ def _trade_assets(t: Any) -> dict[str, Any] | None:
     }
 
 
-def _faab_bid(extra_data: dict[str, Any] | None) -> float | None:
-    """Return a FAAB bid when Phase 1 records one (2021+ ``waiver_add`` legs).
-
-    A bid of ``0`` is a *real* outcome (a free waiver claim), distinct from a
-    missing bid — so we check key *presence* rather than truthiness; an ``or``
-    chain would wrongly collapse ``0`` to ``None``. Falls back to ``faab`` /
-    ``bid`` only if the canonical ``faab_bid`` key is absent.
-    """
-    if not extra_data:
-        return None
-    for key in ("faab_bid", "faab", "bid"):
-        if key not in extra_data:
-            continue
-        raw = extra_data[key]
-        if raw is None:
-            continue
-        try:
-            return float(raw)
-        except (TypeError, ValueError):
-            continue
-    return None
-
-
 # --- FAAB remaining-budget -------------------------------------------------
 # The league's FAAB season budget. The 2021 switch event set it to $100 and it
 # has held since; it is the base every team starts each FAAB season with.
-_FAAB_BASE_BUDGET = 100.0
+_FAAB_BASE_BUDGET = FAAB_BASE_BUDGET
 
 # A per-team mid-season budget adjustment, e.g.
 #   "Owner 05 changed Team 083 Waiver Budget from '39' to '76'"

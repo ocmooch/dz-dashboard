@@ -1,0 +1,15 @@
+{
+ "body": {
+  "data": {
+   "available": false,
+   "picks": [],
+   "reason": "traded_future_picks"
+  },
+  "meta": {
+   "last_updated": "2018-01-02T12:00:00",
+   "pipeline_run_id": 1,
+   "source": "reconstruct"
+  }
+ },
+ "status": 200
+}

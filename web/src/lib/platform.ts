@@ -223,3 +223,47 @@ export function officialPotentialText(value: string, platform: string | null | u
   const label = platformLabel(platform) || "Platform";
   return `${label}'s own figure: ${value}`;
 }
+
+type TradePlayer = { player_name?: string | null };
+
+/** One line naming every asset of a trade from this team's side (Sleeper D6). */
+export function tradeSummaryText(trade: {
+  players_in?: TradePlayer[];
+  players_out?: TradePlayer[];
+  picks_in?: PickRef[];
+  picks_out?: PickRef[];
+  faab_in?: number;
+  faab_out?: number;
+}): string {
+  const pick = (p: PickRef) => `${p.season ?? "?"} R${p.round ?? "?"} pick`;
+  const side = (players: TradePlayer[] = [], picks: PickRef[] = [], faab = 0) => {
+    const parts = [...players.map((p) => p.player_name ?? "Unknown player"), ...picks.map(pick)];
+    if (faab) parts.push(`$${faab} FAAB`);
+    return parts.length ? parts.join(", ") : "nothing";
+  };
+  const got = side(trade.players_in, trade.picks_in, trade.faab_in);
+  const gave = side(trade.players_out, trade.picks_out, trade.faab_out);
+  return `Got ${got} · gave ${gave}`;
+}
+
+/** A lost FAAB claim: your bid, and who won it for how much. */
+export function lostBidText(bid: {
+  bid?: number | null;
+  winning_bid?: number | null;
+  winner?: { team_name?: string | null; owner_name?: string | null } | null;
+  failure_reason?: string | null;
+}): string {
+  const yours = bid.bid != null ? `$${bid.bid}` : "no bid";
+  if (bid.winner) {
+    const who = bid.winner.team_name ?? bid.winner.owner_name ?? "another team";
+    const won = bid.winning_bid != null ? ` for $${bid.winning_bid}` : "";
+    return `Bid ${yours} · won by ${who}${won}`;
+  }
+  return bid.failure_reason ? `Bid ${yours} · ${bid.failure_reason}` : `Bid ${yours}`;
+}
+
+/** A bid war's margin line ("won by $3"; a tie at the top was settled by waiver order). */
+export function bidMarginText(margin: number | null | undefined): string | null {
+  if (margin == null) return null;
+  return margin > 0 ? `won by $${margin}` : "tie at the top, settled by waiver order";
+}

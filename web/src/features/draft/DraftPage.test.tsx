@@ -159,7 +159,22 @@ const TENDENCIES = {
   ],
 };
 
+const PICKS = {
+  available: true,
+  reason: null,
+  picks: [
+    {
+      pick_season: 2027,
+      round: 2,
+      original_owner: { owner_id: 1, owner_name: "Iceman" },
+      current_owner: { owner_id: 2, owner_name: "Goose" },
+      previous_owner: { owner_id: 1, owner_name: "Iceman" },
+    },
+  ],
+};
+
 function routeByPath(path: string) {
+  if (path === "/v1/league/picks") return envelope(PICKS);
   if (path === "/v1/seasons/{season_id}/draft") return envelope(BOARD);
   if (path === "/v1/seasons/{season_id}/draft/value") return envelope(VALUE);
   if (path === "/v1/draft/tendencies") return envelope(TENDENCIES);
@@ -576,5 +591,12 @@ describe("DraftPage", () => {
     expect(screen.getByText(/directional read on draft style/i)).toBeInTheDocument();
     expect(screen.getByText("60%")).toBeInTheDocument();
     expect(screen.getByText("reaches")).toBeInTheDocument();
+  });
+
+  it("lists traded future picks in the pick ledger", async () => {
+    renderPage();
+    expect(await screen.findByText("Pick ledger")).toBeInTheDocument();
+    expect(await screen.findByText("2027 R2")).toBeInTheDocument();
+    expect(screen.getAllByText("Goose").length).toBeGreaterThan(0);
   });
 });
