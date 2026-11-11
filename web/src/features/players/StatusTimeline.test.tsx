@@ -89,7 +89,7 @@ describe("StatusTimelineView", () => {
     );
     expect(screen.queryByText(/snapshot/i)).toBeNull();
     expect(screen.queryByText("No status capture within 7 days of kickoff")).toBeNull();
-    expect(screen.getByText("Weekly injury reports only.")).toBeInTheDocument();
+    expect(screen.getByText(/Weekly game status from the official NFL injury reports/)).toBeInTheDocument();
   });
 
   it("shows the latest card when present, with the snapshot date in the tooltip", () => {

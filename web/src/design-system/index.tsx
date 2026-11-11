@@ -265,6 +265,8 @@ export function DataGap({ reason, size = "md" }: { reason?: string; size?: "md" 
     reports_not_loaded: "Injury report not loaded for this week yet",
     stale_or_missing_snapshot: "No status capture within 7 days of kickoff",
     season_not_played: "This season has no games yet",
+    season_in_progress: "Season in progress — final results come after the championship",
+    champion_unavailable: "Final results weren't recorded for this season",
   };
   return (
     <span className={`dz-datagap ${size === "sm" ? "dz-datagap--sm" : ""}`.trim()} role="note">

@@ -331,7 +331,10 @@ export function PlayoffsPage() {
             </Card>
           )}
 
-          {data.caveat && <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>}
+          {/* An official bracket's provenance footnote already says where it comes from (D8). */}
+          {data.caveat && data.source !== "official" && (
+            <p className="px-1 text-[var(--fs-xs)] text-faint">{data.caveat}</p>
+          )}
           <div className="px-1">
             <ProvenanceNote>{bracketProvenanceText(data.source, current?.platform)}</ProvenanceNote>
           </div>

@@ -304,6 +304,8 @@ describe("PlayoffsPage", () => {
     renderPage();
     expect(await screen.findByText(/may change until the playoffs are decided/i)).toBeInTheDocument();
     expect(screen.getByText("Official bracket.")).toBeInTheDocument();
+    // one footnote only: the derived-bracket caveat is not repeated under an official bracket (D8)
+    expect(screen.queryByText(BRACKET.caveat)).toBeNull();
     expect(screen.getAllByText("TBD")).toHaveLength(2);
     expect(screen.getByText("Awaiting final")).toBeInTheDocument();
     // an unplayed official game has no matchup to open; a played (pending) one does

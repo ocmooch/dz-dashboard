@@ -4,6 +4,22 @@ Reverse-chronological history for completed passes, audits, and notable data-reg
 Keep `PROGRESS.md` focused on current state. For the consolidated, fully-organized records see
 `docs/archive/COMPLETED_WORK.md` (all finished work) and `docs/ACTIVE_WORK.md` (all remaining work).
 
+## 2026-11-10 — Sleeper era D0–D8 + release v0.5.0 (dev → main promotion)
+
+- **The dashboard reads the Sleeper era (2026+) next to NFL.com (2010–2025)** without changing any
+  legacy value: live golden parity 1092/0, fixture golden green throughout.
+- D0 mixed-era fixture + goldens (#126) · D1 provenance + capabilities (#127) · D2 source-neutral
+  points (#129) · D3 current-season experience, the unfinished week is unscored (#130) · D4
+  cross-era aggregation notes + scoring eras (#131) · D5 official brackets, potential points (#132) ·
+  D6 transaction market: FAAB, bid wars, trade assets, pick ledger (#133) · D7 player status:
+  nflverse first, Sleeper snapshot fallback, Player Status card (#134).
+- **D8 consistency pass:** walked 21 pages × 2015/2025 (live) + 2026 (fixture). Fixed: Timeline's
+  raw `champion_unavailable` on an in-progress season, the duplicate bracket footnote under an
+  official bracket, the legacy Player Status footnote copy. Added Playoffs (legacy) and five Sleeper
+  visual baselines. Follow-ups routed to `ACTIVE_WORK.md`.
+- **Version bumped `0.4.0` → `0.5.0`**; `dev` promoted to `main`, tagged `v0.5.0`. Minor bump: new
+  features, additive contract only (pre-1.0).
+
 ## 2026-06-24 — Championship flag, playoff/consolation differentiation, Sacko 💩
 
 - **Shared postseason classifier** (`analytics/bracket.py` `postseason_classification` +

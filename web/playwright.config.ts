@@ -9,7 +9,7 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 // on their own server, so 2026 never becomes the legacy suite's default season.
 const MIXED_PORT = 8811;
 const MIXED_URL = `http://127.0.0.1:${MIXED_PORT}`;
-const SLEEPER_SPECS = /sleeper\.spec\.ts$/;
+const SLEEPER_SPECS = /sleeper(-visual)?\.spec\.ts$/;
 
 export default defineConfig({
   testDir: "./e2e",

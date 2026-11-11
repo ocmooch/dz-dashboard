@@ -217,6 +217,25 @@ power ranking) via the shared `PowerTable`, linking back to `/standings?lens=pow
 
 ---
 
+## Sleeper era additions (D1–D8)
+
+No new nav items (`docs/sleeper/03` rule 7); new data extends existing pages. Era marker only in the
+season header (incl. Home's "This week" card), the Timeline boundary and About's capability matrix.
+
+| Page | Addition | Milestone |
+|------|----------|-----------|
+| Home | "This week" card for the in-progress season: last final week's results, pending pairings "Awaiting final" | D3 |
+| Timeline | "Moved to Sleeper" platform boundary; in-progress season shows "Season in progress" instead of results | D1, D8 |
+| Standings | through-week label, potential points (+ provenance), official divisions when used | D3, D5 |
+| Playoffs | official bracket (provisional seeds note), single provenance footnote | D5, D8 |
+| Matchups / Box score | pending week gap, official-points footnote, commissioner-override note, `*` bench-or-reserve hint, injury badge with snapshot fallback | D3, D7 |
+| Team | trade rows list every asset, Lost bids card | D6 |
+| Stats | "FAAB market" tab | D6 |
+| Draft | draft type label, traded-pick ledger | D4, D6 |
+| Records / Stories / Managers | `AggregationNote` (in-progress season), scoring-era badge | D4 |
+| Player detail | Status card (game report + weekly snapshot, 7-day cutoff gaps) | D7 |
+| About | capability matrix by season | D1 |
+
 ## Build priority (which views ship first)
 
 Anticipating the most-used and highest-value views, and respecting data readiness:

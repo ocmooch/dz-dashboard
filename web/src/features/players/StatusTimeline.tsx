@@ -11,7 +11,7 @@ import { InjuryBadge } from "@/components/InjuryBadge";
 import { CapabilityGate, DataGap, ProvenanceNote, Skeleton } from "@/design-system";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { capabilityGapText, statusSnapshotHeading, statusSnapshotNote } from "@/lib/platform";
+import { capabilityGapText, provenanceText, statusSnapshotHeading, statusSnapshotNote } from "@/lib/platform";
 import { qk } from "@/lib/queryKeys";
 
 type StatusEntry = components["schemas"]["StatusEntry"];
@@ -74,7 +74,8 @@ export function StatusTimelineView({ data }: { data: PlayerStatusTimeline }) {
         >
           {/* Partial (weekly reports only): say so once, not per week. */}
           <ProvenanceNote>
-            {capabilityGapText("player_status_daily", data.snapshot_capability, data.platform)}
+            {provenanceText("player_status_daily", data.platform) ??
+              capabilityGapText("player_status_daily", data.snapshot_capability, data.platform)}
           </ProvenanceNote>
         </CapabilityGate>
       )}

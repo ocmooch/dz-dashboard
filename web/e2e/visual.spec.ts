@@ -14,6 +14,8 @@ const PAGES: { name: string; path: string; ready: string }[] = [
   { name: "rivalries", path: "/rivalries", ready: "Rivalries" },
   // matchup_id 17 == the fixture's highest team score (Maverick, 2017 wk1).
   { name: "box-score", path: "/matchups/17", ready: "Box Score" },
+  // D5/D8: the derived legacy bracket (fixture 2017) with its provenance footnote.
+  { name: "playoffs", path: "/playoffs", ready: "Playoffs" },
 ];
 
 for (const p of PAGES) {

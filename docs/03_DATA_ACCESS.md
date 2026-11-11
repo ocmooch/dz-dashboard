@@ -125,6 +125,20 @@ is incomplete for a completed season. The
 gap-validation harness (`tests/test_coverage_integrity.py`, F-43) asserts this split
 mechanically: present-but-unscored seasons still carry non-null team scores.
 
+### Sleeper era (2026+) — reliability rows
+
+Source of truth for shapes: `docs/sleeper/00_UPSTREAM_STATE.md` §3–§4.
+
+| Data | Coverage | Reliability | UI obligation |
+|------|----------|-------------|---------------|
+| Unfinished week (`matchups.extra_data.finalized=false`) | the current week of an in-progress season | **Provisional** | Unscored: pairings only, "Awaiting final"; never a result, tie, live score, PF/PA or record |
+| Official points (`team_rosters` `platform_points`) | 2026+ | **Solid** | Read through `queries.authoritative_week_points_expr`; no `nfl_com_points` on these rows |
+| Transactions | 2026+ | **Solid**, richer | Exclude `status='failed'` claims from activity/FAAB spend unless showing bid wars; handle player-less pick/FAAB trade legs |
+| Official brackets (`playoff_brackets`) | 2026+ | **Solid**; seeds provisional until week 15 | Mark provisional; legacy brackets stay derived |
+| Player status snapshots (`player_status_snapshots`) | weekly (Wednesday capture) from go-live | **Partial** by design | Use the newest snapshot ≤ kickoff, ≤ 7 days old; older = gap. nflverse weekly reports win for game status |
+| Roster slots weeks 1–8 of 2026 | no archived IR list | **Partial** (`slot_certainty='bench_or_reserve'`) | `*` hint, never a guess |
+| League-structure capabilities (divisions, co-owners, overrides) | per season | `available` only when present | `not_used` renders nothing |
+
 ### DST: presence vs. value accuracy — a dev-facing fact (F-48)
 
 `/v1/meta`'s `dst_scoring_complete` asserts **presence**: every scored season carries at least
