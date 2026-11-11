@@ -44,14 +44,19 @@ D1–D3 on a 2026 DB copy.
 - Deviations: `CurrentSeason` has no `data_as_of` (envelope `meta` has it); pending `is_winner`=false.
 - Merged to `dev` (PR #130, 2026-11-10); branch deleted.
 
-**D6: BUILT (2026-11-10), gate green; PR to `dev` open.** Plan + as-built:
+**D6: DONE (2026-11-10); merged to `dev` (PR #133).** Plan + as-built:
 `docs/plans/sleeper-d6-transaction-market.md` (branch `feature/sleeper-d6-transaction-market`).
 - `faab_market.py` (spend, biggest bids, bid wars, lost bids), `picks.py` (traded-pick ledger),
   grouped `trades` on team transactions; routes `/v1/seasons/{id}/faab-market`, `/v1/league/picks`.
 - SPA: Team trade rows list every asset + Lost bids card; Stats "FAAB market" tab; Draft pick
   ledger card. Legacy shows the shared failed-bids gap.
 - Open: market % of budget ignores mid-season credits; `is_move` still unused.
-Next: D7 (player status), then D8.
+Merged to `dev` (PR #133, 2026-11-10); branch deleted.
+
+**D7: PLANNED (2026-11-10).** Plan: `docs/plans/sleeper-d7-player-status.md`
+(branch `feature/sleeper-d7-player-status`). Next: BUILD. New `analytics/status_timeline.py` (existing
+`player_status.py` is the NFL.com classifier), `GET /v1/players/{id}/status`, box-score merge
+(nflverse first, Sleeper snapshot fallback as of week kickoff), Player detail timeline. Then D8.
 
 **D5: DONE (2026-11-10); merged to `dev` (PR #132).** Plan + as-built:
 `docs/plans/sleeper-d5-official-brackets.md` (branch `feature/sleeper-d5-official-brackets`).
