@@ -53,7 +53,7 @@ from ff_dashboard.analytics.game_state import (
     slot_note,
 )
 from ff_dashboard.analytics.historical_team_names import period_team_name
-from ff_dashboard.analytics.injuries import InjuryFields, injury_fields
+from ff_dashboard.analytics.injuries import InjuryFields
 from ff_dashboard.analytics.matchup_flags import (
     flags_for_game,
     season_score_context,
@@ -68,6 +68,7 @@ from ff_dashboard.analytics.roster_snapshots import (
 )
 from ff_dashboard.analytics.scoring import official_points_from_extra
 from ff_dashboard.analytics.season_schedule import season_schedule
+from ff_dashboard.analytics.status_timeline import badge_fields, for_player, week_status
 
 if TYPE_CHECKING:
     from ff_pipeline.repository.models import Season
@@ -223,7 +224,12 @@ def _hamlin_player_context(hamlin: dict[str, Any] | None) -> dict[str, Any] | No
 
 
 def _reserve_eligibility_status(
-    roster_row: Any, injury: Any, injury_payload: InjuryFields, *, player_played: bool
+    roster_row: Any,
+    injury: Any,
+    injury_payload: InjuryFields,
+    *,
+    player_played: bool,
+    sleeper_roster_status: str | None = None,
 ) -> str | None:
     slot = (roster_row.roster_slot or "").upper()
     if slot not in IR_SLOTS:
@@ -237,9 +243,12 @@ def _reserve_eligibility_status(
         roster_status_label = None
     if should_suppress_status(roster_status, played=player_played):
         roster_status = None
+    if should_suppress_status(sleeper_roster_status, played=player_played):
+        sleeper_roster_status = None
     return (
         roster_status_label
         or roster_status
+        or sleeper_roster_status
         or injury_payload.get("injury_status")
         or injury_payload.get("injury_practice_status")
         or (injury.practice_status if injury is not None else None)
@@ -810,6 +819,7 @@ def _team_box(
     )
     scoring_rules = _season_scoring_rules(session, season.season_id)
     injuries = injury_reports_for_week(session, season.year, week)
+    statuses = week_status(session, season, week, player_ids, cluster_members)
 
     lineup: list[dict[str, Any]] = []
     starter_points = 0.0
@@ -898,7 +908,6 @@ def _team_box(
         )
 
         injury = _injury_for_player_cluster(injuries, player.player_id, cluster_members)
-        injury_payload = injury_fields(injury)
         roster_status = _extra_str(roster_row, "player_status")
         roster_status_label = _extra_str(roster_row, "player_status_label")
         # "Played" = has a real nflverse stat line (an organic 0 counts) or a
@@ -907,8 +916,20 @@ def _team_box(
         player_played = nflverse_points is not None or (
             league_points is not None and league_points > 0
         )
+        # nflverse first, the Sleeper snapshot as the fallback (D7).
+        status = for_player(statuses, player.player_id, played=player_played)
+        injury_payload = InjuryFields(
+            injury_status=status["injury_status"],
+            injury_body_part=status["injury_body_part"],
+            injury_secondary=status["injury_secondary"],
+            injury_practice_status=status["injury_practice_status"],
+        )
         reserve_eligibility = _reserve_eligibility_status(
-            roster_row, injury, injury_payload, player_played=player_played
+            roster_row,
+            injury,
+            injury_payload,
+            player_played=player_played,
+            sleeper_roster_status=status["sleeper_roster_status"],
         )
         # On a reconstructed (all-audit) week, skip the per-player drift check —
         # the team-level caveat covers it, and a badge on every row would bury
@@ -972,7 +993,7 @@ def _team_box(
             "context_detail": context_detail,
             "hamlin_substitute": _hamlin_player_context(hamlin),
             "lineup_value": None,
-            **injury_payload,
+            **badge_fields(status),
         }
         lineup.append(entry)
 

@@ -8,6 +8,8 @@
  * Probable); practice-only reports arrive with `status == null` and show nothing.
  */
 
+import { injurySourceText } from "@/lib/platform";
+
 const SHORT_STATUS: Record<string, string> = { Questionable: "Q", Doubtful: "D" };
 
 const PRACTICE_SENTENCE: Record<string, string> = {
@@ -22,9 +24,12 @@ export interface InjuryBadgeProps {
   bodyPart?: string | null;
   secondary?: string | null;
   practiceStatus?: string | null;
+  /** Where the designation came from (D7): the official report, or a platform snapshot. */
+  source?: string | null;
+  asOf?: string | null;
 }
 
-export function InjuryBadge({ status, bodyPart, secondary, practiceStatus }: InjuryBadgeProps) {
+export function InjuryBadge({ status, bodyPart, secondary, practiceStatus, source, asOf }: InjuryBadgeProps) {
   const short = SHORT_STATUS[status] ?? status;
   // "Out" already implies a missed practice, so don't repeat it as a practice code.
   const showPractice = !!practiceStatus && !(status === "Out" && practiceStatus === "Out");
@@ -37,6 +42,7 @@ export function InjuryBadge({ status, bodyPart, secondary, practiceStatus }: Inj
   const tooltip = [
     bodyFull ? `${status} — ${bodyFull}.` : `${status}.`,
     showPractice ? `${PRACTICE_SENTENCE[practiceStatus] ?? practiceStatus}.` : null,
+    injurySourceText(source, asOf),
   ]
     .filter(Boolean)
     .join(" ");

@@ -137,6 +137,31 @@ export function slotNoteText(note: string | null | undefined): string | null {
   return note === "bench_or_reserve" ? "Bench or reserve: this week's IR list wasn't archived." : null;
 }
 
+// ── Player status (Sleeper D7) ──────────────────────────────────────────────
+
+/** Injury-badge tooltip suffix naming a fallback source. The official weekly report (nflverse)
+ *  needs no note; a platform snapshot names the platform and its date. */
+export function injurySourceText(
+  source: string | null | undefined,
+  asOf: string | null | undefined,
+): string | null {
+  if (!source || source === "nflverse") return null;
+  const label = platformLabel(source);
+  return asOf ? `${label} status as of ${asOf}, before kickoff.` : `${label} status.`;
+}
+
+/** Status timeline column header for a platform's weekly snapshot. */
+export function statusSnapshotHeading(platform: string | null | undefined): string {
+  const label = platformLabel(platform);
+  return label ? `${label} snapshot` : "Snapshot";
+}
+
+/** Status timeline note: weekly snapshots are taken after the games, read as of each kickoff. */
+export function statusSnapshotNote(platform: string | null | undefined): string {
+  const label = platformLabel(platform) || "The platform";
+  return `${label} status is captured weekly after the games; each week shows the newest capture before kickoff (up to 7 days old).`;
+}
+
 // ── Cross-era aggregation (Sleeper D4) ──────────────────────────────────────
 
 export type AggregationNote = components["schemas"]["AggregationNote"];

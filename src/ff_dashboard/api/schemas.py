@@ -8,6 +8,7 @@ analytics-specific and additive.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Literal
 
 from ff_pipeline.api.schemas import (
@@ -1498,6 +1499,10 @@ class BoxPlayer(BaseModel):
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
     injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
+    # D7: which source the designation came from: "nflverse" (the week's official report) or
+    # "sleeper" (the weekly snapshot before kickoff, a fallback); null when there is none.
+    injury_source: str | None = None
+    injury_as_of: date | None = None  # the Sleeper snapshot date; null for nflverse
 
 
 class BoxTeam(BaseModel):
@@ -1606,6 +1611,10 @@ class TeamRosterPlayer(BaseModel):
     injury_body_part: str | None = None  # e.g. "Knee" | "Hamstring"
     injury_secondary: str | None = None  # secondary body part, non-injury notes dropped
     injury_practice_status: str | None = None  # short practice code: "DNP" | "Ltd" | "Full" | "Out"
+    # D7: which source the designation came from: "nflverse" (the week's official report) or
+    # "sleeper" (the weekly snapshot before kickoff, a fallback); null when there is none.
+    injury_source: str | None = None
+    injury_as_of: date | None = None  # the Sleeper snapshot date; null for nflverse
 
 
 class TeamRosterOut(BaseModel):
@@ -1879,3 +1888,46 @@ class CurrentSeason(BaseModel):
     latest_results: list[GameCard] = []
     pending_pairings: list[GameCard] = []
     standings_top: list[StandingRow] = []
+
+
+# ---------------------------------------------------------------------------
+# Player status timeline (Sleeper D7)
+# ---------------------------------------------------------------------------
+
+
+class StatusEntry(BaseModel):
+    """One status reading: an nflverse weekly report or a Sleeper snapshot."""
+
+    source: str  # "nflverse" | "sleeper"
+    as_of: date | None = None  # the snapshot date (Sleeper); null for nflverse
+    injury_status: str | None = None  # Questionable | Doubtful | Out (| Probable, pre-2016)
+    injury_body_part: str | None = None
+    injury_secondary: str | None = None
+    injury_practice_status: str | None = None  # "Full" | "Ltd" | "DNP" | "Out"
+    roster_status: str | None = None  # Sleeper IR / PUP / Sus / NA / ... (never a badge)
+    depth_chart: str | None = None  # "WR2"
+    nfl_team: str | None = None
+
+
+class StatusWeek(BaseModel):
+    week: int
+    kickoff_date: date
+    # null + null gap = not on that week's report (the report lists designated players only)
+    game_report: StatusEntry | None = None
+    game_report_gap: str | None = None  # "reports_not_loaded"
+    snapshot: StatusEntry | None = None
+    snapshot_gap: str | None = None  # "stale_or_missing_snapshot" (Sleeper seasons only)
+
+
+class PlayerStatusTimeline(BaseModel):
+    player_id: int
+    season_year: int
+    platform: str | None = None
+    platform_label: str | None = None
+    available: bool
+    reason: str | None = None  # "season_not_played"
+    has_snapshots: bool  # true on Sleeper seasons: the snapshot column exists
+    snapshot_capability: Capability | None = None
+    is_provisional: bool  # season in progress: subject to change
+    latest: StatusEntry | None = None  # newest snapshot (7-day rule) of an in-progress season
+    weeks: list[StatusWeek] = []

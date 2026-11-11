@@ -180,6 +180,8 @@ function PlayerRow({ p, muted = false }: { p: BoxPlayer; muted?: boolean }) {
             bodyPart={p.injury_body_part}
             secondary={p.injury_secondary}
             practiceStatus={p.injury_practice_status}
+            source={p.injury_source}
+            asOf={p.injury_as_of}
           />
         )}
         <ContextBadge p={p} />

@@ -15,6 +15,7 @@ import dataclasses
 import json
 import sqlite3
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -130,9 +131,58 @@ def build_mixed_era_db(
             ss.commit()
             load_league_season(ss, source, SLEEPER_LEAGUE, franchise_league_id=league_id)
             ss.commit()
+            _seed_player_status(ss)
+            ss.commit()
     finally:
         engine.dispose()
     return out
+
+
+#: D7 status seeding: the Wednesday before weeks 7, 8 and 9 (the day after the previous week's
+#: games, as the weekly capture takes it), from upstream's real-shape players directory.
+STATUS_WEEKS = (7, 8, 9)
+#: a rostered player (IR in the directory) present only on the week-7 date: weeks 8-9 are stale.
+STALE_SLEEPER_ID = "2133"
+#: nflverse 2026 rows: (sleeper id, week, status, body part). The first player is also
+#: Questionable in the Sleeper directory, so the box score proves nflverse wins.
+NFLVERSE_2026 = (("11635", 7, "Doubtful", "Ankle"), ("5850", 8, "Questionable", "Hamstring"))
+
+
+def _seed_player_status(ss: Session) -> None:
+    from ff_pipeline.normalizer.sleeper_status import status_rows
+    from ff_pipeline.repository.models import PlayerInjuryReport, PlayerStatusSnapshot
+    from ff_pipeline.repository.upsert import upsert
+
+    from ff_dashboard.analytics.status_timeline import week_kickoff
+
+    directory = json.loads((FX / "season_2026" / "v1_players_nfl.json").read_text())
+    ids = {
+        str(sid): int(pid)
+        for pid, sid in ss.execute(
+            select(Player.player_id, Player.sleeper_id).where(Player.sleeper_id.is_not(None))
+        )
+    }
+    rows: list[dict[str, Any]] = []
+    for week in STATUS_WEEKS:
+        as_of = week_kickoff(SLEEPER_YEAR, week) - timedelta(days=1)
+        keep = (
+            ids
+            if week == STATUS_WEEKS[0]
+            else {k: v for k, v in ids.items() if k != STALE_SLEEPER_ID}
+        )
+        rows.extend(status_rows(directory, as_of=as_of, player_ids=keep))
+    upsert(ss, PlayerStatusSnapshot, rows, conflict_cols=("player_id", "as_of_date", "source"))
+    for sid, week, status, body in NFLVERSE_2026:
+        ss.add(
+            PlayerInjuryReport(
+                player_id=ids[sid],
+                season_year=SLEEPER_YEAR,
+                week=week,
+                game_type="REG",
+                report_status=status,
+                report_primary_injury=body,
+            )
+        )
 
 
 #: Decided-bracket variant (D5), after upstream ``test_sleeper_rich._decided``: the playoffs start
